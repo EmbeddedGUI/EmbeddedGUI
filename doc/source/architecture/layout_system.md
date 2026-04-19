@@ -84,7 +84,7 @@ struct egui_view_linearlayout
 
 | API | 说明 |
 |-----|------|
-| `egui_view_linearlayout_init(self)` | 初始化（默认垂直方向） |
+| `egui_view_linearlayout_init(self, core)` | 初始化（默认垂直方向） |
 | `egui_view_linearlayout_set_orientation(self, h)` | 设置方向 (0=垂直, 1=水平) |
 | `egui_view_linearlayout_set_align_type(self, type)` | 设置对齐方式 |
 | `egui_view_linearlayout_set_auto_width(self, v)` | 启用自动宽度 |
@@ -147,7 +147,7 @@ struct egui_view_gridlayout
 
 | API | 说明 |
 |-----|------|
-| `egui_view_gridlayout_init(self)` | 初始化（默认 2 列） |
+| `egui_view_gridlayout_init(self, core)` | 初始化（默认 2 列） |
 | `egui_view_gridlayout_set_col_count(self, cols)` | 设置列数 |
 | `egui_view_gridlayout_set_align_type(self, type)` | 设置对齐方式 |
 
@@ -181,35 +181,35 @@ static egui_view_label_t card_1;
 static egui_view_label_t card_2;
 static egui_view_label_t card_3;
 
-void page_init(void)
+void page_init(egui_core_t *core)
 {
     // 页面根布局 - 垂直
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&page_layout));
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&page_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&page_layout), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&page_layout), 240, 320);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&page_layout), 0);
 
     // 标题栏 - 水平居中
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&title_bar));
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&title_bar), core);
     egui_view_set_size(EGUI_VIEW_OF(&title_bar), 240, 40);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&title_bar), 1);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&title_bar), EGUI_ALIGN_CENTER);
 
     // 标题文字
-    egui_view_label_init(EGUI_VIEW_OF(&title_label));
+    egui_view_label_init(EGUI_VIEW_OF(&title_label), core);
     egui_view_set_size(EGUI_VIEW_OF(&title_label), 100, 30);
     egui_view_label_set_text(EGUI_VIEW_OF(&title_label), "My App");
 
     // 卡片
-    egui_view_label_init(EGUI_VIEW_OF(&card_1));
+    egui_view_label_init(EGUI_VIEW_OF(&card_1), core);
     egui_view_set_size(EGUI_VIEW_OF(&card_1), 220, 60);
     egui_view_set_margin_all(EGUI_VIEW_OF(&card_1), 5);
 
-    egui_view_label_init(EGUI_VIEW_OF(&card_2));
+    egui_view_label_init(EGUI_VIEW_OF(&card_2), core);
     egui_view_set_size(EGUI_VIEW_OF(&card_2), 220, 60);
     egui_view_set_margin_all(EGUI_VIEW_OF(&card_2), 5);
 
-    egui_view_label_init(EGUI_VIEW_OF(&card_3));
+    egui_view_label_init(EGUI_VIEW_OF(&card_3), core);
     egui_view_set_size(EGUI_VIEW_OF(&card_3), 220, 60);
     egui_view_set_margin_all(EGUI_VIEW_OF(&card_3), 5);
 

@@ -24,7 +24,7 @@ struct egui_activity_test
 };
 
 void egui_activity_test_set_index(egui_activity_t *self, int index);
-void egui_activity_test_init(egui_activity_t *self);
+void egui_activity_test_init(egui_activity_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

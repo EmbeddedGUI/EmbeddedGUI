@@ -24,8 +24,8 @@ struct egui_view_dynamic_label
 #define egui_view_dynamic_label_apply_params       egui_view_label_apply_params
 
 void egui_view_dynamic_label_set_text(egui_view_t *self, const char *text);
-void egui_view_dynamic_label_init(egui_view_t *self);
-void egui_view_dynamic_label_init_with_params(egui_view_t *self, const egui_view_label_params_t *params);
+void egui_view_dynamic_label_init(egui_view_t *self, egui_core_t *core);
+void egui_view_dynamic_label_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

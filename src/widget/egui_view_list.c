@@ -1,8 +1,9 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_list.h"
+#include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "egui_view_icon_font.h"
 #include "font/egui_font.h"
@@ -165,9 +166,10 @@ static void egui_view_list_update_all_items(egui_view_t *self)
 
 static void egui_view_list_draw_item_contents(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_list_t);
     const egui_font_t *icon_font = egui_view_list_get_icon_font(local);
-    const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+    const egui_region_t *prev_clip = egui_canvas_get_extra_clip(canvas);
     egui_dim_t icon_width = egui_view_list_get_icon_area_width(local);
     uint8_t i;
 
@@ -176,7 +178,7 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
         icon_width = 0;
     }
 
-    egui_canvas_set_extra_clip(&self->region_screen);
+    egui_canvas_set_extra_clip(canvas, &self->region_screen);
 
     for (i = 0; i < local->item_count; i++)
     {
@@ -205,9 +207,9 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
         text_color = egui_view_get_enable(item_view) ? item_button->base.color : EGUI_THEME_DISABLED;
         text_alpha = item_button->base.alpha;
 
-        egui_canvas_clear_mask();
-        egui_canvas_calc_work_region(&item_view->region_screen);
-        if (!egui_region_is_empty(egui_canvas_get_base_view_work_region()))
+        egui_canvas_clear_mask(canvas);
+        egui_canvas_calc_work_region(canvas, &item_view->region_screen);
+        if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
         {
             if (local->item_icons[i] != NULL && icon_width > 0)
             {
@@ -217,7 +219,7 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
                 icon_region.size.height = item_view->region.size.height;
 
                 icon_color = egui_view_get_enable(item_view) ? local->icon_color : EGUI_THEME_DISABLED;
-                egui_canvas_draw_text_in_rect(icon_font, local->item_icons[i], &icon_region, EGUI_ALIGN_CENTER, icon_color, item_view->alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, local->item_icons[i], &icon_region, EGUI_ALIGN_CENTER, icon_color, item_view->alpha);
             }
 
             if (local->item_texts[i] != NULL)
@@ -233,7 +235,8 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
 
                 if (text_region.size.width > 0)
                 {
-                    egui_canvas_draw_text_in_rect(text_font, local->item_texts[i], &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, text_alpha);
+                    egui_canvas_draw_text_in_rect(canvas, text_font, local->item_texts[i], &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color,
+                                                  text_alpha);
                 }
             }
         }
@@ -241,33 +244,34 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
 
     if (prev_clip != NULL)
     {
-        egui_canvas_set_extra_clip(prev_clip);
+        egui_canvas_set_extra_clip(canvas, prev_clip);
     }
     else
     {
-        egui_canvas_clear_extra_clip();
+        egui_canvas_clear_extra_clip(canvas);
     }
 }
 
 static void egui_view_list_draw(egui_view_t *self)
 {
-    egui_alpha_t alpha = egui_canvas_get_alpha();
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
+    egui_alpha_t alpha = egui_canvas_get_alpha(canvas);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
     egui_view_scroll_draw(self);
 #else
-    egui_canvas_set_extra_clip(&self->region_screen);
+    egui_canvas_set_extra_clip(canvas, &self->region_screen);
     egui_view_group_draw(self);
-    egui_canvas_clear_extra_clip();
+    egui_canvas_clear_extra_clip(canvas);
 #endif
 
     if (self->is_visible && !self->is_gone)
     {
-        egui_canvas_mix_alpha(self->alpha);
+        egui_canvas_mix_alpha(canvas, self->alpha);
         egui_view_list_draw_item_contents(self);
     }
 
-    egui_canvas_set_alpha(alpha);
+    egui_canvas_set_alpha(canvas, alpha);
 }
 
 static void egui_view_list_item_click_handler(egui_view_t *self)
@@ -317,7 +321,7 @@ static int8_t egui_view_list_add_item_internal(egui_view_t *self, const char *ic
     idx = local->item_count;
     item_view = EGUI_VIEW_OF(&local->items[idx]);
 
-    egui_view_button_init(item_view);
+    egui_view_button_init(item_view, self->core);
     egui_view_label_set_font(item_view, (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_text(item_view, NULL);
     egui_view_set_position(item_view, 0, 0);
@@ -462,11 +466,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_list_t) = {
 #endif
 };
 
-void egui_view_list_init(egui_view_t *self)
+void egui_view_list_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_list_t);
 
-    egui_view_scroll_init(self);
+    egui_view_scroll_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_list_t);
 
     local->item_count = 0;
@@ -493,8 +497,8 @@ void egui_view_list_apply_params(egui_view_t *self, const egui_view_list_params_
     egui_view_invalidate(self);
 }
 
-void egui_view_list_init_with_params(egui_view_t *self, const egui_view_list_params_t *params)
+void egui_view_list_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_list_params_t *params)
 {
-    egui_view_list_init(self);
+    egui_view_list_init(self, core);
     egui_view_list_apply_params(self, params);
 }

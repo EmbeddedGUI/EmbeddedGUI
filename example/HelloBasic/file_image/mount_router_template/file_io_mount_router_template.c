@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "file_io_mount_router_template.h"
 #include "core/egui_common.h"
@@ -106,7 +106,7 @@ static void *file_image_mount_router_open(void *user_data, const char *path)
         return NULL;
     }
 
-    handle = (file_image_mount_router_handle_t *)egui_malloc(sizeof(*handle));
+    handle = (file_image_mount_router_handle_t *)egui_malloc(NULL, sizeof(*handle));
     if (handle == NULL)
     {
         if (inner_io->close != NULL)
@@ -174,7 +174,7 @@ static void file_image_mount_router_close(void *user_data, void *handle_ptr)
     {
         handle->inner_io->close(handle->inner_io->user_data, handle->inner_handle);
     }
-    egui_free(handle);
+    egui_free(NULL, handle);
 }
 
 void file_image_mount_router_io_init(egui_image_file_io_t *io, file_image_mount_router_context_t *ctx)
@@ -192,3 +192,4 @@ void file_image_mount_router_io_init(egui_image_file_io_t *io, file_image_mount_
     io->tell = file_image_mount_router_tell;
     io->close = file_image_mount_router_close;
 }
+

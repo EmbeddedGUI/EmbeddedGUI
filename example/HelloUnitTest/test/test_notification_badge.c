@@ -1,4 +1,5 @@
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_notification_badge.h"
 
@@ -6,9 +7,17 @@ extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_notification_bad
 
 static egui_view_notification_badge_t test_badge;
 
+static egui_core_t *test_notification_badge_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static void setup_badge(void)
 {
-    egui_view_notification_badge_init(EGUI_VIEW_OF(&test_badge));
+    egui_view_notification_badge_init(EGUI_VIEW_OF(&test_badge), test_notification_badge_get_core());
     egui_view_set_size(EGUI_VIEW_OF(&test_badge), 34, 28);
 }
 

@@ -36,12 +36,12 @@ struct egui_view_compass_params
     static const egui_view_compass_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .heading = (_heading)}
 
 void egui_view_compass_apply_params(egui_view_t *self, const egui_view_compass_params_t *params);
-void egui_view_compass_init_with_params(egui_view_t *self, const egui_view_compass_params_t *params);
+void egui_view_compass_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_compass_params_t *params);
 
 void egui_view_compass_set_heading(egui_view_t *self, int16_t heading);
 void egui_view_compass_set_show_degree(egui_view_t *self, uint8_t show);
 void egui_view_compass_on_draw(egui_view_t *self);
-void egui_view_compass_init(egui_view_t *self);
+void egui_view_compass_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

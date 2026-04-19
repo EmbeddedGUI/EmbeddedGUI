@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_tab_bar.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "core/egui_canvas_gradient.h"
 #include "font/egui_font_std.h"
@@ -100,6 +101,7 @@ void egui_view_tab_bar_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 void egui_view_tab_bar_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     if (local->tab_count == 0 || (local->tab_texts == NULL && local->tab_icons == NULL) || local->font == NULL)
     {
@@ -135,7 +137,7 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
             {
                 if (icon_font == NULL)
                 {
-                    egui_canvas_draw_text_in_rect(local->font, tab_text, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+                    egui_canvas_draw_text_in_rect(canvas, local->font, tab_text, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
                     continue;
                 }
 
@@ -188,17 +190,17 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
                 text_rect.size.width = tab_rect.size.width;
                 text_rect.size.height = tab_rect.location.y + tab_rect.size.height - text_rect.location.y;
 
-                egui_canvas_draw_text_in_rect(icon_font, tab_icon, &icon_rect, EGUI_ALIGN_CENTER, color, local->alpha);
-                egui_canvas_draw_text_in_rect(local->font, tab_text, &text_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, tab_icon, &icon_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+                egui_canvas_draw_text_in_rect(canvas, local->font, tab_text, &text_rect, EGUI_ALIGN_CENTER, color, local->alpha);
             }
             else if (icon_font != NULL)
             {
-                egui_canvas_draw_text_in_rect(icon_font, tab_icon, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, tab_icon, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
             }
         }
         else
         {
-            egui_canvas_draw_text_in_rect(local->font, tab_text, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+            egui_canvas_draw_text_in_rect(canvas, local->font, tab_text, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
         }
 
         // Draw indicator under current tab
@@ -217,10 +219,11 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
                         .alpha = local->alpha,
                         .stops = stops,
                 };
-                egui_canvas_draw_rectangle_fill_gradient(tab_rect.location.x, region.location.y + region.size.height - indicator_h, tab_w, indicator_h, &grad);
+                egui_canvas_draw_rectangle_fill_gradient(canvas, tab_rect.location.x, region.location.y + region.size.height - indicator_h, tab_w, indicator_h,
+                                                         &grad);
             }
 #else
-            egui_canvas_draw_rectangle_fill(tab_rect.location.x, region.location.y + region.size.height - indicator_h, tab_w, indicator_h,
+            egui_canvas_draw_rectangle_fill(canvas, tab_rect.location.x, region.location.y + region.size.height - indicator_h, tab_w, indicator_h,
                                             local->indicator_color, local->alpha);
 #endif
         }
@@ -329,11 +332,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_tab_bar_t) = {
 #endif
 };
 
-void egui_view_tab_bar_init(egui_view_t *self)
+void egui_view_tab_bar_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_tab_bar_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_tab_bar_t);
 
@@ -367,8 +370,8 @@ void egui_view_tab_bar_apply_params(egui_view_t *self, const egui_view_tab_bar_p
     egui_view_invalidate(self);
 }
 
-void egui_view_tab_bar_init_with_params(egui_view_t *self, const egui_view_tab_bar_params_t *params)
+void egui_view_tab_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_tab_bar_params_t *params)
 {
-    egui_view_tab_bar_init(self);
+    egui_view_tab_bar_init(self, core);
     egui_view_tab_bar_apply_params(self, params);
 }

@@ -1,4 +1,5 @@
-#include "egui_view_gauge.h"
+﻿#include "egui_view_gauge.h"
+#include "core/egui_core.h"
 #include "core/egui_common.h"
 #include "resource/egui_resource.h"
 #include "utils/egui_fixmath.h"
@@ -11,7 +12,8 @@
 
 typedef uint8_t (*egui_view_gauge_get_text_region_fn)(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r,
                                                       uint8_t value, egui_region_t *text_region);
-typedef void (*egui_view_gauge_draw_text_fn)(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r);
+typedef void (*egui_view_gauge_draw_text_fn)(egui_canvas_t *canvas, egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
+                                             egui_dim_t inner_r);
 
 struct egui_view_gauge_text_ops
 {
@@ -143,12 +145,14 @@ static uint8_t egui_view_gauge_get_text_region_rich(egui_view_gauge_t *local, eg
     return egui_region_is_empty(text_region) ? 0 : 1;
 }
 
-static void egui_view_gauge_draw_text_basic(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r)
+static void egui_view_gauge_draw_text_basic(egui_canvas_t *canvas, egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
+                                            egui_dim_t inner_r)
 {
-    egui_view_ring_text_draw_basic(center_x, center_y, inner_r, EGUI_MAX(radius / 10, 3) + 1, 0, local->value, 0, local->text_color, EGUI_ALPHA_100);
+    egui_view_ring_text_draw_basic(canvas, center_x, center_y, inner_r, EGUI_MAX(radius / 10, 3) + 1, 0, local->value, 0, local->text_color, EGUI_ALPHA_100);
 }
 
-static void egui_view_gauge_draw_text_rich(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r)
+static void egui_view_gauge_draw_text_rich(egui_canvas_t *canvas, egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
+                                           egui_dim_t inner_r)
 {
     char val_buf[8];
     egui_region_t text_rect;
@@ -157,7 +161,7 @@ static void egui_view_gauge_draw_text_rich(egui_view_gauge_t *local, egui_dim_t 
     egui_view_ring_text_format_value(local->value, 0, val_buf, sizeof(val_buf));
     if (text_font != NULL && egui_view_gauge_get_text_box_rich(local, center_x, center_y, radius, inner_r, val_buf, &text_rect))
     {
-        egui_canvas_draw_text_in_rect(text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
     }
 }
 
@@ -311,6 +315,7 @@ void egui_view_gauge_set_text_color(egui_view_t *self, egui_color_t color)
 void egui_view_gauge_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_gauge_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -345,10 +350,10 @@ void egui_view_gauge_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = bg_stops,
         };
-        egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, bg_start, bg_end, &bg_grad);
+        egui_canvas_draw_arc_ring_fill_gradient(canvas, center_x, center_y, radius, inner_r, bg_start, bg_end, &bg_grad);
     }
 #else
-    egui_canvas_draw_arc(center_x, center_y, radius, bg_start, bg_end, local->stroke_width, local->bk_color, EGUI_ALPHA_100);
+    egui_canvas_draw_arc(canvas, center_x, center_y, radius, bg_start, bg_end, local->stroke_width, local->bk_color, EGUI_ALPHA_100);
 #endif
 
     // Progress arc
@@ -368,10 +373,10 @@ void egui_view_gauge_on_draw(egui_view_t *self)
                     .alpha = EGUI_ALPHA_100,
                     .stops = stops,
             };
-            egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, bg_start, progress_end, &grad);
+            egui_canvas_draw_arc_ring_fill_gradient(canvas, center_x, center_y, radius, inner_r, bg_start, progress_end, &grad);
         }
 #else
-        egui_canvas_draw_arc(center_x, center_y, radius, bg_start, progress_end, local->stroke_width, local->progress_color, EGUI_ALPHA_100);
+        egui_canvas_draw_arc(canvas, center_x, center_y, radius, bg_start, progress_end, local->stroke_width, local->progress_color, EGUI_ALPHA_100);
 #endif
     }
 
@@ -395,7 +400,7 @@ void egui_view_gauge_on_draw(egui_view_t *self)
 
             egui_view_circle_dirty_get_circle_point(center_x, center_y, tick_base, tick_deg, &x1, &y1);
             egui_view_circle_dirty_get_circle_point(center_x, center_y, tick_base - tlen, tick_deg, &x2, &y2);
-            egui_canvas_draw_line(x1, y1, x2, y2, is_major ? 2 : 1, local->needle_color, ta);
+            egui_canvas_draw_line(canvas, x1, y1, x2, y2, is_major ? 2 : 1, local->needle_color, ta);
         }
     }
     if (needle_len > 0)
@@ -407,7 +412,7 @@ void egui_view_gauge_on_draw(egui_view_t *self)
         egui_dim_t hand_w = local->needle_width;
 
         egui_view_circle_dirty_get_circle_point(center_x, center_y, needle_len, needle_deg, &tip_x, &tip_y);
-        egui_canvas_draw_line_round_cap_hq(center_x, center_y, tip_x, tip_y, hand_w, local->needle_color, EGUI_ALPHA_100);
+        egui_canvas_draw_line_round_cap_hq(canvas, center_x, center_y, tip_x, tip_y, hand_w, local->needle_color, EGUI_ALPHA_100);
     }
 
     // Center dot decoration
@@ -424,16 +429,16 @@ void egui_view_gauge_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_circle_fill_gradient(center_x, center_y, center_dot_r, &grad);
+        egui_canvas_draw_circle_fill_gradient(canvas, center_x, center_y, center_dot_r, &grad);
     }
 #else
-    egui_canvas_draw_circle_fill(center_x, center_y, center_dot_r, local->needle_color, EGUI_ALPHA_100);
+    egui_canvas_draw_circle_fill(canvas, center_x, center_y, center_dot_r, local->needle_color, EGUI_ALPHA_100);
 #endif
 
     // Center value text below the pivot dot. NULL font falls back to the default widget font.
     if (local->text_ops != NULL)
     {
-        local->text_ops->draw_text(local, center_x, center_y, radius, inner_r);
+        local->text_ops->draw_text(canvas, local, center_x, center_y, radius, inner_r);
     }
 }
 
@@ -454,11 +459,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_gauge_t) = {
 #endif
 };
 
-void egui_view_gauge_init(egui_view_t *self)
+void egui_view_gauge_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_gauge_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_gauge_t);
 
@@ -489,8 +494,8 @@ void egui_view_gauge_apply_params(egui_view_t *self, const egui_view_gauge_param
     egui_view_invalidate(self);
 }
 
-void egui_view_gauge_init_with_params(egui_view_t *self, const egui_view_gauge_params_t *params)
+void egui_view_gauge_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_gauge_params_t *params)
 {
-    egui_view_gauge_init(self);
+    egui_view_gauge_init(self, core);
     egui_view_gauge_apply_params(self, params);
 }

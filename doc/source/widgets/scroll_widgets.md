@@ -18,7 +18,7 @@
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_scroll_init(self)` | 初始化 Scroll |
+| `egui_view_scroll_init(self, core)` | 初始化 Scroll |
 | `egui_view_scroll_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_scroll_add_child(self, child)` | 添加子控件 |
 | `egui_view_scroll_set_size(self, width, height)` | 设置容器大小 |
@@ -40,7 +40,7 @@ static egui_view_label_t items[10];
 
 EGUI_VIEW_SCROLL_PARAMS_INIT(scroll_params, 0, 0, 200, 120);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_scroll_init_with_params(
         EGUI_VIEW_OF(&scroll), &scroll_params);
@@ -48,7 +48,7 @@ void init_ui(void)
     char buf[16];
     for (int i = 0; i < 10; i++)
     {
-        egui_view_label_init(EGUI_VIEW_OF(&items[i]));
+        egui_view_label_init(EGUI_VIEW_OF(&items[i]), core);
         egui_view_set_size(EGUI_VIEW_OF(&items[i]), 180, 30);
         egui_view_label_set_text(EGUI_VIEW_OF(&items[i]), "Item");
         egui_view_set_margin_all(EGUI_VIEW_OF(&items[i]), 2);
@@ -56,7 +56,7 @@ void init_ui(void)
             EGUI_VIEW_OF(&scroll), EGUI_VIEW_OF(&items[i]));
     }
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&scroll));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&scroll));
 }
 ```
 
@@ -80,7 +80,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_viewpage_init(self)` | 初始化 ViewPage |
+| `egui_view_viewpage_init(self, core)` | 初始化 ViewPage |
 | `egui_view_viewpage_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_viewpage_add_child(self, child)` | 添加页面 |
 | `egui_view_viewpage_remove_child(self, child)` | 移除页面 |
@@ -109,20 +109,20 @@ static void on_page_changed(egui_view_t *self, int page_index)
     EGUI_LOG_INF("Page changed to: %d\n", page_index);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_viewpage_init_with_params(
         EGUI_VIEW_OF(&viewpage), &vp_params);
 
-    egui_view_label_init(EGUI_VIEW_OF(&page1));
+    egui_view_label_init(EGUI_VIEW_OF(&page1), core);
     egui_view_set_size(EGUI_VIEW_OF(&page1), 240, 200);
     egui_view_label_set_text(EGUI_VIEW_OF(&page1), "Page 1");
 
-    egui_view_label_init(EGUI_VIEW_OF(&page2));
+    egui_view_label_init(EGUI_VIEW_OF(&page2), core);
     egui_view_set_size(EGUI_VIEW_OF(&page2), 240, 200);
     egui_view_label_set_text(EGUI_VIEW_OF(&page2), "Page 2");
 
-    egui_view_label_init(EGUI_VIEW_OF(&page3));
+    egui_view_label_init(EGUI_VIEW_OF(&page3), core);
     egui_view_set_size(EGUI_VIEW_OF(&page3), 240, 200);
     egui_view_label_set_text(EGUI_VIEW_OF(&page3), "Page 3");
 
@@ -136,7 +136,7 @@ void init_ui(void)
     egui_view_viewpage_set_on_page_changed(
         EGUI_VIEW_OF(&viewpage), on_page_changed);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&viewpage));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&viewpage));
 }
 ```
 
@@ -160,7 +160,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_viewpage_cache_init(self)` | 初始化 ViewPageCache |
+| `egui_view_viewpage_cache_init(self, core)` | 初始化 ViewPageCache |
 | `egui_view_viewpage_cache_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_viewpage_cache_set_child_total_cnt(self, cnt)` | 设置总页面数 |
 | `egui_view_viewpage_cache_set_current_page(self, page_index)` | 直接跳转到指定页 |
@@ -204,7 +204,7 @@ EGUI_VIEW_VIEWPAGE_CACHE_PARAMS_INIT(vpc_params, 0, 0, 240, 200);
 static void *on_page_load(egui_view_t *self, int page_index)
 {
     int cache_idx = page_index % 3;
-    egui_view_label_init(EGUI_VIEW_OF(&cached_pages[cache_idx]));
+    egui_view_label_init(EGUI_VIEW_OF(&cached_pages[cache_idx]), core);
     egui_view_set_size(
         EGUI_VIEW_OF(&cached_pages[cache_idx]), 240, 200);
     egui_view_label_set_text(
@@ -218,7 +218,7 @@ static void on_page_free(egui_view_t *self, int page_index,
     // 释放页面资源
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_viewpage_cache_init_with_params(
         EGUI_VIEW_OF(&vp_cache), &vpc_params);
@@ -231,7 +231,7 @@ void init_ui(void)
     egui_view_viewpage_cache_set_current_page(
         EGUI_VIEW_OF(&vp_cache), 0);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&vp_cache));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&vp_cache));
 }
 ```
 
@@ -249,7 +249,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_tileview_init(self)` | 初始化 TileView |
+| `egui_view_tileview_init(self, core)` | 初始化 TileView |
 | `egui_view_tileview_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_tileview_add_tile(self, tile_view, col, row)` | 在指定行列添加瓦片 |
 | `egui_view_tileview_set_current(self, col, row)` | 切换到指定行列的瓦片 |
@@ -282,20 +282,20 @@ static void on_tile_changed(egui_view_t *self,
     EGUI_LOG_INF("Tile: col=%d, row=%d\n", col, row);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_tileview_init_with_params(
         EGUI_VIEW_OF(&tileview), &tv_params);
 
-    egui_view_label_init(EGUI_VIEW_OF(&tile_main));
+    egui_view_label_init(EGUI_VIEW_OF(&tile_main), core);
     egui_view_set_size(EGUI_VIEW_OF(&tile_main), 240, 240);
     egui_view_label_set_text(EGUI_VIEW_OF(&tile_main), "Main");
 
-    egui_view_label_init(EGUI_VIEW_OF(&tile_right));
+    egui_view_label_init(EGUI_VIEW_OF(&tile_right), core);
     egui_view_set_size(EGUI_VIEW_OF(&tile_right), 240, 240);
     egui_view_label_set_text(EGUI_VIEW_OF(&tile_right), "Right");
 
-    egui_view_label_init(EGUI_VIEW_OF(&tile_bottom));
+    egui_view_label_init(EGUI_VIEW_OF(&tile_bottom), core);
     egui_view_set_size(EGUI_VIEW_OF(&tile_bottom), 240, 240);
     egui_view_label_set_text(EGUI_VIEW_OF(&tile_bottom), "Bottom");
 
@@ -311,6 +311,6 @@ void init_ui(void)
         EGUI_VIEW_OF(&tileview), on_tile_changed);
     egui_view_tileview_set_current(EGUI_VIEW_OF(&tileview), 0, 0);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&tileview));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&tileview));
 }
 ```

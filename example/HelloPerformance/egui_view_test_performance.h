@@ -393,7 +393,7 @@ struct egui_view_test_performance
     int test_mode;
 };
 
-void egui_view_test_performance_init(egui_view_t *self);
+void egui_view_test_performance_init(egui_view_t *self, egui_core_t *core);
 int egui_view_test_performance_is_enabled(int test_mode);
 
 /* Ends C function definitions when using C++ */

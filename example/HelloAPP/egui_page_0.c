@@ -1,8 +1,8 @@
-﻿#include "egui.h"
+#include "egui.h"
 #include <stdlib.h>
 #include <math.h>
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "egui_page_0.h"
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_page_1_param_normal, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
@@ -50,21 +50,23 @@ static void egui_page_0_timer_callback(egui_timer_t *timer)
 void egui_page_0_on_open(egui_page_base_t *self)
 {
     egui_page_0_t *local = (egui_page_0_t *)self;
+    egui_core_t *core;
     // Call super on_open
     egui_page_base_on_open(self);
+    core = egui_page_base_get_core(self);
 
     // start timer
-    egui_timer_start_timer(&local->timer, 1000, 1000);
+    egui_page_base_start_timer(self, &local->timer, 1000, 1000);
 
     // Init all views
     // layout_1
-    egui_view_linearlayout_init((egui_view_t *)&local->layout_1);
+    egui_view_linearlayout_init((egui_view_t *)&local->layout_1, core);
     egui_view_set_position((egui_view_t *)&local->layout_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->layout_1, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->layout_1, EGUI_ALIGN_CENTER);
 
     // label_1
-    egui_view_label_init((egui_view_t *)&local->label_1);
+    egui_view_label_init((egui_view_t *)&local->label_1, core);
     egui_view_set_position((egui_view_t *)&local->label_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->label_1, EGUI_CONFIG_SCEEN_WIDTH, 0);
     egui_view_set_margin_all((egui_view_t *)&local->label_1, 5);
@@ -74,7 +76,7 @@ void egui_page_0_on_open(egui_page_base_t *self)
     egui_view_label_set_font_color((egui_view_t *)&local->label_1, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
 
     // button_1
-    egui_view_button_init((egui_view_t *)&local->button_1);
+    egui_view_button_init((egui_view_t *)&local->button_1, core);
     egui_view_set_position((egui_view_t *)&local->button_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->button_1, BUTTON_WIDTH, BUTTON_HEIGHT);
     egui_view_set_margin_all((egui_view_t *)&local->button_1, 5);
@@ -85,7 +87,7 @@ void egui_page_0_on_open(egui_page_base_t *self)
     egui_view_set_on_click_listener((egui_view_t *)&local->button_1, button_1_click_cb);
 
     // button_2
-    egui_view_button_init((egui_view_t *)&local->button_2);
+    egui_view_button_init((egui_view_t *)&local->button_2, core);
     egui_view_set_position((egui_view_t *)&local->button_2, 0, 0);
     egui_view_set_size((egui_view_t *)&local->button_2, BUTTON_WIDTH, BUTTON_HEIGHT);
     egui_view_set_margin_all((egui_view_t *)&local->button_2, 5);
@@ -96,7 +98,7 @@ void egui_page_0_on_open(egui_page_base_t *self)
     egui_view_set_on_click_listener((egui_view_t *)&local->button_2, button_2_click_cb);
 
     // image_1
-    egui_utils_view_image_std_normal_init((egui_view_t *)&local->image_1, (egui_image_t *)&egui_res_image_star_rgb565_4, 0, 0);
+    egui_utils_view_image_std_normal_init((egui_view_t *)&local->image_1, core, (egui_image_t *)&egui_res_image_star_rgb565_4, 0, 0);
 
     // bg_button
     egui_background_color_init_with_params((egui_background_t *)&bg_button, &bg_button_params);
@@ -126,7 +128,7 @@ void egui_page_0_on_close(egui_page_base_t *self)
     // Call super on_destroy
     egui_page_base_on_close(self);
     // stop timer
-    egui_timer_stop_timer(&local->timer);
+    egui_page_base_stop_timer(self, &local->timer);
 }
 
 void egui_page_0_on_key_pressed(egui_page_base_t *self, uint16_t keycode)
@@ -150,12 +152,12 @@ static const egui_page_base_api_t EGUI_VIEW_API_TABLE_NAME(egui_page_0_t) = {
         .on_key_pressed = egui_page_0_on_key_pressed, // changed
 };
 
-void egui_page_0_init(egui_page_base_t *self)
+void egui_page_0_init(egui_page_base_t *self, egui_core_t *core)
 {
     egui_page_0_t *local = (egui_page_0_t *)self;
     EGUI_UNUSED(local);
     // call super init.
-    egui_page_base_init(self);
+    egui_page_base_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_page_0_t);
 

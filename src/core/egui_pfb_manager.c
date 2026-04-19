@@ -1,12 +1,13 @@
 #include "egui_pfb_manager.h"
 #include "egui_api.h"
+#include "egui_core.h"
 #include "egui_display_driver.h"
 #include "egui_platform.h"
 
 void egui_pfb_manager_init(egui_pfb_manager_t *mgr, egui_color_int_t *pfb, int16_t width, int16_t height, int color_bytes)
 {
     int i;
-    for (i = 0; i < EGUI_CONFIG_PFB_BUFFER_COUNT; i++)
+    for (i = 0; i < EGUI_PFB_BUFFER_MAX_COUNT; i++)
     {
         mgr->buffers[i] = NULL;
     }
@@ -24,7 +25,7 @@ void egui_pfb_manager_init(egui_pfb_manager_t *mgr, egui_color_int_t *pfb, int16
 
 void egui_pfb_manager_add_buffer(egui_pfb_manager_t *mgr, egui_color_int_t *buf)
 {
-    if (mgr->buffer_count >= EGUI_CONFIG_PFB_BUFFER_COUNT || buf == NULL)
+    if (mgr->buffer_count >= EGUI_PFB_BUFFER_MAX_COUNT || buf == NULL)
     {
         return;
     }
@@ -43,16 +44,16 @@ void egui_pfb_manager_set_backup_buffer(egui_pfb_manager_t *mgr, egui_color_int_
  */
 static void egui_pfb_manager_start_flush(egui_pfb_manager_t *mgr)
 {
-    egui_display_driver_t *drv = egui_display_driver_get();
+    egui_display_driver_t *drv = egui_display_driver_get(mgr->core);
     if (drv == NULL || drv->ops->draw_area == NULL)
     {
         return;
     }
 
-#if EGUI_CONFIG_COLOR_DEPTH == 16 && EGUI_CONFIG_COLOR_16_SWAP == 1
+#if EGUI_CONFIG_COLOR_DEPTH == 16
     // Bulk byte-swap the PFB tile before sending to display.
-    // Internal rendering uses normal RGB565 layout; swap is done once here
-    // instead of per-pixel inside the blend pipeline.
+    // Per-display runtime check replaces the old compile-time EGUI_CONFIG_COLOR_16_SWAP.
+    if (mgr->core->render.color_16_swap)
     {
         uint32_t *buf32 = (uint32_t *)mgr->buffers[mgr->flush_idx];
         egui_pfb_flush_params_t *p = &mgr->flush_params[mgr->flush_idx];
@@ -75,7 +76,7 @@ static void egui_pfb_manager_start_flush(egui_pfb_manager_t *mgr)
 
     egui_pfb_flush_params_t *p = &mgr->flush_params[mgr->flush_idx];
     mgr->dma_busy = 1;
-    drv->ops->draw_area(p->x, p->y, p->w, p->h, mgr->buffers[mgr->flush_idx]);
+    drv->ops->draw_area(mgr->core, p->x, p->y, p->w, p->h, mgr->buffers[mgr->flush_idx]);
 }
 
 void egui_pfb_manager_notify_flush_complete(egui_pfb_manager_t *mgr)
@@ -99,10 +100,10 @@ static void egui_pfb_manager_wait_last_complete(egui_pfb_manager_t *mgr)
 {
     if (mgr->dma_busy)
     {
-        egui_display_driver_t *drv = egui_display_driver_get();
+        egui_display_driver_t *drv = egui_display_driver_get(mgr->core);
         if (drv != NULL && drv->ops->wait_draw_complete != NULL)
         {
-            drv->ops->wait_draw_complete();
+            drv->ops->wait_draw_complete(mgr->core);
         }
         // Only notify if the ISR hasn't already done so during wait_draw_complete.
         // When an ISR calls notify_flush_complete while we busy-waited, dma_busy
@@ -136,7 +137,7 @@ void egui_pfb_manager_submit(egui_pfb_manager_t *mgr, int16_t x, int16_t y, int1
 {
     EGUI_UNUSED(data);
 
-    egui_display_driver_t *drv = egui_display_driver_get();
+    egui_display_driver_t *drv = egui_display_driver_get(mgr->core);
     if (drv == NULL || drv->ops->draw_area == NULL)
     {
         return;
@@ -159,11 +160,11 @@ void egui_pfb_manager_submit(egui_pfb_manager_t *mgr, int16_t x, int16_t y, int1
     }
 
     // Atomically increment pending count
-    egui_base_t level = egui_hw_interrupt_disable();
+    egui_base_t level = egui_hw_interrupt_disable_core(mgr->core);
     mgr->pending_count++;
     uint8_t was_idle = !mgr->dma_busy;
     uint8_t locked = mgr->bus_locked;
-    egui_hw_interrupt_enable(level);
+    egui_hw_interrupt_enable_core(mgr->core, level);
 
     // If DMA was idle and bus is not locked, start flushing
     if (was_idle && !locked)
@@ -190,7 +191,7 @@ void egui_pfb_manager_wait_all_complete(egui_pfb_manager_t *mgr)
 
 int egui_pfb_manager_is_async(egui_pfb_manager_t *mgr)
 {
-    egui_display_driver_t *drv = egui_display_driver_get();
+    egui_display_driver_t *drv = egui_display_driver_get(mgr->core);
     if (drv != NULL && drv->ops->wait_draw_complete != NULL)
     {
         return 1;

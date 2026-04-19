@@ -21,7 +21,7 @@ description: Use when verifying code changes compile and render correctly, or wh
    make all APP=HelloUnitTest PORT=pc_test
    output\main.exe
    ```
-   要求退出码为 0。
+   要求退出码为 `0`。
 
 3. **运行时检查**
    ```bash
@@ -30,12 +30,12 @@ description: Use when verifying code changes compile and render correctly, or wh
    要求最终输出 `ALL PASSED`。
 
 4. **截图确认**
-   检查 `runtime_check_output/{APP}/default/frame_*.png`：
+   检查 `runtime_check_output/{APP}/default/frame_*.png`
    - 不能黑屏或空白
    - 控件可见，布局合理
    - 文字和图标可读
 
-## HelloBasic 子应用检查
+## HelloBasic 子示例检查
 
 ```bash
 python scripts/code_runtime_check.py --app HelloBasic --app-sub {SUB} --keep-screenshots
@@ -43,6 +43,33 @@ python scripts/code_runtime_check.py --app HelloBasic --app-sub {SUB} --keep-scr
 
 截图路径：
 `runtime_check_output/HelloBasic_{SUB}/default/frame_*.png`
+
+## 多屏专项检查
+
+多屏相关改动后，除了单独跑示例，建议优先先跑一轮一键收口：
+
+```bash
+python scripts/release_check.py --scope multi-display
+```
+
+如果需要细查编译日志或副屏截图，再拆开补跑多屏 scope：
+
+```bash
+python scripts/code_compile_check.py --scope multi-display --case-jobs 2
+python scripts/code_runtime_check.py --scope multi-display --jobs 2 --keep-screenshots
+```
+
+当前 `multi-display` scope 会覆盖：
+
+- `HelloMultiDisplay`
+- `HelloMultiDisplayHetero`
+
+适合验证：
+
+- descriptor 化副屏启动
+- per-core GUI 线程
+- 副屏输入路由
+- 多屏录制动作和截图输出
 
 ## HelloCustomWidgets 检查
 
@@ -62,15 +89,16 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --category {CATEGO
 `runtime_check_output/HelloCustomWidgets_{CATEGORY}_{WIDGET}/default/frame_*.png`
 
 说明：
+
 - `code_runtime_check.py` 会把 `APP_SUB` 里的 `/` 和 `\` 统一替换为 `_`
 - 分类批量回归适合和 `custom-widgets-check.yml`、本地收口回归保持一致
 
 ## 多页面应用检查要求
 
-- 必须检查所有页面对应截图，不允许只看首页。
-- 如果录制动作里通过 `uicode_switch_page()` 切页，需要逐帧确认每页都有正确渲染。
+- 必须检查所有页面对应截图，不允许只看首页
+- 如果录制动作里通过 `uicode_switch_page()` 切页，需要逐帧确认每页都有正确渲染
 
-## 可选：手动多分辨率验证（布局改动/新控件建议执行）
+## 可选：手动多分辨率验证
 
 `code_runtime_check.py` 当前没有 `--multi-resolution` 参数。需要手动改分辨率编译并录制：
 
@@ -80,12 +108,10 @@ make all APP={APP} PORT=pc USER_CFLAGS="-DEGUI_CONFIG_SCEEN_WIDTH=320 -DEGUI_CON
 output\main.exe output\app_egui_resource_merge.bin --record runtime_check_output/{APP}/manual_320x240 2 30 --speed 1
 ```
 
-可按同样方式测试 `240x320`、`320x320`、`480x320`。
-
 ## 失败处理
 
 1. 编译失败：先修复编译错误再重跑
-2. 运行崩溃/超时：排查空指针、越界、死循环、线程同步
+2. 运行崩溃或超时：排查空指针、越界、死循环、线程同步
 3. 渲染异常：排查布局参数、父子裁剪、资源生成和颜色/透明度设置
 4. 修复后，重复完整流程直到通过
 
@@ -94,15 +120,16 @@ output\main.exe output\app_egui_resource_merge.bin --record runtime_check_output
 | 症状 | 常见原因 | 修复方向 |
 |------|----------|----------|
 | 黑屏 | init/渲染流程未触发，或 PFB 配置不合理 | 检查初始化和 `app_egui_config.h` |
-| 图标空白 | alpha 图未设置渲染色 | 设置 `egui_view_image_set_image_color()` |
+| 图标空白 | alpha 图元未设置渲染色 | 设置 `egui_view_image_set_image_color()` |
 | 文本乱码/方框 | 字符未进字体子集 | 更新文本提取并重新生成资源 |
-| 子控件不可见 | 父容器裁剪或尺寸不足 | 调整父容器尺寸/子控件位置 |
-| 动画不动 | 动画未启动或回调未执行 | 检查 `egui_animation_start()`/定时器逻辑 |
+| 子控件不可见 | 父容器裁剪或尺寸不足 | 调整父容器尺寸、子控件位置 |
+| 动画不动 | 动画未启动或回调未执行 | 检查 `egui_animation_start()` / 定时器逻辑 |
 
 ## 文件参考
 
 | 文件 | 说明 |
 |------|------|
 | `scripts/code_runtime_check.py` | 运行时验证主脚本 |
+| `scripts/code_compile_check.py` | 编译检查主脚本 |
 | `porting/pc/sdl_port.c` | 录制与截图输出机制 |
 | `runtime_check_output/` | 运行截图输出目录 |

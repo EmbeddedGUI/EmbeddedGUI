@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_mini_calendar_t calendar;
 
@@ -21,7 +21,7 @@ static void on_date_selected(egui_view_t *self, uint8_t day)
     last_selected_day = day;
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
@@ -29,13 +29,13 @@ void test_init_ui(void)
     selected_count = 0;
     last_selected_day = 0;
 
-    egui_view_mini_calendar_init_with_params(EGUI_VIEW_OF(&calendar), &calendar_params);
+    egui_view_mini_calendar_init_with_params(EGUI_VIEW_OF(&calendar), core, &calendar_params);
     egui_view_mini_calendar_set_today(EGUI_VIEW_OF(&calendar), 22);
     egui_view_mini_calendar_set_first_day_of_week(EGUI_VIEW_OF(&calendar), 1);
     egui_view_mini_calendar_set_on_date_selected_listener(EGUI_VIEW_OF(&calendar), on_date_selected);
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&calendar));
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&calendar), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

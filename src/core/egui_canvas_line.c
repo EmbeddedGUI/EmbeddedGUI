@@ -1,4 +1,4 @@
-#include "egui_canvas.h"
+﻿#include "egui_canvas.h"
 
 /**
  * @brief Improved line drawing with Wu's anti-aliasing and correct thick line rendering.
@@ -8,7 +8,7 @@
  * Horizontal and vertical lines are optimized to use fillrect directly.
  */
 
-__EGUI_STATIC_INLINE__ void egui_canvas_line_blend_direct(egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
+__EGUI_STATIC_INLINE__ void egui_canvas_line_blend_direct(egui_canvas_t *self, egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
     if (alpha == 0)
     {
@@ -252,11 +252,11 @@ static void egui_canvas_draw_thick_line_scan(egui_canvas_t *self, egui_dim_t x1,
             {
                 if (use_direct_pfb)
                 {
-                    egui_canvas_line_blend_direct(&dst_row[px - pfb_ofs_x], color, egui_color_alpha_mix(canvas_alpha, px_alpha));
+                    egui_canvas_line_blend_direct(self, &dst_row[px - pfb_ofs_x], color, egui_color_alpha_mix(canvas_alpha, px_alpha));
                 }
                 else
                 {
-                    egui_canvas_draw_point(px, py, color, px_alpha);
+                    egui_canvas_draw_point(self, px, py, color, px_alpha);
                 }
             }
 
@@ -276,9 +276,9 @@ static void egui_canvas_draw_thick_line_scan(egui_canvas_t *self, egui_dim_t x1,
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-void egui_canvas_draw_line(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_line(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
+                           egui_alpha_t alpha)
 {
-    egui_canvas_t *self = &canvas_data;
 
     egui_dim_t deltax = EGUI_ABS(x2 - x1);
     egui_dim_t deltay = EGUI_ABS(y2 - y1);
@@ -288,7 +288,7 @@ void egui_canvas_draw_line(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim
     {
         egui_dim_t min_y = EGUI_MIN(y1, y2);
         egui_dim_t half_w = stroke_width >> 1;
-        egui_canvas_draw_fillrect(x1 - half_w, min_y, stroke_width, deltay + 1, color, alpha);
+        egui_canvas_draw_fillrect(self, x1 - half_w, min_y, stroke_width, deltay + 1, color, alpha);
         return;
     }
     // Special case: horizontal line
@@ -296,7 +296,7 @@ void egui_canvas_draw_line(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim
     {
         egui_dim_t min_x = EGUI_MIN(x1, x2);
         egui_dim_t half_w = stroke_width >> 1;
-        egui_canvas_draw_fillrect(min_x, y1 - half_w, deltax + 1, stroke_width, color, alpha);
+        egui_canvas_draw_fillrect(self, min_x, y1 - half_w, deltax + 1, stroke_width, color, alpha);
         return;
     }
 
@@ -377,11 +377,11 @@ void egui_canvas_draw_line(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim
                 {
                     if (y >= x_start && y < x_end)
                     {
-                        egui_canvas_draw_point(y, x, color, alpha_1);
+                        egui_canvas_draw_point(self, y, x, color, alpha_1);
                     }
                     if ((y + yinc) >= x_start && (y + yinc) < x_end)
                     {
-                        egui_canvas_draw_point(y + yinc, x, color, alpha_0);
+                        egui_canvas_draw_point(self, y + yinc, x, color, alpha_0);
                     }
                 }
             }
@@ -391,11 +391,11 @@ void egui_canvas_draw_line(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim
                 {
                     if (y >= y_start && y < y_end)
                     {
-                        egui_canvas_draw_point(x, y, color, alpha_1);
+                        egui_canvas_draw_point(self, x, y, color, alpha_1);
                     }
                     if ((y + yinc) >= y_start && (y + yinc) < y_end)
                     {
-                        egui_canvas_draw_point(x, y + yinc, color, alpha_0);
+                        egui_canvas_draw_point(self, x, y + yinc, color, alpha_0);
                     }
                 }
             }
@@ -419,9 +419,9 @@ void egui_canvas_draw_line(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim
  *                  Used internally by bezier curves to avoid joint artifacts.
  *                  Pixels outside the projection range [0, line_len] are skipped.
  */
-void egui_canvas_draw_line_segment(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_line_segment(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
-    egui_canvas_t *self = &canvas_data;
 
     egui_dim_t deltax = EGUI_ABS(x2 - x1);
     egui_dim_t deltay = EGUI_ABS(y2 - y1);
@@ -437,7 +437,7 @@ void egui_canvas_draw_line_segment(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, 
     // endpoint extension, which can cause joint bulges in polygon/polyline.
     if (stroke_width <= 1)
     {
-        egui_canvas_draw_line(x1, y1, x2, y2, stroke_width, color, alpha);
+        egui_canvas_draw_line(self, x1, y1, x2, y2, stroke_width, color, alpha);
         return;
     }
 
@@ -445,14 +445,14 @@ void egui_canvas_draw_line_segment(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, 
     {
         egui_dim_t min_y = EGUI_MIN(y1, y2);
         egui_dim_t half_w = stroke_width >> 1;
-        egui_canvas_draw_fillrect(x1 - half_w, min_y, stroke_width, deltay + 1, color, alpha);
+        egui_canvas_draw_fillrect(self, x1 - half_w, min_y, stroke_width, deltay + 1, color, alpha);
         return;
     }
     if (deltay == 0)
     {
         egui_dim_t min_x = EGUI_MIN(x1, x2);
         egui_dim_t half_w = stroke_width >> 1;
-        egui_canvas_draw_fillrect(min_x, y1 - half_w, deltax + 1, stroke_width, color, alpha);
+        egui_canvas_draw_fillrect(self, min_x, y1 - half_w, deltax + 1, stroke_width, color, alpha);
         return;
     }
 

@@ -1,12 +1,19 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "egui_view_lyric_scroller.h"
+#include "core/egui_core.h"
 
 static void egui_view_lyric_scroller_stop_internal(egui_view_lyric_scroller_t *local)
 {
-    if (egui_timer_check_timer_start(&local->scroll_timer))
+    egui_view_t *self = EGUI_VIEW_OF(&local->base);
+
+    if (egui_view_get_core(self) == NULL)
     {
-        egui_timer_stop_timer(&local->scroll_timer);
+        return;
+    }
+    if (egui_view_check_timer_start(self, &local->scroll_timer))
+    {
+        egui_view_stop_timer(self, &local->scroll_timer);
     }
 }
 
@@ -33,6 +40,12 @@ static void egui_view_lyric_scroller_apply_offset(egui_view_t *self)
 static void egui_view_lyric_scroller_update_timer_state(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+
+    if (egui_view_get_core(self) == NULL)
+    {
+        return;
+    }
+
     uint8_t should_run = local->is_attached && local->max_scroll_offset > 0 && local->scroll_step > 0 && local->interval_ms > 0;
 
     if (!should_run)
@@ -41,9 +54,9 @@ static void egui_view_lyric_scroller_update_timer_state(egui_view_t *self)
         return;
     }
 
-    if (!egui_timer_check_timer_start(&local->scroll_timer))
+    if (!egui_view_check_timer_start(self, &local->scroll_timer))
     {
-        egui_timer_start_timer(&local->scroll_timer, local->interval_ms, local->interval_ms);
+        egui_view_start_timer(self, &local->scroll_timer, local->interval_ms, local->interval_ms);
     }
 }
 
@@ -141,8 +154,9 @@ static void egui_view_lyric_scroller_timer_callback(egui_timer_t *timer)
 
 static void egui_view_lyric_scroller_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t clip_region;
-    const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+    const egui_region_t *prev_clip = egui_canvas_get_extra_clip(canvas);
     const egui_region_t *active_clip = &self->region_screen;
 
     if (prev_clip != NULL)
@@ -151,16 +165,16 @@ static void egui_view_lyric_scroller_draw(egui_view_t *self)
         active_clip = &clip_region;
     }
 
-    egui_canvas_set_extra_clip(active_clip);
+    egui_canvas_set_extra_clip(canvas, active_clip);
     egui_view_group_draw(self);
 
     if (prev_clip != NULL)
     {
-        egui_canvas_set_extra_clip(prev_clip);
+        egui_canvas_set_extra_clip(canvas, prev_clip);
     }
     else
     {
-        egui_canvas_clear_extra_clip();
+        egui_canvas_clear_extra_clip(canvas);
     }
 }
 
@@ -298,14 +312,14 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_lyric_scroller_t) = {
 #endif
 };
 
-void egui_view_lyric_scroller_init(egui_view_t *self)
+void egui_view_lyric_scroller_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_lyric_scroller_t);
 
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_lyric_scroller_t);
 
-    egui_view_label_init(EGUI_VIEW_OF(&local->label));
+    egui_view_label_init(EGUI_VIEW_OF(&local->label), core);
     egui_view_set_parent(EGUI_VIEW_OF(&local->label), &local->base);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&local->label), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->label));
@@ -340,8 +354,8 @@ void egui_view_lyric_scroller_apply_params(egui_view_t *self, const egui_view_ly
     egui_view_lyric_scroller_set_text(self, params->text);
 }
 
-void egui_view_lyric_scroller_init_with_params(egui_view_t *self, const egui_view_lyric_scroller_params_t *params)
+void egui_view_lyric_scroller_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_lyric_scroller_params_t *params)
 {
-    egui_view_lyric_scroller_init(self);
+    egui_view_lyric_scroller_init(self, core);
     egui_view_lyric_scroller_apply_params(self, params);
 }

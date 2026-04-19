@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_card.h"
+#include "core/egui_core.h"
 #include "style/egui_theme.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -46,11 +47,13 @@ void egui_view_card_layout_childs(egui_view_t *self, uint8_t is_horizontal, uint
 void egui_view_card_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_card_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
+    const egui_theme_t *theme = egui_theme_get(egui_view_get_core(self));
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
 
-    const egui_widget_style_desc_t *desc = egui_current_theme ? egui_current_theme->card : NULL;
+    const egui_widget_style_desc_t *desc = theme ? theme->card : NULL;
     const egui_style_t *style = desc ? egui_style_get_current(desc, EGUI_PART_MAIN, self) : NULL;
 
     egui_color_t bg = (style && !local->bg_color_custom) ? style->bg_color : local->bg_color;
@@ -62,17 +65,17 @@ void egui_view_card_on_draw(egui_view_t *self)
     // Draw filled background
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, radius, bg, alpha);
+        egui_canvas_draw_round_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, bg, alpha);
     }
 #else
-    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, radius, bg, alpha);
+    egui_canvas_draw_round_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, bg, alpha);
 #endif
 
     // Draw border
     if (border_width > 0)
     {
-        egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, radius, border_width, border_color,
-                                         EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, border_width,
+                                         border_color, EGUI_ALPHA_100);
     }
 
     // Update shadow from style
@@ -99,11 +102,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_card_t) = {
 #endif
 };
 
-void egui_view_card_init(egui_view_t *self)
+void egui_view_card_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_card_t);
     // call super init.
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_card_t);
 
@@ -117,7 +120,8 @@ void egui_view_card_init(egui_view_t *self)
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        const egui_widget_style_desc_t *desc = egui_current_theme ? egui_current_theme->card : NULL;
+        const egui_theme_t *theme = egui_theme_get(egui_view_get_core(self));
+        const egui_widget_style_desc_t *desc = theme ? theme->card : NULL;
         const egui_style_t *style = desc ? egui_style_get(desc, EGUI_PART_MAIN, EGUI_STATE_NORMAL) : NULL;
         if (style && (style->flags & EGUI_STYLE_PROP_SHADOW) && style->shadow)
         {
@@ -154,8 +158,8 @@ void egui_view_card_apply_params(egui_view_t *self, const egui_view_card_params_
     egui_view_invalidate(self);
 }
 
-void egui_view_card_init_with_params(egui_view_t *self, const egui_view_card_params_t *params)
+void egui_view_card_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_card_params_t *params)
 {
-    egui_view_card_init(self);
+    egui_view_card_init(self, core);
     egui_view_card_apply_params(self, params);
 }

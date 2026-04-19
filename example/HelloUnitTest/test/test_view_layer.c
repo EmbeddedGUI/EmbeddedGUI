@@ -1,4 +1,5 @@
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_view_layer.h"
 
@@ -10,25 +11,35 @@ static egui_view_t test_child2;
 static egui_view_t test_child3;
 static egui_view_t test_child4;
 
+static egui_core_t *test_view_layer_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static void test_layer_default_value(void)
 {
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, test_view_layer_get_core());
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_LAYER_DEFAULT, egui_view_get_layer(&test_child1));
 }
 
 static void test_layer_set_get(void)
 {
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, test_view_layer_get_core());
     egui_view_set_layer(&test_child1, EGUI_VIEW_LAYER_OVERLAY);
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_LAYER_OVERLAY, egui_view_get_layer(&test_child1));
 }
 
 static void test_layer_same_layer_order(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
-    egui_view_init(&test_child3);
+    egui_core_t *core = test_view_layer_get_core();
+
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
+    egui_view_init(&test_child3, core);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child2);
@@ -41,10 +52,12 @@ static void test_layer_same_layer_order(void)
 
 static void test_layer_ordering(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
-    egui_view_init(&test_child3);
+    egui_core_t *core = test_view_layer_get_core();
+
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
+    egui_view_init(&test_child3, core);
 
     egui_view_set_layer(&test_child1, EGUI_VIEW_LAYER_OVERLAY); // 192
     egui_view_set_layer(&test_child2, EGUI_VIEW_LAYER_DEFAULT); // 0
@@ -63,10 +76,12 @@ static void test_layer_ordering(void)
 
 static void test_layer_runtime_change(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
-    egui_view_init(&test_child3);
+    egui_core_t *core = test_view_layer_get_core();
+
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
+    egui_view_init(&test_child3, core);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child2);
@@ -85,11 +100,13 @@ static void test_layer_runtime_change(void)
 
 static void test_layer_stable_within_layer(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
-    egui_view_init(&test_child3);
-    egui_view_init(&test_child4);
+    egui_core_t *core = test_view_layer_get_core();
+
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
+    egui_view_init(&test_child3, core);
+    egui_view_init(&test_child4, core);
 
     egui_view_set_layer(&test_child1, 10);
     egui_view_set_layer(&test_child2, 10);
@@ -108,10 +125,12 @@ static void test_layer_stable_within_layer(void)
 
 static void test_layer_bring_to_front(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
-    egui_view_init(&test_child3);
+    egui_core_t *core = test_view_layer_get_core();
+
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
+    egui_view_init(&test_child3, core);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child2);
@@ -127,10 +146,12 @@ static void test_layer_bring_to_front(void)
 
 static void test_layer_send_to_back(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
-    egui_view_init(&test_child3);
+    egui_core_t *core = test_view_layer_get_core();
+
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
+    egui_view_init(&test_child3, core);
 
     egui_view_set_layer(&test_child1, EGUI_VIEW_LAYER_CONTENT);
     egui_view_set_layer(&test_child2, EGUI_VIEW_LAYER_CONTENT);

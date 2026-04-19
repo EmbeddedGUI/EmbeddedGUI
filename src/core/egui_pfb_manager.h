@@ -3,14 +3,16 @@
 
 #include "egui_common.h"
 
+/* Forward declaration to avoid circular include */
+struct egui_core;
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#if EGUI_CONFIG_PFB_BUFFER_COUNT < 1 || EGUI_CONFIG_PFB_BUFFER_COUNT > 4
-#error "EGUI_CONFIG_PFB_BUFFER_COUNT must be in range [1, 4]"
-#endif
+/** Maximum PFB buffer ring depth. Fixed at compile time. */
+#define EGUI_PFB_BUFFER_MAX_COUNT 4
 
 /**
  * Draw parameters stored per ring entry.
@@ -36,8 +38,8 @@ typedef struct egui_pfb_flush_params
  */
 struct egui_pfb_manager
 {
-    egui_color_int_t *buffers[EGUI_CONFIG_PFB_BUFFER_COUNT];
-    egui_pfb_flush_params_t flush_params[EGUI_CONFIG_PFB_BUFFER_COUNT];
+    egui_color_int_t *buffers[EGUI_PFB_BUFFER_MAX_COUNT];
+    egui_pfb_flush_params_t flush_params[EGUI_PFB_BUFFER_MAX_COUNT];
 
     int16_t width;
     int16_t height;
@@ -49,6 +51,8 @@ struct egui_pfb_manager
     volatile uint8_t pending_count; // Buffers rendered but not yet flushed by DMA
     volatile uint8_t dma_busy;      // 1 if DMA transfer is in progress
     volatile uint8_t bus_locked;    // 1 if SPI bus is locked (e.g., flash access)
+
+    struct egui_core *core; // Back-pointer to owning core instance
 };
 
 /**

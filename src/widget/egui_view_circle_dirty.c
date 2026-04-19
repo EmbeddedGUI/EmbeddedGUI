@@ -1,9 +1,6 @@
 #include "egui_view_circle_dirty.h"
 #include "core/egui_trig_lut.h"
 
-/* Quarter sine table in egui_float_t, i = 0..90. */
-static const egui_float_t egui_view_circle_dirty_sin_lut[91] = {EGUI_TRIG_SIN_LUT_VALUES};
-
 static int32_t egui_view_circle_dirty_sin_q15(int32_t deg)
 {
     deg = ((deg % 360) + 360) % 360;
@@ -19,7 +16,7 @@ static int32_t egui_view_circle_dirty_sin_q15(int32_t deg)
         deg = 180 - deg;
     }
 
-    return egui_trig_float_to_q15(egui_view_circle_dirty_sin_lut[deg]) * sign;
+    return egui_trig_float_to_q15(egui_trig_sin_lut[deg]) * sign;
 }
 
 static int32_t egui_view_circle_dirty_cos_q15(int32_t deg)

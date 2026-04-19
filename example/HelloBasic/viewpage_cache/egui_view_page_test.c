@@ -1,8 +1,8 @@
-﻿#include "egui.h"
+#include "egui.h"
 #include <stdlib.h>
 #include <math.h>
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "egui_view_page_test.h"
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_1_param_normal, EGUI_THEME_SURFACE, EGUI_ALPHA_100);
@@ -23,13 +23,13 @@ static const egui_background_color_t *bg_list[] = {
         &bg_3,
 };
 
-void egui_view_page_test_sub_view_init(egui_view_t *self)
+static void egui_view_page_test_sub_view_init(egui_view_t *self, egui_core_t *core)
 {
     egui_view_page_test_t *local = (egui_view_page_test_t *)self;
 
     // Init all views
     // label_1
-    egui_view_label_init((egui_view_t *)&local->label_1);
+    egui_view_label_init((egui_view_t *)&local->label_1, core);
     egui_view_set_size((egui_view_t *)&local->label_1, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_label_set_text((egui_view_t *)&local->label_1, local->label_str);
     egui_view_label_set_align_type((egui_view_t *)&local->label_1, EGUI_ALIGN_CENTER);
@@ -51,14 +51,14 @@ void egui_view_page_test_set_index(egui_view_t *self, int index)
     egui_api_sprintf(local->label_str, "Page %d", index);
 
     // reinit.
-    egui_view_page_test_sub_view_init(self);
+    egui_view_page_test_sub_view_init(self, egui_view_get_core(self));
 }
 
-void egui_view_page_test_init(egui_view_t *self)
+void egui_view_page_test_init(egui_view_t *self, egui_core_t *core)
 {
     // call super init.
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
 
     // init local data.
-    egui_view_page_test_sub_view_init(self);
+    egui_view_page_test_sub_view_init(self, core);
 }

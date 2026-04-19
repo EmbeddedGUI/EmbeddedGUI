@@ -45,7 +45,7 @@ struct egui_view_scale_params
             .region = {{(_x), (_y)}, {(_w), (_h)}}, .range_min = (_min), .range_max = (_max), .major_tick_count = (_major)}
 
 void egui_view_scale_apply_params(egui_view_t *self, const egui_view_scale_params_t *params);
-void egui_view_scale_init_with_params(egui_view_t *self, const egui_view_scale_params_t *params);
+void egui_view_scale_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_scale_params_t *params);
 
 void egui_view_scale_set_range(egui_view_t *self, int16_t min, int16_t max);
 void egui_view_scale_set_value(egui_view_t *self, int16_t value);
@@ -58,7 +58,7 @@ void egui_view_scale_show_labels(egui_view_t *self, uint8_t show);
 void egui_view_scale_show_indicator(egui_view_t *self, uint8_t show);
 void egui_view_scale_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_scale_on_draw(egui_view_t *self);
-void egui_view_scale_init(egui_view_t *self);
+void egui_view_scale_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

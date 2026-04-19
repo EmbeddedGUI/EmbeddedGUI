@@ -3,10 +3,18 @@
 
 #include "egui_animation.h"
 #include "widget/egui_view.h"
+#include "core/egui_core_internal.h"
 #include "core/egui_api.h"
 
-extern void egui_core_animation_append(egui_animation_t *anim);
-extern void egui_core_animation_remove(egui_animation_t *anim);
+static egui_core_t *egui_animation_get_core(egui_animation_t *self)
+{
+    if (self == NULL || self->target_view == NULL)
+    {
+        return NULL;
+    }
+
+    return egui_view_get_core(self->target_view);
+}
 
 void egui_animation_duration_set(egui_animation_t *self, uint16_t duration)
 {
@@ -82,10 +90,19 @@ void egui_animation_notify_repeat(egui_animation_t *self)
 
 void egui_animation_start(egui_animation_t *self)
 {
+    egui_core_t *core;
+
     if (self->target_view == NULL)
     {
         return;
     }
+
+    core = egui_animation_get_core(self);
+    if (!self->is_inside_animation && core == NULL)
+    {
+        return;
+    }
+
     self->start_time = (uint32_t)-1;
     self->is_running = true;
     self->is_started = false;
@@ -95,7 +112,7 @@ void egui_animation_start(egui_animation_t *self)
 
     if (!self->is_inside_animation)
     {
-        egui_core_animation_append(self);
+        egui_core_animation_append(core, self);
     }
 
     self->api->on_start(self);
@@ -105,10 +122,16 @@ void egui_animation_stop(egui_animation_t *self)
 {
     if (self->is_running)
     {
+        egui_core_t *core;
+
         self->is_running = false;
         if (!self->is_inside_animation)
         {
-            egui_core_animation_remove(self);
+            core = egui_animation_get_core(self);
+            if (core != NULL)
+            {
+                egui_core_animation_remove(core, self);
+            }
         }
     }
 }

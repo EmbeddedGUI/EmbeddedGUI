@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 image buttons: XS / S / M / L
 static egui_view_image_button_t imgbtn_xs;
@@ -66,7 +66,7 @@ static void image_button_click_cb(egui_view_t *self)
     EGUI_LOG_INF("Image Button Clicked\n");
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
@@ -74,31 +74,31 @@ void test_init_ui(void)
 #endif
 
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init all image buttons
-    egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_xs), &imgbtn_xs_params);
+    egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_xs), core, &imgbtn_xs_params);
     egui_view_image_button_set_icon(EGUI_VIEW_OF(&imgbtn_xs), EGUI_ICON_MS_PLAY_ARROW);
     egui_view_image_button_set_icon_font(EGUI_VIEW_OF(&imgbtn_xs), EGUI_FONT_ICON_MS_16);
     egui_view_image_button_set_text(EGUI_VIEW_OF(&imgbtn_xs), "Play");
     egui_view_image_button_set_icon_text_gap(EGUI_VIEW_OF(&imgbtn_xs), 1);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&imgbtn_xs), image_button_click_cb);
 
-    egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_s), &imgbtn_s_params);
+    egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_s), core, &imgbtn_s_params);
     egui_view_image_button_set_icon(EGUI_VIEW_OF(&imgbtn_s), EGUI_ICON_MS_SEARCH);
     egui_view_image_button_set_icon_font(EGUI_VIEW_OF(&imgbtn_s), EGUI_FONT_ICON_MS_20);
     egui_view_image_button_set_text(EGUI_VIEW_OF(&imgbtn_s), "Find");
     egui_view_image_button_set_icon_text_gap(EGUI_VIEW_OF(&imgbtn_s), 2);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&imgbtn_s), image_button_click_cb);
 
-    egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_m), &imgbtn_m_params);
+    egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_m), core, &imgbtn_m_params);
     egui_view_image_button_set_icon(EGUI_VIEW_OF(&imgbtn_m), EGUI_ICON_MS_SYNC);
     egui_view_image_button_set_icon_font(EGUI_VIEW_OF(&imgbtn_m), EGUI_FONT_ICON_MS_20);
     egui_view_image_button_set_text(EGUI_VIEW_OF(&imgbtn_m), "Sync");
     egui_view_image_button_set_icon_text_gap(EGUI_VIEW_OF(&imgbtn_m), 2);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&imgbtn_m), image_button_click_cb);
 
-    egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_l), &imgbtn_l_params);
+    egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_l), core, &imgbtn_l_params);
     egui_view_image_button_set_icon(EGUI_VIEW_OF(&imgbtn_l), EGUI_ICON_MS_HEART);
     egui_view_image_button_set_icon_font(EGUI_VIEW_OF(&imgbtn_l), EGUI_FONT_ICON_MS_24);
     egui_view_image_button_set_text(EGUI_VIEW_OF(&imgbtn_l), "Like");
@@ -124,7 +124,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

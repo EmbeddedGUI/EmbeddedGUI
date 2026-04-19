@@ -258,8 +258,9 @@ static void stmpe610_del(egui_hal_touch_driver_t *self)
 }
 
 /* Driver: read */
-static int stmpe610_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int stmpe610_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     egui_touch_stmpe610_priv_t *priv = (egui_touch_stmpe610_priv_t *)self->priv;
     uint8_t fifo_count;
     uint32_t sum_x = 0;

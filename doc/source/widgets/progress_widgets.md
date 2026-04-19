@@ -16,7 +16,7 @@
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_progress_bar_init(self)` | 初始化 ProgressBar |
+| `egui_view_progress_bar_init(self, core)` | 初始化 ProgressBar |
 | `egui_view_progress_bar_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_progress_bar_set_process(self, process)` | 设置进度值(0-100) |
 | `egui_view_progress_bar_set_on_progress_listener(self, listener)` | 设置进度变化回调 |
@@ -40,11 +40,11 @@ static egui_view_progress_bar_t progress;
 
 EGUI_VIEW_PROGRESS_BAR_PARAMS_INIT(pb_params, 0, 0, 180, 20, 75);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_progress_bar_init_with_params(EGUI_VIEW_OF(&progress), &pb_params);
     egui_view_set_margin_all(EGUI_VIEW_OF(&progress), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&progress));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&progress));
 }
 
 // 运行时更新进度
@@ -68,7 +68,7 @@ void update_progress(uint8_t val)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_circular_progress_bar_init(self)` | 初始化 CircularProgressBar |
+| `egui_view_circular_progress_bar_init(self, core)` | 初始化 CircularProgressBar |
 | `egui_view_circular_progress_bar_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_circular_progress_bar_set_process(self, process)` | 设置进度值(0-100) |
 | `egui_view_circular_progress_bar_set_stroke_width(self, stroke_width)` | 设置圆弧线宽 |
@@ -94,7 +94,7 @@ static void on_progress(egui_view_t *self, uint8_t progress)
     EGUI_LOG_INF("Circular Progress: %d\n", progress);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_circular_progress_bar_init_with_params(EGUI_VIEW_OF(&cpb), &cpb_params);
     egui_view_circular_progress_bar_set_stroke_width(EGUI_VIEW_OF(&cpb), 6);
@@ -102,7 +102,7 @@ void init_ui(void)
     egui_view_circular_progress_bar_set_progress_color(EGUI_VIEW_OF(&cpb), EGUI_THEME_PRIMARY);
     egui_view_circular_progress_bar_set_on_progress_listener(EGUI_VIEW_OF(&cpb), on_progress);
     egui_view_set_margin_all(EGUI_VIEW_OF(&cpb), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&cpb));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&cpb));
 }
 ```
 
@@ -120,7 +120,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_activity_ring_init(self)` | 初始化 ActivityRing |
+| `egui_view_activity_ring_init(self, core)` | 初始化 ActivityRing |
 | `egui_view_activity_ring_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_activity_ring_set_value(self, ring_index, value)` | 设置指定环的进度值(0-100) |
 | `egui_view_activity_ring_get_value(self, ring_index)` | 获取指定环的进度值 |
@@ -145,7 +145,7 @@ static egui_view_activity_ring_t ring;
 
 EGUI_VIEW_ACTIVITY_RING_PARAMS_INIT(ring_params, 0, 0, 116, 116);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_activity_ring_init_with_params(EGUI_VIEW_OF(&ring), &ring_params);
     egui_view_activity_ring_set_stroke_width(EGUI_VIEW_OF(&ring), 12);
@@ -172,7 +172,7 @@ void init_ui(void)
     egui_view_activity_ring_set_ring_bg_color(EGUI_VIEW_OF(&ring), 2,
         EGUI_COLOR_MAKE(0x0E, 0x2F, 0x3E));
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&ring));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&ring));
 }
 ```
 
@@ -196,7 +196,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_spinner_init(self)` | 初始化 Spinner |
+| `egui_view_spinner_init(self, core)` | 初始化 Spinner |
 | `egui_view_spinner_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_spinner_start(self)` | 启动旋转动画 |
 | `egui_view_spinner_stop(self)` | 停止旋转动画 |
@@ -215,12 +215,12 @@ static egui_view_spinner_t spinner;
 
 EGUI_VIEW_SPINNER_PARAMS_INIT(spinner_params, 0, 0, 62, 62);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_spinner_init_with_params(EGUI_VIEW_OF(&spinner), &spinner_params);
     egui_view_spinner_start(EGUI_VIEW_OF(&spinner));
     egui_view_set_margin_all(EGUI_VIEW_OF(&spinner), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&spinner));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&spinner));
 }
 
 // 加载完成后停止

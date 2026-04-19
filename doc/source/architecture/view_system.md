@@ -211,21 +211,21 @@ static void on_button_click(egui_view_t *self)
     egui_view_label_set_text(EGUI_VIEW_OF(&my_label), "Clicked!");
 }
 
-void my_page_init(void)
+void my_page_init(egui_core_t *core)
 {
     // 初始化 group
-    egui_view_group_init(EGUI_VIEW_OF(&my_group));
+    egui_view_group_init(EGUI_VIEW_OF(&my_group), core);
     egui_view_set_position(EGUI_VIEW_OF(&my_group), 10, 10);
     egui_view_set_size(EGUI_VIEW_OF(&my_group), 200, 100);
 
     // 初始化 label
-    egui_view_label_init(EGUI_VIEW_OF(&my_label));
+    egui_view_label_init(EGUI_VIEW_OF(&my_label), core);
     egui_view_set_position(EGUI_VIEW_OF(&my_label), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&my_label), 200, 30);
     egui_view_label_set_text(EGUI_VIEW_OF(&my_label), "Hello EGUI");
 
     // 初始化 button
-    egui_view_button_init(EGUI_VIEW_OF(&my_button));
+    egui_view_button_init(EGUI_VIEW_OF(&my_button), core);
     egui_view_set_position(EGUI_VIEW_OF(&my_button), 0, 40);
     egui_view_set_size(EGUI_VIEW_OF(&my_button), 100, 40);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&my_button), on_button_click);
@@ -235,7 +235,7 @@ void my_page_init(void)
     egui_view_group_add_child(EGUI_VIEW_OF(&my_group), EGUI_VIEW_OF(&my_button));
 
     // 添加到用户根视图
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&my_group));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&my_group));
 }
 ```
 

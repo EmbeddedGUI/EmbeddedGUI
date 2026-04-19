@@ -1,13 +1,14 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_chart_pie.h"
+#include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
 typedef egui_dim_t (*egui_view_chart_pie_get_font_height_fn)(egui_view_chart_pie_t *local);
-typedef void (*egui_view_chart_pie_draw_legend_text_fn)(egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect);
+typedef void (*egui_view_chart_pie_draw_legend_text_fn)(egui_canvas_t *canvas, egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect);
 
 struct egui_view_chart_pie_text_ops
 {
@@ -35,8 +36,8 @@ typedef struct egui_view_chart_pie_work_region_info
 #define EGUI_VIEW_CHART_PIE_ANGLE_CULL_PAD_DEG   0
 #define EGUI_VIEW_CHART_PIE_ANGLE_WINDOW_PAD_DEG 5
 
-static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
-static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
+static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
+static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
 static int16_t egui_view_chart_pie_integer_atan2_deg(int32_t dy, int32_t dx);
 
 static egui_dim_t egui_view_chart_pie_get_font_height_basic(egui_view_chart_pie_t *local)
@@ -55,7 +56,7 @@ static egui_dim_t egui_view_chart_pie_get_font_height_rich(egui_view_chart_pie_t
     return EGUI_FONT_STD_GET_FONT_HEIGHT(local->font);
 }
 
-static void egui_view_chart_pie_draw_legend_text_basic(egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect)
+static void egui_view_chart_pie_draw_legend_text_basic(egui_canvas_t *canvas, egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect)
 {
     const egui_font_t *font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 
@@ -66,18 +67,18 @@ static void egui_view_chart_pie_draw_legend_text_basic(egui_view_chart_pie_t *lo
 
     if (font != NULL)
     {
-        egui_canvas_draw_text_in_rect(font, text, text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, font, text, text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
     }
 }
 
-static void egui_view_chart_pie_draw_legend_text_rich(egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect)
+static void egui_view_chart_pie_draw_legend_text_rich(egui_canvas_t *canvas, egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect)
 {
     if (local == NULL || local->font == NULL || text == NULL || text_rect == NULL)
     {
         return;
     }
 
-    egui_canvas_draw_text_in_rect(local->font, text, text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect(canvas, local->font, text, text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
 }
 
 static const egui_view_chart_pie_text_ops_t egui_view_chart_pie_basic_text_ops = {
@@ -100,9 +101,9 @@ static egui_dim_t egui_view_chart_pie_get_font_height(egui_view_chart_pie_t *loc
     return local->text_ops->get_font_height(local);
 }
 
-static int egui_view_chart_pie_rect_intersects_work_region(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+static int egui_view_chart_pie_rect_intersects_work_region(egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
-    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
     egui_dim_t rect_x2;
     egui_dim_t rect_y2;
     egui_dim_t work_x2;
@@ -550,8 +551,9 @@ static int egui_view_chart_pie_slice_circle_edge_hits_region(const egui_region_t
     return 0;
 }
 
-static int egui_view_chart_pie_slice_bbox_intersects_work_region(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle,
-                                                                 uint16_t sweep, egui_dim_t *start_x, egui_dim_t *start_y, egui_dim_t *end_x, egui_dim_t *end_y)
+static int egui_view_chart_pie_slice_bbox_intersects_work_region(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
+                                                                 int16_t start_angle, uint16_t sweep, egui_dim_t *start_x, egui_dim_t *start_y,
+                                                                 egui_dim_t *end_x, egui_dim_t *end_y)
 {
     static const int16_t critical_angles[] = {0, 90, 180, 270};
     egui_dim_t edge_radius;
@@ -574,7 +576,7 @@ static int egui_view_chart_pie_slice_bbox_intersects_work_region(egui_dim_t cent
         *start_y = center_y;
         *end_x = center_x + radius;
         *end_y = center_y;
-        return egui_view_chart_pie_rect_intersects_work_region(center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1);
+        return egui_view_chart_pie_rect_intersects_work_region(canvas, center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1);
     }
 
     edge_radius = radius + 1;
@@ -606,13 +608,13 @@ static int egui_view_chart_pie_slice_bbox_intersects_work_region(egui_dim_t cent
         bbox_max_y = EGUI_MAX(bbox_max_y, axis_y);
     }
 
-    return egui_view_chart_pie_rect_intersects_work_region(bbox_min_x - 1, bbox_min_y - 1, bbox_max_x - bbox_min_x + 3, bbox_max_y - bbox_min_y + 3);
+    return egui_view_chart_pie_rect_intersects_work_region(canvas, bbox_min_x - 1, bbox_min_y - 1, bbox_max_x - bbox_min_x + 3, bbox_max_y - bbox_min_y + 3);
 }
 
-static int egui_view_chart_pie_slice_intersects_work_region(const egui_view_chart_pie_work_region_info_t *work_info, egui_dim_t center_x, egui_dim_t center_y,
-                                                            egui_dim_t radius, int16_t start_angle, uint16_t sweep)
+static int egui_view_chart_pie_slice_intersects_work_region(egui_canvas_t *canvas, const egui_view_chart_pie_work_region_info_t *work_info, egui_dim_t center_x,
+                                                            egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, uint16_t sweep)
 {
-    egui_region_t *work = (work_info != NULL) ? work_info->work : egui_canvas_get_base_view_work_region();
+    egui_region_t *work = (work_info != NULL) ? work_info->work : egui_canvas_get_base_view_work_region(canvas);
     egui_dim_t start_x;
     egui_dim_t start_y;
     egui_dim_t end_x;
@@ -625,7 +627,7 @@ static int egui_view_chart_pie_slice_intersects_work_region(const egui_view_char
 
     if (sweep >= 360U)
     {
-        return egui_view_chart_pie_rect_intersects_work_region(center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1);
+        return egui_view_chart_pie_rect_intersects_work_region(canvas, center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1);
     }
 
     if (work_info != NULL)
@@ -646,7 +648,7 @@ static int egui_view_chart_pie_slice_intersects_work_region(const egui_view_char
         }
     }
 
-    if (!egui_view_chart_pie_slice_bbox_intersects_work_region(center_x, center_y, radius, start_angle, sweep, &start_x, &start_y, &end_x, &end_y))
+    if (!egui_view_chart_pie_slice_bbox_intersects_work_region(canvas, center_x, center_y, radius, start_angle, sweep, &start_x, &start_y, &end_x, &end_y))
     {
         return 0;
     }
@@ -678,7 +680,7 @@ static int egui_view_chart_pie_slice_intersects_work_region(const egui_view_char
     }
 
     if ((work_info != NULL && work_info->inside_solid_circle && sweep <= 180U) ||
-        (work_info == NULL && sweep <= 180U && egui_view_chart_pie_is_work_region_inside_solid_circle(center_x, center_y, radius)))
+        (work_info == NULL && sweep <= 180U && egui_view_chart_pie_is_work_region_inside_solid_circle(canvas, center_x, center_y, radius)))
     {
         return 0;
     }
@@ -745,9 +747,9 @@ static int egui_view_chart_pie_compute_geometry(egui_view_chart_pie_t *local, eg
     return (geometry->radius > 0) ? 1 : 0;
 }
 
-static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius)
+static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius)
 {
-    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
     egui_dim_t x0;
     egui_dim_t y0;
     egui_dim_t x1;
@@ -781,9 +783,9 @@ static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t cen
 #undef EGUI_VIEW_CHART_PIE_CORNER_INSIDE
 }
 
-static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius)
+static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius)
 {
-    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
     egui_dim_t x0;
     egui_dim_t y0;
     egui_dim_t x1;
@@ -836,14 +838,15 @@ static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_dim_t ce
     return dx * dx + dy * dy <= outer_radius * outer_radius;
 }
 
-static void egui_view_chart_pie_get_work_region_info(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_view_chart_pie_work_region_info_t *info)
+static void egui_view_chart_pie_get_work_region_info(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
+                                                     egui_view_chart_pie_work_region_info_t *info)
 {
     if (info == NULL)
     {
         return;
     }
 
-    info->work = egui_canvas_get_base_view_work_region();
+    info->work = egui_canvas_get_base_view_work_region(canvas);
     info->contains_center = 0;
     info->inside_solid_circle = 0;
     info->has_angle_window = 0;
@@ -856,7 +859,7 @@ static void egui_view_chart_pie_get_work_region_info(egui_dim_t center_x, egui_d
     }
 
     info->contains_center = egui_view_chart_pie_point_in_region(info->work, center_x, center_y);
-    info->inside_solid_circle = egui_view_chart_pie_is_work_region_inside_solid_circle(center_x, center_y, radius);
+    info->inside_solid_circle = egui_view_chart_pie_is_work_region_inside_solid_circle(canvas, center_x, center_y, radius);
     if (!info->contains_center)
     {
         info->has_angle_window = egui_view_chart_pie_get_region_angle_window(info->work, center_x, center_y, &info->angle_start, &info->angle_sweep);
@@ -865,7 +868,8 @@ static void egui_view_chart_pie_get_work_region_info(egui_dim_t center_x, egui_d
 
 // ============== Pie Chart Drawing ==============
 
-static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, uint32_t total)
+static void egui_view_chart_pie_draw_pie(egui_canvas_t *canvas, egui_view_chart_pie_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
+                                         uint32_t total)
 {
     egui_view_chart_pie_work_region_info_t work_info;
     uint32_t angle_scale_q7 = 0;
@@ -881,17 +885,17 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
         return;
     }
 
-    if (!egui_view_chart_pie_rect_intersects_work_region(center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1))
+    if (!egui_view_chart_pie_rect_intersects_work_region(canvas, center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1))
     {
         return;
     }
 
-    if (!egui_view_chart_pie_work_region_intersects_outer_circle(center_x, center_y, radius))
+    if (!egui_view_chart_pie_work_region_intersects_outer_circle(canvas, center_x, center_y, radius))
     {
         return;
     }
 
-    egui_view_chart_pie_get_work_region_info(center_x, center_y, radius, &work_info);
+    egui_view_chart_pie_get_work_region_info(canvas, center_x, center_y, radius, &work_info);
     if (total <= 65535U)
     {
         angle_scale_q7 = ((uint32_t)360 << 7) / total;
@@ -992,13 +996,13 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
                 continue;
             }
         }
-        else if (!egui_view_chart_pie_slice_intersects_work_region(&work_info, center_x, center_y, radius, start_angle, cull_sweep))
+        else if (!egui_view_chart_pie_slice_intersects_work_region(canvas, &work_info, center_x, center_y, radius, start_angle, cull_sweep))
         {
             start_angle = end_angle;
             continue;
         }
 
-        egui_canvas_draw_arc_fill_basic(center_x, center_y, radius, start_angle, draw_end_angle, local->pie_slices[i].color, EGUI_ALPHA_100);
+        egui_canvas_draw_arc_fill_basic(canvas, center_x, center_y, radius, start_angle, draw_end_angle, local->pie_slices[i].color, EGUI_ALPHA_100);
         start_angle = end_angle;
     }
 
@@ -1008,12 +1012,12 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
     }
 
     // Cover the center neighborhood so the per-slice AA edges do not leave a visible spoke.
-    egui_canvas_draw_circle_fill(center_x, center_y, 1, local->pie_slices[0].color, EGUI_ALPHA_100);
+    egui_canvas_draw_circle_fill(canvas, center_x, center_y, 1, local->pie_slices[0].color, EGUI_ALPHA_100);
 }
 
 // ============== Pie Legend Drawing ==============
 
-static void egui_view_chart_pie_draw_legend(egui_view_chart_pie_t *local, egui_region_t *region)
+static void egui_view_chart_pie_draw_legend(egui_canvas_t *canvas, egui_view_chart_pie_t *local, egui_region_t *region)
 {
     egui_dim_t font_h = egui_view_chart_pie_get_font_height(local);
     egui_dim_t swatch_size = font_h > 2 ? font_h - 2 : 4;
@@ -1075,17 +1079,17 @@ static void egui_view_chart_pie_draw_legend(egui_view_chart_pie_t *local, egui_r
         }
 
         // Draw color swatch
-        if (egui_view_chart_pie_rect_intersects_work_region(lx, ly + 1, swatch_size, swatch_size))
+        if (egui_view_chart_pie_rect_intersects_work_region(canvas, lx, ly + 1, swatch_size, swatch_size))
         {
-            egui_canvas_draw_rectangle_fill(lx, ly + 1, swatch_size, swatch_size, color, EGUI_ALPHA_100);
+            egui_canvas_draw_rectangle_fill(canvas, lx, ly + 1, swatch_size, swatch_size, color, EGUI_ALPHA_100);
         }
 
         // Draw name text
         EGUI_REGION_DEFINE(text_rect, lx + swatch_size + 2, ly, text_w, font_h);
         if (local->text_ops != NULL && local->text_ops->draw_legend_text != NULL &&
-            egui_view_chart_pie_rect_intersects_work_region(text_rect.location.x, text_rect.location.y, text_rect.size.width, text_rect.size.height))
+            egui_view_chart_pie_rect_intersects_work_region(canvas, text_rect.location.x, text_rect.location.y, text_rect.size.width, text_rect.size.height))
         {
-            local->text_ops->draw_legend_text(local, name, &text_rect);
+            local->text_ops->draw_legend_text(canvas, local, name, &text_rect);
         }
 
         // Advance position
@@ -1105,6 +1109,7 @@ static void egui_view_chart_pie_draw_legend(egui_view_chart_pie_t *local, egui_r
 void egui_view_chart_pie_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_pie_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_chart_pie_geometry_t geometry;
@@ -1120,22 +1125,22 @@ void egui_view_chart_pie_on_draw(egui_view_t *self)
     total = egui_view_chart_pie_get_total_value(local);
     has_geometry = (total > 0) ? egui_view_chart_pie_compute_geometry(local, &region, &geometry) : 0;
 
-    if (!(has_geometry && egui_view_chart_pie_is_work_region_inside_solid_circle(geometry.center_x, geometry.center_y, geometry.radius)))
+    if (!(has_geometry && egui_view_chart_pie_is_work_region_inside_solid_circle(canvas, geometry.center_x, geometry.center_y, geometry.radius)))
     {
         // Draw background only when the current tile is not fully covered by the pie.
-        egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, local->bg_color, EGUI_ALPHA_100);
+        egui_canvas_draw_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, local->bg_color, EGUI_ALPHA_100);
     }
 
     // Draw pie
     if (has_geometry)
     {
-        egui_view_chart_pie_draw_pie(local, geometry.center_x, geometry.center_y, geometry.radius, total);
+        egui_view_chart_pie_draw_pie(canvas, local, geometry.center_x, geometry.center_y, geometry.radius, total);
     }
 
     // Draw legend
     if (local->legend_pos != EGUI_CHART_LEGEND_NONE)
     {
-        egui_view_chart_pie_draw_legend(local, &region);
+        egui_view_chart_pie_draw_legend(canvas, local, &region);
     }
 }
 
@@ -1160,11 +1165,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_pie_t) = {
 
 // ============== Init / Params ==============
 
-void egui_view_chart_pie_init(egui_view_t *self)
+void egui_view_chart_pie_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_chart_pie_t);
     // call super init
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_chart_pie_t);
 
@@ -1190,9 +1195,9 @@ void egui_view_chart_pie_apply_params(egui_view_t *self, const egui_view_chart_p
     egui_view_invalidate(self);
 }
 
-void egui_view_chart_pie_init_with_params(egui_view_t *self, const egui_view_chart_pie_params_t *params)
+void egui_view_chart_pie_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_pie_params_t *params)
 {
-    egui_view_chart_pie_init(self);
+    egui_view_chart_pie_init(self, core);
     egui_view_chart_pie_apply_params(self, params);
 }
 

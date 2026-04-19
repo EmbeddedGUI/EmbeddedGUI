@@ -68,8 +68,9 @@ static void st7123_del(egui_hal_touch_driver_t *self)
 }
 
 /* Driver: read */
-static int st7123_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int st7123_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     typedef struct __attribute__((packed)) st7123_touch_report
     {
         uint8_t x_h : 6;

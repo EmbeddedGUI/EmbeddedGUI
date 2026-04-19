@@ -1,4 +1,4 @@
-#include "egui_canvas.h"
+﻿#include "egui_canvas.h"
 
 /**
  * @brief Triangle drawing with scanline fill algorithm and SDF anti-aliasing.
@@ -9,7 +9,7 @@
  * - Perpendicular distance to each edge determines smooth alpha coverage
  * - Works correctly at all edge angles, vertices, and thin tips
  *
- * Outline delegates to egui_canvas_draw_line() for each edge.
+ * Outline delegates to egui_canvas_draw_line(canvas, ) for each edge.
  */
 
 /* Integer square root (bit-by-bit) for edge length computation. */
@@ -89,10 +89,9 @@ __EGUI_STATIC_INLINE__ egui_alpha_t triangle_edge_alpha(int32_t cross, int32_t s
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3, egui_color_t color,
-                                    egui_alpha_t alpha)
+void egui_canvas_draw_triangle_fill(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
+                                    egui_color_t color, egui_alpha_t alpha)
 {
-    egui_canvas_t *self = &canvas_data;
 
     // Calculate bounding box for early rejection
     egui_dim_t min_x = EGUI_MIN(EGUI_MIN(x1, x2), x3);
@@ -132,14 +131,14 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
     {
         egui_dim_t left = EGUI_MIN(EGUI_MIN(vx0, vx1), vx2);
         egui_dim_t right = EGUI_MAX(EGUI_MAX(vx0, vx1), vx2);
-        egui_canvas_draw_hline(left, vy0, right - left + 1, color, alpha);
+        egui_canvas_draw_hline(self, left, vy0, right - left + 1, color, alpha);
         return;
     }
 
     // =========================================================================
     // Precompute edge vectors, lengths, and inside-direction signs
     // =========================================================================
-    // Edge L: v0→v2 (long edge, spans full height)
+    // Edge L: v0鈫抳2 (long edge, spans full height)
     int32_t eLdx = vx2 - vx0, eLdy = vy2 - vy0;
     uint32_t lenL = triangle_isqrt((uint32_t)(eLdx * eLdx + eLdy * eLdy));
     if (lenL == 0)
@@ -147,7 +146,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
         lenL = 1;
     }
 
-    // Edge A: v0→v1 (short edge, top half)
+    // Edge A: v0鈫抳1 (short edge, top half)
     int32_t eAdx = vx1 - vx0, eAdy = vy1 - vy0;
     uint32_t lenA = triangle_isqrt((uint32_t)(eAdx * eAdx + eAdy * eAdy));
     if (lenA == 0)
@@ -155,7 +154,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
         lenA = 1;
     }
 
-    // Edge B: v1→v2 (short edge, bottom half)
+    // Edge B: v1鈫抳2 (short edge, bottom half)
     int32_t eBdx = vx2 - vx1, eBdy = vy2 - vy1;
     uint32_t lenB = triangle_isqrt((uint32_t)(eBdx * eBdx + eBdy * eBdy));
     if (lenB == 0)
@@ -168,11 +167,11 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
     int32_t cx3 = vx0 + vx1 + vx2; // 3 * centroid_x
     int32_t cy3 = vy0 + vy1 + vy2; // 3 * centroid_y
 
-    // Sign for long edge (v0→v2): positive cross means inside is on left
+    // Sign for long edge (v0鈫抳2): positive cross means inside is on left
     int32_t sL = (eLdx * (cy3 - 3 * vy0) - eLdy * (cx3 - 3 * vx0) >= 0) ? 1 : -1;
-    // Sign for edge A (v0→v1)
+    // Sign for edge A (v0鈫抳1)
     int32_t sA = (eAdx * (cy3 - 3 * vy0) - eAdy * (cx3 - 3 * vx0) >= 0) ? 1 : -1;
-    // Sign for edge B (v1→v2)
+    // Sign for edge B (v1鈫抳2)
     int32_t sB = (eBdx * (cy3 - 3 * vy1) - eBdy * (cx3 - 3 * vx1) >= 0) ? 1 : -1;
 
     // =========================================================================
@@ -193,7 +192,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
         egui_dim_t left = EGUI_MAX(EGUI_MIN(vx0, vx1), work_x_start);
         egui_dim_t right = EGUI_MIN(EGUI_MAX(vx0, vx1), work_x_end);
         if (left <= right)
-            egui_canvas_draw_hline(left, vy0, right - left + 1, color, alpha);
+            egui_canvas_draw_hline(self, left, vy0, right - left + 1, color, alpha);
         scan_y_start = EGUI_MAX(vy0 + 1, work_y_start);
     }
 
@@ -204,7 +203,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
         egui_dim_t left = EGUI_MAX(EGUI_MIN(vx1, vx2), work_x_start);
         egui_dim_t right = EGUI_MIN(EGUI_MAX(vx1, vx2), work_x_end);
         if (left <= right)
-            egui_canvas_draw_hline(left, vy2, right - left + 1, color, alpha);
+            egui_canvas_draw_hline(self, left, vy2, right - left + 1, color, alpha);
         scan_y_end = EGUI_MIN(vy2 - 1, work_y_end - 1);
     }
 
@@ -357,7 +356,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
                     egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                     if (mix > 0)
                     {
-                        egui_canvas_draw_point(px, y, color, mix);
+                        egui_canvas_draw_point(self, px, y, color, mix);
                     }
                 }
             }
@@ -367,7 +366,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
         // Draw interior span with hline (fast path)
         if (interior_left <= interior_right)
         {
-            egui_canvas_draw_hline(interior_left, y, interior_right - interior_left + 1, color, alpha);
+            egui_canvas_draw_hline(self, interior_left, y, interior_right - interior_left + 1, color, alpha);
         }
 
         // Left AA zone: use SDF to the left-side edge
@@ -386,7 +385,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
                 egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                 if (mix > 0)
                 {
-                    egui_canvas_draw_point(px, y, color, mix);
+                    egui_canvas_draw_point(self, px, y, color, mix);
                 }
             }
         }
@@ -407,7 +406,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
                 egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                 if (mix > 0)
                 {
-                    egui_canvas_draw_point(px, y, color, mix);
+                    egui_canvas_draw_point(self, px, y, color, mix);
                 }
             }
         }
@@ -424,9 +423,10 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-void egui_canvas_draw_triangle(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_triangle(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
+                               egui_color_t color, egui_alpha_t alpha)
 {
-    egui_canvas_draw_line(x1, y1, x2, y2, 1, color, alpha);
-    egui_canvas_draw_line(x2, y2, x3, y3, 1, color, alpha);
-    egui_canvas_draw_line(x3, y3, x1, y1, 1, color, alpha);
+    egui_canvas_draw_line(self, x1, y1, x2, y2, 1, color, alpha);
+    egui_canvas_draw_line(self, x2, y2, x3, y3, 1, color, alpha);
+    egui_canvas_draw_line(self, x3, y3, x1, y1, 1, color, alpha);
 }

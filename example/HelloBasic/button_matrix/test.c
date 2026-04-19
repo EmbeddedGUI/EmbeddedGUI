@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_button_matrix_t btn_matrix;
 
@@ -58,14 +58,14 @@ static void on_btn_click(egui_view_t *self, uint8_t btn_index)
     EGUI_LOG_INF("ButtonMatrix clicked: index=%d, label=%s\n", btn_index, name);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
     clicked_count = 0;
     last_clicked_index = 0xFF;
 #endif
-    egui_view_button_matrix_init_with_params(EGUI_VIEW_OF(&btn_matrix), &btn_matrix_params);
+    egui_view_button_matrix_init_with_params(EGUI_VIEW_OF(&btn_matrix), core, &btn_matrix_params);
     egui_view_button_matrix_set_labels(EGUI_VIEW_OF(&btn_matrix), btn_texts, 9, 3);
     egui_view_button_matrix_set_icons(EGUI_VIEW_OF(&btn_matrix), btn_icons);
     egui_view_button_matrix_set_icon_font(EGUI_VIEW_OF(&btn_matrix), EGUI_FONT_ICON_MS_24);
@@ -77,7 +77,7 @@ void test_init_ui(void)
     egui_view_button_matrix_set_icon_text_gap(EGUI_VIEW_OF(&btn_matrix), 2);
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&btn_matrix));
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&btn_matrix), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

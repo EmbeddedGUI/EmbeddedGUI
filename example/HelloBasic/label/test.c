@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 labels: XS / S / M / L
 static egui_view_label_t label_xs;
@@ -23,16 +23,16 @@ EGUI_VIEW_LABEL_PARAMS_INIT(label_m_params, 0, 0, 200, 36, "Label M", EGUI_CONFI
 // Size L (200x44)
 EGUI_VIEW_LABEL_PARAMS_INIT(label_l_params, 0, 0, 200, 44, "Label L", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_PRIMARY_DARK, EGUI_ALPHA_100);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init all views
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_xs), &label_xs_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_s), &label_s_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_m), &label_m_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_l), &label_l_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_xs), core, &label_xs_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_s), core, &label_s_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_m), core, &label_m_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_l), core, &label_l_params);
 
     // Set margins
     egui_view_set_margin_all(EGUI_VIEW_OF(&label_xs), 6);
@@ -58,7 +58,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

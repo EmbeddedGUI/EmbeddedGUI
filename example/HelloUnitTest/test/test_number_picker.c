@@ -1,12 +1,21 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_number_picker.h"
 
 static egui_view_number_picker_t test_picker;
 static uint8_t g_change_count;
 static int16_t g_last_value;
+
+static egui_core_t *test_number_picker_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static void on_value_changed(egui_view_t *self, int16_t value)
 {
@@ -17,7 +26,7 @@ static void on_value_changed(egui_view_t *self, int16_t value)
 
 static void setup_picker(void)
 {
-    egui_view_number_picker_init(EGUI_VIEW_OF(&test_picker));
+    egui_view_number_picker_init(EGUI_VIEW_OF(&test_picker), test_number_picker_get_core());
     egui_view_set_size(EGUI_VIEW_OF(&test_picker), 60, 90);
     egui_view_number_picker_set_range(EGUI_VIEW_OF(&test_picker), 0, 100);
     egui_view_number_picker_set_value(EGUI_VIEW_OF(&test_picker), 10);

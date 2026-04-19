@@ -60,7 +60,7 @@ struct egui_view_combobox_params
             .region = {{(_x), (_y)}, {(_w), (_h)}}, .items = (_items), .item_icons = NULL, .item_count = (_count), .current_index = (_index)}
 
 void egui_view_combobox_apply_params(egui_view_t *self, const egui_view_combobox_params_t *params);
-void egui_view_combobox_init_with_params(egui_view_t *self, const egui_view_combobox_params_t *params);
+void egui_view_combobox_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_combobox_params_t *params);
 
 void egui_view_combobox_set_on_selected_listener(egui_view_t *self, egui_view_on_combobox_selected_listener_t listener);
 void egui_view_combobox_set_items(egui_view_t *self, const char **items, uint8_t count);
@@ -77,7 +77,7 @@ void egui_view_combobox_expand(egui_view_t *self);
 void egui_view_combobox_collapse(egui_view_t *self);
 uint8_t egui_view_combobox_is_expanded(egui_view_t *self);
 void egui_view_combobox_on_draw(egui_view_t *self);
-void egui_view_combobox_init(egui_view_t *self);
+void egui_view_combobox_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

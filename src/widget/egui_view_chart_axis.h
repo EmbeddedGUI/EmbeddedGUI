@@ -39,7 +39,7 @@ struct egui_view_chart_axis_params
 
 // ============== Axis Base Lifecycle ==============
 
-void egui_view_chart_axis_init(egui_view_t *self);
+void egui_view_chart_axis_init(egui_view_t *self, egui_core_t *core);
 void egui_view_chart_axis_apply_params(egui_view_t *self, const egui_view_chart_axis_params_t *params);
 
 // ============== Axis Base Draw (calls draw_data virtual) ==============

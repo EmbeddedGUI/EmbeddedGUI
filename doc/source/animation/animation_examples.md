@@ -92,7 +92,7 @@ void uicode_page_dashboard_on_enter(void)
 
 ## Activity 切换动画
 
-源文件：`example/HelloActivity/uicode.c`
+源文件：`example/HelloActivity/uicode_disp0.c`
 
 Activity 是 EmbeddedGUI 的页面管理单元，类似 Android 的 Activity。页面切换时可以配置入场和退场动画。
 
@@ -125,7 +125,7 @@ egui_animation_translate_t anim_finish_close;
 初始化和注册：
 
 ```c
-void uicode_init_ui(void)
+static void setup_activity_anims(egui_activity_t *activity)
 {
     // 初始化 start_open 动画
     egui_animation_translate_init(EGUI_ANIM_OF(&anim_start_open));
@@ -140,11 +140,13 @@ void uicode_init_ui(void)
 
     // ... finish_open 和 finish_close 类似 ...
 
-    // 注册到 Activity 系统
-    egui_core_activity_set_start_anim(
+    // 绑定到待启动的 Activity 对象
+    egui_activity_set_start_anim(
+        activity,
         EGUI_ANIM_OF(&anim_start_open),
         EGUI_ANIM_OF(&anim_start_close));
-    egui_core_activity_set_finish_anim(
+    egui_activity_set_finish_anim(
+        activity,
         EGUI_ANIM_OF(&anim_finish_open),
         EGUI_ANIM_OF(&anim_finish_close));
 }
@@ -203,8 +205,9 @@ egui_animation_translate_params_set(&anim_dialog_finish, &anim_dialog_finish_par
 egui_animation_duration_set(EGUI_ANIM_OF(&anim_dialog_finish), 500);
 egui_animation_is_fill_before_set(EGUI_ANIM_OF(&anim_dialog_finish), true);
 
-// 注册到 Dialog 系统
-egui_core_dialog_set_anim(
+// 假设 dialog 已经完成 egui_dialog_xxx_init(..., core)
+egui_dialog_set_anim(
+    (egui_dialog_t *)&dialog,
     EGUI_ANIM_OF(&anim_dialog_start),
     EGUI_ANIM_OF(&anim_dialog_finish));
 ```

@@ -26,7 +26,7 @@ typedef enum egui_display_rotation
 struct egui_display_driver_ops
 {
     /** Initialize display hardware. Called once during egui_init. */
-    void (*init)(void);
+    void (*init)(egui_core_t *core);
 
     /**
      * Draw pixel data to a rectangular area on the display.
@@ -34,42 +34,42 @@ struct egui_display_driver_ops
      * When used with multi-buffer PFB, the DMA completion ISR must call
      * egui_pfb_notify_flush_complete() to advance the ring buffer.
      */
-    void (*draw_area)(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data);
+    void (*draw_area)(egui_core_t *core, int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data);
 
     /**
      * Wait for draw_area to complete. Used to drain pending DMA transfers.
      * NULL if draw_area is synchronous (blocking) -- no waiting needed.
      */
-    void (*wait_draw_complete)(void);
+    void (*wait_draw_complete)(egui_core_t *core);
 
     /** Signal that a full frame has been flushed. May trigger display refresh. */
-    void (*flush)(void);
+    void (*flush)(egui_core_t *core);
 
     /** Set display brightness (0 = off, 255 = max). NULL if not supported. */
-    void (*set_brightness)(uint8_t level);
+    void (*set_brightness)(egui_core_t *core, uint8_t level);
 
     /** Set display power state. NULL if not supported. */
-    void (*set_power)(uint8_t on);
+    void (*set_power)(egui_core_t *core, uint8_t on);
 
     /**
      * Set hardware rotation. NULL if HW rotation not supported;
      * core will use software rotation instead when EGUI_CONFIG_SOFTWARE_ROTATION is enabled.
      */
-    void (*set_rotation)(egui_display_rotation_t rotation);
+    void (*set_rotation)(egui_core_t *core, egui_display_rotation_t rotation);
 
     /* ---- 2D hardware acceleration (all optional, NULL = use software) ---- */
 
     /** Hardware rectangle fill. NULL = software fallback. */
-    void (*fill_rect)(int16_t x, int16_t y, int16_t w, int16_t h, egui_color_int_t color);
+    void (*fill_rect)(egui_core_t *core, int16_t x, int16_t y, int16_t w, int16_t h, egui_color_int_t color);
 
     /** Hardware block copy (blit). NULL = software fallback. */
-    void (*blit)(int16_t dx, int16_t dy, int16_t w, int16_t h, const egui_color_int_t *src);
+    void (*blit)(egui_core_t *core, int16_t dx, int16_t dy, int16_t w, int16_t h, const egui_color_int_t *src);
 
     /** Hardware alpha blend. NULL = software fallback. */
-    void (*blend)(int16_t dx, int16_t dy, int16_t w, int16_t h, const egui_color_int_t *fg, egui_alpha_t alpha);
+    void (*blend)(egui_core_t *core, int16_t dx, int16_t dy, int16_t w, int16_t h, const egui_color_int_t *fg, egui_alpha_t alpha);
 
     /** Wait for VSync / TE signal before flush. NULL = no sync needed. */
-    void (*wait_vsync)(void);
+    void (*wait_vsync)(egui_core_t *core);
 };
 
 /**
@@ -101,32 +101,33 @@ struct egui_display_driver
      */
     uint8_t frame_sync_enabled;
     volatile uint8_t frame_sync_ready;
+    void *user_data;
 };
 
-/** Register display driver with core. Called before egui_init(). */
-void egui_display_driver_register(egui_display_driver_t *driver);
+/** Register display driver with core. Called after egui_init() / egui_init_display(). */
+void egui_display_driver_register(egui_core_t *core, egui_display_driver_t *driver);
 
-/** Get current display driver. Returns NULL if not registered. */
-egui_display_driver_t *egui_display_driver_get(void);
+/** Get current display driver. */
+egui_display_driver_t *egui_display_driver_get(egui_core_t *core);
 
-/** Convenience APIs (call through registered driver) */
-void egui_display_set_brightness(uint8_t level);
-void egui_display_set_power(uint8_t on);
-void egui_display_set_rotation(egui_display_rotation_t rotation);
-egui_display_rotation_t egui_display_get_rotation(void);
+/** Convenience APIs (call through core->render.driver) */
+void egui_display_set_brightness(egui_core_t *core, uint8_t level);
+void egui_display_set_power(egui_core_t *core, uint8_t on);
+void egui_display_set_rotation(egui_core_t *core, egui_display_rotation_t rotation);
+egui_display_rotation_t egui_display_get_rotation(egui_core_t *core);
 
 /**
  * Get effective screen dimensions (after rotation).
  * Returns physical_width/height for 0/180, swapped for 90/270.
  */
-int16_t egui_display_get_width(void);
-int16_t egui_display_get_height(void);
+int16_t egui_display_get_width(egui_core_t *core);
+int16_t egui_display_get_height(egui_core_t *core);
 
 /**
  * Notify that a VSync/TE event has occurred (call from ISR).
  * Sets frame_sync_ready flag so core can start the next frame without blocking.
  */
-void egui_display_notify_vsync(void);
+void egui_display_notify_vsync(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

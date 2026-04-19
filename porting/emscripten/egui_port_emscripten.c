@@ -15,8 +15,28 @@
  */
 
 static egui_hal_lcd_driver_t s_em_lcd_driver;
+
+static void em_assert_single_display_core(egui_core_t *core)
+{
+    EGUI_ASSERT(core == NULL || core->id == 0);
+}
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static egui_hal_touch_driver_t s_em_touch_driver;
+
+static void em_touch_register(egui_core_t *core)
+{
+    egui_hal_touch_config_t touch_config = {
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+    };
+
+    em_assert_single_display_core(core);
+    egui_hal_touch_register(core, &s_em_touch_driver, &touch_config);
+}
 #endif
 
 static egui_display_driver_ops_t port_display_ops = {0};
@@ -30,9 +50,10 @@ static egui_display_driver_t port_display_driver = {
         .power_on = 1,
 };
 
-static void em_display_flush(void)
+static void em_display_flush(egui_core_t *core)
 {
-    VT_sdl_flush(1);
+    em_assert_single_display_core(core);
+    VT_sdl_flush_core(core, 1);
 }
 
 // ============================================================================
@@ -118,12 +139,15 @@ static FILE *em_get_external_resource_file(void)
     return s_em_resource_file;
 }
 
-static void em_load_external_resource(void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
+static void em_load_external_resource(egui_core_t *core, void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
 {
     extern const uint32_t egui_ext_res_id_map[];
     uint32_t res_offset = egui_ext_res_id_map[res_id];
     uint32_t res_real_offset = res_offset + start_offset;
     FILE *file = em_get_external_resource_file();
+
+    em_assert_single_display_core(core);
+
     if (file == NULL)
     {
         return;
@@ -200,17 +224,23 @@ void egui_port_init(void)
     egui_hal_lcd_register(&port_display_driver, &s_em_lcd_driver, &lcd_config);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    egui_hal_touch_config_t touch_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
-            .swap_xy = 0,
-            .mirror_x = 0,
-            .mirror_y = 0,
-    };
-
     egui_hal_sdl_touch_setup(&s_em_touch_driver);
-    egui_hal_touch_register(&s_em_touch_driver, &touch_config);
 #endif
-
-    egui_platform_register(&em_platform);
 }
+
+egui_display_driver_t *egui_port_get_display_driver(void)
+{
+    return &port_display_driver;
+}
+
+egui_platform_t *egui_port_get_platform(void)
+{
+    return &em_platform;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+void egui_port_register_touch_driver(egui_core_t *core)
+{
+    em_touch_register(core);
+}
+#endif

@@ -106,9 +106,9 @@ struct egui_view_virtual_strip_data_source
     }
 
 void egui_view_virtual_strip_apply_params(egui_view_t *self, const egui_view_virtual_strip_params_t *params);
-void egui_view_virtual_strip_init_with_params(egui_view_t *self, const egui_view_virtual_strip_params_t *params);
+void egui_view_virtual_strip_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_strip_params_t *params);
 void egui_view_virtual_strip_apply_setup(egui_view_t *self, const egui_view_virtual_strip_setup_t *setup);
-void egui_view_virtual_strip_init_with_setup(egui_view_t *self, const egui_view_virtual_strip_setup_t *setup);
+void egui_view_virtual_strip_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_strip_setup_t *setup);
 
 void egui_view_virtual_strip_set_adapter(egui_view_t *self, const egui_view_virtual_strip_adapter_t *adapter, void *adapter_context);
 const egui_view_virtual_strip_adapter_t *egui_view_virtual_strip_get_adapter(egui_view_t *self);
@@ -171,7 +171,7 @@ uint8_t egui_view_virtual_strip_visit_visible_items(egui_view_t *self, egui_view
 egui_view_t *egui_view_virtual_strip_find_first_visible_item_view(egui_view_t *self, egui_view_virtual_strip_visible_item_matcher_t matcher, void *context,
                                                                   egui_view_virtual_strip_entry_t *entry_out);
 
-void egui_view_virtual_strip_init(egui_view_t *self);
+void egui_view_virtual_strip_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

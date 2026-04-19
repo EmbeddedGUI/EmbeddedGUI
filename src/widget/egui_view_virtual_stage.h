@@ -225,12 +225,12 @@ struct egui_view_virtual_stage_array_setup
     egui_view_virtual_stage_notify_nodes_bounds_changed((_self), (_stable_ids), EGUI_ARRAY_SIZE(_stable_ids))
 
 void egui_view_virtual_stage_apply_params(egui_view_t *self, const egui_view_virtual_stage_params_t *params);
-void egui_view_virtual_stage_init_with_params(egui_view_t *self, const egui_view_virtual_stage_params_t *params);
+void egui_view_virtual_stage_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_stage_params_t *params);
 void egui_view_virtual_stage_apply_setup(egui_view_t *self, const egui_view_virtual_stage_setup_t *setup);
-void egui_view_virtual_stage_init_with_setup(egui_view_t *self, const egui_view_virtual_stage_setup_t *setup);
+void egui_view_virtual_stage_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_stage_setup_t *setup);
 void egui_view_virtual_stage_apply_array_setup(egui_view_t *self, egui_view_virtual_stage_array_adapter_t *adapter,
                                                const egui_view_virtual_stage_array_setup_t *setup);
-void egui_view_virtual_stage_init_with_array_setup(egui_view_t *self, egui_view_virtual_stage_array_adapter_t *adapter,
+void egui_view_virtual_stage_init_with_array_setup(egui_view_t *self, egui_core_t *core, egui_view_virtual_stage_array_adapter_t *adapter,
                                                    const egui_view_virtual_stage_array_setup_t *setup);
 void egui_view_virtual_stage_array_adapter_init(egui_view_virtual_stage_array_adapter_t *adapter, const egui_view_virtual_stage_array_source_t *node_source,
                                                 const egui_view_virtual_stage_array_ops_t *ops, void *user_context);
@@ -260,7 +260,7 @@ egui_view_t *egui_view_virtual_stage_find_view_by_stable_id(egui_view_t *self, u
 uint8_t egui_view_virtual_stage_resolve_node_by_view(egui_view_t *self, egui_view_t *node_view, egui_view_virtual_stage_entry_t *entry);
 uint8_t egui_view_virtual_stage_resolve_stable_id_by_view(egui_view_t *self, egui_view_t *node_view, uint32_t *stable_id_out);
 
-void egui_view_virtual_stage_init(egui_view_t *self);
+void egui_view_virtual_stage_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

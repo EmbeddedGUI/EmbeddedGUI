@@ -4,8 +4,11 @@
 #include <emscripten.h>
 
 #include "egui.h"
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "sdl_port.h"
+
+egui_core_t core;
+static egui_core_t *g_registered_core = NULL;
 
 EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
@@ -21,9 +24,25 @@ char *pc_get_input_file_path(void)
     return input_file_path;
 }
 
+void egui_port_register_core(egui_core_t *core_inst)
+{
+    EGUI_ASSERT(core_inst != NULL);
+    EGUI_ASSERT(core_inst == &core);
+    g_registered_core = core_inst;
+}
+
+egui_core_t *egui_port_get_core_by_display_id(int display_id)
+{
+    if (display_id != 0)
+    {
+        return NULL;
+    }
+    return g_registered_core;
+}
+
 static void main_loop_iteration(void)
 {
-    egui_polling_work();
+    egui_polling_work(&core);
     VT_sdl_refresh_task();
 
     if (VT_is_request_quit())
@@ -41,12 +60,19 @@ int main(int argc, const char *argv[])
 
     VT_init();
 
-    extern void egui_port_init(void);
+    egui_init(&core, egui_pfb);
+    egui_port_register_core(&core);
     egui_port_init();
-
-    egui_init(egui_pfb);
-    uicode_create_ui();
-    egui_screen_on();
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    extern void egui_port_register_touch_driver(egui_core_t * core);
+    egui_port_register_touch_driver(&core);
+#endif
+    extern egui_display_driver_t *egui_port_get_display_driver(void);
+    extern egui_platform_t *egui_port_get_platform(void);
+    egui_platform_register(&core, egui_port_get_platform());
+    egui_display_driver_register(&core, egui_port_get_display_driver());
+    uicode_disp0_init(&core);
+    egui_screen_on(&core);
 
     // 0 = requestAnimationFrame (~60fps), 1 = simulate infinite loop
     emscripten_set_main_loop(main_loop_iteration, 0, 1);

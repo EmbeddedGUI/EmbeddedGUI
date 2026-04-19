@@ -39,6 +39,8 @@ struct egui_dialog
     uint8_t is_need_finish;             // is need finish the dialog
     uint8_t is_cancel_on_touch_outside; // is cancel the dialog when touch outside
 
+    egui_core_t *core; // core instance this dialog belongs to
+
     egui_view_root_group_t root_view;      // view of the dialog
     egui_view_root_group_t user_root_view; // view of the dialog
 
@@ -54,6 +56,17 @@ struct egui_dialog
 void egui_dialog_set_layout(egui_dialog_t *self, egui_region_t *layout);
 void egui_dialog_add_view(egui_dialog_t *self, egui_view_t *view);
 void egui_dialog_set_name(egui_dialog_t *self, const char *name);
+egui_core_t *egui_dialog_get_core(egui_dialog_t *self);
+egui_toast_t *egui_dialog_get_toast(egui_dialog_t *self);
+void egui_dialog_show_toast_info_with_duration(egui_dialog_t *self, const char *text, uint16_t duration);
+void egui_dialog_show_toast_info(egui_dialog_t *self, const char *text);
+int egui_dialog_start_timer(egui_dialog_t *self, egui_timer_t *handle, uint32_t ms, uint32_t period);
+void egui_dialog_stop_timer(egui_dialog_t *self, egui_timer_t *handle);
+int egui_dialog_check_timer_start(egui_dialog_t *self, egui_timer_t *handle);
+void egui_dialog_set_anim(egui_dialog_t *self, egui_animation_t *open_anim, egui_animation_t *close_anim);
+void egui_dialog_start(egui_dialog_t *self, egui_activity_t *activity);
+int egui_dialog_check_in_process(egui_dialog_t *self);
+void egui_dialog_finish(egui_dialog_t *self);
 
 void egui_dialog_on_create(egui_dialog_t *self);
 void egui_dialog_on_start(egui_dialog_t *self);
@@ -61,7 +74,7 @@ void egui_dialog_on_resume(egui_dialog_t *self);
 void egui_dialog_on_pause(egui_dialog_t *self);
 void egui_dialog_on_stop(egui_dialog_t *self);
 void egui_dialog_on_destroy(egui_dialog_t *self);
-void egui_dialog_init(egui_dialog_t *self);
+void egui_dialog_init(egui_dialog_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

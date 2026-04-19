@@ -20,7 +20,7 @@ struct egui_view_page_test
 };
 
 void egui_view_page_test_set_index(egui_view_t *self, int index);
-void egui_view_page_test_init(egui_view_t *self);
+void egui_view_page_test_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

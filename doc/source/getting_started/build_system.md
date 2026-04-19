@@ -283,7 +283,12 @@ EGUI_CODE_INCLUDE += $(EGUI_APP_PATH)/my_module
 #endif
 ```
 
-框架的所有默认配置定义在 `src/core/egui_config_default.h` 中，应用的 `app_egui_config.h` 会在其之前被包含，因此可以覆盖任何配置项。
+框架默认配置现在分成两层：
+
+- `src/core/egui_config_default.h`：主屏基础默认值
+- `src/core/egui_config_multi_default.h`：多屏默认值，例如 `EGUI_CONFIG_MAX_DISPLAY_COUNT`、`EGUI_CONFIG_SCEEN_1_*`、`EGUI_CONFIG_PFB_1_*`
+
+应用的 `app_egui_config.h` 会先于这些默认头被包含，因此可以覆盖任意配置项。
 
 ## CMake 构建
 
@@ -360,6 +365,10 @@ python scripts/code_runtime_check.py --app HelloBasic --app-sub button --timeout
 python scripts/code_runtime_check.py --app HelloVirtual --timeout 10
 python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_basic --timeout 10
 
+# 多屏专项快速回归
+python scripts/code_compile_check.py --scope multi-display --case-jobs 2
+python scripts/code_runtime_check.py --scope multi-display --jobs 2 --timeout 10 --keep-screenshots
+
 # 代码格式化
 python scripts/code_format.py
 
@@ -372,6 +381,9 @@ python scripts/checks/check_example_icon_font.py --include-untracked
 # 发布前一键检查
 python scripts/release_check.py --skip perf,wasm,doc
 
+# 多屏专项一键回归
+python scripts/release_check.py --scope multi-display
+
 # ELF 二进制大小分析
 python scripts/size_analysis/main.py
 
@@ -383,6 +395,8 @@ python scripts/tools/app_resource_generate.py -r example/HelloSimple/resource -o
 
 - `scripts/checks/check_example_icon_font.py` 默认只扫描 git 已跟踪的 `example/` 源文件，避免本地临时目录影响 CI 风格检查
 - `code_compile_check.py --full-check` 默认会包含这一步；如果你在外层已经单独跑过 icon font 检查，可用 `--skip-icon-font-check` 避免重复执行
+- 修改多屏入口、descriptor、线程模型或副屏录制链路后，优先补跑 `--scope multi-display`
+- `release_check.py --scope multi-display` 会把多屏 compile/runtime scope 和文档校验串成一条命令，适合本地快速收口
 
 ## 下一步
 

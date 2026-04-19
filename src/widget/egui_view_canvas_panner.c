@@ -1,4 +1,5 @@
-#include "egui_view_canvas_panner.h"
+﻿#include "egui_view_canvas_panner.h"
+#include "core/egui_core.h"
 
 #include "core/egui_canvas.h"
 #include "core/egui_core_internal.h"
@@ -90,12 +91,13 @@ static void egui_view_canvas_panner_clamp_offset(egui_view_t *self, egui_view_ca
     }
 }
 
-static void egui_view_canvas_panner_update_scan_hint(egui_dim_t old_offset_x, egui_dim_t old_offset_y, egui_dim_t new_offset_x, egui_dim_t new_offset_y)
+static void egui_view_canvas_panner_update_scan_hint(egui_view_t *self, egui_dim_t old_offset_x, egui_dim_t old_offset_y, egui_dim_t new_offset_x,
+                                                     egui_dim_t new_offset_y)
 {
     uint8_t reverse_x = new_offset_x > old_offset_x ? 1U : 0U;
     uint8_t reverse_y = new_offset_y > old_offset_y ? 1U : 0U;
 
-    egui_core_set_pfb_scan_direction(reverse_x, reverse_y);
+    egui_view_set_pfb_scan_direction(self, reverse_x, reverse_y);
 }
 
 static void egui_view_canvas_panner_request_viewport_refresh(egui_view_t *self)
@@ -408,7 +410,7 @@ static void egui_view_canvas_panner_apply_drag(egui_view_t *self, egui_view_canv
 
     if (local->offset_x != old_offset_x || local->offset_y != old_offset_y)
     {
-        egui_view_canvas_panner_update_scan_hint(old_offset_x, old_offset_y, local->offset_x, local->offset_y);
+        egui_view_canvas_panner_update_scan_hint(self, old_offset_x, old_offset_y, local->offset_x, local->offset_y);
         egui_view_canvas_panner_request_viewport_refresh(self);
     }
 }
@@ -473,7 +475,7 @@ static int egui_view_canvas_panner_on_intercept_touch_event(egui_view_t *self, e
         local->is_drag_target_resolved = 0U;
         local->is_self_touch_owner = 0U;
         local->is_dragging = 0U;
-        egui_core_reset_pfb_scan_direction();
+        egui_view_reset_pfb_scan_direction(self);
         return 0;
     default:
         return 0;
@@ -509,7 +511,7 @@ static int egui_view_canvas_panner_on_touch_event(egui_view_t *self, egui_motion
         local->is_drag_target_resolved = 0U;
         local->is_self_touch_owner = 0U;
         local->is_dragging = 0;
-        egui_core_reset_pfb_scan_direction();
+        egui_view_reset_pfb_scan_direction(self);
         return 1;
     default:
         return egui_view_group_on_touch_event(self, event);
@@ -543,8 +545,9 @@ static void egui_view_canvas_panner_calculate_layout(egui_view_t *self)
 
 static void egui_view_canvas_panner_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t clip_region;
-    const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+    const egui_region_t *prev_clip = egui_canvas_get_extra_clip(canvas);
     const egui_region_t *active_clip = &self->region_screen;
 
     if (prev_clip != NULL)
@@ -553,16 +556,16 @@ static void egui_view_canvas_panner_draw(egui_view_t *self)
         active_clip = &clip_region;
     }
 
-    egui_canvas_set_extra_clip(active_clip);
+    egui_canvas_set_extra_clip(canvas, active_clip);
     egui_view_group_draw(self);
 
     if (prev_clip != NULL)
     {
-        egui_canvas_set_extra_clip(prev_clip);
+        egui_canvas_set_extra_clip(canvas, prev_clip);
     }
     else
     {
-        egui_canvas_clear_extra_clip();
+        egui_canvas_clear_extra_clip(canvas);
     }
 }
 
@@ -600,9 +603,9 @@ void egui_view_canvas_panner_apply_params(egui_view_t *self, const egui_view_can
     egui_view_canvas_panner_set_canvas_size(self, params->canvas_width, params->canvas_height);
 }
 
-void egui_view_canvas_panner_init_with_params(egui_view_t *self, const egui_view_canvas_panner_params_t *params)
+void egui_view_canvas_panner_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_canvas_panner_params_t *params)
 {
-    egui_view_canvas_panner_init(self);
+    egui_view_canvas_panner_init(self, core);
     egui_view_canvas_panner_apply_params(self, params);
 }
 
@@ -657,7 +660,7 @@ void egui_view_canvas_panner_set_offset(egui_view_t *self, egui_dim_t offset_x, 
         return;
     }
 
-    egui_view_canvas_panner_update_scan_hint(old_offset_x, old_offset_y, local->offset_x, local->offset_y);
+    egui_view_canvas_panner_update_scan_hint(self, old_offset_x, old_offset_y, local->offset_x, local->offset_y);
     egui_view_canvas_panner_request_viewport_refresh(self);
 }
 
@@ -679,11 +682,11 @@ egui_dim_t egui_view_canvas_panner_get_offset_y(egui_view_t *self)
     return local->offset_y;
 }
 
-void egui_view_canvas_panner_init(egui_view_t *self)
+void egui_view_canvas_panner_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_canvas_panner_t);
 
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_canvas_panner_t);
 
     local->canvas_width = 0;
@@ -701,7 +704,7 @@ void egui_view_canvas_panner_init(egui_view_t *self)
     local->is_self_touch_owner = 0;
     local->is_dragging = 0;
 #endif
-    egui_core_reset_pfb_scan_direction();
+    egui_view_reset_pfb_scan_direction(self);
 
     egui_view_set_view_name(self, "egui_view_canvas_panner");
 }

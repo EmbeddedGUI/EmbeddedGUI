@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define MU_FONT_TITLE  EGUI_FONT_OF(&egui_res_font_montserrat_20_4)
 #define MU_FONT_ARTIST EGUI_FONT_OF(&egui_res_font_montserrat_14_4)
@@ -110,7 +110,7 @@ static void mu_progress_timer_callback(egui_timer_t *timer)
         egui_view_label_set_text(EGUI_VIEW_OF(&mu_play_state), "Paused");
         egui_view_label_set_font_color(EGUI_VIEW_OF(&mu_play_state), MU_COL_MUTED, EGUI_ALPHA_100);
         egui_view_spinner_stop(EGUI_VIEW_OF(&mu_disc_spinner));
-        egui_timer_stop_timer(&mu_progress_timer);
+        egui_view_stop_timer(EGUI_VIEW_OF(&mu_ctrl_play), &mu_progress_timer);
     }
     int progress = (mu_current_sec * 100) / mu_total_sec;
     egui_view_slider_set_value(EGUI_VIEW_OF(&mu_progress), progress);
@@ -119,7 +119,11 @@ static void mu_progress_timer_callback(egui_timer_t *timer)
 
 static void mu_btn_play_click(egui_view_t *self)
 {
-    (void)self;
+    if (self == NULL)
+    {
+        return;
+    }
+
     mu_is_playing = !mu_is_playing;
     if (mu_is_playing)
     {
@@ -128,7 +132,7 @@ static void mu_btn_play_click(egui_view_t *self)
         egui_view_label_set_text(EGUI_VIEW_OF(&mu_play_state), "Playing");
         egui_view_label_set_font_color(EGUI_VIEW_OF(&mu_play_state), MU_COL_ACCENT, EGUI_ALPHA_100);
         egui_view_spinner_start(EGUI_VIEW_OF(&mu_disc_spinner));
-        egui_timer_start_timer(&mu_progress_timer, 1000, 1000);
+        egui_view_start_timer(self, &mu_progress_timer, 1000, 1000);
     }
     else
     {
@@ -137,7 +141,7 @@ static void mu_btn_play_click(egui_view_t *self)
         egui_view_label_set_text(EGUI_VIEW_OF(&mu_play_state), "Paused");
         egui_view_label_set_font_color(EGUI_VIEW_OF(&mu_play_state), MU_COL_MUTED, EGUI_ALPHA_100);
         egui_view_spinner_stop(EGUI_VIEW_OF(&mu_disc_spinner));
-        egui_timer_stop_timer(&mu_progress_timer);
+        egui_view_stop_timer(self, &mu_progress_timer);
     }
 }
 
@@ -172,13 +176,15 @@ static void mu_btn_next_click(egui_view_t *self)
 
 void uicode_init_page_music(egui_view_t *parent)
 {
-    egui_view_card_init(EGUI_VIEW_OF(&mu_album_card));
+    egui_core_t *core = egui_view_get_core(parent);
+
+    egui_view_card_init(EGUI_VIEW_OF(&mu_album_card), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_album_card), 40, 10);
     egui_view_set_size(EGUI_VIEW_OF(&mu_album_card), 160, 160);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&mu_album_card), 16);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&mu_album_card), MU_COL_CARD, EGUI_ALPHA_100);
 
-    egui_view_activity_ring_init(EGUI_VIEW_OF(&mu_disc_rings));
+    egui_view_activity_ring_init(EGUI_VIEW_OF(&mu_disc_rings), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_disc_rings), 14, 14);
     egui_view_set_size(EGUI_VIEW_OF(&mu_disc_rings), 132, 132);
     egui_view_activity_ring_set_ring_count(EGUI_VIEW_OF(&mu_disc_rings), 2);
@@ -193,13 +199,13 @@ void uicode_init_page_music(egui_view_t *parent)
     egui_view_activity_ring_set_ring_bg_color(EGUI_VIEW_OF(&mu_disc_rings), 1, MU_COL_CARD);
     egui_view_card_add_child(EGUI_VIEW_OF(&mu_album_card), EGUI_VIEW_OF(&mu_disc_rings));
 
-    egui_view_spinner_init(EGUI_VIEW_OF(&mu_disc_spinner));
+    egui_view_spinner_init(EGUI_VIEW_OF(&mu_disc_spinner), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_disc_spinner), 20, 20);
     egui_view_set_size(EGUI_VIEW_OF(&mu_disc_spinner), 120, 120);
     egui_view_spinner_set_color(EGUI_VIEW_OF(&mu_disc_spinner), MU_COL_ACCENT);
     egui_view_card_add_child(EGUI_VIEW_OF(&mu_album_card), EGUI_VIEW_OF(&mu_disc_spinner));
 
-    egui_view_label_init(EGUI_VIEW_OF(&mu_disc_center_icon));
+    egui_view_label_init(EGUI_VIEW_OF(&mu_disc_center_icon), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_disc_center_icon), 44, 44);
     egui_view_set_size(EGUI_VIEW_OF(&mu_disc_center_icon), 72, 72);
     egui_view_label_set_text(EGUI_VIEW_OF(&mu_disc_center_icon), MU_ICON_PLAY);
@@ -209,7 +215,7 @@ void uicode_init_page_music(egui_view_t *parent)
     egui_view_card_add_child(EGUI_VIEW_OF(&mu_album_card), EGUI_VIEW_OF(&mu_disc_center_icon));
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&mu_album_card));
 
-    egui_view_label_init(EGUI_VIEW_OF(&mu_play_state));
+    egui_view_label_init(EGUI_VIEW_OF(&mu_play_state), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_play_state), 10, 174);
     egui_view_set_size(EGUI_VIEW_OF(&mu_play_state), 220, 20);
     egui_view_label_set_text(EGUI_VIEW_OF(&mu_play_state), "Paused");
@@ -218,7 +224,7 @@ void uicode_init_page_music(egui_view_t *parent)
     egui_view_label_set_align_type(EGUI_VIEW_OF(&mu_play_state), EGUI_ALIGN_CENTER);
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&mu_play_state));
 
-    egui_view_label_init(EGUI_VIEW_OF(&mu_song_title));
+    egui_view_label_init(EGUI_VIEW_OF(&mu_song_title), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_song_title), 10, 192);
     egui_view_set_size(EGUI_VIEW_OF(&mu_song_title), 220, 26);
     egui_view_label_set_text(EGUI_VIEW_OF(&mu_song_title), "Midnight Dreams");
@@ -227,7 +233,7 @@ void uicode_init_page_music(egui_view_t *parent)
     egui_view_label_set_align_type(EGUI_VIEW_OF(&mu_song_title), EGUI_ALIGN_CENTER);
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&mu_song_title));
 
-    egui_view_label_init(EGUI_VIEW_OF(&mu_artist));
+    egui_view_label_init(EGUI_VIEW_OF(&mu_artist), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_artist), 10, 216);
     egui_view_set_size(EGUI_VIEW_OF(&mu_artist), 220, 17);
     egui_view_label_set_text(EGUI_VIEW_OF(&mu_artist), "The Synthwave");
@@ -236,7 +242,7 @@ void uicode_init_page_music(egui_view_t *parent)
     egui_view_label_set_align_type(EGUI_VIEW_OF(&mu_artist), EGUI_ALIGN_CENTER);
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&mu_artist));
 
-    egui_view_label_init(EGUI_VIEW_OF(&mu_time_cur));
+    egui_view_label_init(EGUI_VIEW_OF(&mu_time_cur), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_time_cur), 10, 238);
     egui_view_set_size(EGUI_VIEW_OF(&mu_time_cur), 45, 15);
     mu_format_time(mu_time_cur_buf, mu_current_sec);
@@ -246,14 +252,14 @@ void uicode_init_page_music(egui_view_t *parent)
     egui_view_label_set_align_type(EGUI_VIEW_OF(&mu_time_cur), EGUI_ALIGN_LEFT);
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&mu_time_cur));
 
-    egui_view_slider_init(EGUI_VIEW_OF(&mu_progress));
+    egui_view_slider_init(EGUI_VIEW_OF(&mu_progress), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_progress), 57, 238);
     egui_view_set_size(EGUI_VIEW_OF(&mu_progress), 130, 18);
     egui_view_slider_set_value(EGUI_VIEW_OF(&mu_progress), 37);
     egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&mu_progress), mu_progress_value_changed);
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&mu_progress));
 
-    egui_view_label_init(EGUI_VIEW_OF(&mu_time_total));
+    egui_view_label_init(EGUI_VIEW_OF(&mu_time_total), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_time_total), 185, 238);
     egui_view_set_size(EGUI_VIEW_OF(&mu_time_total), 45, 15);
     mu_format_time(mu_time_total_buf, mu_total_sec);
@@ -263,7 +269,7 @@ void uicode_init_page_music(egui_view_t *parent)
     egui_view_label_set_align_type(EGUI_VIEW_OF(&mu_time_total), EGUI_ALIGN_RIGHT);
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&mu_time_total));
 
-    egui_view_label_init(EGUI_VIEW_OF(&mu_ctrl_prev));
+    egui_view_label_init(EGUI_VIEW_OF(&mu_ctrl_prev), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_ctrl_prev), 58, 266);
     egui_view_set_size(EGUI_VIEW_OF(&mu_ctrl_prev), 36, 34);
     egui_view_label_set_text(EGUI_VIEW_OF(&mu_ctrl_prev), MU_ICON_PREV);
@@ -273,7 +279,7 @@ void uicode_init_page_music(egui_view_t *parent)
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&mu_ctrl_prev), mu_btn_prev_click);
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&mu_ctrl_prev));
 
-    egui_view_label_init(EGUI_VIEW_OF(&mu_ctrl_play));
+    egui_view_label_init(EGUI_VIEW_OF(&mu_ctrl_play), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_ctrl_play), 97, 263);
     egui_view_set_size(EGUI_VIEW_OF(&mu_ctrl_play), 46, 38);
     egui_view_label_set_text(EGUI_VIEW_OF(&mu_ctrl_play), MU_ICON_PLAY);
@@ -283,7 +289,7 @@ void uicode_init_page_music(egui_view_t *parent)
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&mu_ctrl_play), mu_btn_play_click);
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&mu_ctrl_play));
 
-    egui_view_label_init(EGUI_VIEW_OF(&mu_ctrl_next));
+    egui_view_label_init(EGUI_VIEW_OF(&mu_ctrl_next), core);
     egui_view_set_position(EGUI_VIEW_OF(&mu_ctrl_next), 146, 266);
     egui_view_set_size(EGUI_VIEW_OF(&mu_ctrl_next), 36, 34);
     egui_view_label_set_text(EGUI_VIEW_OF(&mu_ctrl_next), MU_ICON_NEXT);
@@ -300,6 +306,6 @@ void uicode_page_music_on_enter(void)
 {
     if (!mu_is_playing)
     {
-        mu_btn_play_click(NULL);
+        mu_btn_play_click(EGUI_VIEW_OF(&mu_ctrl_play));
     }
 }

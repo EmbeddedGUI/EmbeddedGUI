@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "decoder_tjpgd_stream.h"
 #include "core/egui_common.h"
@@ -163,13 +163,13 @@ static void file_image_tjpgd_stream_close(void *decoder_ctx)
 
     if (ctx->band_pixels != NULL)
     {
-        egui_free(ctx->band_pixels);
+        egui_free(NULL, ctx->band_pixels);
     }
     if (ctx->workbuf != NULL)
     {
-        egui_free(ctx->workbuf);
+        egui_free(NULL, ctx->workbuf);
     }
-    egui_free(ctx);
+    egui_free(NULL, ctx);
 }
 
 static int file_image_tjpgd_stream_open(const egui_image_file_io_t *io, void *file_handle, const char *path, void **decoder_ctx,
@@ -188,7 +188,7 @@ static int file_image_tjpgd_stream_open(const egui_image_file_io_t *io, void *fi
         return 0;
     }
 
-    ctx = (file_image_tjpgd_stream_ctx_t *)egui_malloc(sizeof(*ctx));
+    ctx = (file_image_tjpgd_stream_ctx_t *)egui_malloc(NULL, sizeof(*ctx));
     if (ctx == NULL)
     {
         return 0;
@@ -198,7 +198,7 @@ static int file_image_tjpgd_stream_open(const egui_image_file_io_t *io, void *fi
     ctx->file_handle = file_handle;
     file_image_tjpgd_invalidate_band(ctx);
 
-    ctx->workbuf = (uint8_t *)egui_malloc(FILE_IMAGE_TJPGD_WORKBUF_SIZE);
+    ctx->workbuf = (uint8_t *)egui_malloc(NULL, FILE_IMAGE_TJPGD_WORKBUF_SIZE);
     if (ctx->workbuf == NULL)
     {
         file_image_tjpgd_stream_close(ctx);
@@ -221,7 +221,7 @@ static int file_image_tjpgd_stream_open(const egui_image_file_io_t *io, void *fi
     }
 
     band_pixel_count = (uint32_t)jd.width * mcu_height;
-    ctx->band_pixels = (uint16_t *)egui_malloc((int)(band_pixel_count * sizeof(uint16_t)));
+    ctx->band_pixels = (uint16_t *)egui_malloc(NULL, (int)(band_pixel_count * sizeof(uint16_t)));
     if (ctx->band_pixels == NULL)
     {
         file_image_tjpgd_stream_close(ctx);

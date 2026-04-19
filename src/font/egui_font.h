@@ -11,7 +11,7 @@ extern "C" {
 typedef struct egui_font_api egui_font_api_t;
 struct egui_font_api
 {
-    int (*draw_string)(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
+    int (*draw_string)(const egui_font_t *self, egui_canvas_t *canvas, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
     int (*get_str_size)(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width, egui_dim_t *height);
 };
 
@@ -53,8 +53,8 @@ __EGUI_STATIC_INLINE__ int egui_font_get_utf8_code_fast(const char *s, uint32_t 
     return egui_font_get_utf8_code(s, output_utf8_code);
 }
 
-void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
-                                   egui_color_t color, egui_alpha_t alpha);
+void egui_font_draw_string_in_rect(const egui_font_t *self, egui_canvas_t *canvas, const void *string, egui_region_t *rect, uint8_t align_type,
+                                   egui_dim_t line_space, egui_color_t color, egui_alpha_t alpha);
 void egui_font_init(egui_font_t *self, const void *res);
 
 /* Ends C function definitions when using C++ */

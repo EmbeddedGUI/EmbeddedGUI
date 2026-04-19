@@ -117,9 +117,9 @@ struct egui_view_virtual_tree_data_source
     }
 
 void egui_view_virtual_tree_apply_params(egui_view_t *self, const egui_view_virtual_tree_params_t *params);
-void egui_view_virtual_tree_init_with_params(egui_view_t *self, const egui_view_virtual_tree_params_t *params);
+void egui_view_virtual_tree_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_tree_params_t *params);
 void egui_view_virtual_tree_apply_setup(egui_view_t *self, const egui_view_virtual_tree_setup_t *setup);
-void egui_view_virtual_tree_init_with_setup(egui_view_t *self, const egui_view_virtual_tree_setup_t *setup);
+void egui_view_virtual_tree_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_tree_setup_t *setup);
 
 void egui_view_virtual_tree_set_data_source(egui_view_t *self, const egui_view_virtual_tree_data_source_t *data_source, void *data_source_context);
 const egui_view_virtual_tree_data_source_t *egui_view_virtual_tree_get_data_source(egui_view_t *self);
@@ -177,7 +177,7 @@ uint8_t egui_view_virtual_tree_visit_visible_nodes(egui_view_t *self, egui_view_
 egui_view_t *egui_view_virtual_tree_find_first_visible_node_view(egui_view_t *self, egui_view_virtual_tree_visible_node_matcher_t matcher, void *context,
                                                                  egui_view_virtual_tree_entry_t *entry_out);
 
-void egui_view_virtual_tree_init(egui_view_t *self);
+void egui_view_virtual_tree_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

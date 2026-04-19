@@ -36,7 +36,7 @@ struct egui_view_activity_ring_params
     static const egui_view_activity_ring_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 void egui_view_activity_ring_apply_params(egui_view_t *self, const egui_view_activity_ring_params_t *params);
-void egui_view_activity_ring_init_with_params(egui_view_t *self, const egui_view_activity_ring_params_t *params);
+void egui_view_activity_ring_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_activity_ring_params_t *params);
 
 void egui_view_activity_ring_set_value(egui_view_t *self, uint8_t ring_index, uint8_t value);
 uint8_t egui_view_activity_ring_get_value(egui_view_t *self, uint8_t ring_index);
@@ -48,7 +48,7 @@ void egui_view_activity_ring_set_ring_gap(egui_view_t *self, egui_dim_t ring_gap
 void egui_view_activity_ring_set_start_angle(egui_view_t *self, int16_t start_angle);
 void egui_view_activity_ring_set_show_round_cap(egui_view_t *self, uint8_t show);
 void egui_view_activity_ring_on_draw(egui_view_t *self);
-void egui_view_activity_ring_init(egui_view_t *self);
+void egui_view_activity_ring_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

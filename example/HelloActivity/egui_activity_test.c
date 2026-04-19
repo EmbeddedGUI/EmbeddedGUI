@@ -1,8 +1,8 @@
-﻿#include "egui.h"
+#include "egui.h"
 #include <stdlib.h>
 #include <math.h>
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "egui_activity_test.h"
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_activity_1_param_normal, EGUI_COLOR_DARK_GREEN, EGUI_ALPHA_100);
@@ -26,7 +26,7 @@ static const egui_background_color_t *bg_activity_list[] = {
 static void button_1_click_cb(egui_view_t *self)
 {
     EGUI_LOG_INF("button_1_click_cb\n");
-    egui_activity_t *p_activity = egui_core_activity_get_by_view(self);
+    egui_activity_t *p_activity = egui_view_get_activity(self);
     if (p_activity)
     {
         uicode_start_next_activity(p_activity);
@@ -37,10 +37,10 @@ static void button_2_click_cb(egui_view_t *self)
 {
     EGUI_LOG_INF("button_2_click_cb\n");
 
-    egui_activity_t *p_activity = egui_core_activity_get_by_view(self);
+    egui_activity_t *p_activity = egui_view_get_activity(self);
     if (p_activity)
     {
-        egui_core_activity_finish(p_activity);
+        egui_activity_finish(p_activity);
     }
 }
 
@@ -48,7 +48,7 @@ static void button_3_click_cb(egui_view_t *self)
 {
     EGUI_LOG_INF("button_3_click_cb\n");
 
-    egui_activity_t *p_activity = egui_core_activity_get_by_view(self);
+    egui_activity_t *p_activity = egui_view_get_activity(self);
     if (p_activity)
     {
         uicode_start_dialog(p_activity);
@@ -64,18 +64,20 @@ static void button_3_click_cb(egui_view_t *self)
 void egui_activity_test_on_create(egui_activity_t *self)
 {
     egui_activity_test_t *local = (egui_activity_test_t *)self;
+    egui_core_t *core;
     // Call super on_create
     egui_activity_on_create(self);
+    core = egui_activity_get_core(self);
 
     // Init all views
     // layout_1
-    egui_view_linearlayout_init((egui_view_t *)&local->layout_1);
+    egui_view_linearlayout_init((egui_view_t *)&local->layout_1, core);
     egui_view_set_position((egui_view_t *)&local->layout_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->layout_1, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->layout_1, EGUI_ALIGN_CENTER);
 
     // label_1
-    egui_view_label_init((egui_view_t *)&local->label_1);
+    egui_view_label_init((egui_view_t *)&local->label_1, core);
     egui_view_set_position((egui_view_t *)&local->label_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->label_1, LABEL_WIDTH, LABEL_HEIGHT);
     egui_view_set_margin_all((egui_view_t *)&local->label_1, 5);
@@ -85,7 +87,7 @@ void egui_activity_test_on_create(egui_activity_t *self)
     egui_view_label_set_font_color((egui_view_t *)&local->label_1, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 
     // button_1
-    egui_view_button_init((egui_view_t *)&local->button_1);
+    egui_view_button_init((egui_view_t *)&local->button_1, core);
     egui_view_set_position((egui_view_t *)&local->button_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->button_1, BUTTON_WIDTH, BUTTON_HEIGHT);
     egui_view_set_margin_all((egui_view_t *)&local->button_1, 5);
@@ -96,7 +98,7 @@ void egui_activity_test_on_create(egui_activity_t *self)
     egui_view_set_on_click_listener((egui_view_t *)&local->button_1, button_1_click_cb);
 
     // button_2
-    egui_view_button_init((egui_view_t *)&local->button_2);
+    egui_view_button_init((egui_view_t *)&local->button_2, core);
     egui_view_set_position((egui_view_t *)&local->button_2, 0, 0);
     egui_view_set_size((egui_view_t *)&local->button_2, BUTTON_WIDTH, BUTTON_HEIGHT);
     egui_view_set_margin_all((egui_view_t *)&local->button_2, 5);
@@ -107,7 +109,7 @@ void egui_activity_test_on_create(egui_activity_t *self)
     egui_view_set_on_click_listener((egui_view_t *)&local->button_2, button_2_click_cb);
 
     // button_3
-    egui_view_button_init((egui_view_t *)&local->button_3);
+    egui_view_button_init((egui_view_t *)&local->button_3, core);
     egui_view_set_position((egui_view_t *)&local->button_3, 0, 0);
     egui_view_set_size((egui_view_t *)&local->button_3, BUTTON_WIDTH, BUTTON_HEIGHT);
     egui_view_set_margin_all((egui_view_t *)&local->button_3, 5);
@@ -142,7 +144,7 @@ void egui_activity_test_on_destroy(egui_activity_t *self)
     egui_activity_on_destroy(self);
 
 #if TEST_ACTIVITY_DYNAMIC_ALLOC
-    egui_api_free((void *)self);
+    egui_api_free(egui_activity_get_core(self), (void *)self);
 #endif
 }
 
@@ -165,11 +167,11 @@ static const egui_activity_api_t EGUI_ACTIVITY_API_TABLE_NAME(egui_activity_test
         .on_destroy = egui_activity_test_on_destroy, // changed
 };
 
-void egui_activity_test_init(egui_activity_t *self)
+void egui_activity_test_init(egui_activity_t *self, egui_core_t *core)
 {
     egui_activity_test_t *local = (egui_activity_test_t *)self;
     // call super init.
-    egui_activity_init(self);
+    egui_activity_init(self, core);
     // update api.
     self->api = &EGUI_ACTIVITY_API_TABLE_NAME(egui_activity_test_t);
 

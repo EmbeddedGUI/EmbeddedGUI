@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_analog_clock.h"
+#include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
 #include "core/egui_canvas_gradient.h"
 #include "utils/egui_fixmath.h"
@@ -154,8 +155,8 @@ void egui_view_analog_clock_show_ticks(egui_view_t *self, uint8_t show)
     }
 }
 
-static void egui_view_analog_clock_draw_hand(egui_dim_t cx, egui_dim_t cy, int16_t angle_deg, egui_dim_t length, egui_dim_t width, egui_color_t color,
-                                             uint8_t use_round_cap)
+static void egui_view_analog_clock_draw_hand(egui_canvas_t *canvas, egui_dim_t cx, egui_dim_t cy, int16_t angle_deg, egui_dim_t length, egui_dim_t width,
+                                             egui_color_t color, uint8_t use_round_cap)
 {
     egui_dim_t end_x;
     egui_dim_t end_y;
@@ -164,17 +165,18 @@ static void egui_view_analog_clock_draw_hand(egui_dim_t cx, egui_dim_t cy, int16
 
     if (use_round_cap)
     {
-        egui_canvas_draw_line_round_cap_hq(cx, cy, end_x, end_y, width, color, EGUI_ALPHA_100);
+        egui_canvas_draw_line_round_cap_hq(canvas, cx, cy, end_x, end_y, width, color, EGUI_ALPHA_100);
     }
     else
     {
-        egui_canvas_draw_line(cx, cy, end_x, end_y, width, color, EGUI_ALPHA_100);
+        egui_canvas_draw_line(canvas, cx, cy, end_x, end_y, width, color, EGUI_ALPHA_100);
     }
 }
 
 void egui_view_analog_clock_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -191,7 +193,7 @@ void egui_view_analog_clock_on_draw(egui_view_t *self)
     }
 
     // Outer circle
-    egui_canvas_draw_circle(cx, cy, radius, 2, local->dial_color, EGUI_ALPHA_100);
+    egui_canvas_draw_circle(canvas, cx, cy, radius, 2, local->dial_color, EGUI_ALPHA_100);
 
     // Tick marks
     if (local->show_ticks)
@@ -221,7 +223,7 @@ void egui_view_analog_clock_on_draw(egui_view_t *self)
             egui_view_circle_dirty_get_circle_point(cx, cy, inner_r, angle_deg, &x1, &y1);
             egui_view_circle_dirty_get_circle_point(cx, cy, outer_r, angle_deg, &x2, &y2);
 
-            egui_canvas_draw_line(x1, y1, x2, y2, tick_w, local->tick_color, EGUI_ALPHA_100);
+            egui_canvas_draw_line(canvas, x1, y1, x2, y2, tick_w, local->tick_color, EGUI_ALPHA_100);
         }
     }
 
@@ -229,14 +231,14 @@ void egui_view_analog_clock_on_draw(egui_view_t *self)
     {
         int16_t hour_angle = (int16_t)(local->hour % 12) * 30 + (int16_t)local->minute / 2 - 90;
         egui_dim_t hour_len = radius * 50 / 100;
-        egui_view_analog_clock_draw_hand(cx, cy, hour_angle, hour_len, local->hour_hand_width, local->hour_color, 1);
+        egui_view_analog_clock_draw_hand(canvas, cx, cy, hour_angle, hour_len, local->hour_hand_width, local->hour_color, 1);
     }
 
     // Minute hand: angle = minute*6 - 90, length = radius*70/100
     {
         int16_t min_angle = (int16_t)local->minute * 6 - 90;
         egui_dim_t min_len = radius * 70 / 100;
-        egui_view_analog_clock_draw_hand(cx, cy, min_angle, min_len, local->minute_hand_width, local->minute_color, 1);
+        egui_view_analog_clock_draw_hand(canvas, cx, cy, min_angle, min_len, local->minute_hand_width, local->minute_color, 1);
     }
 
     // Second hand (if show_second): angle = second*6 - 90, length = radius*80/100
@@ -244,7 +246,7 @@ void egui_view_analog_clock_on_draw(egui_view_t *self)
     {
         int16_t sec_angle = (int16_t)local->second * 6 - 90;
         egui_dim_t sec_len = radius * 80 / 100;
-        egui_view_analog_clock_draw_hand(cx, cy, sec_angle, sec_len, local->second_hand_width, local->second_color, 0);
+        egui_view_analog_clock_draw_hand(canvas, cx, cy, sec_angle, sec_len, local->second_hand_width, local->second_color, 0);
     }
 
     // Center dot
@@ -262,10 +264,10 @@ void egui_view_analog_clock_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_circle_fill_gradient(cx, cy, dot_r, &grad);
+        egui_canvas_draw_circle_fill_gradient(canvas, cx, cy, dot_r, &grad);
     }
 #else
-    egui_canvas_draw_circle_fill(cx, cy, EGUI_MAX(radius / 10, 3), local->hour_color, EGUI_ALPHA_100);
+    egui_canvas_draw_circle_fill(canvas, cx, cy, EGUI_MAX(radius / 10, 3), local->hour_color, EGUI_ALPHA_100);
 #endif
 }
 
@@ -286,11 +288,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_analog_clock_t) = {
 #endif
 };
 
-void egui_view_analog_clock_init(egui_view_t *self)
+void egui_view_analog_clock_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_analog_clock_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_analog_clock_t);
 
@@ -325,8 +327,8 @@ void egui_view_analog_clock_apply_params(egui_view_t *self, const egui_view_anal
     egui_view_invalidate(self);
 }
 
-void egui_view_analog_clock_init_with_params(egui_view_t *self, const egui_view_analog_clock_params_t *params)
+void egui_view_analog_clock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_analog_clock_params_t *params)
 {
-    egui_view_analog_clock_init(self);
+    egui_view_analog_clock_init(self, core);
     egui_view_analog_clock_apply_params(self, params);
 }

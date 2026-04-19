@@ -6,6 +6,7 @@
 
 #include "egui_api.h"
 #include "egui_core.h"
+#include "egui_canvas.h"
 #include "egui_display_driver.h"
 #include "egui_platform.h"
 
@@ -13,7 +14,7 @@
  * Bridge layer: implements egui_api_* functions.
  *
  * When the corresponding EGUI_CONFIG_PLATFORM_CUSTOM_xxx macro is 0 (default),
- * the function calls the standard C library directly — no callback, no
+ * the function calls the standard C library directly �?no callback, no
  * function-pointer dereference, shortest possible path.
  *
  * When the macro is 1, the function dispatches through the registered
@@ -21,47 +22,109 @@
  * hardware-accelerated or otherwise specialised implementation.
  */
 
-static void *egui_api_platform_malloc(int size)
+static egui_platform_t *egui_api_get_platform(egui_core_t *core)
+{
+    return core != NULL ? egui_platform_get(core) : NULL;
+}
+
+static void *egui_api_platform_malloc(egui_core_t *core, int size)
 {
 #if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->malloc != NULL)
+    egui_platform_t *plat = egui_api_get_platform(core);
+    if (plat != NULL && plat->ops != NULL && plat->ops->malloc != NULL)
     {
         return plat->ops->malloc(size);
     }
-    return NULL;
+    return malloc((size_t)size);
 #else
     return malloc((size_t)size);
 #endif
 }
 
-static void egui_api_platform_free(void *ptr)
+static void egui_api_platform_free(egui_core_t *core, void *ptr)
 {
 #if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->free != NULL)
+    egui_platform_t *plat = egui_api_get_platform(core);
+    if (plat != NULL && plat->ops != NULL && plat->ops->free != NULL)
     {
         plat->ops->free(ptr);
+        return;
     }
+
+    free(ptr);
 #else
     free(ptr);
 #endif
 }
 
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC || EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
 typedef union egui_api_alloc_header
 {
-    size_t tracked_size;
+    struct
+    {
+        egui_core_t *alloc_core;
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+        size_t tracked_size;
+        egui_core_t *monitor_core;
+#endif
+    } meta;
     uintptr_t align_uintptr;
     long double align_long_double;
 } egui_api_alloc_header_t;
 
-static size_t s_egui_api_mem_used_size;
-static size_t s_egui_api_mem_peak_size;
-
-static int egui_api_calc_tracked_size(size_t payload_size, size_t *tracked_size)
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+static size_t egui_api_mem_counter_load(const size_t *value)
 {
-    if (tracked_size == NULL)
+    return *value;
+}
+
+static size_t egui_api_mem_counter_add(size_t *value, size_t delta)
+{
+    *value += delta;
+    return *value;
+}
+
+static size_t egui_api_mem_counter_sub_clamp_zero(size_t *value, size_t delta)
+{
+    *value = (*value >= delta) ? (*value - delta) : 0U;
+    return *value;
+}
+
+static void egui_api_mem_counter_update_peak(size_t *peak_value, size_t current_used)
+{
+    if (current_used > *peak_value)
+    {
+        *peak_value = current_used;
+    }
+}
+
+static void egui_api_mem_counter_add_to_core(egui_core_t *core, size_t tracked_size)
+{
+    size_t current_used;
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    current_used = egui_api_mem_counter_add(&core->debug.mem_monitor_used_size, tracked_size);
+    egui_api_mem_counter_update_peak(&core->debug.mem_monitor_peak_size, current_used);
+}
+
+static void egui_api_mem_counter_sub_from_core(egui_core_t *core, size_t tracked_size)
+{
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_api_mem_counter_sub_clamp_zero(&core->debug.mem_monitor_used_size, tracked_size);
+}
+#endif
+
+static int egui_api_calc_alloc_size(size_t payload_size, size_t *alloc_size)
+{
+    if (alloc_size == NULL)
     {
         return 0;
     }
@@ -71,42 +134,48 @@ static int egui_api_calc_tracked_size(size_t payload_size, size_t *tracked_size)
         return 0;
     }
 
-    *tracked_size = sizeof(egui_api_alloc_header_t) + payload_size;
+    *alloc_size = sizeof(egui_api_alloc_header_t) + payload_size;
     return 1;
 }
 
-static void *egui_api_malloc_raw(int size)
+static void *egui_api_malloc_raw(egui_core_t *core, int size)
 {
-    return egui_api_platform_malloc(size);
+    return egui_api_platform_malloc(core, size);
 }
 
-static void egui_api_free_raw(void *ptr)
+static void egui_api_free_raw(egui_core_t *core, void *ptr)
 {
-    egui_api_platform_free(ptr);
+    egui_api_platform_free(core, ptr);
 }
 #endif
 
 static void egui_api_log_alloc_fail(const char *reason, size_t payload_size, size_t tracked_size)
 {
 #if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
-    EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu, used=%lu, peak=%lu\r\n", reason, (unsigned long)payload_size, (unsigned long)tracked_size,
-                 (unsigned long)s_egui_api_mem_used_size, (unsigned long)s_egui_api_mem_peak_size);
+    EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu\r\n", reason, (unsigned long)payload_size, (unsigned long)tracked_size);
 #else
     EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu\r\n", reason, (unsigned long)payload_size, (unsigned long)tracked_size);
 #endif
 }
 
-#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF && EGUI_PORT == EGUI_PORT_TYPE_QEMU
+extern void qemu_vlog(const char *format, va_list args);
+
 void egui_api_log(const char *format, ...)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->vlog != NULL)
-    {
-        va_list args;
-        va_start(args, format);
-        plat->ops->vlog(format, args);
-        va_end(args);
-    }
+    va_list args;
+    va_start(args, format);
+    qemu_vlog(format, args);
+    va_end(args);
+}
+#elif EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+void egui_api_log(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    fflush(stdout);
 }
 #else
 void egui_api_log(const char *format, ...)
@@ -115,25 +184,20 @@ void egui_api_log(const char *format, ...)
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
+    fflush(stdout);
 }
 #endif
 
 void egui_api_assert(const char *file, int line)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->assert_handler != NULL)
-    {
-        plat->ops->assert_handler(file, line);
-    }
     while (1)
         ;
 }
 
-void egui_api_free(void *ptr)
+void egui_api_free(egui_core_t *core, void *ptr)
 {
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC || EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     egui_api_alloc_header_t *header;
-    size_t tracked_size;
 
     if (ptr == NULL)
     {
@@ -141,60 +205,59 @@ void egui_api_free(void *ptr)
     }
 
     header = ((egui_api_alloc_header_t *)ptr) - 1;
-    tracked_size = header->tracked_size;
-    if (s_egui_api_mem_used_size >= tracked_size)
+    EGUI_ASSERT(core == NULL || header->meta.alloc_core == NULL || header->meta.alloc_core == core);
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     {
-        s_egui_api_mem_used_size -= tracked_size;
+        size_t tracked_size = header->meta.tracked_size;
+
+        egui_api_mem_counter_sub_from_core(header->meta.monitor_core, tracked_size);
     }
-    else
-    {
-        s_egui_api_mem_used_size = 0U;
-    }
-    egui_api_free_raw((void *)header);
+#endif
+    egui_api_free_raw(header->meta.alloc_core, (void *)header);
 #else
-    egui_api_platform_free(ptr);
+    egui_api_platform_free(core, ptr);
 #endif
 }
 
-void *egui_api_malloc(int size)
+void *egui_api_malloc(egui_core_t *core, int size)
 {
     if (size <= 0)
     {
         return NULL;
     }
 
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC || EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     egui_api_alloc_header_t *header;
     size_t payload_size;
-    size_t tracked_size;
+    size_t alloc_size;
 #endif
 
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC || EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     payload_size = (size_t)size;
-    if (!egui_api_calc_tracked_size(payload_size, &tracked_size))
+    if (!egui_api_calc_alloc_size(payload_size, &alloc_size))
     {
         egui_api_log_alloc_fail("size_overflow", payload_size, 0U);
         return NULL;
     }
 
-    header = (egui_api_alloc_header_t *)egui_api_malloc_raw((int)tracked_size);
+    header = (egui_api_alloc_header_t *)egui_api_malloc_raw(core, (int)alloc_size);
     if (header == NULL)
     {
-        egui_api_log_alloc_fail("failed", payload_size, tracked_size);
+        egui_api_log_alloc_fail("failed", payload_size, alloc_size);
         return NULL;
     }
 
-    header->tracked_size = tracked_size;
-    s_egui_api_mem_used_size += tracked_size;
-    if (s_egui_api_mem_used_size > s_egui_api_mem_peak_size)
-    {
-        s_egui_api_mem_peak_size = s_egui_api_mem_used_size;
-    }
+    header->meta.alloc_core = core;
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+    header->meta.tracked_size = alloc_size;
+    header->meta.monitor_core = core;
+    egui_api_mem_counter_add_to_core(core, alloc_size);
+#endif
     return (void *)(header + 1);
 #else
     void *ptr;
 
-    ptr = egui_api_platform_malloc(size);
+    ptr = egui_api_platform_malloc(core, size);
     if (ptr == NULL)
     {
         egui_api_log_alloc_fail("failed", (size_t)size, (size_t)size);
@@ -203,7 +266,7 @@ void *egui_api_malloc(int size)
 #endif
 }
 
-int egui_api_get_mem_monitor(egui_mem_monitor_t *monitor)
+int egui_api_get_mem_monitor(egui_core_t *core, egui_mem_monitor_t *monitor)
 {
     if (monitor == NULL)
     {
@@ -213,8 +276,13 @@ int egui_api_get_mem_monitor(egui_mem_monitor_t *monitor)
     memset(monitor, 0, sizeof(*monitor));
 
 #if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
-    monitor->used_size = s_egui_api_mem_used_size;
-    monitor->max_used = s_egui_api_mem_peak_size;
+    if (core == NULL)
+    {
+        return 0;
+    }
+
+    monitor->used_size = egui_api_mem_counter_load(&core->debug.mem_monitor_used_size);
+    monitor->max_used = egui_api_mem_counter_load(&core->debug.mem_monitor_peak_size);
 #endif
 
     return 1;
@@ -223,14 +291,10 @@ int egui_api_get_mem_monitor(egui_mem_monitor_t *monitor)
 #if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
 void egui_api_sprintf(char *str, const char *format, ...)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->vsprintf != NULL)
-    {
-        va_list args;
-        va_start(args, format);
-        plat->ops->vsprintf(str, format, args);
-        va_end(args);
-    }
+    va_list args;
+    va_start(args, format);
+    vsprintf(str, format, args);
+    va_end(args);
 }
 #else
 void egui_api_sprintf(char *str, const char *format, ...)
@@ -242,68 +306,80 @@ void egui_api_sprintf(char *str, const char *format, ...)
 }
 #endif
 
-void egui_api_draw_data(int16_t x, int16_t y, int16_t width, int16_t height, const egui_color_int_t *data)
+void egui_api_draw_data(egui_core_t *core, int16_t x, int16_t y, int16_t width, int16_t height, const egui_color_int_t *data)
 {
-    egui_display_driver_t *drv = egui_display_driver_get();
+    egui_display_driver_t *drv = egui_display_driver_get(core);
+
     if (drv != NULL && drv->ops->draw_area != NULL)
     {
-        drv->ops->draw_area(x, y, width, height, data);
+        drv->ops->draw_area(core, x, y, width, height, data);
         // wait_draw_complete == NULL means draw_area is synchronous, no wait needed
         if (drv->ops->wait_draw_complete != NULL)
         {
-            drv->ops->wait_draw_complete();
+            drv->ops->wait_draw_complete(core);
         }
     }
 }
 
-void egui_api_refresh_display(void)
+void egui_api_refresh_display(egui_core_t *core)
 {
-    egui_display_driver_t *drv = egui_display_driver_get();
+    egui_display_driver_t *drv = egui_display_driver_get(core);
+
     if (drv != NULL && drv->ops->flush != NULL)
     {
-        drv->ops->flush();
+        drv->ops->flush(core);
     }
 }
 
-void egui_api_timer_start(uint32_t ms)
+void egui_api_timer_start(egui_core_t *core, uint32_t ms)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->timer_start != NULL)
+    egui_platform_t *plat = egui_api_get_platform(core);
+    if (plat != NULL && plat->ops != NULL && plat->ops->timer_start != NULL)
     {
-        plat->ops->timer_start(ms);
+        plat->ops->timer_start(core, ms);
     }
 }
 
-void egui_api_timer_stop(void)
+void egui_api_timer_stop(egui_core_t *core)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->timer_stop != NULL)
+    egui_platform_t *plat = egui_api_get_platform(core);
+    if (plat != NULL && plat->ops != NULL && plat->ops->timer_stop != NULL)
     {
-        plat->ops->timer_stop();
+        plat->ops->timer_stop(core);
     }
 }
 
-uint32_t egui_api_timer_get_current(void)
+uint32_t egui_api_timer_get_current_core(egui_core_t *core)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->get_tick_ms != NULL)
+    egui_platform_t *plat = egui_api_get_platform(core);
+    if (plat != NULL && plat->ops != NULL && plat->ops->get_tick_ms != NULL)
     {
         return plat->ops->get_tick_ms();
     }
     return 0;
 }
 
-void egui_api_delay(uint32_t ms)
+uint32_t egui_api_timer_get_current(void)
 {
-    egui_platform_t *plat = egui_platform_get();
+    return egui_api_timer_get_current_core(NULL);
+}
+
+void egui_api_delay_core(egui_core_t *core, uint32_t ms)
+{
+    egui_platform_t *plat = egui_api_get_platform(core);
     if (ms == 0)
     {
         return;
     }
-    if (plat != NULL && plat->ops->delay != NULL)
+    if (plat != NULL && plat->ops != NULL && plat->ops->delay != NULL)
     {
         plat->ops->delay(ms);
     }
+}
+
+void egui_api_delay(uint32_t ms)
+{
+    egui_api_delay_core(NULL, ms);
 }
 
 #if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
@@ -314,28 +390,12 @@ void egui_api_pfb_clear(void *s, int n)
 
 void egui_api_memset(void *s, int c, int n)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->memset_fast != NULL)
-    {
-        plat->ops->memset_fast(s, c, n);
-    }
-    else
-    {
-        memset(s, c, n);
-    }
+    memset(s, c, n);
 }
 
 void egui_api_memcpy(void *dst, const void *src, int n)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->memcpy_fast != NULL)
-    {
-        plat->ops->memcpy_fast(dst, src, n);
-    }
-    else
-    {
-        memcpy(dst, src, n);
-    }
+    memcpy(dst, src, n);
 }
 #else
 void egui_api_pfb_clear(void *s, int n)
@@ -354,34 +414,59 @@ void egui_api_memcpy(void *dst, const void *src, int n)
 }
 #endif
 
-void egui_api_load_external_resource(void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size)
+void egui_api_load_external_resource(egui_canvas_t *canvas, void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->load_external_resource != NULL)
+    egui_core_t *core = canvas != NULL ? egui_canvas_get_core(canvas) : NULL;
+    egui_platform_t *plat = egui_api_get_platform(core);
+    if (plat != NULL && plat->ops != NULL && plat->ops->load_external_resource != NULL)
     {
-        // Acquire SPI bus: wait for pending DMA, prevent new DMA starts.
-        // Handles both interrupt and polling modes transparently.
-        egui_pfb_bus_acquire();
-        plat->ops->load_external_resource(dest, res_id, start_offset, size);
-        egui_pfb_bus_release();
+        if (canvas != NULL)
+        {
+            // Acquire SPI bus: wait for pending DMA, prevent new DMA starts.
+            // Handles both interrupt and polling modes transparently.
+            if (core != NULL)
+            {
+                egui_pfb_bus_acquire(core);
+            }
+            plat->ops->load_external_resource(core, dest, res_id, start_offset, size);
+            if (core != NULL)
+            {
+                egui_pfb_bus_release(core);
+            }
+        }
+        else
+        {
+            // No canvas context (e.g. measurement-only path) — load without bus synchronization.
+            plat->ops->load_external_resource(NULL, dest, res_id, start_offset, size);
+        }
     }
 }
 
-egui_base_t egui_hw_interrupt_disable(void)
+egui_base_t egui_hw_interrupt_disable_core(egui_core_t *core)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->interrupt_disable != NULL)
+    egui_platform_t *plat = egui_api_get_platform(core);
+    if (plat != NULL && plat->ops != NULL && plat->ops->interrupt_disable != NULL)
     {
         return plat->ops->interrupt_disable();
     }
     return 0;
 }
 
-void egui_hw_interrupt_enable(egui_base_t level)
+egui_base_t egui_hw_interrupt_disable(void)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->interrupt_enable != NULL)
+    return egui_hw_interrupt_disable_core(NULL);
+}
+
+void egui_hw_interrupt_enable_core(egui_core_t *core, egui_base_t level)
+{
+    egui_platform_t *plat = egui_api_get_platform(core);
+    if (plat != NULL && plat->ops != NULL && plat->ops->interrupt_enable != NULL)
     {
         plat->ops->interrupt_enable(level);
     }
+}
+
+void egui_hw_interrupt_enable(egui_base_t level)
+{
+    egui_hw_interrupt_enable_core(NULL, level);
 }

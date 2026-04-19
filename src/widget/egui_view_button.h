@@ -30,8 +30,8 @@ struct egui_view_button
                                                    .alpha = EGUI_ALPHA_100}
 
 void egui_view_button_apply_params(egui_view_t *self, const egui_view_label_params_t *params);
-void egui_view_button_init(egui_view_t *self);
-void egui_view_button_init_with_params(egui_view_t *self, const egui_view_label_params_t *params);
+void egui_view_button_init(egui_view_t *self, egui_core_t *core);
+void egui_view_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params);
 void egui_view_button_set_icon(egui_view_t *self, const char *icon);
 void egui_view_button_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);

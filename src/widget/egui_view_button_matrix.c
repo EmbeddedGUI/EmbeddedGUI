@@ -1,8 +1,9 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_button_matrix.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
@@ -24,12 +25,12 @@ static const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_button
     return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
-static void egui_view_button_matrix_draw_text_clipped(const egui_font_t *font, const char *text, const egui_region_t *text_rect, const egui_region_t *clip_rect,
-                                                      uint8_t align, egui_color_t color, egui_alpha_t alpha)
+static void egui_view_button_matrix_draw_text_clipped(egui_canvas_t *canvas, const egui_font_t *font, const char *text, const egui_region_t *text_rect,
+                                                      const egui_region_t *clip_rect, uint8_t align, egui_color_t color, egui_alpha_t alpha)
 {
     egui_region_t draw_rect = *text_rect;
     egui_region_t text_clip = *clip_rect;
-    const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+    const egui_region_t *prev_clip = egui_canvas_get_extra_clip(canvas);
 
     if (font == NULL || text == NULL || text[0] == '\0')
     {
@@ -46,15 +47,15 @@ static void egui_view_button_matrix_draw_text_clipped(const egui_font_t *font, c
         return;
     }
 
-    egui_canvas_set_extra_clip(&text_clip);
-    egui_canvas_draw_text_in_rect(font, text, &draw_rect, align, color, alpha);
+    egui_canvas_set_extra_clip(canvas, &text_clip);
+    egui_canvas_draw_text_in_rect(canvas, font, text, &draw_rect, align, color, alpha);
     if (prev_clip != NULL)
     {
-        egui_canvas_set_extra_clip(prev_clip);
+        egui_canvas_set_extra_clip(canvas, prev_clip);
     }
     else
     {
-        egui_canvas_clear_extra_clip();
+        egui_canvas_clear_extra_clip(canvas);
     }
 }
 
@@ -358,6 +359,7 @@ void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap
 void egui_view_button_matrix_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     if ((local->labels == NULL && local->icons == NULL) || local->btn_count == 0 || local->cols == 0)
     {
@@ -426,10 +428,10 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
                     .alpha = EGUI_ALPHA_100,
                     .stops = stops,
             };
-            egui_canvas_draw_round_rectangle_fill_gradient(btn_x, btn_y, btn_w, btn_h, r, &grad);
+            egui_canvas_draw_round_rectangle_fill_gradient(canvas, btn_x, btn_y, btn_w, btn_h, r, &grad);
         }
 #else
-        egui_canvas_draw_round_rectangle_fill(btn_x, btn_y, btn_w, btn_h, r, bg_color, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(canvas, btn_x, btn_y, btn_w, btn_h, r, bg_color, EGUI_ALPHA_100);
 #endif
 
         // Draw border, emphasize selected/pressed state for better affordance.
@@ -440,7 +442,7 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
             border_w = 2;
             border_color = EGUI_COLOR_WHITE;
         }
-        egui_canvas_draw_round_rectangle(btn_x, btn_y, btn_w, btn_h, r, border_w, border_color, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle(canvas, btn_x, btn_y, btn_w, btn_h, r, border_w, border_color, EGUI_ALPHA_100);
 
         // Draw centered content with per-cell clip to avoid overflow into neighboring cells.
         egui_region_t content_rect = {{btn_x + 4, btn_y + 4}, {btn_w > 8 ? (btn_w - 8) : btn_w, btn_h > 8 ? (btn_h - 8) : btn_h}};
@@ -451,7 +453,8 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
                 const egui_font_t *icon_font = egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
                 if (icon_font == NULL)
                 {
-                    egui_view_button_matrix_draw_text_clipped(font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+                    egui_view_button_matrix_draw_text_clipped(canvas, font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
+                                                              EGUI_ALPHA_100);
                     continue;
                 }
 
@@ -508,22 +511,23 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
                 text_rect.size.width = content_rect.size.width;
                 text_rect.size.height = content_rect.location.y + content_rect.size.height - text_rect.location.y;
 
-                egui_view_button_matrix_draw_text_clipped(icon_font, icon, &icon_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
-                egui_view_button_matrix_draw_text_clipped(font, label, &text_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+                egui_view_button_matrix_draw_text_clipped(canvas, icon_font, icon, &icon_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
+                                                          EGUI_ALPHA_100);
+                egui_view_button_matrix_draw_text_clipped(canvas, font, label, &text_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
             }
             else
             {
                 const egui_font_t *icon_font = egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
                 if (icon_font != NULL)
                 {
-                    egui_view_button_matrix_draw_text_clipped(icon_font, icon, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
+                    egui_view_button_matrix_draw_text_clipped(canvas, icon_font, icon, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
                                                               EGUI_ALPHA_100);
                 }
             }
         }
         else if (label != NULL && label[0] != '\0')
         {
-            egui_view_button_matrix_draw_text_clipped(font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+            egui_view_button_matrix_draw_text_clipped(canvas, font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
         }
     }
 }
@@ -655,11 +659,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_matrix_t) = {
 #endif
 };
 
-void egui_view_button_matrix_init(egui_view_t *self)
+void egui_view_button_matrix_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_button_matrix_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_button_matrix_t);
 
@@ -696,8 +700,8 @@ void egui_view_button_matrix_apply_params(egui_view_t *self, const egui_view_but
     egui_view_invalidate(self);
 }
 
-void egui_view_button_matrix_init_with_params(egui_view_t *self, const egui_view_button_matrix_params_t *params)
+void egui_view_button_matrix_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_button_matrix_params_t *params)
 {
-    egui_view_button_matrix_init(self);
+    egui_view_button_matrix_init(self, core);
     egui_view_button_matrix_apply_params(self, params);
 }

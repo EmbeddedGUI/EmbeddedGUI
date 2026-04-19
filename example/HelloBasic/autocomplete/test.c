@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_gridlayout_t grid;
 static egui_view_autocomplete_t autocomplete_view;
@@ -35,17 +35,17 @@ static void on_selected(egui_view_t *self, uint8_t index)
     update_status(index);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     clip_fail_reported = 0;
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
-    egui_view_autocomplete_init_with_params(EGUI_VIEW_OF(&autocomplete_view), &autocomplete_params);
+    egui_view_autocomplete_init_with_params(EGUI_VIEW_OF(&autocomplete_view), core, &autocomplete_params);
     egui_view_autocomplete_set_on_selected_listener(EGUI_VIEW_OF(&autocomplete_view), on_selected);
     egui_view_autocomplete_set_max_visible_items(EGUI_VIEW_OF(&autocomplete_view), 4);
     egui_view_set_margin_all(EGUI_VIEW_OF(&autocomplete_view), 6);
 
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&status_label), &status_label_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&status_label), core, &status_label_params);
     egui_view_set_margin_all(EGUI_VIEW_OF(&status_label), 6);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&status_label), EGUI_ALIGN_CENTER | EGUI_ALIGN_VCENTER);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&status_label), EGUI_COLOR_GREEN, EGUI_ALPHA_100);
@@ -56,7 +56,7 @@ void test_init_ui(void)
     egui_view_gridlayout_layout_childs(EGUI_VIEW_OF(&grid));
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

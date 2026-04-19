@@ -58,8 +58,9 @@ static void chsc6540_del(egui_hal_touch_driver_t *self)
 }
 
 /* Driver: read */
-static int chsc6540_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int chsc6540_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     uint8_t buf[CHSC6540_REPORT_SIZE];
     uint8_t point_count;
     int16_t x;

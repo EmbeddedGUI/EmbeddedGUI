@@ -15,12 +15,12 @@ struct egui_focus_manager
     egui_view_t *focused_view;
 };
 
-void egui_focus_manager_init(void);
-void egui_focus_manager_set_focus(egui_view_t *view);
-void egui_focus_manager_clear_focus(void);
-egui_view_t *egui_focus_manager_get_focused_view(void);
-void egui_focus_manager_move_focus_next(void);
-void egui_focus_manager_move_focus_prev(void);
+void egui_focus_manager_init(egui_core_t *core);
+void egui_focus_manager_set_focus(egui_core_t *core, egui_view_t *view);
+void egui_focus_manager_clear_focus(egui_core_t *core);
+egui_view_t *egui_focus_manager_get_focused_view(egui_core_t *core);
+void egui_focus_manager_move_focus_next(egui_core_t *core);
+void egui_focus_manager_move_focus_prev(egui_core_t *core);
 
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 

@@ -134,8 +134,9 @@ static void spd2010_del(egui_hal_touch_driver_t *self)
     memset(self, 0, sizeof(egui_hal_touch_driver_t));
 }
 
-static int spd2010_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int spd2010_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     spd2010_status_t status;
     uint8_t sample[SPD2010_MAX_HDP_LEN];
     uint8_t hdp_status[SPD2010_HDP_STATUS_LEN];

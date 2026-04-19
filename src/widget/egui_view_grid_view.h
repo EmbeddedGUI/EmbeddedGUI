@@ -100,9 +100,9 @@ struct egui_view_grid_view_setup
     }
 
 void egui_view_grid_view_apply_params(egui_view_t *self, const egui_view_grid_view_params_t *params);
-void egui_view_grid_view_init_with_params(egui_view_t *self, const egui_view_grid_view_params_t *params);
+void egui_view_grid_view_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_grid_view_params_t *params);
 void egui_view_grid_view_apply_setup(egui_view_t *self, const egui_view_grid_view_setup_t *setup);
-void egui_view_grid_view_init_with_setup(egui_view_t *self, const egui_view_grid_view_setup_t *setup);
+void egui_view_grid_view_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_grid_view_setup_t *setup);
 
 void egui_view_grid_view_set_data_model(egui_view_t *self, const egui_view_grid_view_data_model_t *data_model,
                                         const egui_view_grid_view_holder_ops_t *holder_ops, void *data_model_context);
@@ -171,7 +171,7 @@ egui_view_t *egui_view_grid_view_find_item_view_by_stable_id(egui_view_t *self, 
 uint8_t egui_view_grid_view_resolve_holder_by_view(egui_view_t *self, egui_view_t *item_view, egui_view_grid_view_holder_t **holder_out,
                                                    egui_view_grid_view_entry_t *entry_out);
 
-void egui_view_grid_view_init(egui_view_t *self);
+void egui_view_grid_view_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

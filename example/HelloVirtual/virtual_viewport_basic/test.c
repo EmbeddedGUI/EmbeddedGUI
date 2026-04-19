@@ -7,7 +7,7 @@
 #include "core/egui_input_simulator.h"
 #endif
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define BASIC_VIEWPORT_ITEM_COUNT     160U
 #define BASIC_VIEWPORT_STABLE_BASE    1000U
@@ -125,6 +125,7 @@ static egui_view_card_t toolbar_card;
 static egui_view_button_t action_buttons[BASIC_ACTION_COUNT];
 static egui_view_virtual_viewport_t viewport_view;
 static basic_viewport_context_t basic_ctx;
+static egui_core_t *s_core;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
@@ -457,7 +458,7 @@ static void basic_style_action_button(egui_view_button_t *button, uint8_t action
         break;
     }
 
-    egui_view_button_init(EGUI_VIEW_OF(button));
+    egui_view_button_init(EGUI_VIEW_OF(button), s_core);
     egui_view_set_size(EGUI_VIEW_OF(button), BASIC_ACTION_W, 22);
     egui_view_set_background(EGUI_VIEW_OF(button), background);
     egui_view_label_set_font(EGUI_VIEW_OF(button), BASIC_FONT_BODY);
@@ -552,22 +553,22 @@ static egui_view_t *basic_adapter_create_view(void *adapter_context, uint16_t vi
 
     if (view_type == BASIC_VIEW_TYPE_SLIDER_ROW)
     {
-        basic_slider_row_t *row = (basic_slider_row_t *)egui_malloc(sizeof(basic_slider_row_t));
+        basic_slider_row_t *row = (basic_slider_row_t *)egui_malloc(s_core, sizeof(basic_slider_row_t));
         if (row == NULL)
         {
             return NULL;
         }
 
         memset(row, 0, sizeof(*row));
-        egui_view_group_init(EGUI_VIEW_OF(&row->root));
+        egui_view_group_init(EGUI_VIEW_OF(&row->root), s_core);
 
-        egui_view_card_init(EGUI_VIEW_OF(&row->card));
+        egui_view_card_init(EGUI_VIEW_OF(&row->card), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&row->card), BASIC_ROW_SIDE_INSET, 4);
         egui_view_set_size(EGUI_VIEW_OF(&row->card), BASIC_VIEWPORT_W - BASIC_ROW_SIDE_INSET * 2, BASIC_SLIDER_CARD_H);
         egui_view_card_set_border(EGUI_VIEW_OF(&row->card), 1, EGUI_COLOR_HEX(0xC7D7E3));
         egui_view_group_add_child(EGUI_VIEW_OF(&row->root), EGUI_VIEW_OF(&row->card));
 
-        egui_view_label_init(EGUI_VIEW_OF(&row->title));
+        egui_view_label_init(EGUI_VIEW_OF(&row->title), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&row->title), 10, 7);
         egui_view_set_size(EGUI_VIEW_OF(&row->title), 160, 12);
         egui_view_label_set_font(EGUI_VIEW_OF(&row->title), BASIC_FONT_BODY);
@@ -575,7 +576,7 @@ static egui_view_t *basic_adapter_create_view(void *adapter_context, uint16_t vi
         egui_view_label_set_font_color(EGUI_VIEW_OF(&row->title), EGUI_COLOR_HEX(0x2B4153), EGUI_ALPHA_100);
         egui_view_card_add_child(EGUI_VIEW_OF(&row->card), EGUI_VIEW_OF(&row->title));
 
-        egui_view_label_init(EGUI_VIEW_OF(&row->value));
+        egui_view_label_init(EGUI_VIEW_OF(&row->value), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&row->value), BASIC_VIEWPORT_W - BASIC_ROW_SIDE_INSET * 2 - 52, 7);
         egui_view_set_size(EGUI_VIEW_OF(&row->value), 40, 12);
         egui_view_label_set_font(EGUI_VIEW_OF(&row->value), BASIC_FONT_BODY);
@@ -583,7 +584,7 @@ static egui_view_t *basic_adapter_create_view(void *adapter_context, uint16_t vi
         egui_view_label_set_font_color(EGUI_VIEW_OF(&row->value), EGUI_COLOR_HEX(0x526678), EGUI_ALPHA_100);
         egui_view_card_add_child(EGUI_VIEW_OF(&row->card), EGUI_VIEW_OF(&row->value));
 
-        egui_view_slider_init(EGUI_VIEW_OF(&row->slider));
+        egui_view_slider_init(EGUI_VIEW_OF(&row->slider), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&row->slider), 10, 24);
         egui_view_set_size(EGUI_VIEW_OF(&row->slider), BASIC_VIEWPORT_W - BASIC_ROW_SIDE_INSET * 2 - 20, 16);
         egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&row->slider), basic_slider_value_changed_cb);
@@ -596,15 +597,15 @@ static egui_view_t *basic_adapter_create_view(void *adapter_context, uint16_t vi
     }
 
     {
-        basic_button_row_t *row = (basic_button_row_t *)egui_malloc(sizeof(basic_button_row_t));
+        basic_button_row_t *row = (basic_button_row_t *)egui_malloc(s_core, sizeof(basic_button_row_t));
         if (row == NULL)
         {
             return NULL;
         }
 
         memset(row, 0, sizeof(*row));
-        egui_view_group_init(EGUI_VIEW_OF(&row->root));
-        egui_view_button_init(EGUI_VIEW_OF(&row->button));
+        egui_view_group_init(EGUI_VIEW_OF(&row->root), s_core);
+        egui_view_button_init(EGUI_VIEW_OF(&row->button), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&row->button), BASIC_ROW_SIDE_INSET, 4);
         egui_view_set_size(EGUI_VIEW_OF(&row->button), BASIC_VIEWPORT_W - BASIC_ROW_SIDE_INSET * 2, BASIC_BUTTON_INNER_H);
         egui_view_label_set_font(EGUI_VIEW_OF(&row->button), BASIC_FONT_BODY);
@@ -619,7 +620,7 @@ static void basic_adapter_destroy_view(void *adapter_context, egui_view_t *view,
 {
     EGUI_UNUSED(adapter_context);
     EGUI_UNUSED(view_type);
-    egui_free(view);
+    egui_free(s_core, view);
 }
 
 static void basic_adapter_bind_view(void *adapter_context, egui_view_t *view, uint32_t index, uint32_t stable_id)
@@ -890,7 +891,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 }
 #endif
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     uint8_t i;
     egui_view_virtual_viewport_setup_t setup = {
@@ -912,11 +913,13 @@ void test_init_ui(void)
     recording_reset_verify_retry = 0U;
 #endif
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
+    s_core = core;
+
+    egui_view_init(EGUI_VIEW_OF(&background_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&basic_screen_bg));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), &basic_toolbar_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &basic_toolbar_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&toolbar_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&toolbar_card), 1, EGUI_COLOR_HEX(0xD1DEE7));
 
@@ -927,7 +930,7 @@ void test_init_ui(void)
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[i]));
     }
 
-    egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&viewport_view), &setup);
+    egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&viewport_view), core, &setup);
     egui_view_set_background(EGUI_VIEW_OF(&viewport_view), EGUI_BG_OF(&basic_viewport_bg));
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&background_view));

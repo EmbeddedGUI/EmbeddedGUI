@@ -1,4 +1,4 @@
-#include "egui_canvas_compact.h"
+﻿#include "egui_canvas_compact.h"
 
 #define EGUI_CANVAS_COMPACT_TEXT_ROWS   5
 #define EGUI_CANVAS_COMPACT_NUMBER_ROWS 5
@@ -213,8 +213,8 @@ static uint8_t egui_canvas_compact_bitmap_measure_internal(egui_canvas_compact_b
     return 1;
 }
 
-static void egui_canvas_compact_bitmap_draw_glyph(const egui_canvas_compact_bitmap_glyph_t *glyph, egui_dim_t x, egui_dim_t y, egui_dim_t scale,
-                                                  egui_color_t color, egui_alpha_t alpha)
+static void egui_canvas_compact_bitmap_draw_glyph(egui_canvas_t *self, const egui_canvas_compact_bitmap_glyph_t *glyph, egui_dim_t x, egui_dim_t y,
+                                                  egui_dim_t scale, egui_color_t color, egui_alpha_t alpha)
 {
     for (egui_dim_t row = 0; row < EGUI_CANVAS_COMPACT_TEXT_ROWS; row++)
     {
@@ -229,7 +229,7 @@ static void egui_canvas_compact_bitmap_draw_glyph(const egui_canvas_compact_bitm
                 continue;
             }
 
-            egui_canvas_draw_fillrect(x + col * scale, y + row * scale, scale, scale, color, alpha);
+            egui_canvas_draw_fillrect(self, x + col * scale, y + row * scale, scale, scale, color, alpha);
         }
     }
 }
@@ -307,8 +307,8 @@ static uint8_t egui_canvas_compact_bitmap_measure_with_font_internal(egui_canvas
     return 1;
 }
 
-static uint8_t egui_canvas_compact_bitmap_draw_internal(egui_canvas_compact_bitmap_kind_t kind, const char *text, const egui_region_t *region,
-                                                        uint8_t align_type, egui_color_t color, egui_alpha_t alpha)
+static uint8_t egui_canvas_compact_bitmap_draw_internal(egui_canvas_t *self, egui_canvas_compact_bitmap_kind_t kind, const char *text,
+                                                        const egui_region_t *region, uint8_t align_type, egui_color_t color, egui_alpha_t alpha)
 {
     egui_canvas_compact_bitmap_layout_t layout;
     egui_canvas_compact_bitmap_glyph_t glyph;
@@ -354,7 +354,7 @@ static uint8_t egui_canvas_compact_bitmap_draw_internal(egui_canvas_compact_bitm
             return 0;
         }
 
-        egui_canvas_compact_bitmap_draw_glyph(&glyph, draw_x, draw_y, layout.scale, color, alpha);
+        egui_canvas_compact_bitmap_draw_glyph(self, &glyph, draw_x, draw_y, layout.scale, color, alpha);
         draw_x += glyph.width * layout.scale;
         if (cursor[1] != '\0')
         {
@@ -366,8 +366,8 @@ static uint8_t egui_canvas_compact_bitmap_draw_internal(egui_canvas_compact_bitm
     return 1;
 }
 
-static uint8_t egui_canvas_compact_bitmap_draw_with_font_internal(egui_canvas_compact_bitmap_kind_t kind, const egui_font_t *font, const char *text,
-                                                                  const egui_region_t *region, uint8_t align_type, egui_dim_t line_space,
+static uint8_t egui_canvas_compact_bitmap_draw_with_font_internal(egui_canvas_t *self, egui_canvas_compact_bitmap_kind_t kind, const egui_font_t *font,
+                                                                  const char *text, const egui_region_t *region, uint8_t align_type, egui_dim_t line_space,
                                                                   uint8_t use_line_space, egui_color_t color, egui_alpha_t alpha)
 {
     if (text == NULL || text[0] == '\0' || region == NULL)
@@ -381,16 +381,16 @@ static uint8_t egui_canvas_compact_bitmap_draw_with_font_internal(egui_canvas_co
 
         if (use_line_space)
         {
-            egui_canvas_draw_text_in_rect_with_line_space(font, text, &draw_region, align_type, line_space, color, alpha);
+            egui_canvas_draw_text_in_rect_with_line_space(self, font, text, &draw_region, align_type, line_space, color, alpha);
         }
         else
         {
-            egui_canvas_draw_text_in_rect(font, text, &draw_region, align_type, color, alpha);
+            egui_canvas_draw_text_in_rect(self, font, text, &draw_region, align_type, color, alpha);
         }
         return 1;
     }
 
-    return egui_canvas_compact_bitmap_draw_internal(kind, text, region, align_type, color, alpha);
+    return egui_canvas_compact_bitmap_draw_internal(self, kind, text, region, align_type, color, alpha);
 }
 
 uint8_t egui_canvas_compact_text_is_supported(const char *text)
@@ -411,16 +411,17 @@ uint8_t egui_canvas_compact_text_measure_with_font(const egui_font_t *font, cons
                                                                  out_height);
 }
 
-uint8_t egui_canvas_compact_text_draw(const char *text, const egui_region_t *region, uint8_t align_type, egui_color_t color, egui_alpha_t alpha)
+uint8_t egui_canvas_compact_text_draw(egui_canvas_t *self, const char *text, const egui_region_t *region, uint8_t align_type, egui_color_t color,
+                                      egui_alpha_t alpha)
 {
-    return egui_canvas_compact_bitmap_draw_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, text, region, align_type, color, alpha);
+    return egui_canvas_compact_bitmap_draw_internal(self, EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, text, region, align_type, color, alpha);
 }
 
-uint8_t egui_canvas_compact_text_draw_with_font(const egui_font_t *font, const char *text, const egui_region_t *region, uint8_t align_type,
+uint8_t egui_canvas_compact_text_draw_with_font(egui_canvas_t *self, const egui_font_t *font, const char *text, const egui_region_t *region, uint8_t align_type,
                                                 egui_dim_t line_space, uint8_t use_line_space, egui_color_t color, egui_alpha_t alpha)
 {
-    return egui_canvas_compact_bitmap_draw_with_font_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, font, text, region, align_type, line_space, use_line_space,
-                                                              color, alpha);
+    return egui_canvas_compact_bitmap_draw_with_font_internal(self, EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, font, text, region, align_type, line_space,
+                                                              use_line_space, color, alpha);
 }
 
 uint8_t egui_canvas_compact_number_is_supported(const char *text)
@@ -441,20 +442,20 @@ uint8_t egui_canvas_compact_number_measure_with_font(const egui_font_t *font, co
                                                                  out_height);
 }
 
-uint8_t egui_canvas_compact_number_draw(const char *text, const egui_region_t *region, egui_color_t color, egui_alpha_t alpha)
+uint8_t egui_canvas_compact_number_draw(egui_canvas_t *self, const char *text, const egui_region_t *region, egui_color_t color, egui_alpha_t alpha)
 {
-    return egui_canvas_compact_bitmap_draw_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, text, region, EGUI_ALIGN_CENTER, color, alpha);
+    return egui_canvas_compact_bitmap_draw_internal(self, EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, text, region, EGUI_ALIGN_CENTER, color, alpha);
 }
 
-uint8_t egui_canvas_compact_number_draw_with_font(const egui_font_t *font, const char *text, const egui_region_t *region, egui_color_t color,
-                                                  egui_alpha_t alpha)
+uint8_t egui_canvas_compact_number_draw_with_font(egui_canvas_t *self, const egui_font_t *font, const char *text, const egui_region_t *region,
+                                                  egui_color_t color, egui_alpha_t alpha)
 {
-    return egui_canvas_compact_bitmap_draw_with_font_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, font, text, region, EGUI_ALIGN_CENTER, 0, 0, color,
+    return egui_canvas_compact_bitmap_draw_with_font_internal(self, EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, font, text, region, EGUI_ALIGN_CENTER, 0, 0, color,
                                                               alpha);
 }
 
-void egui_canvas_draw_line_round_cap_compact(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
-                                             egui_alpha_t alpha)
+void egui_canvas_draw_line_round_cap_compact(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width,
+                                             egui_color_t color, egui_alpha_t alpha)
 {
     egui_dim_t cap_radius;
 
@@ -465,15 +466,15 @@ void egui_canvas_draw_line_round_cap_compact(egui_dim_t x1, egui_dim_t y1, egui_
 
     if (stroke_width <= 1)
     {
-        egui_canvas_draw_line(x1, y1, x2, y2, stroke_width, color, alpha);
+        egui_canvas_draw_line(self, x1, y1, x2, y2, stroke_width, color, alpha);
         return;
     }
 
     cap_radius = stroke_width >> 1;
-    egui_canvas_draw_line(x1, y1, x2, y2, stroke_width, color, alpha);
-    egui_canvas_draw_circle_fill_basic(x1, y1, cap_radius, color, alpha);
+    egui_canvas_draw_line(self, x1, y1, x2, y2, stroke_width, color, alpha);
+    egui_canvas_draw_circle_fill_basic(self, x1, y1, cap_radius, color, alpha);
     if (x1 != x2 || y1 != y2)
     {
-        egui_canvas_draw_circle_fill_basic(x2, y2, cap_radius, color, alpha);
+        egui_canvas_draw_circle_fill_basic(self, x2, y2, cap_radius, color, alpha);
     }
 }

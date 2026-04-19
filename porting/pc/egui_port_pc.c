@@ -15,7 +15,29 @@
 
 static egui_hal_lcd_driver_t s_pc_lcd_driver;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-static egui_hal_touch_driver_t s_pc_touch_driver;
+static egui_hal_touch_driver_t s_pc_touch_drivers[EGUI_CONFIG_MAX_DISPLAY_COUNT];
+
+static void pc_touch_register(egui_core_t *core)
+{
+    int display_id;
+    egui_hal_touch_driver_t *touch_driver;
+    egui_hal_touch_config_t touch_config = {
+            .width = (uint16_t)egui_display_get_width(core),
+            .height = (uint16_t)egui_display_get_height(core),
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+    };
+
+    EGUI_ASSERT(core != NULL);
+
+    display_id = (int)core->id;
+    EGUI_ASSERT(display_id >= 0 && display_id < EGUI_CONFIG_MAX_DISPLAY_COUNT);
+
+    touch_driver = &s_pc_touch_drivers[display_id];
+    egui_hal_sdl_touch_setup(touch_driver);
+    egui_hal_touch_register(core, touch_driver, &touch_config);
+}
 #endif
 
 static egui_display_driver_ops_t port_display_ops = {0};
@@ -29,9 +51,9 @@ static egui_display_driver_t port_display_driver = {
         .power_on = 1,
 };
 
-static void pc_display_flush(void)
+static void pc_display_flush(egui_core_t *core)
 {
-    VT_sdl_flush(1);
+    VT_sdl_flush_core(core, 1);
 }
 
 // ============================================================================
@@ -63,6 +85,62 @@ static uint32_t pc_get_tick_ms(void)
 }
 
 static SDL_mutex *pc_isr_mutex = NULL;
+#if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+typedef struct pc_resource_stream
+{
+    FILE *file;
+    char path[512];
+    uint32_t offset;
+    uint8_t offset_valid;
+    SDL_mutex *mutex;
+} pc_resource_stream_t;
+
+#define PC_RESOURCE_STREAM_NULL_SLOT  EGUI_CONFIG_MAX_DISPLAY_COUNT
+#define PC_RESOURCE_STREAM_SLOT_COUNT (EGUI_CONFIG_MAX_DISPLAY_COUNT + 1)
+
+static pc_resource_stream_t s_pc_resource_streams[PC_RESOURCE_STREAM_SLOT_COUNT];
+
+static int pc_get_resource_stream_index(egui_core_t *core)
+{
+    if (core == NULL)
+    {
+        return PC_RESOURCE_STREAM_NULL_SLOT;
+    }
+
+    EGUI_ASSERT(core->id < EGUI_CONFIG_MAX_DISPLAY_COUNT);
+    return (int)core->id;
+}
+
+static pc_resource_stream_t *pc_get_resource_stream(egui_core_t *core)
+{
+    int slot = pc_get_resource_stream_index(core);
+    pc_resource_stream_t *stream = &s_pc_resource_streams[slot];
+
+    if (stream->mutex == NULL)
+    {
+        stream->mutex = SDL_CreateMutex();
+    }
+
+    EGUI_ASSERT(stream->mutex != NULL);
+    return stream;
+}
+
+static void pc_resource_stream_lock(pc_resource_stream_t *stream)
+{
+    if (stream != NULL && stream->mutex != NULL)
+    {
+        SDL_LockMutex(stream->mutex);
+    }
+}
+
+static void pc_resource_stream_unlock(pc_resource_stream_t *stream)
+{
+    if (stream != NULL && stream->mutex != NULL)
+    {
+        SDL_UnlockMutex(stream->mutex);
+    }
+}
+#endif
 
 static egui_base_t pc_interrupt_disable(void)
 {
@@ -84,71 +162,77 @@ static void pc_interrupt_enable(egui_base_t level)
 }
 
 #if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
-static FILE *s_pc_resource_file = NULL;
-static char s_pc_resource_file_path[512];
-static uint32_t s_pc_resource_file_offset = 0;
-static uint8_t s_pc_resource_file_offset_valid = 0;
-
-static void pc_close_external_resource_file(void)
+static void pc_close_external_resource_file(pc_resource_stream_t *stream)
 {
-    if (s_pc_resource_file != NULL)
+    if (stream == NULL)
     {
-        fclose(s_pc_resource_file);
-        s_pc_resource_file = NULL;
-        s_pc_resource_file_path[0] = '\0';
+        return;
     }
-    s_pc_resource_file_offset = 0;
-    s_pc_resource_file_offset_valid = 0;
+
+    if (stream->file != NULL)
+    {
+        fclose(stream->file);
+        stream->file = NULL;
+        stream->path[0] = '\0';
+    }
+    stream->offset = 0;
+    stream->offset_valid = 0;
 }
 
-static FILE *pc_get_external_resource_file(void)
+static FILE *pc_get_external_resource_file(pc_resource_stream_t *stream)
 {
     extern char *pc_get_input_file_path(void);
     const char *path = pc_get_input_file_path();
 
-    if (path == NULL)
+    if (stream == NULL || path == NULL)
     {
         return NULL;
     }
 
-    if (s_pc_resource_file != NULL && strcmp(s_pc_resource_file_path, path) == 0)
+    if (stream->file != NULL && strcmp(stream->path, path) == 0)
     {
-        return s_pc_resource_file;
+        return stream->file;
     }
 
-    pc_close_external_resource_file();
+    pc_close_external_resource_file(stream);
 
-    s_pc_resource_file = fopen(path, "rb");
-    if (s_pc_resource_file == NULL)
+    stream->file = fopen(path, "rb");
+    if (stream->file == NULL)
     {
         EGUI_LOG_ERR("Error opening file\r\n");
         return NULL;
     }
 
-    strncpy(s_pc_resource_file_path, path, sizeof(s_pc_resource_file_path) - 1);
-    s_pc_resource_file_path[sizeof(s_pc_resource_file_path) - 1] = '\0';
-    setvbuf(s_pc_resource_file, NULL, _IOFBF, 64 * 1024);
+    strncpy(stream->path, path, sizeof(stream->path) - 1);
+    stream->path[sizeof(stream->path) - 1] = '\0';
+    setvbuf(stream->file, NULL, _IOFBF, 64 * 1024);
 
-    return s_pc_resource_file;
+    return stream->file;
 }
 
-static void pc_load_external_resource(void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
+static void pc_load_external_resource(egui_core_t *core, void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
 {
     extern const uint32_t egui_ext_res_id_map[];
+    pc_resource_stream_t *stream = pc_get_resource_stream(core);
     uint32_t res_offset = egui_ext_res_id_map[res_id];
     uint32_t res_real_offset = res_offset + start_offset;
-    FILE *file = pc_get_external_resource_file();
+    FILE *file;
+
+    pc_resource_stream_lock(stream);
+    file = pc_get_external_resource_file(stream);
     if (file == NULL)
     {
+        pc_resource_stream_unlock(stream);
         return;
     }
 
-    if (!s_pc_resource_file_offset_valid || s_pc_resource_file_offset != res_real_offset)
+    if (!stream->offset_valid || stream->offset != res_real_offset)
     {
         if (fseek(file, res_real_offset, SEEK_SET) != 0)
         {
             EGUI_LOG_ERR("Error seeking in file");
-            pc_close_external_resource_file();
+            pc_close_external_resource_file(stream);
+            pc_resource_stream_unlock(stream);
             return;
         }
     }
@@ -170,12 +254,14 @@ static void pc_load_external_resource(void *dest, uint32_t res_id, uint32_t star
             while (1)
                 ;
         }
-        pc_close_external_resource_file();
+        pc_close_external_resource_file(stream);
+        pc_resource_stream_unlock(stream);
         return;
     }
 
-    s_pc_resource_file_offset = res_real_offset + size;
-    s_pc_resource_file_offset_valid = 1;
+    stream->offset = res_real_offset + size;
+    stream->offset_valid = 1;
+    pc_resource_stream_unlock(stream);
 }
 #endif
 
@@ -209,6 +295,20 @@ static egui_platform_t pc_platform = {
 
 void egui_port_init(void)
 {
+    if (pc_isr_mutex == NULL)
+    {
+        pc_isr_mutex = SDL_CreateMutex();
+    }
+#if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+    for (int i = 0; i < PC_RESOURCE_STREAM_SLOT_COUNT; i++)
+    {
+        if (s_pc_resource_streams[i].mutex == NULL)
+        {
+            s_pc_resource_streams[i].mutex = SDL_CreateMutex();
+        }
+    }
+#endif
+
     egui_hal_lcd_config_t lcd_config = {
             .width = EGUI_CONFIG_SCEEN_WIDTH,
             .height = EGUI_CONFIG_SCEEN_HEIGHT,
@@ -227,17 +327,80 @@ void egui_port_init(void)
     egui_hal_lcd_register(&port_display_driver, &s_pc_lcd_driver, &lcd_config);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    egui_hal_touch_config_t touch_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
-            .swap_xy = 0,
-            .mirror_x = 0,
-            .mirror_y = 0,
-    };
+#endif
+}
 
-    egui_hal_sdl_touch_setup(&s_pc_touch_driver);
-    egui_hal_touch_register(&s_pc_touch_driver, &touch_config);
+egui_display_driver_t *egui_port_get_display_driver(void)
+{
+    return &port_display_driver;
+}
+
+egui_platform_t *egui_port_get_platform(void)
+{
+    return &pc_platform;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+void egui_port_register_touch_driver(egui_core_t *core)
+{
+    pc_touch_register(core);
+}
 #endif
 
-    egui_platform_register(&pc_platform);
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+
+/**
+ * Create a sub-display driver for multi-display PC simulation.
+ * Allocates a new display driver and creates an SDL window.
+ *
+ * @param display_id  Display ID (1, 2, ...)
+ * @param w           Screen width
+ * @param h           Screen height
+ * @return            Display driver pointer, or NULL on failure
+ */
+egui_display_driver_t *egui_port_create_sub_display(egui_core_t *core, int display_id, int16_t w, int16_t h)
+{
+    egui_display_driver_t *drv = (egui_display_driver_t *)egui_api_malloc(core, sizeof(egui_display_driver_t));
+    if (drv == NULL)
+    {
+        return NULL;
+    }
+    memset(drv, 0, sizeof(egui_display_driver_t));
+
+    drv->ops = &port_display_ops;
+    drv->physical_width = w;
+    drv->physical_height = h;
+    drv->rotation = EGUI_DISPLAY_ROTATION_0;
+    drv->brightness = 255;
+    drv->power_on = 1;
+
+    /* Reuse the same SDL LCD HAL setup — draw_area routes via active display ID */
+    egui_hal_lcd_driver_t *lcd = (egui_hal_lcd_driver_t *)egui_api_malloc(core, sizeof(egui_hal_lcd_driver_t));
+    if (lcd == NULL)
+    {
+        egui_api_free(core, drv);
+        return NULL;
+    }
+    egui_hal_sdl_lcd_setup(lcd);
+
+    egui_hal_lcd_config_t lcd_config = {
+            .width = w,
+            .height = h,
+            .color_depth = EGUI_CONFIG_COLOR_DEPTH,
+            .color_swap = 0,
+            .x_offset = 0,
+            .y_offset = 0,
+            .invert_color = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+            .custom_init = NULL,
+    };
+    egui_hal_lcd_register(drv, lcd, &lcd_config);
+
+    /* Create SDL window for this display */
+    sdl_port_add_display(display_id, w, h);
+
+    return drv;
 }
+
+#endif /* EGUI_CONFIG_MAX_DISPLAY_COUNT > 1 */

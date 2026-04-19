@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_activity_ring.h"
+#include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -221,6 +222,7 @@ void egui_view_activity_ring_set_show_round_cap(egui_view_t *self, uint8_t show)
 void egui_view_activity_ring_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_activity_ring_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -264,10 +266,10 @@ void egui_view_activity_ring_on_draw(egui_view_t *self)
                     .alpha = EGUI_ALPHA_100,
                     .stops = bg_stops,
             };
-            egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, cur_radius, inner_r, 0, 360, &bg_grad);
+            egui_canvas_draw_arc_ring_fill_gradient(canvas, center_x, center_y, cur_radius, inner_r, 0, 360, &bg_grad);
         }
 #else
-        egui_canvas_draw_arc(center_x, center_y, cur_radius, 0, 360, local->stroke_width, local->ring_bg_colors[i], EGUI_ALPHA_100);
+        egui_canvas_draw_arc(canvas, center_x, center_y, cur_radius, 0, 360, local->stroke_width, local->ring_bg_colors[i], EGUI_ALPHA_100);
 #endif
 
         // Progress arc
@@ -287,19 +289,19 @@ void egui_view_activity_ring_on_draw(egui_view_t *self)
                         .alpha = EGUI_ALPHA_100,
                         .stops = stops,
                 };
-                egui_canvas_draw_arc_ring_fill_gradient_round_cap(center_x, center_y, cur_radius, inner_r, draw_start_angle, draw_end_angle, &grad,
+                egui_canvas_draw_arc_ring_fill_gradient_round_cap(canvas, center_x, center_y, cur_radius, inner_r, draw_start_angle, draw_end_angle, &grad,
                                                                   local->show_round_cap ? EGUI_ARC_CAP_BOTH : EGUI_ARC_CAP_NONE);
             }
 #else
             {
                 if (local->show_round_cap)
                 {
-                    egui_canvas_draw_arc_round_cap_hq(center_x, center_y, cur_radius, draw_start_angle, draw_end_angle, local->stroke_width,
+                    egui_canvas_draw_arc_round_cap_hq(canvas, center_x, center_y, cur_radius, draw_start_angle, draw_end_angle, local->stroke_width,
                                                       local->ring_colors[i], EGUI_ALPHA_100);
                 }
                 else
                 {
-                    egui_canvas_draw_arc(center_x, center_y, cur_radius, draw_start_angle, draw_end_angle, local->stroke_width, local->ring_colors[i],
+                    egui_canvas_draw_arc(canvas, center_x, center_y, cur_radius, draw_start_angle, draw_end_angle, local->stroke_width, local->ring_colors[i],
                                          EGUI_ALPHA_100);
                 }
             }
@@ -325,11 +327,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_activity_ring_t) = {
 #endif
 };
 
-void egui_view_activity_ring_init(egui_view_t *self)
+void egui_view_activity_ring_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_activity_ring_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_activity_ring_t);
 
@@ -361,8 +363,8 @@ void egui_view_activity_ring_apply_params(egui_view_t *self, const egui_view_act
     egui_view_invalidate(self);
 }
 
-void egui_view_activity_ring_init_with_params(egui_view_t *self, const egui_view_activity_ring_params_t *params)
+void egui_view_activity_ring_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_activity_ring_params_t *params)
 {
-    egui_view_activity_ring_init(self);
+    egui_view_activity_ring_init(self, core);
     egui_view_activity_ring_apply_params(self, params);
 }

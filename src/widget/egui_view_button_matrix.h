@@ -52,7 +52,7 @@ struct egui_view_button_matrix_params
     static const egui_view_button_matrix_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .cols = (_cols), .gap = (_gap)}
 
 void egui_view_button_matrix_apply_params(egui_view_t *self, const egui_view_button_matrix_params_t *params);
-void egui_view_button_matrix_init_with_params(egui_view_t *self, const egui_view_button_matrix_params_t *params);
+void egui_view_button_matrix_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_button_matrix_params_t *params);
 
 void egui_view_button_matrix_set_labels(egui_view_t *self, const char **labels, uint8_t count, uint8_t cols);
 void egui_view_button_matrix_set_on_click(egui_view_t *self, egui_view_button_matrix_click_cb_t callback);
@@ -70,7 +70,7 @@ void egui_view_button_matrix_set_icons(egui_view_t *self, const char **icons);
 void egui_view_button_matrix_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_button_matrix_on_draw(egui_view_t *self);
-void egui_view_button_matrix_init(egui_view_t *self);
+void egui_view_button_matrix_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

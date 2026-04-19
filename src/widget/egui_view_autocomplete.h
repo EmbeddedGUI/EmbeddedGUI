@@ -30,7 +30,7 @@ struct egui_view_autocomplete_params
             .region = {{(_x), (_y)}, {(_w), (_h)}}, .suggestions = (_suggestions), .suggestion_count = (_count), .current_index = (_index)}
 
 void egui_view_autocomplete_apply_params(egui_view_t *self, const egui_view_autocomplete_params_t *params);
-void egui_view_autocomplete_init_with_params(egui_view_t *self, const egui_view_autocomplete_params_t *params);
+void egui_view_autocomplete_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_autocomplete_params_t *params);
 
 void egui_view_autocomplete_set_suggestions(egui_view_t *self, const char **suggestions, uint8_t count);
 uint8_t egui_view_autocomplete_get_suggestion_count(egui_view_t *self);
@@ -43,7 +43,7 @@ void egui_view_autocomplete_expand(egui_view_t *self);
 void egui_view_autocomplete_collapse(egui_view_t *self);
 uint8_t egui_view_autocomplete_is_expanded(egui_view_t *self);
 void egui_view_autocomplete_set_on_selected_listener(egui_view_t *self, egui_view_on_autocomplete_selected_listener_t listener);
-void egui_view_autocomplete_init(egui_view_t *self);
+void egui_view_autocomplete_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "decoder_bmp_stream.h"
 #include "core/egui_common.h"
@@ -116,9 +116,9 @@ static void file_image_bmp_stream_close(void *decoder_ctx)
 
     if (ctx->row_buf != NULL)
     {
-        egui_free(ctx->row_buf);
+        egui_free(NULL, ctx->row_buf);
     }
-    egui_free(ctx);
+    egui_free(NULL, ctx);
 }
 
 static int file_image_bmp_parse_headers(const egui_image_file_io_t *io, void *file_handle, file_image_bmp_stream_ctx_t *ctx,
@@ -254,7 +254,7 @@ static int file_image_bmp_stream_open(const egui_image_file_io_t *io, void *file
         return 0;
     }
 
-    ctx = (file_image_bmp_stream_ctx_t *)egui_malloc(sizeof(*ctx));
+    ctx = (file_image_bmp_stream_ctx_t *)egui_malloc(NULL, sizeof(*ctx));
     if (ctx == NULL)
     {
         return 0;
@@ -269,7 +269,7 @@ static int file_image_bmp_stream_open(const egui_image_file_io_t *io, void *file
         return 0;
     }
 
-    ctx->row_buf = (uint8_t *)egui_malloc((int)ctx->row_stride);
+    ctx->row_buf = (uint8_t *)egui_malloc(NULL, (int)ctx->row_stride);
     if (ctx->row_buf == NULL)
     {
         file_image_bmp_stream_close(ctx);

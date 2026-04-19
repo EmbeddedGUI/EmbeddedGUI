@@ -1,12 +1,14 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_animated_image.h"
+#include "core/egui_core.h"
 #include "image/egui_image.h"
 
 void egui_view_animated_image_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -22,7 +24,7 @@ void egui_view_animated_image_on_draw(egui_view_t *self)
         return;
     }
 
-    egui_canvas_draw_image(image, region.location.x, region.location.y);
+    egui_canvas_draw_image(canvas, image, region.location.x, region.location.y);
 }
 
 void egui_view_animated_image_set_frames(egui_view_t *self, const egui_image_t **frames, uint8_t count)
@@ -141,12 +143,12 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_animated_image_t) = {
 #endif
 };
 
-void egui_view_animated_image_init(egui_view_t *self)
+void egui_view_animated_image_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_animated_image_t);
 
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_animated_image_t);
 
@@ -172,8 +174,8 @@ void egui_view_animated_image_apply_params(egui_view_t *self, const egui_view_an
     egui_view_invalidate(self);
 }
 
-void egui_view_animated_image_init_with_params(egui_view_t *self, const egui_view_animated_image_params_t *params)
+void egui_view_animated_image_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_animated_image_params_t *params)
 {
-    egui_view_animated_image_init(self);
+    egui_view_animated_image_init(self, core);
     egui_view_animated_image_apply_params(self, params);
 }

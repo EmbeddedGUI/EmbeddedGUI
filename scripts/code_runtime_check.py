@@ -56,8 +56,43 @@ PROCESS_TERMINATE_GRACE_S = 5
 RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
 FRAME_LABEL_PATTERN = re.compile(r"PERF_FRAME:(frame_\d+\.png):([A-Za-z0-9_.-]+)")
 FRAME_LABEL_MANIFEST = "recording_frame_labels.json"
+PRIMARY_FRAME_PATTERN = re.compile(r"^frame_(\d+)\.png$")
+DISPLAY_FRAME_PATTERN = re.compile(r"^frame_(\d+)_disp(\d+)\.png$")
+SHUTDOWN_BEGIN_PATTERN = re.compile(r"\[SHUTDOWN_CHECK\]\s+begin_shutdown\b")
+SHUTDOWN_QUEUE_PATTERN = re.compile(
+    r"\[SHUTDOWN_CHECK\]\s+display=(\d+)\s+queue_capacity=(\d+)\s+posted=(\d+)(?:\s+retries=(\d+))?(?:\s+max_retry_burst=(\d+))?\s+rejected=(\d+)\s+wait_timeouts=(\d+)\s+peak_queue=(\d+)\s+pending=(\d+)(?:\s+inflight=(\d+))?(?:\s+max_queue_wait_ms=(\d+)\s+max_queue_wait_ctx=([^\s]+))?(?:\s+max_exec_time_ms=(\d+)\s+max_exec_time_ctx=([^\s]+))?\b"
+)
+SHUTDOWN_THREADS_PATTERN = re.compile(r"\[SHUTDOWN_CHECK\]\s+core_threads_stopped=(\d+)\b")
+SHUTDOWN_CLEANUP_PATTERN = re.compile(r"\[SHUTDOWN_CHECK\]\s+sdl_cleanup\s+primary_window=(\d+)\s+extra_windows=(\d+)\b")
+SHUTDOWN_DEINIT_PATTERN = re.compile(r"\[SHUTDOWN_CHECK\]\s+deinit_done\b")
+MAX_CORE_TASK_RETRIES = -1
+MAX_SINGLE_POST_CORE_TASK_RETRIES = -1
+FAIL_ON_FULL_CORE_TASK_QUEUE = False
+MAX_SHUTDOWN_QUEUE_WAIT_MS = -1
+MAX_SHUTDOWN_EXEC_TIME_MS = -1
 CUSTOM_WIDGETS_REPO = "https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets"
 FULL_CHECK_OPTIONAL_APPS = {}
+MULTI_DISPLAY_APPS = ("HelloMultiDisplay", "HelloMultiDisplayHetero")
+EXPECTED_RUNTIME_FRAME_LABELS = {
+    ("HelloMultiDisplay", None): (
+        "initial",
+        "after_disp0_next",
+        "after_disp1_next",
+        "after_finish",
+    ),
+    ("HelloMultiDisplayHetero", None): (
+        "initial",
+        "after_main_drag_1",
+        "after_main_drag_2",
+        "after_disp1_click",
+        "after_main_restore",
+    ),
+}
+RUNTIME_SELF_CHECK_SUMMARIES = {
+    ("HelloMultiDisplay", None): "checks=click-isolation(primary),concurrent-activity-anims(primary/sub)",
+    ("HelloMultiDisplayHetero", None): "checks=sub-tick-continuity,sub-click-reset",
+}
+MAX_DISPLAY_COUNT_PATTERN = re.compile(r"^\s*#\s*define\s+EGUI_CONFIG_MAX_DISPLAY_COUNT\s+(\d+)\b", re.MULTILINE)
 
 # Examples not suitable for runtime testing (headless/performance/test-only)
 SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance", "HelloPerformance",
@@ -221,33 +256,262 @@ def tune_recording_params_for_app(app_name, snapshot_settle_ms, snapshot_stable_
     )
 
 
-def validate_recording_frames(frames_dir):
-    frame_files = sorted(Path(frames_dir).glob("frame_*.png"))
+def get_config_max_display_count(app, app_sub=None):
+    for config_path in get_config_paths(app, app_sub):
+        if not config_path.exists():
+            continue
+
+        match = MAX_DISPLAY_COUNT_PATTERN.search(config_path.read_text(encoding='utf-8'))
+        if match is not None:
+            value = int(match.group(1))
+            if value > 0:
+                return value
+
+    return 1
+
+
+def get_expected_runtime_display_ids(app, app_sub=None):
+    return tuple(range(get_config_max_display_count(app, app_sub)))
+
+
+def get_expected_runtime_frame_labels(app, app_sub=None):
+    return EXPECTED_RUNTIME_FRAME_LABELS.get((app, app_sub)) or EXPECTED_RUNTIME_FRAME_LABELS.get((app, None))
+
+
+def get_runtime_self_check_summary(app, app_sub=None):
+    return RUNTIME_SELF_CHECK_SUMMARIES.get((app, app_sub)) or RUNTIME_SELF_CHECK_SUMMARIES.get((app, None), "")
+
+
+def parse_frame_label_matches(capture_output):
+    return FRAME_LABEL_PATTERN.findall(capture_output)
+
+
+def validate_recording_frames(frames_dir, expected_display_ids=(0,)):
+    frame_dir = Path(frames_dir)
+    frame_files = sorted(frame_dir.glob("frame_*.png"))
     if not frame_files:
         return False, "no frames generated"
+
+    primary_frames = {}
+    display_frames = {}
 
     for frame_path in frame_files:
         size = frame_path.stat().st_size
         if size < 100:
             return False, "frame %s too small (%d bytes)" % (frame_path.name, size)
 
-    return True, "%d frames captured -> %s" % (len(frame_files), frames_dir)
+        primary_match = PRIMARY_FRAME_PATTERN.match(frame_path.name)
+        if primary_match is not None:
+            primary_frames[primary_match.group(1)] = frame_path
+            continue
+
+        display_match = DISPLAY_FRAME_PATTERN.match(frame_path.name)
+        if display_match is not None:
+            frame_index = display_match.group(1)
+            display_id = int(display_match.group(2))
+            display_frames.setdefault(display_id, {})[frame_index] = frame_path
+
+    if not primary_frames:
+        return False, "no primary display frames generated"
+
+    primary_indices = sorted(primary_frames.keys())
+    for display_id in expected_display_ids:
+        if display_id == 0:
+            continue
+
+        display_frame_map = display_frames.get(display_id, {})
+        missing_indices = [frame_index for frame_index in primary_indices if frame_index not in display_frame_map]
+        if missing_indices:
+            return False, "missing display %d frames: %s" % (display_id, ", ".join("frame_%s_disp%d.png" % (index, display_id) for index in missing_indices[:5]))
+
+    if len(expected_display_ids) > 1:
+        display_summaries = ["disp0:%d" % len(primary_frames)]
+        for display_id in expected_display_ids:
+            if display_id == 0:
+                continue
+            display_summaries.append("disp%d:%d" % (display_id, len(display_frames.get(display_id, {}))))
+        return True, "%s frames captured -> %s" % (", ".join(display_summaries), frames_dir)
+
+    return True, "%d primary frames captured -> %s" % (len(primary_frames), frames_dir)
 
 
-def write_frame_label_manifest(frames_dir, capture_output):
+def validate_recording_frame_labels(frames_dir, label_matches, app=None, app_sub=None):
+    expected_labels = get_expected_runtime_frame_labels(app, app_sub)
+    if not expected_labels:
+        return True, ""
+
+    if not label_matches:
+        return False, "missing labeled snapshots: expected %s" % ", ".join(expected_labels)
+
+    frames_dir = Path(frames_dir)
+    frames_by_name = {path.name: path for path in sorted(frames_dir.glob("frame_*.png"))}
+    actual_labels = []
+    missing_frames = []
+
+    for frame_name, label in label_matches:
+        if frame_name not in frames_by_name:
+            missing_frames.append(frame_name)
+            continue
+        actual_labels.append(label)
+
+    if missing_frames:
+        return False, "labeled snapshots referenced missing frames: %s" % ", ".join(sorted(set(missing_frames)))
+
+    if tuple(actual_labels) != tuple(expected_labels):
+        return False, "snapshot labels mismatch: expected [%s], got [%s]" % (", ".join(expected_labels), ", ".join(actual_labels))
+
+    return True, "stages=%s" % ", ".join(actual_labels)
+
+
+def validate_shutdown_markers(capture_output, expected_display_ids=(0,), app=None, app_sub=None):
+    EGUI_UNUSED = app_sub
+    if app not in MULTI_DISPLAY_APPS:
+        return True, ""
+
+    begin_match = SHUTDOWN_BEGIN_PATTERN.search(capture_output)
+    queue_matches = list(SHUTDOWN_QUEUE_PATTERN.finditer(capture_output))
+    threads_match = SHUTDOWN_THREADS_PATTERN.search(capture_output)
+    cleanup_match = SHUTDOWN_CLEANUP_PATTERN.search(capture_output)
+    deinit_match = SHUTDOWN_DEINIT_PATTERN.search(capture_output)
+
+    if begin_match is None:
+        return False, "missing shutdown begin marker"
+    if not queue_matches:
+        return False, "missing core task queue metrics"
+    if threads_match is None:
+        return False, "missing core thread shutdown marker"
+    if cleanup_match is None:
+        return False, "missing SDL cleanup marker"
+    if deinit_match is None:
+        return False, "missing deinit completion marker"
+
+    queue_positions = tuple(match.start() for match in queue_matches)
+    ordered_positions = (begin_match.start(),) + queue_positions + (
+        threads_match.start(),
+        cleanup_match.start(),
+        deinit_match.start(),
+    )
+    if ordered_positions != tuple(sorted(ordered_positions)):
+        return False, "shutdown marker order mismatch"
+
+    expected_thread_count = len(expected_display_ids)
+    expected_extra_windows = max(0, expected_thread_count - 1)
+    actual_thread_count = int(threads_match.group(1))
+    actual_primary_window = int(cleanup_match.group(1))
+    actual_extra_windows = int(cleanup_match.group(2))
+
+    if actual_thread_count != expected_thread_count:
+        return False, "shutdown thread count mismatch: expected %d, got %d" % (expected_thread_count, actual_thread_count)
+    if actual_primary_window != 1:
+        return False, "shutdown primary window count mismatch: expected 1, got %d" % actual_primary_window
+    if actual_extra_windows != expected_extra_windows:
+        return False, "shutdown extra window count mismatch: expected %d, got %d" % (expected_extra_windows, actual_extra_windows)
+
+    queue_metrics_by_display = {}
+    for match in queue_matches:
+        display_id = int(match.group(1))
+        queue_metrics_by_display[display_id] = {
+            "queue_capacity": int(match.group(2)),
+            "posted": int(match.group(3)),
+            "retries": int(match.group(4) or 0),
+            "max_retry_burst": int(match.group(5) or 0),
+            "rejected": int(match.group(6)),
+            "wait_timeouts": int(match.group(7)),
+            "peak_queue": int(match.group(8)),
+            "pending": int(match.group(9)),
+            "inflight": int(match.group(10) or 0),
+            "max_queue_wait_ms": int(match.group(11) or 0),
+            "max_queue_wait_ctx": match.group(12) or "none",
+            "max_exec_time_ms": int(match.group(13) or 0),
+            "max_exec_time_ctx": match.group(14) or "none",
+        }
+
+    missing_displays = [display_id for display_id in expected_display_ids if display_id not in queue_metrics_by_display]
+    if missing_displays:
+        return False, "missing core task queue metrics for displays: %s" % ", ".join(str(display_id) for display_id in missing_displays)
+
+    queue_summary_parts = []
+    for display_id in expected_display_ids:
+        metrics = queue_metrics_by_display[display_id]
+        if metrics["queue_capacity"] <= 0:
+            return False, "invalid queue capacity for display %d: %d" % (display_id, metrics["queue_capacity"])
+        if metrics["rejected"] != 0:
+            return False, "core task rejected on display %d: %d" % (display_id, metrics["rejected"])
+        if metrics["wait_timeouts"] != 0:
+            return False, "core task wait timeout on display %d: %d" % (display_id, metrics["wait_timeouts"])
+        if metrics["pending"] != 0:
+            return False, "core task pending on display %d at shutdown: %d" % (display_id, metrics["pending"])
+        if metrics["inflight"] != 0:
+            return False, "core task still inflight on display %d at shutdown: %d" % (display_id, metrics["inflight"])
+        if MAX_CORE_TASK_RETRIES >= 0 and metrics["retries"] > MAX_CORE_TASK_RETRIES:
+            return False, "core task retries exceeded on display %d: %d > %d" % (
+                display_id,
+                metrics["retries"],
+                MAX_CORE_TASK_RETRIES,
+            )
+        if MAX_SINGLE_POST_CORE_TASK_RETRIES >= 0 and metrics["max_retry_burst"] > MAX_SINGLE_POST_CORE_TASK_RETRIES:
+            return False, "core task max single-post retries exceeded on display %d: %d > %d" % (
+                display_id,
+                metrics["max_retry_burst"],
+                MAX_SINGLE_POST_CORE_TASK_RETRIES,
+            )
+        if FAIL_ON_FULL_CORE_TASK_QUEUE and metrics["peak_queue"] >= metrics["queue_capacity"]:
+            return False, "core task queue saturated on display %d: peak=%d/%d" % (
+                display_id,
+                metrics["peak_queue"],
+                metrics["queue_capacity"],
+            )
+        if MAX_SHUTDOWN_QUEUE_WAIT_MS >= 0 and metrics["max_queue_wait_ms"] > MAX_SHUTDOWN_QUEUE_WAIT_MS:
+            return False, "core task queue wait exceeded on display %d: %dms > %dms (%s)" % (
+                display_id,
+                metrics["max_queue_wait_ms"],
+                MAX_SHUTDOWN_QUEUE_WAIT_MS,
+                metrics["max_queue_wait_ctx"],
+            )
+        if MAX_SHUTDOWN_EXEC_TIME_MS >= 0 and metrics["max_exec_time_ms"] > MAX_SHUTDOWN_EXEC_TIME_MS:
+            return False, "core task exec time exceeded on display %d: %dms > %dms (%s)" % (
+                display_id,
+                metrics["max_exec_time_ms"],
+                MAX_SHUTDOWN_EXEC_TIME_MS,
+                metrics["max_exec_time_ctx"],
+            )
+
+        queue_summary_parts.append(
+            "disp%d(posted=%d,retries=%d,max_retry_burst=%d,peak=%d/%d,queue_wait=%d@%s,exec=%d@%s)" % (
+                display_id,
+                metrics["posted"],
+                metrics["retries"],
+                metrics["max_retry_burst"],
+                metrics["peak_queue"],
+                metrics["queue_capacity"],
+                metrics["max_queue_wait_ms"],
+                metrics["max_queue_wait_ctx"],
+                metrics["max_exec_time_ms"],
+                metrics["max_exec_time_ctx"],
+            )
+        )
+
+    return True, "shutdown=begin->queue[%s]->threads:%d->cleanup:%d+%d->deinit" % (
+        ",".join(queue_summary_parts),
+        actual_thread_count,
+        actual_primary_window,
+        actual_extra_windows,
+    )
+
+
+def write_frame_label_manifest(frames_dir, label_matches):
     frames_dir = Path(frames_dir)
     manifest_path = frames_dir / FRAME_LABEL_MANIFEST
     if manifest_path.exists():
         manifest_path.unlink()
 
-    matches = FRAME_LABEL_PATTERN.findall(capture_output)
-    if not matches:
+    if not label_matches:
         return
 
     frames_by_name = {path.name: path for path in sorted(frames_dir.glob("frame_*.png"))}
     entries = []
     missing_frames = []
-    for frame_name, label in matches:
+    for frame_name, label in label_matches:
         if frame_name not in frames_by_name:
             missing_frames.append(frame_name)
             continue
@@ -311,7 +575,7 @@ def wait_for_file_ready(path):
 
 def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration, speed,
                           snapshot_settle_ms, clock_scale, snapshot_stable_cycles,
-                          snapshot_max_wait_ms):
+                          snapshot_max_wait_ms, expected_display_ids=(0,), app=None, app_sub=None):
     frames_dir = Path(frames_dir)
     frames_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = frames_dir / FRAME_LABEL_MANIFEST
@@ -379,10 +643,32 @@ def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration
             if marker_line:
                 break
 
-            frames_ok, frames_message = validate_recording_frames(frames_dir)
+            frames_ok, frames_message = validate_recording_frames(frames_dir, expected_display_ids=expected_display_ids)
             if frames_ok:
-                write_frame_label_manifest(frames_dir, combined_output)
-                return True, frames_message
+                label_matches = parse_frame_label_matches(combined_output)
+                labels_ok, labels_message = validate_recording_frame_labels(frames_dir, label_matches, app=app, app_sub=app_sub)
+                if not labels_ok:
+                    last_error = labels_message
+                    break
+                shutdown_ok, shutdown_message = validate_shutdown_markers(
+                    combined_output,
+                    expected_display_ids=expected_display_ids,
+                    app=app,
+                    app_sub=app_sub,
+                )
+                if not shutdown_ok:
+                    last_error = shutdown_message
+                    break
+                write_frame_label_manifest(frames_dir, label_matches)
+                message_parts = [frames_message]
+                if labels_message:
+                    message_parts.append(labels_message)
+                self_check_message = get_runtime_self_check_summary(app, app_sub)
+                if self_check_message:
+                    message_parts.append(self_check_message)
+                if shutdown_message:
+                    message_parts.append(shutdown_message)
+                return True, "; ".join(message_parts)
 
             last_error = frames_message
             break
@@ -477,6 +763,8 @@ def build_runtime_case_specs(scope, app_sets, sub_app_sets, skipped_apps=None):
     skipped = set(skipped_apps or [])
     if scope == "standard":
         selected_apps = build_standard_app_list(app_sets, skipped)
+    elif scope == "multi-display":
+        selected_apps = [app for app in MULTI_DISPLAY_APPS if app in app_sets and app not in SKIP_LIST and app not in skipped]
     elif scope == "basic":
         selected_apps = ["HelloBasic"]
     elif scope == "virtual":
@@ -732,7 +1020,7 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
             clock_scale=RECORDING_CLOCK_SCALE,
             snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
             snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-            build_output_dir=None):
+            build_output_dir=None, app=None, app_sub=None):
     """Run app with recording mode, capture screenshot, verify exit.
     Retries on crash (access violation) since PC simulator has known
     race conditions between main thread and egui thread.
@@ -752,7 +1040,10 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
     )
     return run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration,
                                  speed, snapshot_settle_ms, clock_scale,
-                                 snapshot_stable_cycles, snapshot_max_wait_ms)
+                                 snapshot_stable_cycles, snapshot_max_wait_ms,
+                                 expected_display_ids=get_expected_runtime_display_ids(app or app_name, app_sub),
+                                 app=app or app_name,
+                                 app_sub=app_sub)
 
 
 def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
@@ -760,7 +1051,8 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
                              clock_scale=RECORDING_CLOCK_SCALE,
                              snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                              snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                             make_jobs=None, app_obj_suffix=None, objroot_path=None):
+                             make_jobs=None, app_obj_suffix=None, objroot_path=None,
+                             user_cflags=""):
     """Test app at default resolution (no CFLAGS override).
     Apps auto-quit after all actions complete; RECORDING_DURATION is a safety timeout.
     Returns (success: bool, message: str).
@@ -771,12 +1063,13 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
     if skip_reason:
         return True, "skipped: %s" % skip_reason
 
-    build_output_dir = get_runtime_build_output_dir(app, app_sub=app_sub, bits64=bits64)
+    build_output_dir = get_runtime_build_output_dir(app, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags)
 
     if not compile_app(
         app,
         app_sub,
         bits64,
+        user_cflags=user_cflags,
         build_output_dir=build_output_dir,
         make_jobs=make_jobs,
         app_obj_suffix=app_obj_suffix,
@@ -791,7 +1084,9 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
                    clock_scale=clock_scale,
                    snapshot_stable_cycles=snapshot_stable_cycles,
                    snapshot_max_wait_ms=snapshot_max_wait_ms,
-                   build_output_dir=build_output_dir)
+                   build_output_dir=build_output_dir,
+                   app=app,
+                   app_sub=app_sub)
 
 
 
@@ -906,7 +1201,8 @@ def run_runtime_case(app, app_sub, bits64, explicit_timeout=None,
                      clock_scale=RECORDING_CLOCK_SCALE,
                      snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                      snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                     make_jobs=None, app_obj_suffix=None, objroot_path=None):
+                     make_jobs=None, app_obj_suffix=None, objroot_path=None,
+                     user_cflags=""):
     app_name = format_app_name(app, app_sub)
     success, msg = check_default_resolution(
         app,
@@ -921,6 +1217,7 @@ def run_runtime_case(app, app_sub, bits64, explicit_timeout=None,
         make_jobs=make_jobs,
         app_obj_suffix=app_obj_suffix,
         objroot_path=objroot_path,
+        user_cflags=user_cflags,
     )
     return app_name, success, msg
 
@@ -929,7 +1226,8 @@ def retry_failed_runtime_cases_serial(results, case_specs, bits64, explicit_time
                                       speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
                                       clock_scale=RECORDING_CLOCK_SCALE,
                                       snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
-                                      snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
+                                      snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                                      user_cflags=""):
     normalized_results = []
     failed_indexes = []
     for index, item in enumerate(results):
@@ -947,7 +1245,7 @@ def retry_failed_runtime_cases_serial(results, case_specs, bits64, explicit_time
     print("Retrying %d failed runtime cases serially for stability" % len(failed_indexes))
     for retry_index, index in enumerate(failed_indexes, start=1):
         app, app_sub = case_specs[index]
-        case_info = build_runtime_case_info(app, app_sub, bits64)
+        case_info = build_runtime_case_info(app, app_sub, bits64, user_cflags=user_cflags)
         app_name = case_info["name"]
         print_case_header(retry_index, len(failed_indexes), "%s [serial retry]" % app_name, speed)
         _, success, msg = run_runtime_case(
@@ -963,6 +1261,7 @@ def retry_failed_runtime_cases_serial(results, case_specs, bits64, explicit_time
             make_jobs=1,
             app_obj_suffix=case_info["shared_obj_suffix"],
             objroot_path=case_info["objroot_path"] if case_info["shared_obj_suffix"] else None,
+            user_cflags=user_cflags,
         )
         status = "PASS" if success else "FAIL"
         print("  %s (%s)" % (status, msg))
@@ -975,14 +1274,15 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                            speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
                            clock_scale=RECORDING_CLOCK_SCALE,
                            snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
-                           snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
+                           snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                           user_cflags=""):
     total = len(case_specs)
     if total == 0:
         return []
 
     parallel_jobs = resolve_parallel_jobs(jobs, total)
     make_jobs = resolve_make_job_count(parallel_jobs)
-    case_infos = [build_runtime_case_info(app, app_sub, bits64) for app, app_sub in case_specs]
+    case_infos = [build_runtime_case_info(app, app_sub, bits64, user_cflags=user_cflags) for app, app_sub in case_specs]
 
     if parallel_jobs <= 1:
         results = []
@@ -1004,6 +1304,7 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                 make_jobs=make_jobs,
                 app_obj_suffix=case_info["shared_obj_suffix"],
                 objroot_path=case_info["objroot_path"] if case_info["shared_obj_suffix"] else None,
+                user_cflags=user_cflags,
             )
             status = "PASS" if success else "FAIL"
             print("  %s (%s)" % (status, msg))
@@ -1047,6 +1348,7 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                 make_jobs=make_jobs,
                 app_obj_suffix=seed_case["shared_obj_suffix"],
                 objroot_path=seed_case["objroot_path"],
+                user_cflags=user_cflags,
             )
             results[seed_index] = (seed_case["name"], success, msg)
             status = "PASS" if success else "FAIL"
@@ -1074,6 +1376,7 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                     make_jobs,
                     case_info["shared_obj_suffix"],
                     case_info["objroot_path"],
+                    user_cflags,
                 )
                 future_to_case[future] = index
 
@@ -1093,6 +1396,7 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                 make_jobs,
                 None,
                 None,
+                user_cflags,
             )
             future_to_case[future] = index
 
@@ -1120,6 +1424,7 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
         clock_scale=clock_scale,
         snapshot_stable_cycles=snapshot_stable_cycles,
         snapshot_max_wait_ms=snapshot_max_wait_ms,
+        user_cflags=user_cflags,
     )
 
 
@@ -1127,7 +1432,7 @@ def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_S
                    clock_scale=RECORDING_CLOCK_SCALE,
                    snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                    snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                   jobs=0):
+                   jobs=0, user_cflags=""):
     """Run runtime check on all examples.
     Returns list of (app_name, success, message) tuples.
     """
@@ -1153,6 +1458,7 @@ def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_S
         clock_scale=clock_scale,
         snapshot_stable_cycles=snapshot_stable_cycles,
         snapshot_max_wait_ms=snapshot_max_wait_ms,
+        user_cflags=user_cflags,
     )
 
 
@@ -1161,7 +1467,7 @@ def run_scope_check(scope, bits64, explicit_timeout=None,
                     clock_scale=RECORDING_CLOCK_SCALE,
                     snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                     snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                    jobs=0, shard_count=1, shard_index=1):
+                    jobs=0, shard_count=1, shard_index=1, user_cflags=""):
     app_sets = get_example_list()
     sub_app_sets = build_sub_app_sets()
     skipped_apps = set()
@@ -1183,6 +1489,7 @@ def run_scope_check(scope, bits64, explicit_timeout=None,
         clock_scale=clock_scale,
         snapshot_stable_cycles=snapshot_stable_cycles,
         snapshot_max_wait_ms=snapshot_max_wait_ms,
+        user_cflags=user_cflags,
     )
 
 
@@ -1191,7 +1498,7 @@ def run_sub_app_check(app, app_subs, bits64, explicit_timeout=None,
                       clock_scale=RECORDING_CLOCK_SCALE,
                       snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                       snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                      jobs=0):
+                      jobs=0, user_cflags=""):
     """Run runtime check for a batch of APP_SUB examples under one app."""
     case_specs = [(app, app_sub) for app_sub in app_subs]
     return run_runtime_case_batch(
@@ -1204,6 +1511,7 @@ def run_sub_app_check(app, app_subs, bits64, explicit_timeout=None,
         clock_scale=clock_scale,
         snapshot_stable_cycles=snapshot_stable_cycles,
         snapshot_max_wait_ms=snapshot_max_wait_ms,
+        user_cflags=user_cflags,
     )
 
 
@@ -1244,6 +1552,7 @@ Examples:
   %(prog)s --app HelloSimple                          Test single app
   %(prog)s --app HelloBasic --app-sub button         Test one HelloBasic sub-app
   %(prog)s --app HelloVirtual --app-sub virtual_grid Test one HelloVirtual sub-app
+  %(prog)s --scope multi-display --jobs 2            Test multi-display examples only
   %(prog)s --scope standard --jobs 2                 Test standard runtime examples only
   %(prog)s --scope basic --shard-count 3 --shard-index 1 --jobs 2
   %(prog)s --full-check                             Test all examples
@@ -1261,7 +1570,7 @@ Examples:
                         help='Keep screenshot files after testing')
     parser.add_argument('--full-check', action='store_true',
                         help='Test all example applications')
-    parser.add_argument('--scope', choices=['standard', 'basic', 'virtual', 'size-analysis'],
+    parser.add_argument('--scope', choices=['standard', 'multi-display', 'basic', 'virtual', 'size-analysis'],
                         help='Run one runtime case family only, useful for CI sharding')
     parser.add_argument('--jobs', type=int, default=0,
                         help='Parallel runtime cases for batch/full checks (default: auto, 0=auto)')
@@ -1279,6 +1588,28 @@ Examples:
                         help='Required unchanged frame cycles before snapshot (default: %d)' % RECORDING_SNAPSHOT_STABLE_CYCLES)
     parser.add_argument('--snapshot-max-wait-ms', type=int, default=RECORDING_SNAPSHOT_MAX_WAIT_MS,
                         help='Snapshot force-capture timeout in ms (default: %d)' % RECORDING_SNAPSHOT_MAX_WAIT_MS)
+    parser.add_argument('--user-cflags', type=str, default='',
+                        help='Append raw USER_CFLAGS to runtime builds (for config override / A-B probe)')
+    parser.add_argument('--queue-capacity-probe', type=int, default=0,
+                        help='Convenience wrapper for -DEGUI_PORT_PC_CORE_TASK_QUEUE_CAPACITY=N (0=disabled)')
+    parser.add_argument('--queue-stress-probe', type=int, default=0,
+                        help='Convenience wrapper for -DEGUI_MULTI_DISPLAY_CORE_TASK_STRESS_BURST_COUNT=N (0=disabled)')
+    parser.add_argument('--queue-post-retry-probe', type=int, default=-1,
+                        help='Convenience wrapper for -DEGUI_PORT_PC_CORE_TASK_POST_RETRY_COUNT=N (-1=disabled, 0=disable retries)')
+    parser.add_argument('--queue-post-retry-delay-probe', type=int, default=-1,
+                        help='Convenience wrapper for -DEGUI_PORT_PC_CORE_TASK_POST_RETRY_DELAY_MS=N (-1=disabled, 0=no delay)')
+    parser.add_argument('--queue-stress-post-gap-probe', type=int, default=-1,
+                        help='Convenience wrapper for -DEGUI_MULTI_DISPLAY_CORE_TASK_STRESS_POST_GAP_MS=N (-1=disabled, 0=no gap)')
+    parser.add_argument('--max-core-task-retries', type=int, default=-1,
+                        help='Fail runtime if any display exceeds this retry count (-1=disabled)')
+    parser.add_argument('--max-single-post-core-task-retries', type=int, default=-1,
+                        help='Fail runtime if any display exceeds this single-post retry burst (-1=disabled)')
+    parser.add_argument('--fail-on-full-core-task-queue', action='store_true',
+                        help='Fail runtime if any display peak_queue reaches queue_capacity')
+    parser.add_argument('--max-shutdown-queue-wait-ms', type=int, default=-1,
+                        help='Fail runtime if any display shutdown max_queue_wait_ms exceeds this threshold (-1=disabled)')
+    parser.add_argument('--max-shutdown-exec-time-ms', type=int, default=-1,
+                        help='Fail runtime if any display shutdown max_exec_time_ms exceeds this threshold (-1=disabled)')
 
     args = parser.parse_args()
 
@@ -1288,6 +1619,56 @@ Examples:
     snapshot_settle_ms = args.snapshot_settle_ms
     snapshot_stable_cycles = args.snapshot_stable_cycles
     snapshot_max_wait_ms = args.snapshot_max_wait_ms
+    user_cflags = args.user_cflags.strip()
+
+    if args.queue_capacity_probe < 0:
+        print("Error: --queue-capacity-probe must be >= 0")
+        sys.exit(1)
+    if args.queue_stress_probe < 0:
+        print("Error: --queue-stress-probe must be >= 0")
+        sys.exit(1)
+    if args.queue_post_retry_probe < -1:
+        print("Error: --queue-post-retry-probe must be >= -1")
+        sys.exit(1)
+    if args.queue_post_retry_delay_probe < -1:
+        print("Error: --queue-post-retry-delay-probe must be >= -1")
+        sys.exit(1)
+    if args.queue_stress_post_gap_probe < -1:
+        print("Error: --queue-stress-post-gap-probe must be >= -1")
+        sys.exit(1)
+    if args.max_core_task_retries < -1:
+        print("Error: --max-core-task-retries must be >= -1")
+        sys.exit(1)
+    if args.max_single_post_core_task_retries < -1:
+        print("Error: --max-single-post-core-task-retries must be >= -1")
+        sys.exit(1)
+    if args.max_shutdown_queue_wait_ms < -1:
+        print("Error: --max-shutdown-queue-wait-ms must be >= -1")
+        sys.exit(1)
+    if args.max_shutdown_exec_time_ms < -1:
+        print("Error: --max-shutdown-exec-time-ms must be >= -1")
+        sys.exit(1)
+    if args.queue_capacity_probe > 0:
+        user_cflags = ("%s -DEGUI_PORT_PC_CORE_TASK_QUEUE_CAPACITY=%d" % (user_cflags, args.queue_capacity_probe)).strip()
+    if args.queue_stress_probe > 0:
+        user_cflags = ("%s -DEGUI_MULTI_DISPLAY_CORE_TASK_STRESS_BURST_COUNT=%d" % (user_cflags, args.queue_stress_probe)).strip()
+    if args.queue_post_retry_probe >= 0:
+        user_cflags = ("%s -DEGUI_PORT_PC_CORE_TASK_POST_RETRY_COUNT=%d" % (user_cflags, args.queue_post_retry_probe)).strip()
+    if args.queue_post_retry_delay_probe >= 0:
+        user_cflags = ("%s -DEGUI_PORT_PC_CORE_TASK_POST_RETRY_DELAY_MS=%d" % (user_cflags, args.queue_post_retry_delay_probe)).strip()
+    if args.queue_stress_post_gap_probe >= 0:
+        user_cflags = ("%s -DEGUI_MULTI_DISPLAY_CORE_TASK_STRESS_POST_GAP_MS=%d" % (user_cflags, args.queue_stress_post_gap_probe)).strip()
+
+    global MAX_CORE_TASK_RETRIES
+    global MAX_SINGLE_POST_CORE_TASK_RETRIES
+    global FAIL_ON_FULL_CORE_TASK_QUEUE
+    global MAX_SHUTDOWN_QUEUE_WAIT_MS
+    global MAX_SHUTDOWN_EXEC_TIME_MS
+    MAX_CORE_TASK_RETRIES = args.max_core_task_retries
+    MAX_SINGLE_POST_CORE_TASK_RETRIES = args.max_single_post_core_task_retries
+    FAIL_ON_FULL_CORE_TASK_QUEUE = args.fail_on_full_core_task_queue
+    MAX_SHUTDOWN_QUEUE_WAIT_MS = args.max_shutdown_queue_wait_ms
+    MAX_SHUTDOWN_EXEC_TIME_MS = args.max_shutdown_exec_time_ms
 
     if args.full_check and args.scope:
         print("Error: --full-check cannot be combined with --scope")
@@ -1322,6 +1703,7 @@ Examples:
             snapshot_stable_cycles=snapshot_stable_cycles,
             snapshot_max_wait_ms=snapshot_max_wait_ms,
             jobs=args.jobs,
+            user_cflags=user_cflags,
         )
         all_passed = print_summary(results)
 
@@ -1339,6 +1721,7 @@ Examples:
                 jobs=args.jobs,
                 shard_count=args.shard_count,
                 shard_index=args.shard_index,
+                user_cflags=user_cflags,
             )
         except ValueError as exc:
             print("Error: %s" % exc)
@@ -1374,6 +1757,7 @@ Examples:
                 snapshot_settle_ms=snapshot_settle_ms,
                 snapshot_stable_cycles=snapshot_stable_cycles,
                 snapshot_max_wait_ms=snapshot_max_wait_ms,
+                user_cflags=user_cflags,
             )
         else:
             app_name = format_app_name(args.app, args.app_sub)
@@ -1387,7 +1771,8 @@ Examples:
                                                      clock_scale=clock_scale,
                                                      snapshot_settle_ms=snapshot_settle_ms,
                                                      snapshot_stable_cycles=snapshot_stable_cycles,
-                                                     snapshot_max_wait_ms=snapshot_max_wait_ms)
+                                                     snapshot_max_wait_ms=snapshot_max_wait_ms,
+                                                     user_cflags=user_cflags)
             results.append((app_name, success, msg))
 
         all_passed = print_summary(results)

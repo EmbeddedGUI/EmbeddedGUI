@@ -1,14 +1,25 @@
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_invalidate_region.h"
 
 static egui_view_t test_view;
 
+static egui_core_t *test_invalidate_region_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static void setup_view(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
+    egui_core_t *core = test_invalidate_region_get_core();
     egui_region_t region;
 
-    egui_view_init(&test_view);
+    egui_view_init(&test_view, core);
+    test_view.core = core;
     egui_region_init(&region, x, y, width, height);
     egui_region_copy(&test_view.region, &region);
     egui_region_copy(&test_view.region_screen, &region);
@@ -22,12 +33,13 @@ static int32_t region_area(const egui_region_t *region)
 
 static void test_invalidate_region_basic(void)
 {
+    egui_core_t *core = test_invalidate_region_get_core();
     egui_region_t dirty_region;
     egui_region_t expected;
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     setup_view(10, 20, 100, 50);
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
 
     egui_region_init(&dirty_region, 5, 6, 20, 10);
     egui_view_invalidate_region(&test_view, &dirty_region);
@@ -39,12 +51,13 @@ static void test_invalidate_region_basic(void)
 
 static void test_invalidate_region_clamp(void)
 {
+    egui_core_t *core = test_invalidate_region_get_core();
     egui_region_t dirty_region;
     egui_region_t expected;
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     setup_view(10, 20, 100, 50);
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
 
     egui_region_init(&dirty_region, -5, 40, 30, 20);
     egui_view_invalidate_region(&test_view, &dirty_region);
@@ -56,12 +69,13 @@ static void test_invalidate_region_clamp(void)
 
 static void test_invalidate_region_invisible(void)
 {
+    egui_core_t *core = test_invalidate_region_get_core();
     egui_region_t dirty_region;
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     setup_view(10, 20, 100, 50);
     test_view.is_visible = 0;
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
 
     egui_region_init(&dirty_region, 5, 5, 20, 10);
     egui_view_invalidate_region(&test_view, &dirty_region);
@@ -72,13 +86,14 @@ static void test_invalidate_region_invisible(void)
 
 static void test_invalidate_region_multiple(void)
 {
+    egui_core_t *core = test_invalidate_region_get_core();
     egui_region_t dirty_a;
     egui_region_t dirty_b;
     egui_region_t expected;
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     setup_view(10, 20, 100, 50);
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
 
     egui_region_init(&dirty_a, 0, 0, 20, 10);
     egui_region_init(&dirty_b, 10, 5, 20, 10);
@@ -92,20 +107,21 @@ static void test_invalidate_region_multiple(void)
 
 static void test_invalidate_region_vs_full(void)
 {
+    egui_core_t *core = test_invalidate_region_get_core();
     egui_region_t dirty_region;
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
     int32_t sub_area;
     int32_t full_area;
 
     setup_view(10, 20, 100, 50);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_region_init(&dirty_region, 5, 5, 20, 10);
     egui_view_invalidate_region(&test_view, &dirty_region);
     sub_area = region_area(&arr[0]);
 
-    egui_core_clear_region_dirty();
-    egui_core_update_region_dirty(&test_view.region_screen);
+    egui_core_clear_region_dirty(core);
+    egui_core_update_region_dirty(core, &test_view.region_screen);
     full_area = region_area(&arr[0]);
 
     EGUI_TEST_ASSERT_TRUE(sub_area < full_area);
@@ -113,16 +129,17 @@ static void test_invalidate_region_vs_full(void)
 
 static void test_sub_region_table_invalidate(void)
 {
+    egui_core_t *core = test_invalidate_region_get_core();
     egui_sub_region_t regions[2];
     egui_sub_region_table_t table = {
             .regions = regions,
             .count = 2,
     };
     egui_region_t expected;
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     setup_view(10, 20, 100, 50);
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
 
     egui_region_init(&regions[0].region, 0, 0, 10, 10);
     egui_region_init(&regions[1].region, 30, 15, 20, 10);
@@ -135,15 +152,16 @@ static void test_sub_region_table_invalidate(void)
 
 static void test_sub_region_table_bounds(void)
 {
+    egui_core_t *core = test_invalidate_region_get_core();
     egui_sub_region_t regions[1];
     egui_sub_region_table_t table = {
             .regions = regions,
             .count = 1,
     };
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     setup_view(10, 20, 100, 50);
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
 
     egui_region_init(&regions[0].region, 0, 0, 10, 10);
     egui_view_invalidate_sub_region(&test_view, &table, 2);

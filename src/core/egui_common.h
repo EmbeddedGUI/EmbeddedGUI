@@ -421,8 +421,8 @@ void egui_common_align_get_x_y(egui_dim_t parent_width, egui_dim_t parent_height
                                egui_dim_t *x, egui_dim_t *y);
 
 void egui_memcpy(void *dest, const void *src, uint32_t n);
-void *egui_malloc(int size);
-void egui_free(void *ptr);
+void *egui_malloc(egui_core_t *core, int size);
+void egui_free(egui_core_t *core, void *ptr);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

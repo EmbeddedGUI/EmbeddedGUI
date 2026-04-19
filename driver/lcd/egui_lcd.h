@@ -142,6 +142,7 @@ struct egui_hal_lcd_driver
     /* State */
     egui_hal_lcd_config_t config; /**< Current configuration */
     void *priv;                   /**< Driver-specific private data */
+    egui_core_t *bridge_core;     /**< Core context set by the bridge before dispatch */
 };
 
 /* ============================================================
@@ -184,7 +185,7 @@ void egui_hal_lcd_register(egui_display_driver_t *driver, egui_hal_lcd_driver_t 
  * Get the registered HAL LCD driver instance.
  * @return HAL LCD driver pointer, or NULL if not registered
  */
-egui_hal_lcd_driver_t *egui_hal_lcd_get(void);
+egui_hal_lcd_driver_t *egui_hal_lcd_get(egui_core_t *core);
 
 #ifdef __cplusplus
 }

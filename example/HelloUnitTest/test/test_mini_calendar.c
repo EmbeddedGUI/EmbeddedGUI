@@ -1,12 +1,21 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_mini_calendar.h"
 
 static egui_view_mini_calendar_t test_calendar;
 static uint8_t g_selected_count;
 static uint8_t g_last_day;
+
+static egui_core_t *test_mini_calendar_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static uint8_t days_in_month(uint16_t year, uint8_t month)
 {
@@ -41,7 +50,7 @@ static void on_date_selected(egui_view_t *self, uint8_t day)
 
 static void setup_calendar(void)
 {
-    egui_view_mini_calendar_init(EGUI_VIEW_OF(&test_calendar));
+    egui_view_mini_calendar_init(EGUI_VIEW_OF(&test_calendar), test_mini_calendar_get_core());
     egui_view_set_size(EGUI_VIEW_OF(&test_calendar), 210, 160);
     egui_view_mini_calendar_set_date(EGUI_VIEW_OF(&test_calendar), 2026, 3, 5);
     egui_view_mini_calendar_set_on_date_selected_listener(EGUI_VIEW_OF(&test_calendar), on_date_selected);

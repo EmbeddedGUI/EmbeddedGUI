@@ -4,6 +4,7 @@
 
 #include "egui.h"
 #include "port_api.h"
+#include "uicode_disp0.h"
 
 #define TEST_VIRTUAL_STAGE_MAX_NODES 4
 
@@ -66,6 +67,14 @@ static test_virtual_stage_array_node_data_t test_array_nodes[2];
 
 EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SOURCE_INIT(test_array_node_source, test_array_nodes, test_virtual_stage_array_node_data_t, desc);
 
+static egui_core_t *test_virtual_stage_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static test_virtual_stage_node_data_t *find_node_by_stable_id(uint32_t stable_id)
 {
     uint32_t i;
@@ -123,55 +132,60 @@ static void array_button_click_cb(egui_view_t *self)
 
 static egui_view_t *adapter_create_view(void *adapter_context, uint16_t view_type)
 {
+    egui_core_t *core = test_virtual_stage_get_core();
     EGUI_UNUSED(adapter_context);
 
     if (view_type == TEST_VIRTUAL_STAGE_VIEW_TYPE_BUTTON)
     {
-        egui_view_button_t *button = (egui_view_button_t *)egui_malloc(sizeof(egui_view_button_t));
+        egui_view_button_t *button = (egui_view_button_t *)egui_malloc(core, sizeof(egui_view_button_t));
         if (button == NULL)
         {
             return NULL;
         }
 
-        egui_view_button_init(EGUI_VIEW_OF(button));
+        egui_view_button_init(EGUI_VIEW_OF(button), core);
+        EGUI_VIEW_OF(button)->core = core;
         egui_view_set_on_click_listener(EGUI_VIEW_OF(button), button_click_cb);
         return EGUI_VIEW_OF(button);
     }
 
     if (view_type == TEST_VIRTUAL_STAGE_VIEW_TYPE_TEXTINPUT)
     {
-        egui_view_textinput_t *textinput = (egui_view_textinput_t *)egui_malloc(sizeof(egui_view_textinput_t));
+        egui_view_textinput_t *textinput = (egui_view_textinput_t *)egui_malloc(core, sizeof(egui_view_textinput_t));
         if (textinput == NULL)
         {
             return NULL;
         }
 
-        egui_view_textinput_init(EGUI_VIEW_OF(textinput));
+        egui_view_textinput_init(EGUI_VIEW_OF(textinput), core);
+        EGUI_VIEW_OF(textinput)->core = core;
         egui_view_textinput_set_font(EGUI_VIEW_OF(textinput), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
         return EGUI_VIEW_OF(textinput);
     }
 
     if (view_type == TEST_VIRTUAL_STAGE_VIEW_TYPE_LIST)
     {
-        egui_view_list_t *list = (egui_view_list_t *)egui_malloc(sizeof(egui_view_list_t));
+        egui_view_list_t *list = (egui_view_list_t *)egui_malloc(core, sizeof(egui_view_list_t));
         if (list == NULL)
         {
             return NULL;
         }
 
-        egui_view_list_init(EGUI_VIEW_OF(list));
+        egui_view_list_init(EGUI_VIEW_OF(list), core);
+        EGUI_VIEW_OF(list)->core = core;
         return EGUI_VIEW_OF(list);
     }
 
     if (view_type == TEST_VIRTUAL_STAGE_VIEW_TYPE_SPINNER)
     {
-        egui_view_spinner_t *spinner = (egui_view_spinner_t *)egui_malloc(sizeof(egui_view_spinner_t));
+        egui_view_spinner_t *spinner = (egui_view_spinner_t *)egui_malloc(core, sizeof(egui_view_spinner_t));
         if (spinner == NULL)
         {
             return NULL;
         }
 
-        egui_view_spinner_init(EGUI_VIEW_OF(spinner));
+        egui_view_spinner_init(EGUI_VIEW_OF(spinner), core);
+        EGUI_VIEW_OF(spinner)->core = core;
         egui_view_spinner_start(EGUI_VIEW_OF(spinner));
         return EGUI_VIEW_OF(spinner);
     }
@@ -184,22 +198,24 @@ static void adapter_destroy_view(void *adapter_context, egui_view_t *view, uint1
     test_virtual_stage_context_t *ctx = (test_virtual_stage_context_t *)adapter_context;
     EGUI_UNUSED(view_type);
     ctx->destroy_count++;
-    egui_free(view);
+    egui_free(egui_view_get_core(view), view);
 }
 
 static egui_view_t *array_adapter_create_view(void *user_context, uint16_t view_type)
 {
+    egui_core_t *core = test_virtual_stage_get_core();
     EGUI_UNUSED(user_context);
 
     if (view_type == TEST_VIRTUAL_STAGE_VIEW_TYPE_BUTTON)
     {
-        egui_view_button_t *button = (egui_view_button_t *)egui_malloc(sizeof(egui_view_button_t));
+        egui_view_button_t *button = (egui_view_button_t *)egui_malloc(core, sizeof(egui_view_button_t));
         if (button == NULL)
         {
             return NULL;
         }
 
-        egui_view_button_init(EGUI_VIEW_OF(button));
+        egui_view_button_init(EGUI_VIEW_OF(button), core);
+        EGUI_VIEW_OF(button)->core = core;
         egui_view_set_on_click_listener(EGUI_VIEW_OF(button), array_button_click_cb);
         return EGUI_VIEW_OF(button);
     }
@@ -213,7 +229,7 @@ static void array_adapter_destroy_view(void *user_context, egui_view_t *view, ui
     EGUI_UNUSED(view_type);
 
     ctx->destroy_count++;
-    egui_free(view);
+    egui_free(egui_view_get_core(view), view);
 }
 
 static void adapter_bind_view(void *adapter_context, egui_view_t *view, uint32_t index, uint32_t stable_id, const egui_virtual_stage_node_desc_t *desc)
@@ -380,7 +396,8 @@ static void layout_page(void)
 
 static void collect_dirty_union(egui_region_t *out_region, uint8_t *out_count)
 {
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_core_t *core = test_virtual_stage_get_core();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
     uint8_t i;
     uint8_t count = 0;
 
@@ -437,10 +454,13 @@ static const egui_view_virtual_stage_slot_t *find_slot_by_stable_id(uint32_t sta
 
 static void reset_page_with_adapter(uint8_t live_slot_limit, const egui_view_virtual_stage_adapter_t *adapter, void *adapter_context)
 {
-    egui_focus_manager_clear_focus();
+    egui_core_t *core = test_virtual_stage_get_core();
+
+    egui_focus_manager_clear_focus(core);
     memset(&test_page, 0, sizeof(test_page));
     memset(&test_context, 0, sizeof(test_context));
-    egui_view_virtual_stage_init(EGUI_VIEW_OF(&test_page));
+    egui_view_virtual_stage_init(EGUI_VIEW_OF(&test_page), core);
+    EGUI_VIEW_OF(&test_page)->core = core;
     egui_view_virtual_stage_set_live_slot_limit(EGUI_VIEW_OF(&test_page), live_slot_limit);
     egui_view_virtual_stage_set_adapter(EGUI_VIEW_OF(&test_page), adapter, adapter_context);
 }
@@ -452,12 +472,15 @@ static void reset_page(uint8_t live_slot_limit)
 
 static void reset_page_with_array_adapter(uint8_t live_slot_limit)
 {
-    egui_focus_manager_clear_focus();
+    egui_core_t *core = test_virtual_stage_get_core();
+
+    egui_focus_manager_clear_focus(core);
     memset(&test_page, 0, sizeof(test_page));
     memset(&test_context, 0, sizeof(test_context));
     memset(&test_array_context, 0, sizeof(test_array_context));
     memset(test_array_nodes, 0, sizeof(test_array_nodes));
-    egui_view_virtual_stage_init(EGUI_VIEW_OF(&test_page));
+    egui_view_virtual_stage_init(EGUI_VIEW_OF(&test_page), core);
+    EGUI_VIEW_OF(&test_page)->core = core;
     egui_view_virtual_stage_set_live_slot_limit(EGUI_VIEW_OF(&test_page), live_slot_limit);
     egui_view_virtual_stage_apply_array_setup(EGUI_VIEW_OF(&test_page), &test_array_adapter, &test_array_setup);
     egui_view_virtual_stage_set_live_slot_limit(EGUI_VIEW_OF(&test_page), live_slot_limit);
@@ -709,6 +732,7 @@ static void test_virtual_stage_double_pin_requires_matching_unpin(void)
 
 static void test_virtual_stage_textinput_save_and_restore_state(void)
 {
+    egui_core_t *core = test_virtual_stage_get_core();
     const egui_view_virtual_stage_slot_t *slot;
 
     reset_page(1);
@@ -729,7 +753,7 @@ static void test_virtual_stage_textinput_save_and_restore_state(void)
     EGUI_TEST_ASSERT_NOT_NULL(slot);
     egui_view_textinput_set_text(slot->view, "abc");
 
-    egui_focus_manager_clear_focus();
+    egui_focus_manager_clear_focus(core);
     EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_virtual_stage_get_slot_count(EGUI_VIEW_OF(&test_page)));
     EGUI_TEST_ASSERT_TRUE(test_context.save_count > 0);
@@ -1058,6 +1082,7 @@ static void test_virtual_stage_notify_bounds_changed_updates_only_target_slot_re
 
 static void test_virtual_stage_notify_bounds_changed_invalidates_old_and_new_region(void)
 {
+    egui_core_t *core = test_virtual_stage_get_core();
     egui_region_t dirty_union;
     egui_region_t expected_union;
     uint8_t dirty_count = 0;
@@ -1068,7 +1093,7 @@ static void test_virtual_stage_notify_bounds_changed_invalidates_old_and_new_reg
     configure_button_node(0, 8, 8, 56, 24, 6100, 0, "Move");
     layout_page();
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     test_context.nodes[0].desc.region.location.x = 24;
     egui_view_virtual_stage_notify_node_bounds_changed(EGUI_VIEW_OF(&test_page), 6100);
 
@@ -1108,6 +1133,7 @@ static void test_virtual_stage_notify_bounds_changed_materializes_keepalive_node
 
 static void test_virtual_stage_notify_node_changed_visible_to_hidden_invalidates_old_region_only(void)
 {
+    egui_core_t *core = test_virtual_stage_get_core();
     egui_region_t dirty_union;
     egui_region_t expected_region;
     uint8_t dirty_count = 0;
@@ -1118,7 +1144,7 @@ static void test_virtual_stage_notify_node_changed_visible_to_hidden_invalidates
     configure_button_node(0, 8, 8, 56, 24, 6180, 0, "Hide");
     layout_page();
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     test_context.nodes[0].desc.flags |= EGUI_VIRTUAL_STAGE_NODE_FLAG_HIDDEN;
     egui_view_virtual_stage_notify_node_changed(EGUI_VIEW_OF(&test_page), 6180);
 
@@ -1152,6 +1178,7 @@ static void test_virtual_stage_hidden_node_releases_only_target_slot(void)
 
 static void test_virtual_stage_notify_node_changed_hidden_to_visible_invalidates_new_region_only(void)
 {
+    egui_core_t *core = test_virtual_stage_get_core();
     egui_region_t dirty_union;
     egui_region_t expected_region;
     uint8_t dirty_count = 0;
@@ -1162,7 +1189,7 @@ static void test_virtual_stage_notify_node_changed_hidden_to_visible_invalidates
     configure_button_node(0, 8, 8, 56, 24, 6240, EGUI_VIRTUAL_STAGE_NODE_FLAG_HIDDEN, "Show");
     layout_page();
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     test_context.nodes[0].desc.flags &= (uint8_t)(~EGUI_VIRTUAL_STAGE_NODE_FLAG_HIDDEN);
     egui_view_virtual_stage_notify_node_changed(EGUI_VIEW_OF(&test_page), 6240);
 
@@ -1220,6 +1247,7 @@ static void test_virtual_stage_notify_node_changed_restores_pinned_node_after_un
 
 static void test_virtual_stage_focus_slot_replaces_pinned_slot_and_restores_after_blur(void)
 {
+    egui_core_t *core = test_virtual_stage_get_core();
     reset_page(1);
 
     test_context.node_count = 2;
@@ -1238,7 +1266,7 @@ static void test_virtual_stage_focus_slot_replaces_pinned_slot_and_restores_afte
     EGUI_TEST_ASSERT_NOT_NULL(find_slot_by_stable_id(631));
     EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_virtual_stage_get_slot_count(EGUI_VIEW_OF(&test_page)));
 
-    egui_focus_manager_clear_focus();
+    egui_focus_manager_clear_focus(core);
     EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
     EGUI_TEST_ASSERT_NOT_NULL(find_slot_by_stable_id(630));
     EGUI_TEST_ASSERT_NULL(find_slot_by_stable_id(631));
@@ -1546,7 +1574,7 @@ static void test_virtual_stage_timer_view_stops_on_detach_and_restarts_on_reatta
     spinner_view = slot->view;
     spinner = (egui_view_spinner_t *)spinner_view;
     EGUI_TEST_ASSERT_TRUE(spinner_view->is_attached_to_window);
-    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(&spinner->spin_timer));
+    EGUI_TEST_ASSERT_TRUE(egui_view_check_timer_start(spinner_view, &spinner->spin_timer));
 
     test_context.nodes[0].desc.flags = EGUI_VIRTUAL_STAGE_NODE_FLAG_HIDDEN | EGUI_VIRTUAL_STAGE_NODE_FLAG_KEEPALIVE;
     egui_view_virtual_stage_notify_node_changed(EGUI_VIEW_OF(&test_page), 6492);
@@ -1554,7 +1582,7 @@ static void test_virtual_stage_timer_view_stops_on_detach_and_restarts_on_reatta
 
     EGUI_TEST_ASSERT_NULL(find_slot_by_stable_id(6492));
     EGUI_TEST_ASSERT_FALSE(spinner_view->is_attached_to_window);
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&spinner->spin_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_view_check_timer_start(spinner_view, &spinner->spin_timer));
 
     test_context.nodes[0].desc.flags = EGUI_VIRTUAL_STAGE_NODE_FLAG_KEEPALIVE;
     egui_view_virtual_stage_notify_node_changed(EGUI_VIEW_OF(&test_page), 6492);
@@ -1564,7 +1592,7 @@ static void test_virtual_stage_timer_view_stops_on_detach_and_restarts_on_reatta
     EGUI_TEST_ASSERT_NOT_NULL(slot);
     EGUI_TEST_ASSERT_TRUE(slot->view == spinner_view);
     EGUI_TEST_ASSERT_TRUE(spinner_view->is_attached_to_window);
-    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(&spinner->spin_timer));
+    EGUI_TEST_ASSERT_TRUE(egui_view_check_timer_start(spinner_view, &spinner->spin_timer));
 
     egui_view_dispatch_detach_from_window(EGUI_VIEW_OF(&test_page));
 }
@@ -1627,6 +1655,7 @@ static void test_virtual_stage_array_adapter_default_hit_test_falls_back_to_rect
 
 static void test_virtual_stage_init_with_setup_applies_params_and_adapter(void)
 {
+    egui_core_t *core = test_virtual_stage_get_core();
     static const egui_view_virtual_stage_params_t setup_params = {
             .region = {{4, 6}, {132, 88}},
             .live_slot_limit = 2,
@@ -1639,7 +1668,7 @@ static void test_virtual_stage_init_with_setup_applies_params_and_adapter(void)
 
     memset(&test_page, 0, sizeof(test_page));
     memset(&test_context, 0, sizeof(test_context));
-    egui_view_virtual_stage_init_with_setup(EGUI_VIEW_OF(&test_page), &setup);
+    egui_view_virtual_stage_init_with_setup(EGUI_VIEW_OF(&test_page), core, &setup);
 
     EGUI_TEST_ASSERT_EQUAL_INT(4, EGUI_VIEW_OF(&test_page)->region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(6, EGUI_VIEW_OF(&test_page)->region.location.y);
@@ -1652,6 +1681,7 @@ static void test_virtual_stage_init_with_setup_applies_params_and_adapter(void)
 
 static void test_virtual_stage_init_with_array_setup_applies_params_and_bridge_adapter(void)
 {
+    egui_core_t *core = test_virtual_stage_get_core();
     static const egui_view_virtual_stage_params_t setup_params = {
             .region = {{6, 8}, {128, 84}},
             .live_slot_limit = 3,
@@ -1668,7 +1698,7 @@ static void test_virtual_stage_init_with_array_setup_applies_params_and_bridge_a
     memset(&test_array_context, 0, sizeof(test_array_context));
     memset(test_array_nodes, 0, sizeof(test_array_nodes));
 
-    egui_view_virtual_stage_init_with_array_setup(EGUI_VIEW_OF(&test_page), &test_array_adapter, &setup);
+    egui_view_virtual_stage_init_with_array_setup(EGUI_VIEW_OF(&test_page), core, &test_array_adapter, &setup);
 
     EGUI_TEST_ASSERT_EQUAL_INT(6, EGUI_VIEW_OF(&test_page)->region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(8, EGUI_VIEW_OF(&test_page)->region.location.y);

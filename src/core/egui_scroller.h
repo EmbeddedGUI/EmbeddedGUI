@@ -2,6 +2,7 @@
 #define _EGUI_SCROLLER_H_
 
 #include "egui_common.h"
+#include "egui_typedef.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -31,10 +32,10 @@ struct egui_scroller
 };
 
 void egui_scroller_about_animation(egui_scroller_t *self);
-void egui_scroller_start_scroll(egui_scroller_t *self, egui_dim_t delta, uint16_t duration);
-void egui_scroller_start_filing(egui_scroller_t *self, egui_dim_t delta, egui_float_t velocity);
-int egui_scroller_compute_scroll_offset(egui_scroller_t *self);
-void egui_scroller_init(egui_scroller_t *self);
+void egui_scroller_start_scroll(egui_scroller_t *self, egui_core_t *core, egui_dim_t delta, uint16_t duration);
+void egui_scroller_start_filing(egui_scroller_t *self, egui_core_t *core, egui_dim_t delta, egui_float_t velocity);
+int egui_scroller_compute_scroll_offset(egui_scroller_t *self, egui_core_t *core);
+void egui_scroller_init(egui_scroller_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

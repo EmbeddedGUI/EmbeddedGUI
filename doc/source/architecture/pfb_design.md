@@ -70,7 +70,7 @@
 // 伪代码：PFB 分块遍历
 for (y = 0; y < pfb_height_count; y++) {
     for (x = 0; x < pfb_width_count; x++) {
-        egui_canvas_init(pfb, &region);    // 设置当前 PFB 区域
+        egui_canvas_init(&core->canvas, core, pfb, &region);    // 设置当前 PFB 区域
         egui_api_pfb_clear(pfb, size);     // 清空缓冲区
         view_group->api->draw(view_group); // 绘制视图树
         egui_core_draw_data(&region);      // 提交到屏幕

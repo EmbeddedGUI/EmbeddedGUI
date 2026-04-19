@@ -40,7 +40,7 @@ struct egui_view_scroll_params
 #define EGUI_VIEW_SCROLL_PARAMS_INIT(_name, _x, _y, _w, _h) static const egui_view_scroll_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 void egui_view_scroll_apply_params(egui_view_t *self, const egui_view_scroll_params_t *params);
-void egui_view_scroll_init_with_params(egui_view_t *self, const egui_view_scroll_params_t *params);
+void egui_view_scroll_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_scroll_params_t *params);
 
 void egui_view_scroll_add_child(egui_view_t *self, egui_view_t *child);
 void egui_view_scroll_layout_childs(egui_view_t *self);
@@ -51,7 +51,7 @@ void egui_view_scroll_compute_scroll(egui_view_t *self);
 void egui_view_scroll_check_begin_dragged(egui_view_t *self, egui_dim_t delta);
 int egui_view_scroll_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event);
 int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *event);
-void egui_view_scroll_init(egui_view_t *self);
+void egui_view_scroll_init(egui_view_t *self, egui_core_t *core);
 
 void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled);
 

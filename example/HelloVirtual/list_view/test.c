@@ -7,7 +7,7 @@
 #include "core/egui_input_simulator.h"
 #endif
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define LIST_VIEW_DEMO_MAX_ITEMS         32U
 #define LIST_VIEW_DEMO_MODE_COUNT        3U
@@ -126,6 +126,7 @@ static const char *list_view_demo_action_names[5] = {"Add", "Del", "Move", "Patc
 static egui_view_t background_view;
 static egui_view_card_t header_card;
 static egui_view_card_t toolbar_card;
+static egui_core_t *s_core;
 static egui_view_label_t header_title;
 static egui_view_label_t header_detail;
 static egui_view_label_t header_hint;
@@ -265,7 +266,7 @@ static void list_view_demo_reset_model(void)
 static void list_view_demo_init_label(egui_view_label_t *label, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const egui_font_t *font,
                                       uint8_t align, egui_color_t color)
 {
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), s_core);
     egui_view_set_position(EGUI_VIEW_OF(label), x, y);
     egui_view_set_size(EGUI_VIEW_OF(label), width, height);
     egui_view_label_set_font(EGUI_VIEW_OF(label), font);
@@ -276,7 +277,7 @@ static void list_view_demo_init_label(egui_view_label_t *label, egui_dim_t x, eg
 static void list_view_demo_init_button(egui_view_button_t *button, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const char *text,
                                        egui_view_on_click_listener_t listener)
 {
-    egui_view_button_init(EGUI_VIEW_OF(button));
+    egui_view_button_init(EGUI_VIEW_OF(button), s_core);
     egui_view_set_position(EGUI_VIEW_OF(button), x, y);
     egui_view_set_size(EGUI_VIEW_OF(button), width, height);
     egui_view_label_set_text(EGUI_VIEW_OF(button), text);
@@ -455,7 +456,7 @@ static egui_view_list_view_holder_t *list_view_demo_create_holder(void *data_mod
 
     if (view_type == LIST_VIEW_DEMO_VIEWTYPE_HERO)
     {
-        list_view_demo_hero_holder_t *holder = (list_view_demo_hero_holder_t *)egui_malloc(sizeof(list_view_demo_hero_holder_t));
+        list_view_demo_hero_holder_t *holder = (list_view_demo_hero_holder_t *)egui_malloc(s_core, sizeof(list_view_demo_hero_holder_t));
 
         if (holder == NULL)
         {
@@ -463,9 +464,9 @@ static egui_view_list_view_holder_t *list_view_demo_create_holder(void *data_mod
         }
 
         memset(holder, 0, sizeof(*holder));
-        egui_view_group_init(EGUI_VIEW_OF(&holder->root));
+        egui_view_group_init(EGUI_VIEW_OF(&holder->root), s_core);
 
-        egui_view_card_init(EGUI_VIEW_OF(&holder->card));
+        egui_view_card_init(EGUI_VIEW_OF(&holder->card), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&holder->card), 4, 4);
         egui_view_group_add_child(EGUI_VIEW_OF(&holder->root), EGUI_VIEW_OF(&holder->card));
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&holder->card), list_view_demo_row_click_cb);
@@ -479,17 +480,17 @@ static egui_view_list_view_holder_t *list_view_demo_create_holder(void *data_mod
         list_view_demo_init_label(&holder->meta, 12, 44, 180, 12, LIST_VIEW_DEMO_FONT_BODY, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x6A7B89));
         egui_view_card_add_child(EGUI_VIEW_OF(&holder->card), EGUI_VIEW_OF(&holder->meta));
 
-        egui_view_progress_bar_init(EGUI_VIEW_OF(&holder->progress_bar));
+        egui_view_progress_bar_init(EGUI_VIEW_OF(&holder->progress_bar), s_core);
         holder->progress_bar.is_show_control = 0;
         egui_view_card_add_child(EGUI_VIEW_OF(&holder->card), EGUI_VIEW_OF(&holder->progress_bar));
 
-        egui_view_switch_init_with_params(EGUI_VIEW_OF(&holder->enabled_switch), &list_view_demo_switch_params);
+        egui_view_switch_init_with_params(EGUI_VIEW_OF(&holder->enabled_switch), s_core, &list_view_demo_switch_params);
         egui_view_switch_set_state_icons(EGUI_VIEW_OF(&holder->enabled_switch), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CLOSE);
         egui_view_switch_set_icon_font(EGUI_VIEW_OF(&holder->enabled_switch), EGUI_FONT_ICON_MS_16);
         egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(&holder->enabled_switch), list_view_demo_switch_checked_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&holder->card), EGUI_VIEW_OF(&holder->enabled_switch));
 
-        egui_view_combobox_init_with_params(EGUI_VIEW_OF(&holder->mode_combo), &list_view_demo_combo_params);
+        egui_view_combobox_init_with_params(EGUI_VIEW_OF(&holder->mode_combo), s_core, &list_view_demo_combo_params);
         egui_view_combobox_set_font(EGUI_VIEW_OF(&holder->mode_combo), LIST_VIEW_DEMO_FONT_BODY);
         egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&holder->mode_combo), EGUI_FONT_ICON_MS_16);
         egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&holder->mode_combo), 3);
@@ -510,7 +511,7 @@ static egui_view_list_view_holder_t *list_view_demo_create_holder(void *data_mod
     }
     else
     {
-        list_view_demo_compact_holder_t *holder = (list_view_demo_compact_holder_t *)egui_malloc(sizeof(list_view_demo_compact_holder_t));
+        list_view_demo_compact_holder_t *holder = (list_view_demo_compact_holder_t *)egui_malloc(s_core, sizeof(list_view_demo_compact_holder_t));
 
         if (holder == NULL)
         {
@@ -518,9 +519,9 @@ static egui_view_list_view_holder_t *list_view_demo_create_holder(void *data_mod
         }
 
         memset(holder, 0, sizeof(*holder));
-        egui_view_group_init(EGUI_VIEW_OF(&holder->root));
+        egui_view_group_init(EGUI_VIEW_OF(&holder->root), s_core);
 
-        egui_view_card_init(EGUI_VIEW_OF(&holder->card));
+        egui_view_card_init(EGUI_VIEW_OF(&holder->card), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&holder->card), 4, 4);
         egui_view_group_add_child(EGUI_VIEW_OF(&holder->root), EGUI_VIEW_OF(&holder->card));
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&holder->card), list_view_demo_row_click_cb);
@@ -534,11 +535,11 @@ static egui_view_list_view_holder_t *list_view_demo_create_holder(void *data_mod
         list_view_demo_init_label(&holder->meta, 12, 44, 170, 12, LIST_VIEW_DEMO_FONT_BODY, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x6A7B89));
         egui_view_card_add_child(EGUI_VIEW_OF(&holder->card), EGUI_VIEW_OF(&holder->meta));
 
-        egui_view_progress_bar_init(EGUI_VIEW_OF(&holder->progress_bar));
+        egui_view_progress_bar_init(EGUI_VIEW_OF(&holder->progress_bar), s_core);
         holder->progress_bar.is_show_control = 0;
         egui_view_card_add_child(EGUI_VIEW_OF(&holder->card), EGUI_VIEW_OF(&holder->progress_bar));
 
-        egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&holder->arm_toggle), &list_view_demo_toggle_params);
+        egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&holder->arm_toggle), s_core, &list_view_demo_toggle_params);
         egui_view_toggle_button_set_icon(EGUI_VIEW_OF(&holder->arm_toggle), EGUI_ICON_MS_VISIBILITY);
         egui_view_toggle_button_set_icon_font(EGUI_VIEW_OF(&holder->arm_toggle), EGUI_FONT_ICON_MS_16);
         egui_view_toggle_button_set_icon_text_gap(EGUI_VIEW_OF(&holder->arm_toggle), 4);
@@ -563,7 +564,7 @@ static void list_view_demo_destroy_holder(void *data_model_context, egui_view_li
 {
     EGUI_UNUSED(data_model_context);
     EGUI_UNUSED(view_type);
-    egui_free(holder);
+    egui_free(s_core, holder);
 }
 
 static void list_view_demo_bind_hero_holder(list_view_demo_hero_holder_t *holder, const list_view_demo_item_t *item, uint32_t index, uint8_t selected)
@@ -1284,7 +1285,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 }
 #endif
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     uint8_t action_index;
     const egui_view_list_view_setup_t setup = {
@@ -1302,11 +1303,13 @@ void test_init_ui(void)
     runtime_fail_reported = 0U;
 #endif
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
+    s_core = core;
+
+    egui_view_init(EGUI_VIEW_OF(&background_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&list_view_demo_screen_bg));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), &list_view_demo_header_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &list_view_demo_header_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&header_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&header_card), 1, EGUI_COLOR_HEX(0xD1DEE7));
 
@@ -1322,7 +1325,7 @@ void test_init_ui(void)
                               EGUI_COLOR_HEX(0x6B7C8A));
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_hint));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), &list_view_demo_toolbar_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &list_view_demo_toolbar_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&toolbar_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&toolbar_card), 1, EGUI_COLOR_HEX(0xD1DEE7));
 
@@ -1333,7 +1336,7 @@ void test_init_ui(void)
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[action_index]));
     }
 
-    egui_view_list_view_init_with_setup(EGUI_VIEW_OF(&list_view), &setup);
+    egui_view_list_view_init_with_setup(EGUI_VIEW_OF(&list_view), core, &setup);
     egui_view_set_background(EGUI_VIEW_OF(&list_view), EGUI_BG_OF(&list_view_demo_list_bg));
 
     list_view_demo_refresh_header();

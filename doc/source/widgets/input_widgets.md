@@ -16,7 +16,7 @@
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_switch_init(self)` | 初始化 Switch |
+| `egui_view_switch_init(self, core)` | 初始化 Switch |
 | `egui_view_switch_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_switch_set_checked(self, is_checked)` | 设置开关状态 |
 | `egui_view_switch_set_on_checked_listener(self, listener)` | 设置状态变化回调 |
@@ -45,12 +45,12 @@ static void on_checked(egui_view_t *self, int is_checked)
     EGUI_LOG_INF("Switch checked: %d\n", is_checked);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_switch_init_with_params(EGUI_VIEW_OF(&sw), &sw_params);
     egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(&sw), on_checked);
     egui_view_set_margin_all(EGUI_VIEW_OF(&sw), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&sw));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&sw));
 }
 ```
 
@@ -68,7 +68,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_checkbox_init(self)` | 初始化 Checkbox |
+| `egui_view_checkbox_init(self, core)` | 初始化 Checkbox |
 | `egui_view_checkbox_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_checkbox_set_checked(self, is_checked)` | 设置选中状态 |
 | `egui_view_checkbox_set_on_checked_listener(self, listener)` | 设置状态变化回调 |
@@ -98,12 +98,12 @@ static void on_checked(egui_view_t *self, int is_checked)
     EGUI_LOG_INF("Checkbox checked: %d\n", is_checked);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_checkbox_init_with_params(EGUI_VIEW_OF(&checkbox), &cb_params);
     egui_view_checkbox_set_on_checked_listener(EGUI_VIEW_OF(&checkbox), on_checked);
     egui_view_set_margin_all(EGUI_VIEW_OF(&checkbox), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&checkbox));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&checkbox));
 }
 ```
 
@@ -123,7 +123,7 @@ RadioButton API:
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_radio_button_init(self)` | 初始化 RadioButton |
+| `egui_view_radio_button_init(self, core)` | 初始化 RadioButton |
 | `egui_view_radio_button_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_radio_button_set_checked(self, is_checked)` | 设置选中状态 |
 | `egui_view_radio_button_set_text(self, text)` | 设置文本标签 |
@@ -169,7 +169,7 @@ static void on_changed(egui_view_t *self, int index)
     EGUI_LOG_INF("Radio selected index: %d\n", index);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_radio_group_init(&group);
     egui_view_radio_group_set_on_changed_listener(&group, on_changed);
@@ -180,9 +180,9 @@ void init_ui(void)
     egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_b), &rb_params);
     egui_view_radio_group_add(&group, EGUI_VIEW_OF(&radio_b));
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&radio_a));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&radio_b));
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&radio_a));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&radio_b));
+    egui_core_layout_childs_user_root_view(core, EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 }
 ```
 
@@ -200,7 +200,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_toggle_button_init(self)` | 初始化 ToggleButton |
+| `egui_view_toggle_button_init(self, core)` | 初始化 ToggleButton |
 | `egui_view_toggle_button_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_toggle_button_set_toggled(self, is_toggled)` | 设置切换状态 |
 | `egui_view_toggle_button_is_toggled(self)` | 获取当前切换状态 |
@@ -231,11 +231,11 @@ static void on_toggled(egui_view_t *self, uint8_t is_toggled)
     EGUI_LOG_INF("Toggle toggled: %d\n", is_toggled);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&toggle), &toggle_params);
     egui_view_toggle_button_set_on_toggled_listener(EGUI_VIEW_OF(&toggle), on_toggled);
     egui_view_set_margin_all(EGUI_VIEW_OF(&toggle), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&toggle));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&toggle));
 }
 ```

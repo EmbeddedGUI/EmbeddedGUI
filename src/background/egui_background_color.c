@@ -7,7 +7,7 @@
 #include "core/egui_api.h"
 #include "core/egui_canvas.h"
 
-void egui_background_color_on_draw(egui_background_t *self, egui_region_t *region, const void *param)
+void egui_background_color_on_draw(egui_background_t *self, egui_canvas_t *canvas, egui_region_t *region, const void *param)
 {
     EGUI_LOCAL_INIT(egui_background_color_t);
     const egui_background_color_param_t *color_param = param;
@@ -17,34 +17,35 @@ void egui_background_color_on_draw(egui_background_t *self, egui_region_t *regio
     case EGUI_BACKGROUND_COLOR_TYPE_SOLID:
         if (color_param->stroke_width == 0)
         {
-            egui_canvas_draw_rectangle_fill(0, 0, region->size.width, region->size.height, color_param->color, color_param->alpha);
+            egui_canvas_draw_rectangle_fill(canvas, 0, 0, region->size.width, region->size.height, color_param->color, color_param->alpha);
         }
         else
         {
             if (color_param->alpha != EGUI_ALPHA_0)
             {
-                egui_canvas_draw_rectangle_fill(color_param->stroke_width / 2, color_param->stroke_width / 2, region->size.width - color_param->stroke_width,
-                                                region->size.height - color_param->stroke_width, color_param->color, color_param->alpha);
+                egui_canvas_draw_rectangle_fill(canvas, color_param->stroke_width / 2, color_param->stroke_width / 2,
+                                                region->size.width - color_param->stroke_width, region->size.height - color_param->stroke_width,
+                                                color_param->color, color_param->alpha);
             }
-            egui_canvas_draw_rectangle(0, 0, region->size.width, region->size.height, color_param->stroke_width, color_param->stroke_color,
+            egui_canvas_draw_rectangle(canvas, 0, 0, region->size.width, region->size.height, color_param->stroke_width, color_param->stroke_color,
                                        color_param->stroke_alpha);
         }
         break;
     case EGUI_BACKGROUND_COLOR_TYPE_ROUND_RECTANGLE:
         if (color_param->stroke_width == 0)
         {
-            egui_canvas_draw_round_rectangle_fill(0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle.radius, color_param->color,
-                                                  color_param->alpha);
+            egui_canvas_draw_round_rectangle_fill(canvas, 0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle.radius,
+                                                  color_param->color, color_param->alpha);
         }
         else
         {
             if (color_param->alpha != EGUI_ALPHA_0)
             {
-                egui_canvas_draw_round_rectangle_fill(color_param->stroke_width / 2, color_param->stroke_width / 2,
+                egui_canvas_draw_round_rectangle_fill(canvas, color_param->stroke_width / 2, color_param->stroke_width / 2,
                                                       region->size.width - color_param->stroke_width, region->size.height - color_param->stroke_width,
                                                       color_param->shape.round_rectangle.radius, color_param->color, color_param->alpha);
             }
-            egui_canvas_draw_round_rectangle(0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle.radius,
+            egui_canvas_draw_round_rectangle(canvas, 0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle.radius,
                                              color_param->stroke_width, color_param->stroke_color, color_param->stroke_alpha);
         }
         break;
@@ -52,7 +53,7 @@ void egui_background_color_on_draw(egui_background_t *self, egui_region_t *regio
         if (color_param->stroke_width == 0)
         {
             egui_canvas_draw_round_rectangle_corners_fill(
-                    0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle_corners.radius_left_top,
+                    canvas, 0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle_corners.radius_left_top,
                     color_param->shape.round_rectangle_corners.radius_left_bottom, color_param->shape.round_rectangle_corners.radius_right_top,
                     color_param->shape.round_rectangle_corners.radius_right_bottom, color_param->color, color_param->alpha);
         }
@@ -60,7 +61,7 @@ void egui_background_color_on_draw(egui_background_t *self, egui_region_t *regio
         {
             if (color_param->alpha != EGUI_ALPHA_0)
             {
-                egui_canvas_draw_round_rectangle_corners_fill(color_param->stroke_width / 2, color_param->stroke_width / 2,
+                egui_canvas_draw_round_rectangle_corners_fill(canvas, color_param->stroke_width / 2, color_param->stroke_width / 2,
                                                               region->size.width - color_param->stroke_width, region->size.height - color_param->stroke_width,
                                                               color_param->shape.round_rectangle_corners.radius_left_top - color_param->stroke_width / 2,
                                                               color_param->shape.round_rectangle_corners.radius_left_bottom - color_param->stroke_width / 2,
@@ -68,27 +69,27 @@ void egui_background_color_on_draw(egui_background_t *self, egui_region_t *regio
                                                               color_param->shape.round_rectangle_corners.radius_right_bottom - color_param->stroke_width / 2,
                                                               color_param->color, color_param->alpha);
             }
-            egui_canvas_draw_round_rectangle_corners(0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle_corners.radius_left_top,
-                                                     color_param->shape.round_rectangle_corners.radius_left_bottom,
-                                                     color_param->shape.round_rectangle_corners.radius_right_top,
-                                                     color_param->shape.round_rectangle_corners.radius_right_bottom, color_param->stroke_width,
-                                                     color_param->stroke_color, color_param->stroke_alpha);
+            egui_canvas_draw_round_rectangle_corners(
+                    canvas, 0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle_corners.radius_left_top,
+                    color_param->shape.round_rectangle_corners.radius_left_bottom, color_param->shape.round_rectangle_corners.radius_right_top,
+                    color_param->shape.round_rectangle_corners.radius_right_bottom, color_param->stroke_width, color_param->stroke_color,
+                    color_param->stroke_alpha);
         }
         break;
     case EGUI_BACKGROUND_COLOR_TYPE_CIRCLE:
         if (color_param->stroke_width == 0)
         {
-            egui_canvas_draw_circle_fill((region->size.width >> 1), (region->size.height >> 1), color_param->shape.circle.radius, color_param->color,
+            egui_canvas_draw_circle_fill(canvas, (region->size.width >> 1), (region->size.height >> 1), color_param->shape.circle.radius, color_param->color,
                                          color_param->alpha);
         }
         else
         {
             if (color_param->alpha != EGUI_ALPHA_0)
             {
-                egui_canvas_draw_circle_fill((region->size.width >> 1), (region->size.height >> 1),
+                egui_canvas_draw_circle_fill(canvas, (region->size.width >> 1), (region->size.height >> 1),
                                              color_param->shape.circle.radius - color_param->stroke_width / 2, color_param->color, color_param->alpha);
             }
-            egui_canvas_draw_circle((region->size.width >> 1), (region->size.height >> 1), color_param->shape.circle.radius, color_param->stroke_width,
+            egui_canvas_draw_circle(canvas, (region->size.width >> 1), (region->size.height >> 1), color_param->shape.circle.radius, color_param->stroke_width,
                                     color_param->stroke_color, color_param->stroke_alpha);
         }
         break;

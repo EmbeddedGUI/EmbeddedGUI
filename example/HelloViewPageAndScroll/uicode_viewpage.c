@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <math.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "uicode_viewpage.h"
 #include "uicode_scroll.h"
 
@@ -58,23 +58,23 @@ EGUI_VIEW_LABEL_PARAMS_INIT(viewpage_label_3_params, 0, 0, EGUI_CONFIG_SCEEN_WID
 EGUI_VIEW_LABEL_PARAMS_INIT(viewpage_button_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, TEST_ITEM_HEIGHT, NULL, EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_BLACK,
                             EGUI_ALPHA_100);
 
-egui_view_t *uicode_init_ui_viewpage(void)
+egui_view_t *uicode_disp0_init_viewpage(egui_core_t *core)
 {
     // Init all views
     // test_view
-    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&test_viewpage_view), &test_viewpage_view_params);
+    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&test_viewpage_view), core, &test_viewpage_view_params);
 
     // label_1
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), &viewpage_label_1_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), core, &viewpage_label_1_params);
 
     // label_2
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_2), &viewpage_label_2_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_2), core, &viewpage_label_2_params);
 
     // label_3
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_3), &viewpage_label_3_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_3), core, &viewpage_label_3_params);
 
     // button_1
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), &viewpage_button_1_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), core, &viewpage_button_1_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_1), button_str);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_1), button_click_cb);
 
@@ -95,7 +95,7 @@ egui_view_t *uicode_init_ui_viewpage(void)
     egui_view_set_background(EGUI_VIEW_OF(&button_1), EGUI_BG_OF(&bg_button));
 
     // Add To Scroll View
-    egui_view_viewpage_add_child(EGUI_VIEW_OF(&test_viewpage_view), uicode_init_ui_scroll());
+    egui_view_viewpage_add_child(EGUI_VIEW_OF(&test_viewpage_view), uicode_disp0_init_scroll(core));
     egui_view_viewpage_add_child(EGUI_VIEW_OF(&test_viewpage_view), EGUI_VIEW_OF(&label_1));
     egui_view_viewpage_add_child(EGUI_VIEW_OF(&test_viewpage_view), EGUI_VIEW_OF(&label_2));
     egui_view_viewpage_add_child(EGUI_VIEW_OF(&test_viewpage_view), EGUI_VIEW_OF(&label_3));

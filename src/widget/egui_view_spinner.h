@@ -32,13 +32,13 @@ struct egui_view_spinner_params
 #define EGUI_VIEW_SPINNER_PARAMS_INIT(_name, _x, _y, _w, _h) static const egui_view_spinner_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 void egui_view_spinner_apply_params(egui_view_t *self, const egui_view_spinner_params_t *params);
-void egui_view_spinner_init_with_params(egui_view_t *self, const egui_view_spinner_params_t *params);
+void egui_view_spinner_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_spinner_params_t *params);
 
 void egui_view_spinner_start(egui_view_t *self);
 void egui_view_spinner_stop(egui_view_t *self);
 void egui_view_spinner_set_color(egui_view_t *self, egui_color_t color);
 void egui_view_spinner_on_draw(egui_view_t *self);
-void egui_view_spinner_init(egui_view_t *self);
+void egui_view_spinner_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

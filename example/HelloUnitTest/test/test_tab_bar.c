@@ -1,12 +1,21 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_tab_bar.h"
 
 static egui_view_tab_bar_t test_tab_bar;
 static uint8_t g_tab_changed_count;
 static uint8_t g_last_tab_index;
+
+static egui_core_t *test_tab_bar_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static const char *g_tab_texts[] = {"Home", "Logs", "Tools"};
 
@@ -19,7 +28,7 @@ static void on_tab_changed(egui_view_t *self, uint8_t index)
 
 static void setup_tab_bar(void)
 {
-    egui_view_tab_bar_init(EGUI_VIEW_OF(&test_tab_bar));
+    egui_view_tab_bar_init(EGUI_VIEW_OF(&test_tab_bar), test_tab_bar_get_core());
     egui_view_set_size(EGUI_VIEW_OF(&test_tab_bar), 180, 40);
     egui_view_tab_bar_set_tabs(EGUI_VIEW_OF(&test_tab_bar), g_tab_texts, 3);
     egui_view_tab_bar_set_on_tab_changed_listener(EGUI_VIEW_OF(&test_tab_bar), on_tab_changed);

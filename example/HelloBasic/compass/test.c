@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 2 compasses
 static egui_view_compass_t compass_1;
@@ -15,14 +15,14 @@ EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 240, 300, 2, EGUI_ALIGN_HCEN
 EGUI_VIEW_COMPASS_PARAMS_INIT(compass_1_params, 0, 0, 116, 116, 0);
 EGUI_VIEW_COMPASS_PARAMS_INIT(compass_2_params, 0, 0, 92, 92, 135);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init compasses
-    egui_view_compass_init_with_params(EGUI_VIEW_OF(&compass_1), &compass_1_params);
-    egui_view_compass_init_with_params(EGUI_VIEW_OF(&compass_2), &compass_2_params);
+    egui_view_compass_init_with_params(EGUI_VIEW_OF(&compass_1), core, &compass_1_params);
+    egui_view_compass_init_with_params(EGUI_VIEW_OF(&compass_2), core, &compass_2_params);
     egui_view_compass_set_show_degree(EGUI_VIEW_OF(&compass_2), 1);
 
     // Set margins
@@ -40,7 +40,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

@@ -1,4 +1,5 @@
-#include "egui_view_circular_progress_bar.h"
+﻿#include "egui_view_circular_progress_bar.h"
+#include "core/egui_core.h"
 #include "core/egui_common.h"
 #include "resource/egui_resource.h"
 #include "egui_view_circle_dirty.h"
@@ -10,8 +11,8 @@
 
 typedef uint8_t (*egui_view_circular_progress_bar_get_text_region_fn)(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
                                                                       egui_dim_t inner_r, uint8_t process, egui_region_t *text_region);
-typedef void (*egui_view_circular_progress_bar_draw_text_fn)(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
-                                                             egui_dim_t inner_r);
+typedef void (*egui_view_circular_progress_bar_draw_text_fn)(egui_canvas_t *canvas, egui_view_circular_progress_bar_t *local, egui_dim_t center_x,
+                                                             egui_dim_t center_y, egui_dim_t inner_r);
 
 struct egui_view_circular_progress_bar_text_ops
 {
@@ -143,14 +144,14 @@ static uint8_t egui_view_circular_progress_bar_get_text_region_rich(egui_view_ci
     return egui_region_is_empty(text_region) ? 0 : 1;
 }
 
-static void egui_view_circular_progress_bar_draw_text_basic(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
-                                                            egui_dim_t inner_r)
+static void egui_view_circular_progress_bar_draw_text_basic(egui_canvas_t *canvas, egui_view_circular_progress_bar_t *local, egui_dim_t center_x,
+                                                            egui_dim_t center_y, egui_dim_t inner_r)
 {
-    egui_view_ring_text_draw_basic(center_x, center_y, inner_r, 0, 1, local->process, 1, local->text_color, EGUI_ALPHA_100);
+    egui_view_ring_text_draw_basic(canvas, center_x, center_y, inner_r, 0, 1, local->process, 1, local->text_color, EGUI_ALPHA_100);
 }
 
-static void egui_view_circular_progress_bar_draw_text_rich(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
-                                                           egui_dim_t inner_r)
+static void egui_view_circular_progress_bar_draw_text_rich(egui_canvas_t *canvas, egui_view_circular_progress_bar_t *local, egui_dim_t center_x,
+                                                           egui_dim_t center_y, egui_dim_t inner_r)
 {
     char val_buf[8];
     egui_region_t text_rect;
@@ -159,7 +160,7 @@ static void egui_view_circular_progress_bar_draw_text_rich(egui_view_circular_pr
     egui_view_ring_text_format_value(local->process, 1, val_buf, sizeof(val_buf));
     if (text_font != NULL && egui_view_circular_progress_bar_get_text_box_rich(local, center_x, center_y, inner_r, val_buf, &text_rect))
     {
-        egui_canvas_draw_text_in_rect(text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
     }
 }
 
@@ -330,6 +331,7 @@ void egui_view_circular_progress_bar_set_font(egui_view_t *self, const egui_font
 void egui_view_circular_progress_bar_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -362,10 +364,10 @@ void egui_view_circular_progress_bar_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = bg_stops,
         };
-        egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, 0, 360, &bg_grad);
+        egui_canvas_draw_arc_ring_fill_gradient(canvas, center_x, center_y, radius, inner_r, 0, 360, &bg_grad);
     }
 #else
-    egui_canvas_draw_arc(center_x, center_y, radius, 0, 360, local->stroke_width, local->bk_color, EGUI_ALPHA_100);
+    egui_canvas_draw_arc(canvas, center_x, center_y, radius, 0, 360, local->stroke_width, local->bk_color, EGUI_ALPHA_100);
 #endif
 
     // Draw progress arc
@@ -385,17 +387,18 @@ void egui_view_circular_progress_bar_on_draw(egui_view_t *self)
                     .alpha = EGUI_ALPHA_100,
                     .stops = stops,
             };
-            egui_canvas_draw_arc_ring_fill_gradient_round_cap(center_x, center_y, radius, inner_r, local->start_angle, end_angle, &grad, EGUI_ARC_CAP_BOTH);
+            egui_canvas_draw_arc_ring_fill_gradient_round_cap(canvas, center_x, center_y, radius, inner_r, local->start_angle, end_angle, &grad,
+                                                              EGUI_ARC_CAP_BOTH);
         }
 #else
-        egui_canvas_draw_arc(center_x, center_y, radius, local->start_angle, end_angle, local->stroke_width, local->progress_color, EGUI_ALPHA_100);
+        egui_canvas_draw_arc(canvas, center_x, center_y, radius, local->start_angle, end_angle, local->stroke_width, local->progress_color, EGUI_ALPHA_100);
 #endif
     }
 
-    // Center percentage text — auto-select font by inner_r
+    // Center percentage text 鈥?auto-select font by inner_r
     if (local->text_ops != NULL)
     {
-        local->text_ops->draw_text(local, center_x, center_y, inner_r);
+        local->text_ops->draw_text(canvas, local, center_x, center_y, inner_r);
     }
 }
 
@@ -416,11 +419,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_circular_progress_bar_t
 #endif
 };
 
-void egui_view_circular_progress_bar_init(egui_view_t *self)
+void egui_view_circular_progress_bar_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_circular_progress_bar_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_circular_progress_bar_t);
 
@@ -449,8 +452,8 @@ void egui_view_circular_progress_bar_apply_params(egui_view_t *self, const egui_
     egui_view_invalidate(self);
 }
 
-void egui_view_circular_progress_bar_init_with_params(egui_view_t *self, const egui_view_circular_progress_bar_params_t *params)
+void egui_view_circular_progress_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_circular_progress_bar_params_t *params)
 {
-    egui_view_circular_progress_bar_init(self);
+    egui_view_circular_progress_bar_init(self, core);
     egui_view_circular_progress_bar_apply_params(self, params);
 }

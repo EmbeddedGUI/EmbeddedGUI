@@ -37,7 +37,7 @@ struct egui_view_linearlayout_params
     static const egui_view_linearlayout_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .align_type = (_align), .is_orientation_horizontal = 1}
 
 void egui_view_linearlayout_apply_params(egui_view_t *self, const egui_view_linearlayout_params_t *params);
-void egui_view_linearlayout_init_with_params(egui_view_t *self, const egui_view_linearlayout_params_t *params);
+void egui_view_linearlayout_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_linearlayout_params_t *params);
 
 void egui_view_linearlayout_set_align_type(egui_view_t *self, uint8_t align_type);
 void egui_view_linearlayout_set_auto_width(egui_view_t *self, uint8_t is_auto_width);
@@ -48,7 +48,7 @@ uint8_t egui_view_linearlayout_is_auto_width(egui_view_t *self);
 uint8_t egui_view_linearlayout_is_auto_height(egui_view_t *self);
 uint8_t egui_view_linearlayout_is_orientation_horizontal(egui_view_t *self);
 void egui_view_linearlayout_layout_childs(egui_view_t *self);
-void egui_view_linearlayout_init(egui_view_t *self);
+void egui_view_linearlayout_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -25,29 +25,31 @@ static int egui_image_default_get_point_resize(const egui_image_t *self, egui_di
     return 0;
 }
 
-static void egui_image_default_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_t y)
+static void egui_image_default_draw_image(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y)
 {
     // implement is sub-class.
 }
 
-static void egui_image_default_draw_image_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+static void egui_image_default_draw_image_resize(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width,
+                                                 egui_dim_t height)
 {
     // implement is sub-class.
 }
 
-static void egui_image_default_draw_image_color(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
+static void egui_image_default_draw_image_color(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                                                egui_alpha_t alpha)
 {
     EGUI_UNUSED(color);
     EGUI_UNUSED(alpha);
-    egui_image_default_draw_image(self, x, y);
+    egui_image_default_draw_image(self, canvas, x, y);
 }
 
-static void egui_image_default_draw_image_resize_color(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
-                                                       egui_color_t color, egui_alpha_t alpha)
+static void egui_image_default_draw_image_resize_color(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width,
+                                                       egui_dim_t height, egui_color_t color, egui_alpha_t alpha)
 {
     EGUI_UNUSED(color);
     EGUI_UNUSED(alpha);
-    egui_image_default_draw_image_resize(self, x, y, width, height);
+    egui_image_default_draw_image_resize(self, canvas, x, y, width, height);
 }
 
 int egui_image_get_size(const egui_image_t *self, egui_dim_t *width, egui_dim_t *height)
@@ -60,27 +62,27 @@ int egui_image_get_size(const egui_image_t *self, egui_dim_t *width, egui_dim_t 
     return self->api->get_size(self, width, height);
 }
 
-void egui_image_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_t y)
+void egui_image_draw_image(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y)
 {
     if (self == NULL || self->api == NULL || self->api->draw_image == NULL)
     {
         return;
     }
 
-    self->api->draw_image(self, x, y);
+    self->api->draw_image(self, canvas, x, y);
 }
 
-void egui_image_draw_image_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+void egui_image_draw_image_resize(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     if (self == NULL || self->api == NULL || self->api->draw_image_resize == NULL)
     {
         return;
     }
 
-    self->api->draw_image_resize(self, x, y, width, height);
+    self->api->draw_image_resize(self, canvas, x, y, width, height);
 }
 
-void egui_image_draw_image_color(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
+void egui_image_draw_image_color(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
     if (self == NULL || self->api == NULL)
     {
@@ -88,15 +90,15 @@ void egui_image_draw_image_color(const egui_image_t *self, egui_dim_t x, egui_di
     }
     if (self->api->draw_image_color != NULL)
     {
-        self->api->draw_image_color(self, x, y, color, alpha);
+        self->api->draw_image_color(self, canvas, x, y, color, alpha);
         return;
     }
 
-    egui_image_draw_image(self, x, y);
+    egui_image_draw_image(self, canvas, x, y);
 }
 
-void egui_image_draw_image_resize_color(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
-                                        egui_alpha_t alpha)
+void egui_image_draw_image_resize_color(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
+                                        egui_color_t color, egui_alpha_t alpha)
 {
     if (self == NULL || self->api == NULL)
     {
@@ -104,11 +106,11 @@ void egui_image_draw_image_resize_color(const egui_image_t *self, egui_dim_t x, 
     }
     if (self->api->draw_image_resize_color != NULL)
     {
-        self->api->draw_image_resize_color(self, x, y, width, height, color, alpha);
+        self->api->draw_image_resize_color(self, canvas, x, y, width, height, color, alpha);
         return;
     }
 
-    egui_image_draw_image_resize(self, x, y, width, height);
+    egui_image_draw_image_resize(self, canvas, x, y, width, height);
 }
 
 const egui_image_api_t egui_image_t_api_table = {

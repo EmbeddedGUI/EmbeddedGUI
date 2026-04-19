@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_segmented_control_t segmented_primary;
 static egui_view_segmented_control_t segmented_compact;
@@ -109,15 +109,15 @@ static void get_segment_center(egui_view_t *view, uint8_t count, uint8_t index, 
 }
 #endif
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
 
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
-    egui_view_segmented_control_init_with_params(EGUI_VIEW_OF(&segmented_primary), &segmented_primary_params);
+    egui_view_segmented_control_init_with_params(EGUI_VIEW_OF(&segmented_primary), core, &segmented_primary_params);
     egui_view_segmented_control_set_on_segment_changed_listener(EGUI_VIEW_OF(&segmented_primary), on_segment_changed);
     egui_view_segmented_control_set_current_index(EGUI_VIEW_OF(&segmented_primary), 1);
     egui_view_segmented_control_set_corner_radius(EGUI_VIEW_OF(&segmented_primary), 12);
@@ -130,7 +130,7 @@ void test_init_ui(void)
     egui_view_segmented_control_set_icon_font(EGUI_VIEW_OF(&segmented_primary), EGUI_FONT_ICON_MS_24);
     egui_view_segmented_control_set_icon_text_gap(EGUI_VIEW_OF(&segmented_primary), 1);
 
-    egui_view_segmented_control_init_with_params(EGUI_VIEW_OF(&segmented_compact), &segmented_compact_params);
+    egui_view_segmented_control_init_with_params(EGUI_VIEW_OF(&segmented_compact), core, &segmented_compact_params);
     egui_view_segmented_control_set_on_segment_changed_listener(EGUI_VIEW_OF(&segmented_compact), on_segment_changed);
     egui_view_segmented_control_set_current_index(EGUI_VIEW_OF(&segmented_compact), 0);
     egui_view_segmented_control_set_corner_radius(EGUI_VIEW_OF(&segmented_compact), 8);
@@ -145,7 +145,7 @@ void test_init_ui(void)
     egui_view_segmented_control_set_icon_font(EGUI_VIEW_OF(&segmented_compact), EGUI_FONT_ICON_MS_24);
     egui_view_segmented_control_set_icon_text_gap(EGUI_VIEW_OF(&segmented_compact), 1);
 
-    egui_view_segmented_control_init_with_params(EGUI_VIEW_OF(&segmented_disabled), &segmented_disabled_params);
+    egui_view_segmented_control_init_with_params(EGUI_VIEW_OF(&segmented_disabled), core, &segmented_disabled_params);
     egui_view_segmented_control_set_on_segment_changed_listener(EGUI_VIEW_OF(&segmented_disabled), on_segment_changed);
     egui_view_segmented_control_set_current_index(EGUI_VIEW_OF(&segmented_disabled), 3);
     egui_view_segmented_control_set_corner_radius(EGUI_VIEW_OF(&segmented_disabled), 10);
@@ -172,7 +172,7 @@ void test_init_ui(void)
     egui_view_gridlayout_layout_childs(EGUI_VIEW_OF(&grid));
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

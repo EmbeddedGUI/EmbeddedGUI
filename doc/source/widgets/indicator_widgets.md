@@ -16,7 +16,7 @@
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_gauge_init(self)` | 初始化仪表盘 |
+| `egui_view_gauge_init(self, core)` | 初始化仪表盘 |
 | `egui_view_gauge_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_gauge_set_value(self, value)` | 设置数值(0-100) |
 
@@ -45,10 +45,10 @@ static egui_view_gauge_t gauge;
 
 EGUI_VIEW_GAUGE_PARAMS_INIT(gauge_params, 10, 10, 100, 100, 75);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_gauge_init_with_params(EGUI_VIEW_OF(&gauge), &gauge_params);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&gauge));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&gauge));
 }
 
 void update_gauge(uint8_t val)
@@ -71,7 +71,7 @@ void update_gauge(uint8_t val)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_scale_init(self)` | 初始化刻度尺 |
+| `egui_view_scale_init(self, core)` | 初始化刻度尺 |
 | `egui_view_scale_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_scale_set_range(self, min, max)` | 设置量程范围 |
 | `egui_view_scale_set_value(self, value)` | 设置当前值 |
@@ -97,7 +97,7 @@ static egui_view_scale_t scale;
 
 EGUI_VIEW_SCALE_PARAMS_INIT(scale_params, 10, 10, 200, 40, 0, 100, 5);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_scale_init_with_params(EGUI_VIEW_OF(&scale), &scale_params);
     egui_view_scale_set_ticks(EGUI_VIEW_OF(&scale), 5, 4);
@@ -105,7 +105,7 @@ void init_ui(void)
     egui_view_scale_show_labels(EGUI_VIEW_OF(&scale), 1);
     egui_view_scale_show_indicator(EGUI_VIEW_OF(&scale), 1);
     egui_view_scale_set_value(EGUI_VIEW_OF(&scale), 60);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&scale));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&scale));
 }
 ```
 
@@ -123,7 +123,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_compass_init(self)` | 初始化指南针 |
+| `egui_view_compass_init(self, core)` | 初始化指南针 |
 | `egui_view_compass_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_compass_set_heading(self, heading)` | 设置方位角(0-359) |
 | `egui_view_compass_set_show_degree(self, show)` | 设置是否显示角度文字 |
@@ -153,11 +153,11 @@ static egui_view_compass_t compass;
 
 EGUI_VIEW_COMPASS_PARAMS_INIT(compass_params, 10, 10, 100, 100, 0);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_compass_init_with_params(EGUI_VIEW_OF(&compass), &compass_params);
     egui_view_compass_set_show_degree(EGUI_VIEW_OF(&compass), 1);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&compass));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&compass));
 }
 
 void update_heading(int16_t deg)
@@ -180,7 +180,7 @@ void update_heading(int16_t deg)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_heart_rate_init(self)` | 初始化心率控件 |
+| `egui_view_heart_rate_init(self, core)` | 初始化心率控件 |
 | `egui_view_heart_rate_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_heart_rate_set_bpm(self, bpm)` | 设置心率值 |
 | `egui_view_heart_rate_set_animate(self, enable)` | 启用/禁用脉搏动画 |
@@ -200,11 +200,11 @@ static egui_view_heart_rate_t hr;
 
 EGUI_VIEW_HEART_RATE_PARAMS_INIT(hr_params, 10, 10, 80, 80, 72);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_heart_rate_init_with_params(EGUI_VIEW_OF(&hr), &hr_params);
     egui_view_heart_rate_set_animate(EGUI_VIEW_OF(&hr), 1);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&hr));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&hr));
 }
 
 void update_bpm(uint8_t bpm)
@@ -227,7 +227,7 @@ LED 指示灯控件，显示圆形灯珠，支持开/关状态切换和闪烁效
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_led_init(self)` | 初始化 LED |
+| `egui_view_led_init(self, core)` | 初始化 LED |
 | `egui_view_led_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_led_set_on(self)` | 点亮 LED |
 | `egui_view_led_set_off(self)` | 熄灭 LED |
@@ -263,7 +263,7 @@ static egui_view_led_t led_red;
 EGUI_VIEW_LED_PARAMS_INIT(led_g_params, 10, 10, 20, 20, 1);
 EGUI_VIEW_LED_PARAMS_INIT(led_r_params, 40, 10, 20, 20, 0);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_led_init_with_params(EGUI_VIEW_OF(&led_green), &led_g_params);
     egui_view_led_set_colors(EGUI_VIEW_OF(&led_green), EGUI_COLOR_GREEN, EGUI_COLOR_DARK_GREEN);
@@ -272,7 +272,7 @@ void init_ui(void)
     egui_view_led_set_colors(EGUI_VIEW_OF(&led_red), EGUI_COLOR_RED, EGUI_COLOR_DARK_RED);
     egui_view_led_set_blink(EGUI_VIEW_OF(&led_red), 500);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&led_green));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&led_red));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&led_green));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&led_red));
 }
 ```

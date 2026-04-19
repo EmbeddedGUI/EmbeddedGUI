@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define TEST_ANIMATION_DURATION 1500
 
@@ -93,13 +93,14 @@ static const egui_animation_handle_t anim_handle = {
 #define COL_COUNT 4
 #define COL_WIDTH (EGUI_CONFIG_SCEEN_WIDTH / COL_COUNT)
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // ---- View 1: Translate + Bounce ----
-    egui_view_init(EGUI_VIEW_OF(&view_translate));
+    egui_view_init(EGUI_VIEW_OF(&view_translate), core);
     egui_view_set_position(EGUI_VIEW_OF(&view_translate), COL_WIDTH * 0 + COL_WIDTH / 2 - VIEW1_RADIUS, 0);
     egui_view_set_size(EGUI_VIEW_OF(&view_translate), VIEW1_RADIUS * 2 + 1, VIEW1_RADIUS * 2 + 1);
     egui_view_set_background(EGUI_VIEW_OF(&view_translate), EGUI_BG_OF(&bg_translate));
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&view_translate));
 
     egui_animation_translate_init(EGUI_ANIM_OF(&anim_translate));
     egui_animation_translate_params_set(&anim_translate, &anim_translate_param);
@@ -112,10 +113,11 @@ void test_init_ui(void)
     egui_animation_start(EGUI_ANIM_OF(&anim_translate));
 
     // ---- View 2: Alpha + Linear ----
-    egui_view_init(EGUI_VIEW_OF(&view_alpha));
+    egui_view_init(EGUI_VIEW_OF(&view_alpha), core);
     egui_view_set_position(EGUI_VIEW_OF(&view_alpha), COL_WIDTH * 1 + COL_WIDTH / 2 - VIEW2_SIZE / 2, EGUI_CONFIG_SCEEN_HEIGHT / 2 - VIEW2_SIZE / 2);
     egui_view_set_size(EGUI_VIEW_OF(&view_alpha), VIEW2_SIZE, VIEW2_SIZE);
     egui_view_set_background(EGUI_VIEW_OF(&view_alpha), EGUI_BG_OF(&bg_alpha));
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&view_alpha));
 
     egui_animation_alpha_init(EGUI_ANIM_OF(&anim_alpha));
     egui_animation_alpha_params_set(&anim_alpha, &anim_alpha_param);
@@ -128,10 +130,11 @@ void test_init_ui(void)
     egui_animation_start(EGUI_ANIM_OF(&anim_alpha));
 
     // ---- View 3: Scale + Overshoot ----
-    egui_view_init(EGUI_VIEW_OF(&view_scale));
+    egui_view_init(EGUI_VIEW_OF(&view_scale), core);
     egui_view_set_position(EGUI_VIEW_OF(&view_scale), COL_WIDTH * 2 + COL_WIDTH / 2 - VIEW3_SIZE / 2, EGUI_CONFIG_SCEEN_HEIGHT / 2 - VIEW3_SIZE / 2);
     egui_view_set_size(EGUI_VIEW_OF(&view_scale), VIEW3_SIZE + 1, VIEW3_SIZE + 1);
     egui_view_set_background(EGUI_VIEW_OF(&view_scale), EGUI_BG_OF(&bg_scale));
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&view_scale));
 
     egui_animation_scale_size_init(EGUI_ANIM_OF(&anim_scale));
     egui_animation_scale_size_params_set(&anim_scale, &anim_scale_param);
@@ -144,10 +147,11 @@ void test_init_ui(void)
     egui_animation_start(EGUI_ANIM_OF(&anim_scale));
 
     // ---- View 4: AnimationSet (translate + alpha) + AccelerateDecelerate ----
-    egui_view_init(EGUI_VIEW_OF(&view_set));
+    egui_view_init(EGUI_VIEW_OF(&view_set), core);
     egui_view_set_position(EGUI_VIEW_OF(&view_set), COL_WIDTH * 3 + COL_WIDTH / 2 - VIEW4_SIZE / 2, 0);
     egui_view_set_size(EGUI_VIEW_OF(&view_set), VIEW4_SIZE, VIEW4_SIZE);
     egui_view_set_background(EGUI_VIEW_OF(&view_set), EGUI_BG_OF(&bg_set));
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&view_set));
 
     // Sub-animation: translate
     egui_animation_translate_init(EGUI_ANIM_OF(&anim_set_translate));
@@ -171,12 +175,6 @@ void test_init_ui(void)
     egui_animation_target_view_set(EGUI_ANIM_OF(&anim_set), EGUI_VIEW_OF(&view_set));
     egui_animation_handle_set(EGUI_ANIM_OF(&anim_set), &anim_handle);
     egui_animation_start(EGUI_ANIM_OF(&anim_set));
-
-    // Add all views to root
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&view_translate));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&view_alpha));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&view_scale));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&view_set));
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

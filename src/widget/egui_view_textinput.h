@@ -63,7 +63,7 @@ void egui_view_textinput_set_max_length(egui_view_t *self, uint8_t max_length);
 void egui_view_textinput_set_on_text_changed(egui_view_t *self, egui_view_textinput_on_text_changed_t listener);
 void egui_view_textinput_set_on_submit(egui_view_t *self, egui_view_textinput_on_submit_t listener);
 void egui_view_textinput_on_draw(egui_view_t *self);
-void egui_view_textinput_init(egui_view_t *self);
+void egui_view_textinput_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

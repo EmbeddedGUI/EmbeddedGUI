@@ -41,14 +41,14 @@ struct egui_view_mp4_params
 #define EGUI_VIEW_MP4_PARAMS_INIT(_name, _x, _y, _w, _h) static const egui_view_mp4_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 void egui_view_mp4_apply_params(egui_view_t *self, const egui_view_mp4_params_t *params);
-void egui_view_mp4_init_with_params(egui_view_t *self, const egui_view_mp4_params_t *params);
+void egui_view_mp4_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_mp4_params_t *params);
 
 void egui_view_mp4_set_align_type(egui_view_t *self, uint8_t align_type);
 void egui_view_mp4_set_callback(egui_view_t *self, egui_view_mp4_callback_func callback);
 void egui_view_mp4_set_mp4_image_list(egui_view_t *self, const egui_image_t **mp4_image_list, uint16_t mp4_image_count);
 void egui_view_mp4_start_work(egui_view_t *self, int interval_ms);
 void egui_view_mp4_stop_work(egui_view_t *self);
-void egui_view_mp4_init(egui_view_t *self);
+void egui_view_mp4_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

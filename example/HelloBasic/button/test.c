@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 buttons: XS / S / M / L
 static egui_view_button_t button_xs;
@@ -69,24 +69,24 @@ static void button_click_cb(egui_view_t *self)
     EGUI_LOG_INF("Button clicked\n");
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
     memset(button_click_counts, 0, sizeof(button_click_counts));
 #endif
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init button XS
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_xs), &button_xs_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_xs), core, &button_xs_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_xs), button_str_xs);
     egui_view_button_set_icon(EGUI_VIEW_OF(&button_xs), EGUI_ICON_MS_PLAY_ARROW);
     egui_view_button_set_icon_font(EGUI_VIEW_OF(&button_xs), EGUI_FONT_ICON_MS_16);
     egui_view_button_set_icon_text_gap(EGUI_VIEW_OF(&button_xs), 4);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_xs), button_click_cb);
     // Init button S
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_s), &button_s_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_s), core, &button_s_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_s), button_str_s);
     egui_view_button_set_icon(EGUI_VIEW_OF(&button_s), EGUI_ICON_MS_SYNC);
     egui_view_button_set_icon_font(EGUI_VIEW_OF(&button_s), EGUI_FONT_ICON_MS_16);
@@ -94,7 +94,7 @@ void test_init_ui(void)
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_s), button_click_cb);
 
     // Init button M
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_m), &button_m_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_m), core, &button_m_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_m), button_str_m);
     egui_view_button_set_icon(EGUI_VIEW_OF(&button_m), EGUI_ICON_MS_SEARCH);
     egui_view_button_set_icon_font(EGUI_VIEW_OF(&button_m), EGUI_FONT_ICON_MS_20);
@@ -102,7 +102,7 @@ void test_init_ui(void)
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_m), button_click_cb);
 
     // Init button L
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_l), &button_l_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_l), core, &button_l_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_l), button_str_l);
     egui_view_button_set_icon(EGUI_VIEW_OF(&button_l), EGUI_ICON_MS_SETTINGS);
     egui_view_button_set_icon_font(EGUI_VIEW_OF(&button_l), EGUI_FONT_ICON_MS_20);
@@ -128,7 +128,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

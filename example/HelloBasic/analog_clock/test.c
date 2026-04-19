@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #ifndef EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
 #define EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK 0
@@ -54,7 +54,7 @@ EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 240, 300, 2, EGUI_ALIGN_HCEN
 EGUI_VIEW_ANALOG_CLOCK_PARAMS_INIT(clock_1_params, 0, 0, 110, 110, 10, 10, 30);
 EGUI_VIEW_ANALOG_CLOCK_PARAMS_INIT(clock_2_params, 0, 0, 94, 94, 3, 45, 0);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
     clock_1_hour = 10;
@@ -64,13 +64,13 @@ void test_init_ui(void)
     clock_2_minute = 45;
 #endif
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init clock 1: 10:10:30 with seconds
-    egui_view_analog_clock_init_with_params(EGUI_VIEW_OF(&clock_1), &clock_1_params);
+    egui_view_analog_clock_init_with_params(EGUI_VIEW_OF(&clock_1), core, &clock_1_params);
 
     // Init clock 2: 3:45:00 without seconds
-    egui_view_analog_clock_init_with_params(EGUI_VIEW_OF(&clock_2), &clock_2_params);
+    egui_view_analog_clock_init_with_params(EGUI_VIEW_OF(&clock_2), core, &clock_2_params);
     egui_view_analog_clock_show_second(EGUI_VIEW_OF(&clock_2), 0);
 
     // Set margins
@@ -88,11 +88,11 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 
 #if EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
     egui_timer_init_timer(&dirty_anim_timer, NULL, dirty_anim_timer_callback);
-    egui_timer_start_timer(&dirty_anim_timer, 120, 120);
+    egui_view_start_timer(EGUI_VIEW_OF(&grid), &dirty_anim_timer, 120, 120);
 #endif
 }
 

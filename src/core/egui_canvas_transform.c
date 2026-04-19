@@ -1,16 +1,15 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_canvas.h"
 #include "egui_api.h"
+#include "egui_core.h"
+#include "egui_canvas_transform_cache.h"
 #include "image/egui_image_std.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 #include "egui_trig_lut.h"
-
-/* Quarter sine table in egui_float_t, i = 0..90. */
-static const egui_float_t transform_sin_lut[91] = {EGUI_TRIG_SIN_LUT_VALUES};
 
 static int32_t transform_sin_q15(int32_t deg)
 {
@@ -25,7 +24,7 @@ static int32_t transform_sin_q15(int32_t deg)
     {
         deg = 180 - deg;
     }
-    return egui_trig_float_to_q15(transform_sin_lut[deg]) * sign;
+    return egui_trig_float_to_q15(egui_trig_sin_lut[deg]) * sign;
 }
 
 static int32_t transform_cos_q15(int32_t deg)
@@ -155,8 +154,8 @@ static int transform_measure_text_box(const egui_font_t *font, const void *strin
     return 1;
 }
 
-void egui_canvas_draw_arc_sweep(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle, egui_dim_t stroke_width,
-                                egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_arc_sweep(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle,
+                                egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
     int16_t draw_start;
     int16_t draw_end;
@@ -166,11 +165,11 @@ void egui_canvas_draw_arc_sweep(egui_dim_t center_x, egui_dim_t center_y, egui_d
         return;
     }
 
-    egui_canvas_draw_arc(center_x, center_y, radius, draw_start, draw_end, stroke_width, color, alpha);
+    egui_canvas_draw_arc(self, center_x, center_y, radius, draw_start, draw_end, stroke_width, color, alpha);
 }
 
-void egui_canvas_draw_arc_fill_sweep(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle, egui_color_t color,
-                                     egui_alpha_t alpha)
+void egui_canvas_draw_arc_fill_sweep(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle,
+                                     egui_color_t color, egui_alpha_t alpha)
 {
     int16_t draw_start;
     int16_t draw_end;
@@ -180,11 +179,11 @@ void egui_canvas_draw_arc_fill_sweep(egui_dim_t center_x, egui_dim_t center_y, e
         return;
     }
 
-    egui_canvas_draw_arc_fill(center_x, center_y, radius, draw_start, draw_end, color, alpha);
+    egui_canvas_draw_arc_fill(self, center_x, center_y, radius, draw_start, draw_end, color, alpha);
 }
 
-void egui_canvas_draw_arc_round_cap_sweep_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle,
-                                             egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_arc_round_cap_sweep_hq(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle,
+                                             int16_t sweep_angle, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
     int16_t draw_start;
     int16_t draw_end;
@@ -194,11 +193,11 @@ void egui_canvas_draw_arc_round_cap_sweep_hq(egui_dim_t center_x, egui_dim_t cen
         return;
     }
 
-    egui_canvas_draw_arc_round_cap_hq(center_x, center_y, radius, draw_start, draw_end, stroke_width, color, alpha);
+    egui_canvas_draw_arc_round_cap_hq(self, center_x, center_y, radius, draw_start, draw_end, stroke_width, color, alpha);
 }
 
-static void transform_draw_image_rotate_pivot_impl(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y,
-                                                   int16_t angle_deg, int16_t scale_q8)
+static void transform_draw_image_rotate_pivot_impl(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
+                                                   egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8)
 {
     egui_dim_t image_w;
     egui_dim_t image_h;
@@ -214,7 +213,7 @@ static void transform_draw_image_rotate_pivot_impl(const egui_image_t *img, egui
 
     if (normalized_angle == 0 && final_scale == 256)
     {
-        egui_canvas_draw_image(img, x, y);
+        egui_canvas_draw_image(self, img, x, y);
         return;
     }
 
@@ -224,10 +223,10 @@ static void transform_draw_image_rotate_pivot_impl(const egui_image_t *img, egui
     }
 
     transform_compute_center_from_anchor_pivot(x, y, image_w, image_h, pivot_x, pivot_y, normalized_angle, final_scale, &center_x, &center_y);
-    egui_canvas_draw_image_transform(img, center_x, center_y, normalized_angle, final_scale);
+    egui_canvas_draw_image_transform(self, img, center_x, center_y, normalized_angle, final_scale);
 }
 
-void egui_canvas_draw_image_rotate(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg)
+void egui_canvas_draw_image_rotate(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg)
 {
     egui_dim_t image_w;
     egui_dim_t image_h;
@@ -237,10 +236,10 @@ void egui_canvas_draw_image_rotate(const egui_image_t *img, egui_dim_t x, egui_d
         return;
     }
 
-    transform_draw_image_rotate_pivot_impl(img, x, y, image_w / 2, image_h / 2, angle_deg, 256);
+    transform_draw_image_rotate_pivot_impl(self, img, x, y, image_w / 2, image_h / 2, angle_deg, 256);
 }
 
-void egui_canvas_draw_image_rotate_scale(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
+void egui_canvas_draw_image_rotate_scale(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
 {
     egui_dim_t image_w;
     egui_dim_t image_h;
@@ -250,17 +249,18 @@ void egui_canvas_draw_image_rotate_scale(const egui_image_t *img, egui_dim_t x, 
         return;
     }
 
-    transform_draw_image_rotate_pivot_impl(img, x, y, image_w / 2, image_h / 2, angle_deg, scale_q8);
+    transform_draw_image_rotate_pivot_impl(self, img, x, y, image_w / 2, image_h / 2, angle_deg, scale_q8);
 }
 
-void egui_canvas_draw_image_rotate_pivot(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y, int16_t angle_deg,
-                                         int16_t scale_q8)
+void egui_canvas_draw_image_rotate_pivot(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y,
+                                         int16_t angle_deg, int16_t scale_q8)
 {
-    transform_draw_image_rotate_pivot_impl(img, x, y, pivot_x, pivot_y, angle_deg, scale_q8);
+    transform_draw_image_rotate_pivot_impl(self, img, x, y, pivot_x, pivot_y, angle_deg, scale_q8);
 }
 
-static void transform_draw_text_rotate_pivot_impl(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
-                                                  egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
+static void transform_draw_text_rotate_pivot_impl(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y,
+                                                  egui_dim_t pivot_x, egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color,
+                                                  egui_alpha_t alpha)
 {
     egui_dim_t text_w;
     egui_dim_t text_h;
@@ -276,7 +276,7 @@ static void transform_draw_text_rotate_pivot_impl(const egui_font_t *font, const
 
     if (normalized_angle == 0 && final_scale == 256)
     {
-        egui_canvas_draw_text(font, string, x, y, color, alpha);
+        egui_canvas_draw_text(self, font, string, x, y, color, alpha);
         return;
     }
 
@@ -286,11 +286,11 @@ static void transform_draw_text_rotate_pivot_impl(const egui_font_t *font, const
     }
 
     transform_compute_center_from_anchor_pivot(x, y, text_w, text_h, pivot_x, pivot_y, normalized_angle, final_scale, &center_x, &center_y);
-    egui_canvas_draw_text_transform(font, string, center_x, center_y, normalized_angle, final_scale, color, alpha);
+    egui_canvas_draw_text_transform(self, font, string, center_x, center_y, normalized_angle, final_scale, color, alpha);
 }
 
-void egui_canvas_draw_text_rotate(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, egui_color_t color,
-                                  egui_alpha_t alpha)
+void egui_canvas_draw_text_rotate(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
+                                  egui_color_t color, egui_alpha_t alpha)
 {
     egui_dim_t text_w;
     egui_dim_t text_h;
@@ -300,11 +300,11 @@ void egui_canvas_draw_text_rotate(const egui_font_t *font, const void *string, e
         return;
     }
 
-    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, 256, color, alpha);
+    transform_draw_text_rotate_pivot_impl(self, font, string, x, y, text_w / 2, text_h / 2, angle_deg, 256, color, alpha);
 }
 
-void egui_canvas_draw_text_rotate_scale(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
-                                        egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_text_rotate_scale(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
+                                        int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
     egui_dim_t text_w;
     egui_dim_t text_h;
@@ -314,13 +314,13 @@ void egui_canvas_draw_text_rotate_scale(const egui_font_t *font, const void *str
         return;
     }
 
-    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, scale_q8, color, alpha);
+    transform_draw_text_rotate_pivot_impl(self, font, string, x, y, text_w / 2, text_h / 2, angle_deg, scale_q8, color, alpha);
 }
 
-void egui_canvas_draw_text_rotate_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y,
-                                        int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_text_rotate_pivot(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
+                                        egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
-    transform_draw_text_rotate_pivot_impl(font, string, x, y, pivot_x, pivot_y, angle_deg, scale_q8, color, alpha);
+    transform_draw_text_rotate_pivot_impl(self, font, string, x, y, pivot_x, pivot_y, angle_deg, scale_q8, color, alpha);
 }
 
 /**
@@ -482,38 +482,17 @@ static int image_transform_get_alpha_row_bytes(int16_t w, uint8_t alpha_type)
 typedef struct
 {
     const egui_image_std_info_t *info;
-    const void *src_addr;
-    int32_t chunk_row_start;
-    int32_t chunk_row_count;
-    uint32_t row_bytes;
-    uint32_t rows_per_chunk;
-    uint32_t shared_generation;
-} image_transform_external_data_row_slot_t;
-
-typedef struct
-{
-    const egui_image_std_info_t *info;
-    const void *src_addr;
-    int32_t chunk_row_start;
-    int32_t chunk_row_count;
-    uint32_t row_bytes;
-    uint32_t rows_per_chunk;
-    uint32_t shared_generation;
-} image_transform_external_alpha_row_slot_t;
-
-typedef struct
-{
-    const egui_image_std_info_t *info;
     uint32_t data_row_bytes;
     uint32_t alpha_row_bytes;
 } image_transform_external_source_t;
 
-static image_transform_external_data_row_slot_t g_image_transform_external_data_row_cache = {0};
-static image_transform_external_alpha_row_slot_t g_image_transform_external_alpha_row_cache = {0};
+#define g_image_transform_external_data_row_cache  (core->image.image_transform_external_data_row_cache)
+#define g_image_transform_external_alpha_row_cache (core->image.image_transform_external_alpha_row_cache)
 
-static void image_transform_sync_external_row_cache_generation(uint32_t *shared_generation, int32_t *chunk_row_start, int32_t *chunk_row_count)
+static void image_transform_sync_external_row_cache_generation(egui_core_t *core, uint32_t *shared_generation, int32_t *chunk_row_start,
+                                                               int32_t *chunk_row_count)
 {
-    uint32_t generation = egui_image_std_claim_shared_external_row_cache(EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_TRANSFORM);
+    uint32_t generation = egui_image_std_claim_shared_external_row_cache(core, EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_TRANSFORM);
 
     if (shared_generation != NULL && *shared_generation != generation)
     {
@@ -529,37 +508,39 @@ static void image_transform_sync_external_row_cache_generation(uint32_t *shared_
     }
 }
 
-static uint16_t *image_transform_get_external_data_cache_pixels(image_transform_external_data_row_slot_t *cache)
+static uint16_t *image_transform_get_external_data_cache_pixels(egui_core_t *core, image_transform_external_data_row_slot_t *cache)
 {
     EGUI_UNUSED(cache);
-    return egui_image_std_get_shared_external_data_cache();
+    return egui_image_std_get_shared_external_data_cache(core);
 }
 
-static uint8_t *image_transform_get_external_alpha_cache_bytes(image_transform_external_alpha_row_slot_t *cache)
+static uint8_t *image_transform_get_external_alpha_cache_bytes(egui_core_t *core, image_transform_external_alpha_row_slot_t *cache)
 {
     EGUI_UNUSED(cache);
-    return egui_image_std_get_shared_external_alpha_cache();
+    return egui_image_std_get_shared_external_alpha_cache(core);
 }
 
-static image_transform_external_data_row_slot_t *image_transform_get_external_data_row_cache(const image_transform_external_source_t *source)
+static image_transform_external_data_row_slot_t *image_transform_get_external_data_row_cache(egui_core_t *core, const image_transform_external_source_t *source)
 {
     EGUI_UNUSED(source);
     return &g_image_transform_external_data_row_cache;
 }
 
-static image_transform_external_alpha_row_slot_t *image_transform_get_external_alpha_row_cache(const image_transform_external_source_t *source)
+static image_transform_external_alpha_row_slot_t *image_transform_get_external_alpha_row_cache(egui_core_t *core,
+                                                                                               const image_transform_external_source_t *source)
 {
     EGUI_UNUSED(source);
     return &g_image_transform_external_alpha_row_cache;
 }
 
-static void image_transform_release_external_row_cache(void)
+static void image_transform_release_external_row_cache(egui_core_t *core)
 {
     egui_api_memset(&g_image_transform_external_data_row_cache, 0, sizeof(g_image_transform_external_data_row_cache));
     egui_api_memset(&g_image_transform_external_alpha_row_cache, 0, sizeof(g_image_transform_external_alpha_row_cache));
 }
 
-static int image_transform_prepare_external_source(const egui_image_std_info_t *info, int source_is_opaque, image_transform_external_source_t *source)
+static int image_transform_prepare_external_source(egui_core_t *core, const egui_image_std_info_t *info, int source_is_opaque,
+                                                   image_transform_external_source_t *source)
 {
     if (info == NULL || source == NULL || info->width <= 0 || info->height <= 0)
     {
@@ -574,11 +555,11 @@ static int image_transform_prepare_external_source(const egui_image_std_info_t *
         source->alpha_row_bytes = (uint32_t)image_transform_get_alpha_row_bytes(info->width, info->alpha_type);
     }
 
-    image_transform_external_data_row_slot_t *data_cache = image_transform_get_external_data_row_cache(source);
-    image_transform_external_alpha_row_slot_t *alpha_cache = image_transform_get_external_alpha_row_cache(source);
+    image_transform_external_data_row_slot_t *data_cache = image_transform_get_external_data_row_cache(core, source);
+    image_transform_external_alpha_row_slot_t *alpha_cache = image_transform_get_external_alpha_row_cache(core, source);
 
-    image_transform_sync_external_row_cache_generation(&data_cache->shared_generation, &data_cache->chunk_row_start, &data_cache->chunk_row_count);
-    image_transform_sync_external_row_cache_generation(&alpha_cache->shared_generation, &alpha_cache->chunk_row_start, &alpha_cache->chunk_row_count);
+    image_transform_sync_external_row_cache_generation(core, &data_cache->shared_generation, &data_cache->chunk_row_start, &data_cache->chunk_row_count);
+    image_transform_sync_external_row_cache_generation(core, &alpha_cache->shared_generation, &alpha_cache->chunk_row_start, &alpha_cache->chunk_row_count);
     return 1;
 }
 
@@ -610,9 +591,10 @@ __EGUI_STATIC_INLINE__ int image_transform_external_rows_share_chunk(int32_t row
     return image_transform_align_external_chunk_row(row0, rows_per_chunk) == image_transform_align_external_chunk_row(row1, rows_per_chunk);
 }
 
-static const uint16_t *image_transform_get_external_data_row(const image_transform_external_source_t *source, int32_t row)
+static const uint16_t *image_transform_get_external_data_row(egui_canvas_t *canvas, const image_transform_external_source_t *source, int32_t row)
 {
-    image_transform_external_data_row_slot_t *cache = image_transform_get_external_data_row_cache(source);
+    egui_core_t *core = canvas->core;
+    image_transform_external_data_row_slot_t *cache = image_transform_get_external_data_row_cache(core, source);
     int32_t load_row;
     int32_t rows_to_load;
     uint16_t *pixels;
@@ -623,7 +605,7 @@ static const uint16_t *image_transform_get_external_data_row(const image_transfo
         return NULL;
     }
 
-    pixels = image_transform_get_external_data_cache_pixels(cache);
+    pixels = image_transform_get_external_data_cache_pixels(core, cache);
 
     if (cache->row_bytes != source->data_row_bytes || cache->rows_per_chunk == 0)
     {
@@ -653,7 +635,7 @@ static const uint16_t *image_transform_get_external_data_row(const image_transfo
             rows_to_load = (int32_t)cache->rows_per_chunk;
         }
 
-        egui_api_load_external_resource(pixels, (egui_uintptr_t)source->info->data_buf, (uint32_t)load_row * source->data_row_bytes,
+        egui_api_load_external_resource(canvas, pixels, (egui_uintptr_t)source->info->data_buf, (uint32_t)load_row * source->data_row_bytes,
                                         (uint32_t)rows_to_load * source->data_row_bytes);
         cache->chunk_row_start = load_row;
         cache->chunk_row_count = rows_to_load;
@@ -662,9 +644,10 @@ static const uint16_t *image_transform_get_external_data_row(const image_transfo
     return (const uint16_t *)((const uint8_t *)pixels + (uint32_t)(row - cache->chunk_row_start) * cache->row_bytes);
 }
 
-static const uint8_t *image_transform_get_external_alpha_row(const image_transform_external_source_t *source, int32_t row)
+static const uint8_t *image_transform_get_external_alpha_row(egui_canvas_t *canvas, const image_transform_external_source_t *source, int32_t row)
 {
-    image_transform_external_alpha_row_slot_t *cache = image_transform_get_external_alpha_row_cache(source);
+    egui_core_t *core = canvas->core;
+    image_transform_external_alpha_row_slot_t *cache = image_transform_get_external_alpha_row_cache(core, source);
     int32_t load_row;
     int32_t rows_to_load;
     uint8_t *bytes;
@@ -675,7 +658,7 @@ static const uint8_t *image_transform_get_external_alpha_row(const image_transfo
         return NULL;
     }
 
-    bytes = image_transform_get_external_alpha_cache_bytes(cache);
+    bytes = image_transform_get_external_alpha_cache_bytes(core, cache);
 
     if (cache->row_bytes != source->alpha_row_bytes || cache->rows_per_chunk == 0)
     {
@@ -705,7 +688,7 @@ static const uint8_t *image_transform_get_external_alpha_row(const image_transfo
             rows_to_load = (int32_t)cache->rows_per_chunk;
         }
 
-        egui_api_load_external_resource(bytes, (egui_uintptr_t)source->info->alpha_buf, (uint32_t)load_row * source->alpha_row_bytes,
+        egui_api_load_external_resource(canvas, bytes, (egui_uintptr_t)source->info->alpha_buf, (uint32_t)load_row * source->alpha_row_bytes,
                                         (uint32_t)rows_to_load * source->alpha_row_bytes);
         cache->chunk_row_start = load_row;
         cache->chunk_row_count = rows_to_load;
@@ -714,9 +697,10 @@ static const uint8_t *image_transform_get_external_alpha_row(const image_transfo
     return bytes + (uint32_t)(row - cache->chunk_row_start) * cache->row_bytes;
 }
 
-__EGUI_STATIC_INLINE__ uint16_t image_transform_read_rgb565_external(const image_transform_external_source_t *source, int32_t x, int32_t y)
+__EGUI_STATIC_INLINE__ uint16_t image_transform_read_rgb565_external(egui_canvas_t *canvas, const image_transform_external_source_t *source, int32_t x,
+                                                                     int32_t y)
 {
-    const uint16_t *row = image_transform_get_external_data_row(source, y);
+    const uint16_t *row = image_transform_get_external_data_row(canvas, source, y);
 
     if (row != NULL)
     {
@@ -726,13 +710,13 @@ __EGUI_STATIC_INLINE__ uint16_t image_transform_read_rgb565_external(const image
     {
         uint16_t pixel = 0;
         uint32_t offset = ((uint32_t)y * (uint32_t)source->info->width + (uint32_t)x) * sizeof(uint16_t);
-        egui_api_load_external_resource(&pixel, (egui_uintptr_t)source->info->data_buf, offset, sizeof(pixel));
+        egui_api_load_external_resource(canvas, &pixel, (egui_uintptr_t)source->info->data_buf, offset, sizeof(pixel));
         return pixel;
     }
 }
 
-__EGUI_STATIC_INLINE__ void image_transform_fetch_bilinear_rgb565_external(const image_transform_external_source_t *source, int32_t x, int32_t y, uint16_t *d00,
-                                                                           uint16_t *d01, uint16_t *d10, uint16_t *d11)
+__EGUI_STATIC_INLINE__ void image_transform_fetch_bilinear_rgb565_external(egui_canvas_t *canvas, const image_transform_external_source_t *source, int32_t x,
+                                                                           int32_t y, uint16_t *d00, uint16_t *d01, uint16_t *d10, uint16_t *d11)
 {
     uint32_t rows_per_chunk = image_transform_external_rows_per_chunk(EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES, source->data_row_bytes);
     const uint16_t *row0 = NULL;
@@ -744,8 +728,8 @@ __EGUI_STATIC_INLINE__ void image_transform_fetch_bilinear_rgb565_external(const
      * bilinear sample still uses the correct source rows. */
     if (image_transform_external_rows_share_chunk(y, y + 1, rows_per_chunk))
     {
-        row0 = image_transform_get_external_data_row(source, y);
-        row1 = image_transform_get_external_data_row(source, y + 1);
+        row0 = image_transform_get_external_data_row(canvas, source, y);
+        row1 = image_transform_get_external_data_row(canvas, source, y + 1);
 
         if (row0 != NULL && row1 != NULL)
         {
@@ -757,10 +741,10 @@ __EGUI_STATIC_INLINE__ void image_transform_fetch_bilinear_rgb565_external(const
         }
     }
 
-    *d00 = image_transform_read_rgb565_external(source, x, y);
-    *d01 = image_transform_read_rgb565_external(source, x + 1, y);
-    *d10 = image_transform_read_rgb565_external(source, x, y + 1);
-    *d11 = image_transform_read_rgb565_external(source, x + 1, y + 1);
+    *d00 = image_transform_read_rgb565_external(canvas, source, x, y);
+    *d01 = image_transform_read_rgb565_external(canvas, source, x + 1, y);
+    *d10 = image_transform_read_rgb565_external(canvas, source, x, y + 1);
+    *d11 = image_transform_read_rgb565_external(canvas, source, x + 1, y + 1);
 }
 #endif
 
@@ -793,9 +777,9 @@ static inline uint8_t image_transform_read_alpha(const uint8_t *alpha_buf, int a
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static inline uint8_t image_transform_read_alpha_external(const image_transform_external_source_t *source, int32_t x, int32_t y)
+static inline uint8_t image_transform_read_alpha_external(egui_canvas_t *canvas, const image_transform_external_source_t *source, int32_t x, int32_t y)
 {
-    const uint8_t *row = image_transform_get_external_alpha_row(source, y);
+    const uint8_t *row = image_transform_get_external_alpha_row(canvas, source, y);
 
     if (row != NULL)
     {
@@ -808,28 +792,28 @@ static inline uint8_t image_transform_read_alpha_external(const image_transform_
     {
         uint8_t value = 0;
         uint32_t offset = (uint32_t)y * source->alpha_row_bytes + (uint32_t)x;
-        egui_api_load_external_resource(&value, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(value));
+        egui_api_load_external_resource(canvas, &value, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(value));
         return value;
     }
     case EGUI_IMAGE_ALPHA_TYPE_4:
     {
         uint8_t packed = 0;
         uint32_t offset = (uint32_t)y * source->alpha_row_bytes + ((uint32_t)x >> 1);
-        egui_api_load_external_resource(&packed, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(packed));
+        egui_api_load_external_resource(canvas, &packed, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(packed));
         return egui_alpha_change_table_4[(packed >> ((x & 1) << 2)) & 0x0F];
     }
     case EGUI_IMAGE_ALPHA_TYPE_2:
     {
         uint8_t packed = 0;
         uint32_t offset = (uint32_t)y * source->alpha_row_bytes + ((uint32_t)x >> 2);
-        egui_api_load_external_resource(&packed, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(packed));
+        egui_api_load_external_resource(canvas, &packed, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(packed));
         return egui_alpha_change_table_2[(packed >> ((x & 3) << 1)) & 0x03];
     }
     case EGUI_IMAGE_ALPHA_TYPE_1:
     {
         uint8_t packed = 0;
         uint32_t offset = (uint32_t)y * source->alpha_row_bytes + ((uint32_t)x >> 3);
-        egui_api_load_external_resource(&packed, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(packed));
+        egui_api_load_external_resource(canvas, &packed, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(packed));
         return ((packed >> (x & 7)) & 1) ? 255 : 0;
     }
     default:
@@ -1062,8 +1046,8 @@ static inline uint8_t image_transform_sample_alpha_bilinear_fast(const uint8_t *
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static inline uint8_t image_transform_sample_alpha_bilinear_external(const image_transform_external_source_t *source, int32_t x, int32_t y, uint8_t fx,
-                                                                     uint8_t fy)
+static inline uint8_t image_transform_sample_alpha_bilinear_external(egui_canvas_t *canvas, const image_transform_external_source_t *source, int32_t x,
+                                                                     int32_t y, uint8_t fx, uint8_t fy)
 {
     uint32_t rows_per_chunk = image_transform_external_rows_per_chunk(EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES, source->alpha_row_bytes);
     const uint8_t *row0 = NULL;
@@ -1071,8 +1055,8 @@ static inline uint8_t image_transform_sample_alpha_bilinear_external(const image
 
     if (image_transform_external_rows_share_chunk(y, y + 1, rows_per_chunk))
     {
-        row0 = image_transform_get_external_alpha_row(source, y);
-        row1 = image_transform_get_external_alpha_row(source, y + 1);
+        row0 = image_transform_get_external_alpha_row(canvas, source, y);
+        row1 = image_transform_get_external_alpha_row(canvas, source, y + 1);
 
         if (row0 != NULL && row1 != NULL)
         {
@@ -1081,10 +1065,10 @@ static inline uint8_t image_transform_sample_alpha_bilinear_external(const image
     }
 
     {
-        uint16_t a00 = image_transform_read_alpha_external(source, x, y);
-        uint16_t a01 = image_transform_read_alpha_external(source, x + 1, y);
-        uint16_t a10 = image_transform_read_alpha_external(source, x, y + 1);
-        uint16_t a11 = image_transform_read_alpha_external(source, x + 1, y + 1);
+        uint16_t a00 = image_transform_read_alpha_external(canvas, source, x, y);
+        uint16_t a01 = image_transform_read_alpha_external(canvas, source, x + 1, y);
+        uint16_t a10 = image_transform_read_alpha_external(canvas, source, x, y + 1);
+        uint16_t a11 = image_transform_read_alpha_external(canvas, source, x + 1, y + 1);
         uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
         uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
         return (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
@@ -1160,9 +1144,9 @@ __EGUI_STATIC_INLINE__ void transform_apply_mask_and_blend(egui_mask_t *mask, eg
  * @param angle_deg Rotation angle in degrees (0-360, counter-clockwise)
  * @param scale_q8  Scale factor in Q8 format (256 = 1.0x, 512 = 2.0x, 128 = 0.5x)
  */
-void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
+void egui_canvas_draw_image_transform(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
 {
-    egui_canvas_t *canvas = &canvas_data;
+    egui_canvas_t *canvas = self;
     egui_image_std_info_t *info;
 
     if (img == NULL || img->res == NULL || img->api != &egui_image_std_t_api_table)
@@ -1176,7 +1160,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         return;
     }
 
-    int source_is_opaque = egui_image_std_rgb565_is_opaque_source(info);
+    int source_is_opaque = egui_image_std_rgb565_is_opaque_source(canvas, info);
 
     int16_t src_w = info->width;
     int16_t src_h = info->height;
@@ -1267,7 +1251,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
-        if (!image_transform_prepare_external_source(info, source_is_opaque, &external_source_storage))
+        if (!image_transform_prepare_external_source(canvas->core, info, source_is_opaque, &external_source_storage))
         {
             return;
         }
@@ -1309,7 +1293,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     {                                                                                                                                                          \
         if (external_source != NULL)                                                                                                                           \
         {                                                                                                                                                      \
-            image_transform_fetch_bilinear_rgb565_external(external_source, (_px), (_py), &(_d00), &(_d01), &(_d10), &(_d11));                                 \
+            image_transform_fetch_bilinear_rgb565_external(canvas, external_source, (_px), (_py), &(_d00), &(_d01), &(_d10), &(_d11));                         \
         }                                                                                                                                                      \
         else                                                                                                                                                   \
         {                                                                                                                                                      \
@@ -1321,12 +1305,12 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         }                                                                                                                                                      \
     } while (0)
 #define TRANSFORM_SAMPLE_ALPHA_BILINEAR(_px, _py, _fx, _fy)                                                                                                    \
-    ((external_source != NULL) ? image_transform_sample_alpha_bilinear_external(external_source, (_px), (_py), (_fx), (_fy))                                   \
+    ((external_source != NULL) ? image_transform_sample_alpha_bilinear_external(canvas, external_source, (_px), (_py), (_fx), (_fy))                           \
                                : image_transform_sample_alpha_bilinear_fast(alpha_buf, alpha_row_bytes, (_px), (_py), alpha_type, (_fx), (_fy)))
 #define TRANSFORM_READ_PIXEL_POINT(_px, _py)                                                                                                                   \
-    ((external_source != NULL) ? image_transform_read_rgb565_external(external_source, (_px), (_py)) : data[(_py) * src_w + (_px)])
+    ((external_source != NULL) ? image_transform_read_rgb565_external(canvas, external_source, (_px), (_py)) : data[(_py) * src_w + (_px)])
 #define TRANSFORM_READ_ALPHA_POINT(_px, _py)                                                                                                                   \
-    ((external_source != NULL) ? image_transform_read_alpha_external(external_source, (_px), (_py))                                                            \
+    ((external_source != NULL) ? image_transform_read_alpha_external(canvas, external_source, (_px), (_py))                                                    \
                                : image_transform_read_alpha(alpha_buf, alpha_row_bytes, (_px), (_py), alpha_type))
 #else
 #define TRANSFORM_FETCH_BILINEAR_RGB565(_px, _py, _d00, _d01, _d10, _d11)                                                                                      \
@@ -1565,7 +1549,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                 egui_alpha_t pixel_alpha = EGUI_ALPHA_100;
                 if (has_alpha)
                 {
-                    /* Bilinear alpha from edge samples (out-of-bounds → 0) */
+                    /* Bilinear alpha from edge samples (out-of-bounds 锟?0) */
 #define TRANSFORM_FETCH_ALPHA(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? TRANSFORM_READ_ALPHA_POINT((px), (py)) : 0)
                     uint16_t a00 = TRANSFORM_FETCH_ALPHA(sx, sy);
                     uint16_t a01 = TRANSFORM_FETCH_ALPHA(sx + 1, sy);
@@ -1651,20 +1635,8 @@ typedef struct
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES 0
 #endif
 
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE 1
-#endif
-
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE 1
-#endif
-
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE
 #define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE 1
-#endif
-
-#if !EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE && EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
-#error "EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE=0 requires EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE=0"
 #endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -1679,39 +1651,6 @@ typedef struct
 } text_transform_external_glyph_row_cache_t;
 #endif
 
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 0
-#endif
-
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT 0
-#endif
-
-#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT
-typedef uint16_t text_transform_layout_pixel_idx_t;
-#define TEXT_TRANSFORM_LAYOUT_PIXEL_IDX_MAX UINT16_MAX
-#else
-typedef uint32_t text_transform_layout_pixel_idx_t;
-#define TEXT_TRANSFORM_LAYOUT_PIXEL_IDX_MAX UINT32_MAX
-#endif
-
-#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT
-typedef uint16_t text_transform_layout_index_t;
-#define TEXT_TRANSFORM_LAYOUT_INDEX_MAX UINT16_MAX
-#else
-typedef int text_transform_layout_index_t;
-#define TEXT_TRANSFORM_LAYOUT_INDEX_MAX 0x7FFFFFFF
-#endif
-
-typedef struct
-{
-    text_transform_layout_pixel_idx_t pixel_idx; /* packed bitmap byte offset */
-    int16_t x;                                   /* glyph box left edge in text space */
-    int16_t y;                                   /* glyph box top edge in text space */
-    uint8_t box_w;                               /* glyph box width */
-    uint8_t box_h;                               /* glyph box height */
-} text_transform_layout_glyph_t;
-
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 typedef struct
 {
@@ -1720,25 +1659,6 @@ typedef struct
     uint8_t *row_buf;
 } text_transform_external_layout_glyph_row_scratch_t;
 #endif
-
-typedef struct
-{
-    const egui_font_t *font;
-    const void *string;
-    egui_dim_t line_space;
-    int count;
-    int line_count;
-} text_transform_layout_cache_t;
-
-typedef struct
-{
-    text_transform_layout_index_t start;
-    text_transform_layout_index_t end;
-    int16_t x_min;
-    int16_t x_max;
-    int16_t y_min;
-    int16_t y_max;
-} text_transform_layout_line_t;
 
 #if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
 typedef struct
@@ -1761,7 +1681,7 @@ __EGUI_STATIC_INLINE__ size_t text_transform_align_scratch_size(size_t size)
     return (size + align - 1U) & ~(align - 1U);
 }
 
-static int text_transform_prepare_layout_scratch(int glyph_count, int line_count, text_transform_layout_scratch_t *scratch)
+static int text_transform_prepare_layout_scratch(egui_core_t *core, int glyph_count, int line_count, text_transform_layout_scratch_t *scratch)
 {
     size_t glyph_bytes;
     size_t line_bytes;
@@ -1777,7 +1697,7 @@ static int text_transform_prepare_layout_scratch(int glyph_count, int line_count
     line_bytes = (size_t)line_count * sizeof(text_transform_layout_line_t);
     line_offset = text_transform_align_scratch_size(glyph_bytes);
 
-    block = (uint8_t *)egui_malloc((int)(line_offset + line_bytes));
+    block = (uint8_t *)egui_malloc(core, (int)(line_offset + line_bytes));
     if (block == NULL)
     {
         return -1;
@@ -1789,7 +1709,7 @@ static int text_transform_prepare_layout_scratch(int glyph_count, int line_count
     return 0;
 }
 
-static void text_transform_release_layout_scratch(text_transform_layout_scratch_t *scratch)
+static void text_transform_release_layout_scratch(egui_core_t *core, text_transform_layout_scratch_t *scratch)
 {
     if (scratch == NULL)
     {
@@ -1798,7 +1718,7 @@ static void text_transform_release_layout_scratch(text_transform_layout_scratch_
 
     if (scratch->block != NULL)
     {
-        egui_free(scratch->block);
+        egui_free(core, scratch->block);
     }
 
     scratch->block = NULL;
@@ -1806,7 +1726,7 @@ static void text_transform_release_layout_scratch(text_transform_layout_scratch_
     scratch->lines = NULL;
 }
 
-static int text_transform_prepare_tile_scratch(int glyph_count, int line_count, text_transform_tile_scratch_t *scratch)
+static int text_transform_prepare_tile_scratch(egui_core_t *core, int glyph_count, int line_count, text_transform_tile_scratch_t *scratch)
 {
     size_t glyph_bytes;
     size_t line_bytes;
@@ -1822,7 +1742,7 @@ static int text_transform_prepare_tile_scratch(int glyph_count, int line_count, 
     line_bytes = (size_t)line_count * sizeof(text_transform_layout_line_t);
     line_offset = text_transform_align_scratch_size(glyph_bytes);
 
-    block = (uint8_t *)egui_malloc((int)(line_offset + line_bytes));
+    block = (uint8_t *)egui_malloc(core, (int)(line_offset + line_bytes));
     if (block == NULL)
     {
         return -1;
@@ -1834,7 +1754,7 @@ static int text_transform_prepare_tile_scratch(int glyph_count, int line_count, 
     return 0;
 }
 
-static void text_transform_release_tile_scratch(text_transform_tile_scratch_t *scratch)
+static void text_transform_release_tile_scratch(egui_core_t *core, text_transform_tile_scratch_t *scratch)
 {
     if (scratch == NULL)
     {
@@ -1843,7 +1763,7 @@ static void text_transform_release_tile_scratch(text_transform_tile_scratch_t *s
 
     if (scratch->block != NULL)
     {
-        egui_free(scratch->block);
+        egui_free(core, scratch->block);
     }
 
     scratch->block = NULL;
@@ -2002,8 +1922,8 @@ __EGUI_STATIC_INLINE__ void batch_extract_glyph_alpha_from_rows(const uint8_t *r
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static int text_transform_load_external_glyph_row(const text_transform_glyph_t *glyph, int ly, text_transform_external_glyph_row_cache_t *cache,
-                                                  const uint8_t **row)
+static int text_transform_load_external_glyph_row(egui_canvas_t *canvas, const text_transform_glyph_t *glyph, int ly,
+                                                  text_transform_external_glyph_row_cache_t *cache, const uint8_t **row)
 {
     if (glyph == NULL || cache == NULL || row == NULL || ly < 0 || ly >= glyph->box_h || glyph->row_bytes == 0 || glyph->row_bytes > cache->row_capacity ||
         cache->row0 == NULL)
@@ -2026,7 +1946,7 @@ static int text_transform_load_external_glyph_row(const text_transform_glyph_t *
         }
     }
 
-    egui_api_load_external_resource(cache->row0, (egui_uintptr_t)glyph->data, glyph->pixel_idx + (uint32_t)ly * glyph->row_bytes, glyph->row_bytes);
+    egui_api_load_external_resource(canvas, cache->row0, (egui_uintptr_t)glyph->data, glyph->pixel_idx + (uint32_t)ly * glyph->row_bytes, glyph->row_bytes);
     cache->glyph = glyph;
     cache->row0_y = (int16_t)ly;
     cache->row1_y = -1;
@@ -2034,8 +1954,8 @@ static int text_transform_load_external_glyph_row(const text_transform_glyph_t *
     return 1;
 }
 
-static int text_transform_load_external_glyph_row_pair(const text_transform_glyph_t *glyph, int ly, text_transform_external_glyph_row_cache_t *cache,
-                                                       const uint8_t **row0, const uint8_t **row1)
+static int text_transform_load_external_glyph_row_pair(egui_canvas_t *canvas, const text_transform_glyph_t *glyph, int ly,
+                                                       text_transform_external_glyph_row_cache_t *cache, const uint8_t **row0, const uint8_t **row1)
 {
     if (glyph == NULL || cache == NULL || row0 == NULL || row1 == NULL || ly < 0 || (ly + 1) >= glyph->box_h || glyph->row_bytes == 0 ||
         glyph->row_bytes > cache->row_capacity || cache->row0 == NULL || cache->row1 == NULL)
@@ -2051,8 +1971,9 @@ static int text_transform_load_external_glyph_row_pair(const text_transform_glyp
         return 1;
     }
 
-    egui_api_load_external_resource(cache->row0, (egui_uintptr_t)glyph->data, glyph->pixel_idx + (uint32_t)ly * glyph->row_bytes, glyph->row_bytes);
-    egui_api_load_external_resource(cache->row1, (egui_uintptr_t)glyph->data, glyph->pixel_idx + (uint32_t)(ly + 1) * glyph->row_bytes, glyph->row_bytes);
+    egui_api_load_external_resource(canvas, cache->row0, (egui_uintptr_t)glyph->data, glyph->pixel_idx + (uint32_t)ly * glyph->row_bytes, glyph->row_bytes);
+    egui_api_load_external_resource(canvas, cache->row1, (egui_uintptr_t)glyph->data, glyph->pixel_idx + (uint32_t)(ly + 1) * glyph->row_bytes,
+                                    glyph->row_bytes);
     cache->glyph = glyph;
     cache->row0_y = (int16_t)ly;
     cache->row1_y = (int16_t)(ly + 1);
@@ -2061,14 +1982,14 @@ static int text_transform_load_external_glyph_row_pair(const text_transform_glyp
     return 1;
 }
 
-static int text_transform_batch_extract_external_glyph_alpha(const text_transform_glyph_t *glyph, int lx, int ly, uint8_t bpp,
+static int text_transform_batch_extract_external_glyph_alpha(egui_canvas_t *canvas, const text_transform_glyph_t *glyph, int lx, int ly, uint8_t bpp,
                                                              text_transform_external_glyph_row_cache_t *cache, uint16_t *a00, uint16_t *a01, uint16_t *a10,
                                                              uint16_t *a11)
 {
     const uint8_t *row0;
     const uint8_t *row1;
 
-    if (!text_transform_load_external_glyph_row_pair(glyph, ly, cache, &row0, &row1))
+    if (!text_transform_load_external_glyph_row_pair(canvas, glyph, ly, cache, &row0, &row1))
     {
         return 0;
     }
@@ -2077,12 +1998,12 @@ static int text_transform_batch_extract_external_glyph_alpha(const text_transfor
     return 1;
 }
 
-static int text_transform_extract_external_glyph_alpha_from_row(const text_transform_glyph_t *glyph, int lx, int ly, uint8_t bpp,
+static int text_transform_extract_external_glyph_alpha_from_row(egui_canvas_t *canvas, const text_transform_glyph_t *glyph, int lx, int ly, uint8_t bpp,
                                                                 text_transform_external_glyph_row_cache_t *cache, uint16_t *alpha)
 {
     const uint8_t *row;
 
-    if (alpha == NULL || !text_transform_load_external_glyph_row(glyph, ly, cache, &row))
+    if (alpha == NULL || !text_transform_load_external_glyph_row(canvas, glyph, ly, cache, &row))
     {
         return 0;
     }
@@ -2091,12 +2012,12 @@ static int text_transform_extract_external_glyph_alpha_from_row(const text_trans
     return 1;
 }
 
-static int text_transform_extract_external_glyph_alpha_pair_from_row(const text_transform_glyph_t *glyph, int lx, int ly, uint8_t bpp,
+static int text_transform_extract_external_glyph_alpha_pair_from_row(egui_canvas_t *canvas, const text_transform_glyph_t *glyph, int lx, int ly, uint8_t bpp,
                                                                      text_transform_external_glyph_row_cache_t *cache, uint16_t *a0, uint16_t *a1)
 {
     const uint8_t *row;
 
-    if (a0 == NULL || a1 == NULL || !text_transform_load_external_glyph_row(glyph, ly, cache, &row))
+    if (a0 == NULL || a1 == NULL || !text_transform_load_external_glyph_row(canvas, glyph, ly, cache, &row))
     {
         return 0;
     }
@@ -2274,7 +2195,7 @@ static inline int packed_row_bytes(int width, uint8_t bpp)
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static int text_transform_external_glyph_row_cache_init(text_transform_external_glyph_row_cache_t *cache, int row_capacity)
+static int text_transform_external_glyph_row_cache_init(egui_core_t *core, text_transform_external_glyph_row_cache_t *cache, int row_capacity)
 {
     uint8_t *rows;
 
@@ -2295,7 +2216,7 @@ static int text_transform_external_glyph_row_cache_init(text_transform_external_
         return 0;
     }
 
-    rows = (uint8_t *)egui_malloc(row_capacity * 2);
+    rows = (uint8_t *)egui_malloc(core, row_capacity * 2);
     if (rows == NULL)
     {
         return -1;
@@ -2307,7 +2228,7 @@ static int text_transform_external_glyph_row_cache_init(text_transform_external_
     return 0;
 }
 
-static void text_transform_external_glyph_row_cache_release(text_transform_external_glyph_row_cache_t *cache)
+static void text_transform_external_glyph_row_cache_release(egui_core_t *core, text_transform_external_glyph_row_cache_t *cache)
 {
     if (cache == NULL)
     {
@@ -2316,7 +2237,7 @@ static void text_transform_external_glyph_row_cache_release(text_transform_exter
 
     if (cache->row0 != NULL)
     {
-        egui_free(cache->row0);
+        egui_free(core, cache->row0);
     }
 
     cache->glyph = NULL;
@@ -2327,7 +2248,8 @@ static void text_transform_external_glyph_row_cache_release(text_transform_exter
     cache->row1 = NULL;
 }
 
-static int text_transform_external_layout_glyph_row_scratch_init(text_transform_external_layout_glyph_row_scratch_t *scratch, int row_capacity)
+static int text_transform_external_layout_glyph_row_scratch_init(egui_core_t *core, text_transform_external_layout_glyph_row_scratch_t *scratch,
+                                                                 int row_capacity)
 {
     enum
     {
@@ -2350,7 +2272,7 @@ static int text_transform_external_layout_glyph_row_scratch_init(text_transform_
     }
 
     scratch_size = row_capacity * TEXT_TRANSFORM_EXTERNAL_LAYOUT_GLYPH_SCRATCH_ROWS;
-    scratch->row_buf = (uint8_t *)egui_malloc(scratch_size);
+    scratch->row_buf = (uint8_t *)egui_malloc(core, scratch_size);
     if (scratch->row_buf == NULL)
     {
         return -1;
@@ -2361,7 +2283,7 @@ static int text_transform_external_layout_glyph_row_scratch_init(text_transform_
     return 0;
 }
 
-static void text_transform_external_layout_glyph_row_scratch_release(text_transform_external_layout_glyph_row_scratch_t *scratch)
+static void text_transform_external_layout_glyph_row_scratch_release(egui_core_t *core, text_transform_external_layout_glyph_row_scratch_t *scratch)
 {
     if (scratch == NULL)
     {
@@ -2370,7 +2292,7 @@ static void text_transform_external_layout_glyph_row_scratch_release(text_transf
 
     if (scratch->row_buf != NULL)
     {
-        egui_free(scratch->row_buf);
+        egui_free(core, scratch->row_buf);
     }
 
     scratch->chunk_rows = 0;
@@ -2378,8 +2300,9 @@ static void text_transform_external_layout_glyph_row_scratch_release(text_transf
     scratch->row_buf = NULL;
 }
 
-static int text_transform_load_external_layout_glyph_rows(const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyph, int start_row,
-                                                          int row_count, text_transform_external_layout_glyph_row_scratch_t *scratch)
+static int text_transform_load_external_layout_glyph_rows(egui_canvas_t *canvas, const egui_font_std_info_t *font_info,
+                                                          const text_transform_layout_glyph_t *glyph, int start_row, int row_count,
+                                                          text_transform_external_layout_glyph_row_scratch_t *scratch)
 {
     int row_bytes;
 
@@ -2396,7 +2319,7 @@ static int text_transform_load_external_layout_glyph_rows(const egui_font_std_in
         return 0;
     }
 
-    egui_api_load_external_resource(scratch->row_buf, (egui_uintptr_t)font_info->pixel_buffer, glyph->pixel_idx + (uint32_t)start_row * row_bytes,
+    egui_api_load_external_resource(canvas, scratch->row_buf, (egui_uintptr_t)font_info->pixel_buffer, glyph->pixel_idx + (uint32_t)start_row * row_bytes,
                                     row_bytes * row_count);
     return 1;
 }
@@ -2576,35 +2499,20 @@ typedef struct
     egui_mask_t *mask; /* canvas mask for per-row color overlay (gradient support) */
 } text_transform_ctx_t;
 
-typedef struct
-{
-    uint8_t valid;
-    int16_t text_w, text_h, cx, cy;
-    egui_dim_t x, y;
-    int16_t angle_deg;
-    int16_t scale_q8;
-    egui_alpha_t alpha;
-    int32_t inv_m00, inv_m01, inv_m10, inv_m11;
-    int32_t min_bx, min_by, max_bx, max_by;
-    int32_t offx, offy;
-} text_transform_prepare_cache_t;
-
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
-#define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 1
-#endif
-
 #if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
-static text_transform_prepare_cache_t g_text_transform_prepare_cache = {0};
+#define g_text_transform_prepare_cache (core->text.text_transform_prepare_cache)
 #endif
 
-static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                                                          const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *layout_glyphs,
+static int text_transform_draw_visible_alpha8_tile_layout(egui_canvas_t *canvas, const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y,
+                                                          egui_color_t color, const egui_font_std_info_t *font_info,
+                                                          const text_transform_layout_glyph_t *layout_glyphs,
                                                           const text_transform_layout_index_t *glyph_indices, int glyph_count, int16_t src_x0, int16_t src_y0,
                                                           int16_t src_x1, int16_t src_y1, int glyphs_overlap);
 
-static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8, egui_alpha_t alpha,
-                                  text_transform_ctx_t *ctx)
+static int text_transform_prepare(egui_canvas_t *canvas, int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
+                                  egui_alpha_t alpha, text_transform_ctx_t *ctx)
 {
+    egui_core_t *core = canvas->core;
 #if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
     text_transform_prepare_cache_t *cache = &g_text_transform_prepare_cache;
 #else
@@ -2617,7 +2525,6 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
         return -1;
     }
 
-    egui_canvas_t *canvas = &canvas_data;
     ctx->src_w = text_w;
     ctx->src_h = text_h;
     ctx->cx = text_w / 2;
@@ -2729,7 +2636,7 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
 
 /*
  * Max glyphs visible per PFB tile. Determined by PFB geometry and min glyph size.
- * Typical: PFB 60x60, 26pt font → ~6x3 = ~18 glyphs. With 45° rotation and 2x scale
+ * Typical: PFB 60x60, 26pt font 锟?~6x3 = ~18 glyphs. With 45掳 rotation and 2x scale
  * the source bbox expands but is still bounded. Default 128 covers scale >= 0.5x.
  * Can be overridden in app_egui_config.h.
  */
@@ -2742,40 +2649,28 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
 #endif
 
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
-static text_transform_layout_cache_t g_text_transform_layout_cache = {
-        .font = NULL,
-        .string = NULL,
-        .line_space = 0,
-        .count = 0,
-        .line_count = 0,
-};
+#define g_text_transform_layout_cache (core->text.text_transform_layout_cache)
 #endif
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
-static text_transform_layout_glyph_t *g_text_transform_layout_glyphs = NULL;
-static int g_text_transform_layout_capacity = 0;
-static text_transform_layout_line_t *g_text_transform_layout_lines = NULL;
-static int g_text_transform_layout_line_capacity = 0;
+#define g_text_transform_layout_glyphs        (core->text.text_transform_layout_glyphs)
+#define g_text_transform_layout_capacity      (core->text.text_transform_layout_capacity)
+#define g_text_transform_layout_lines         (core->text.text_transform_layout_lines)
+#define g_text_transform_layout_line_capacity (core->text.text_transform_layout_line_capacity)
 #endif
 
-typedef struct
-{
-    uint8_t *buf;
-    int capacity;
-} text_transform_visible_tile_cache_t;
+#define g_text_transform_visible_tile_cache (core->text.text_transform_visible_tile_cache)
 
-static text_transform_visible_tile_cache_t g_text_transform_visible_tile_cache = {0};
-
-static void text_transform_release_layout_cache(void)
+static void text_transform_release_layout_cache(egui_core_t *core)
 {
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
     if (g_text_transform_layout_glyphs != NULL)
     {
-        egui_free(g_text_transform_layout_glyphs);
+        egui_free(core, g_text_transform_layout_glyphs);
         g_text_transform_layout_glyphs = NULL;
     }
     if (g_text_transform_layout_lines != NULL)
     {
-        egui_free(g_text_transform_layout_lines);
+        egui_free(core, g_text_transform_layout_lines);
         g_text_transform_layout_lines = NULL;
     }
 
@@ -2787,11 +2682,11 @@ static void text_transform_release_layout_cache(void)
 #endif
 }
 
-static void text_transform_release_visible_tile_cache(void)
+static void text_transform_release_visible_tile_cache(egui_core_t *core)
 {
     if (g_text_transform_visible_tile_cache.buf != NULL)
     {
-        egui_free(g_text_transform_visible_tile_cache.buf);
+        egui_free(core, g_text_transform_visible_tile_cache.buf);
     }
 
     egui_api_memset(&g_text_transform_visible_tile_cache, 0, sizeof(g_text_transform_visible_tile_cache));
@@ -2859,7 +2754,7 @@ static inline uint8_t read_packed_mask_alpha_4_rb(const uint8_t *buf, int row_by
 }
 
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
-static int text_transform_ensure_layout_capacity(int needed)
+static int text_transform_ensure_layout_capacity(egui_core_t *core, int needed)
 {
     text_transform_layout_glyph_t *new_layout;
 
@@ -2868,7 +2763,7 @@ static int text_transform_ensure_layout_capacity(int needed)
         return 0;
     }
 
-    new_layout = (text_transform_layout_glyph_t *)egui_malloc(needed * sizeof(text_transform_layout_glyph_t));
+    new_layout = (text_transform_layout_glyph_t *)egui_malloc(core, needed * sizeof(text_transform_layout_glyph_t));
     if (new_layout == NULL)
     {
         return -1;
@@ -2876,7 +2771,7 @@ static int text_transform_ensure_layout_capacity(int needed)
 
     if (g_text_transform_layout_glyphs != NULL)
     {
-        egui_free(g_text_transform_layout_glyphs);
+        egui_free(core, g_text_transform_layout_glyphs);
     }
 
     g_text_transform_layout_glyphs = new_layout;
@@ -2884,7 +2779,7 @@ static int text_transform_ensure_layout_capacity(int needed)
     return 0;
 }
 
-static int text_transform_ensure_line_capacity(int needed)
+static int text_transform_ensure_line_capacity(egui_core_t *core, int needed)
 {
     text_transform_layout_line_t *new_lines;
 
@@ -2893,7 +2788,7 @@ static int text_transform_ensure_line_capacity(int needed)
         return 0;
     }
 
-    new_lines = (text_transform_layout_line_t *)egui_malloc(needed * sizeof(text_transform_layout_line_t));
+    new_lines = (text_transform_layout_line_t *)egui_malloc(core, needed * sizeof(text_transform_layout_line_t));
     if (new_lines == NULL)
     {
         return -1;
@@ -2901,7 +2796,7 @@ static int text_transform_ensure_line_capacity(int needed)
 
     if (g_text_transform_layout_lines != NULL)
     {
-        egui_free(g_text_transform_layout_lines);
+        egui_free(core, g_text_transform_layout_lines);
     }
 
     g_text_transform_layout_lines = new_lines;
@@ -2910,21 +2805,22 @@ static int text_transform_ensure_line_capacity(int needed)
 }
 #endif
 
-void egui_canvas_transform_release_frame_cache(void)
+void egui_canvas_transform_release_frame_cache(egui_canvas_t *self)
 {
+    egui_core_t *core = self->core;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-    image_transform_release_external_row_cache();
+    image_transform_release_external_row_cache(core);
 #endif
 
 #if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
     egui_api_memset(&g_text_transform_prepare_cache, 0, sizeof(g_text_transform_prepare_cache));
 #endif
-    text_transform_release_layout_cache();
-    text_transform_release_visible_tile_cache();
+    text_transform_release_layout_cache(core);
+    text_transform_release_visible_tile_cache(core);
 }
 
-static int text_transform_build_layout(const egui_font_std_info_t *font_info, const char *string, text_transform_layout_glyph_t *glyphs, int max_glyphs,
-                                       text_transform_layout_line_t *lines, int max_lines, int *line_count, egui_dim_t line_space)
+static int text_transform_build_layout(egui_canvas_t *canvas, const egui_font_std_info_t *font_info, const char *string, text_transform_layout_glyph_t *glyphs,
+                                       int max_glyphs, text_transform_layout_line_t *lines, int max_lines, int *line_count, egui_dim_t line_space)
 {
     const char *s = string;
     egui_font_std_char_descriptor_t external_desc_scratch;
@@ -2998,7 +2894,7 @@ static int text_transform_build_layout(const egui_font_std_info_t *font_info, co
         }
         s += char_bytes;
 
-        desc = egui_font_std_get_desc_fast_api(font_info, utf8_code, &external_desc_scratch);
+        desc = egui_font_std_get_desc_fast_api(canvas, font_info, utf8_code, &external_desc_scratch);
         if (desc == NULL || desc->size == 0)
         {
             cursor_x += font_info->height >> 1;
@@ -3083,9 +2979,11 @@ static int text_transform_build_layout(const egui_font_std_info_t *font_info, co
 }
 
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
-static int text_transform_prepare_layout(const egui_font_t *font, const egui_font_std_info_t *font_info, const char *string, egui_dim_t line_space,
-                                         const text_transform_layout_glyph_t **layout, int *count, const text_transform_layout_line_t **lines, int *line_count)
+static int text_transform_prepare_layout(egui_canvas_t *canvas, const egui_font_t *font, const egui_font_std_info_t *font_info, const char *string,
+                                         egui_dim_t line_space, const text_transform_layout_glyph_t **layout, int *count,
+                                         const text_transform_layout_line_t **lines, int *line_count)
 {
+    egui_core_t *core = canvas->core;
     int build_count;
     int needed;
     int line_needed;
@@ -3115,11 +3013,11 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
     {
         return -1;
     }
-    if (needed > 0 && text_transform_ensure_layout_capacity(needed) != 0)
+    if (needed > 0 && text_transform_ensure_layout_capacity(core, needed) != 0)
     {
         return -1;
     }
-    if (line_needed > 0 && text_transform_ensure_line_capacity(line_needed) != 0)
+    if (line_needed > 0 && text_transform_ensure_line_capacity(core, line_needed) != 0)
     {
         return -1;
     }
@@ -3127,7 +3025,7 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
     cache->font = font;
     cache->string = string;
     cache->line_space = line_space;
-    build_count = text_transform_build_layout(font_info, string, g_text_transform_layout_glyphs, needed, g_text_transform_layout_lines, line_needed,
+    build_count = text_transform_build_layout(canvas, font_info, string, g_text_transform_layout_glyphs, needed, g_text_transform_layout_lines, line_needed,
                                               &cache->line_count, line_space);
     if (build_count < 0)
     {
@@ -3708,9 +3606,9 @@ static inline void sample_tile_alpha_pair_from_line(const text_transform_glyph_t
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static inline void sample_tile_alpha_pair_from_line_external(const text_transform_glyph_t *glyphs, const text_transform_layout_line_t *line, int sx, int sy,
-                                                             uint8_t bpp, uint16_t *a0, uint16_t *a1, int *hint0, int *hint1,
-                                                             text_transform_external_glyph_row_cache_t *row_cache)
+static inline void sample_tile_alpha_pair_from_line_external(egui_canvas_t *canvas, const text_transform_glyph_t *glyphs,
+                                                             const text_transform_layout_line_t *line, int sx, int sy, uint8_t bpp, uint16_t *a0, uint16_t *a1,
+                                                             int *hint0, int *hint1, text_transform_external_glyph_row_cache_t *row_cache)
 {
     int sx_next = sx + 1;
 
@@ -3740,7 +3638,7 @@ static inline void sample_tile_alpha_pair_from_line_external(const text_transfor
 
             *hint0 = i;
             *hint1 = i;
-            if (!text_transform_extract_external_glyph_alpha_pair_from_row(g, lx, ly, bpp, row_cache, a0, a1))
+            if (!text_transform_extract_external_glyph_alpha_pair_from_row(canvas, g, lx, ly, bpp, row_cache, a0, a1))
             {
                 *a0 = 0;
                 *a1 = 0;
@@ -3755,7 +3653,7 @@ static inline void sample_tile_alpha_pair_from_line_external(const text_transfor
             int lx = sx - g->x;
 
             *hint0 = i;
-            if (!text_transform_extract_external_glyph_alpha_from_row(g, lx, ly, bpp, row_cache, a0))
+            if (!text_transform_extract_external_glyph_alpha_from_row(canvas, g, lx, ly, bpp, row_cache, a0))
             {
                 *a0 = 0;
                 *hint0 = -1;
@@ -3767,7 +3665,7 @@ static inline void sample_tile_alpha_pair_from_line_external(const text_transfor
             int lx = sx_next - g->x;
 
             *hint1 = i;
-            if (!text_transform_extract_external_glyph_alpha_from_row(g, lx, ly, bpp, row_cache, a1))
+            if (!text_transform_extract_external_glyph_alpha_from_row(canvas, g, lx, ly, bpp, row_cache, a1))
             {
                 *a1 = 0;
                 *hint1 = -1;
@@ -3922,13 +3820,14 @@ __EGUI_STATIC_INLINE__ uint8_t sample_tile_alpha_4(const text_transform_glyph_t 
     return 0;
 }
 
-static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
-                                                egui_color_t color, egui_alpha_t alpha)
+static int text_transform_try_draw_axis_aligned(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
+                                                int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
-    static const egui_font_t *s_axis_font = NULL;
-    static const void *s_axis_string = NULL;
-    static egui_dim_t s_axis_w = 0;
-    static egui_dim_t s_axis_h = 0;
+    egui_core_t *core = self->core;
+    const egui_font_t *s_axis_font = core != NULL ? core->text.text_transform_axis_font : NULL;
+    const void *s_axis_string = core != NULL ? core->text.text_transform_axis_string : NULL;
+    egui_dim_t s_axis_w = core != NULL ? core->text.text_transform_axis_w : 0;
+    egui_dim_t s_axis_h = core != NULL ? core->text.text_transform_axis_h : 0;
     egui_region_t rect;
     int16_t norm_angle = angle_deg % 360;
 
@@ -3952,6 +3851,13 @@ static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const v
         s_axis_h = th;
         s_axis_font = font;
         s_axis_string = string;
+        if (core != NULL)
+        {
+            core->text.text_transform_axis_w = tw;
+            core->text.text_transform_axis_h = th;
+            core->text.text_transform_axis_font = font;
+            core->text.text_transform_axis_string = string;
+        }
     }
 
     if (s_axis_w <= 0 || s_axis_h <= 0)
@@ -3963,7 +3869,7 @@ static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const v
     rect.location.y = y - (s_axis_h >> 1);
     rect.size.width = s_axis_w;
     rect.size.height = s_axis_h;
-    egui_canvas_draw_text_in_rect_with_line_space(font, string, &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, 0, color, alpha);
+    egui_canvas_draw_text_in_rect_with_line_space(self, font, string, &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, 0, color, alpha);
     return 1;
 }
 
@@ -3978,15 +3884,16 @@ static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const v
  * collectors use transient heap sized by the measured glyph and line count.
  * Text dimensions are cached (12 bytes static) to avoid per-tile string measurement.
  */
-void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
-                                     egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
+                                     int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
+    egui_canvas_t *canvas = self;
     if (!font || !string || !font->res)
     {
         return;
     }
 
-    if (text_transform_try_draw_axis_aligned(font, string, x, y, angle_deg, scale_q8, color, alpha))
+    if (text_transform_try_draw_axis_aligned(self, font, string, x, y, angle_deg, scale_q8, color, alpha))
     {
         return;
     }
@@ -3994,9 +3901,11 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 #if EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE
     /* Lightweight dimension cache: avoid per-tile get_str_size string walk.
      * Only 12 bytes static, independent of text content/font size. */
-    static const egui_font_t *s_dim_font = NULL;
-    static const void *s_dim_string = NULL;
-    static int16_t s_dim_w = 0, s_dim_h = 0;
+    egui_core_t *core = canvas->core;
+    const egui_font_t *s_dim_font = core != NULL ? core->text.text_transform_dim_font : NULL;
+    const void *s_dim_string = core != NULL ? core->text.text_transform_dim_string : NULL;
+    int16_t s_dim_w = core != NULL ? core->text.text_transform_dim_w : 0;
+    int16_t s_dim_h = core != NULL ? core->text.text_transform_dim_h : 0;
 
     if (font != s_dim_font || string != s_dim_string)
     {
@@ -4006,6 +3915,13 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         s_dim_h = th;
         s_dim_font = font;
         s_dim_string = string;
+        if (core != NULL)
+        {
+            core->text.text_transform_dim_w = s_dim_w;
+            core->text.text_transform_dim_h = s_dim_h;
+            core->text.text_transform_dim_font = s_dim_font;
+            core->text.text_transform_dim_string = s_dim_string;
+        }
     }
 #else
     int16_t s_dim_w = 0;
@@ -4021,7 +3937,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 #endif
 
     text_transform_ctx_t ctx;
-    if (text_transform_prepare(s_dim_w, s_dim_h, x, y, angle_deg, scale_q8, alpha, &ctx) != 0)
+    if (text_transform_prepare(self, s_dim_w, s_dim_h, x, y, angle_deg, scale_q8, alpha, &ctx) != 0)
     {
         return;
     }
@@ -4083,12 +3999,12 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
             return;
         }
 
-        if (text_transform_prepare_layout_scratch(scratch_needed, scratch_line_needed, &layout_scratch) != 0)
+        if (text_transform_prepare_layout_scratch(canvas->core, scratch_needed, scratch_line_needed, &layout_scratch) != 0)
         {
             return;
         }
 
-        layout_count = text_transform_build_layout(font_info, text, layout_scratch.glyphs, scratch_needed, layout_scratch.lines, scratch_line_needed,
+        layout_count = text_transform_build_layout(canvas, font_info, text, layout_scratch.glyphs, scratch_needed, layout_scratch.lines, scratch_line_needed,
                                                    &layout_line_count, 0);
         if (layout_count < 0)
         {
@@ -4111,7 +4027,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         if (stack_needed > 0 && stack_needed <= EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS && stack_line_needed > 0 &&
             stack_line_needed <= EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES && stack_needed <= TEXT_TRANSFORM_LAYOUT_INDEX_MAX)
         {
-            layout_count = text_transform_build_layout(font_info, text, stack_layout_glyphs, stack_needed, stack_layout_lines, stack_line_needed,
+            layout_count = text_transform_build_layout(canvas, font_info, text, stack_layout_glyphs, stack_needed, stack_layout_lines, stack_line_needed,
                                                        &layout_line_count, 0);
             if (layout_count < 0)
             {
@@ -4123,7 +4039,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         else
 #endif
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
-                if (text_transform_prepare_layout(font, font_info, text, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) != 0)
+                if (text_transform_prepare_layout(canvas, font, font_info, text, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) != 0)
         {
             return;
         }
@@ -4204,8 +4120,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 #if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
             if (tile_alpha8_layout_glyph_indices == NULL)
             {
-                tile_alpha8_layout_glyph_indices =
-                        (text_transform_layout_index_t *)egui_malloc((int)((size_t)tile_glyph_capacity * sizeof(*tile_alpha8_layout_glyph_indices)));
+                tile_alpha8_layout_glyph_indices = (text_transform_layout_index_t *)egui_malloc(
+                        canvas->core, (int)((size_t)tile_glyph_capacity * sizeof(*tile_alpha8_layout_glyph_indices)));
                 if (tile_alpha8_layout_glyph_indices == NULL)
                 {
                     goto cleanup;
@@ -4221,8 +4137,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                 goto cleanup;
             }
 
-            if (text_transform_draw_visible_alpha8_tile_layout(&ctx, x, y, color, font_info, layout_glyphs, tile_alpha8_layout_glyph_indices, tile_count,
-                                                               tile_src_x0, tile_src_y0, tile_src_x1, tile_src_y1, tile_glyphs_overlap))
+            if (text_transform_draw_visible_alpha8_tile_layout(canvas, &ctx, x, y, color, font_info, layout_glyphs, tile_alpha8_layout_glyph_indices,
+                                                               tile_count, tile_src_x0, tile_src_y0, tile_src_x1, tile_src_y1, tile_glyphs_overlap))
             {
                 goto cleanup;
             }
@@ -4231,11 +4147,11 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 #if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
         if (tile_alpha8_layout_glyph_indices != NULL)
         {
-            egui_free((void *)tile_alpha8_layout_glyph_indices);
+            egui_free(canvas->core, (void *)tile_alpha8_layout_glyph_indices);
             tile_alpha8_layout_glyph_indices = NULL;
         }
 
-        if (text_transform_prepare_tile_scratch(tile_glyph_capacity, tile_line_capacity, &tile_scratch) != 0)
+        if (text_transform_prepare_tile_scratch(canvas->core, tile_glyph_capacity, tile_line_capacity, &tile_scratch) != 0)
         {
             goto cleanup;
         }
@@ -4251,7 +4167,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
             goto cleanup;
         }
 #if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
-        text_transform_release_layout_scratch(&layout_scratch);
+        text_transform_release_layout_scratch(canvas->core, &layout_scratch);
         layout_glyphs = NULL;
         layout_lines = NULL;
 #endif
@@ -4264,7 +4180,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
         if (max_external_row_bytes > 0)
         {
-            if (text_transform_external_glyph_row_cache_init(&external_row_cache, max_external_row_bytes) != 0)
+            if (text_transform_external_glyph_row_cache_init(canvas->core, &external_row_cache, max_external_row_bytes) != 0)
             {
                 EGUI_ASSERT(0);
                 goto cleanup;
@@ -4387,8 +4303,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                     if (draw_font_is_external)
                                     {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                                        if (!text_transform_batch_extract_external_glyph_alpha(g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00, &sa01,
-                                                                                               &sa10, &sa11))
+                                        if (!text_transform_batch_extract_external_glyph_alpha(canvas, g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00,
+                                                                                               &sa01, &sa10, &sa11))
                                         {
                                             goto cleanup;
                                         }
@@ -4446,8 +4362,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                     if (draw_font_is_external)
                                     {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                                        if (!text_transform_batch_extract_external_glyph_alpha(g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00, &sa01,
-                                                                                               &sa10, &sa11))
+                                        if (!text_transform_batch_extract_external_glyph_alpha(canvas, g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00,
+                                                                                               &sa01, &sa10, &sa11))
                                         {
                                             goto cleanup;
                                         }
@@ -4508,8 +4424,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                     if (draw_font_is_external)
                                     {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                                        if (!text_transform_batch_extract_external_glyph_alpha(g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00, &sa01,
-                                                                                               &sa10, &sa11))
+                                        if (!text_transform_batch_extract_external_glyph_alpha(canvas, g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00,
+                                                                                               &sa01, &sa10, &sa11))
                                         {
                                             goto cleanup;
                                         }
@@ -4574,8 +4490,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                     if (draw_font_is_external)
                                     {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                                        if (!text_transform_batch_extract_external_glyph_alpha(g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00, &sa01,
-                                                                                               &sa10, &sa11))
+                                        if (!text_transform_batch_extract_external_glyph_alpha(canvas, g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00,
+                                                                                               &sa01, &sa10, &sa11))
                                         {
                                             goto cleanup;
                                         }
@@ -4655,7 +4571,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                         if (draw_font_is_external)
                         {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                            sample_tile_alpha_pair_from_line_external(tile_glyphs, &tile_lines[line0], sx, sy, bpp, &a00, &a01, &hint00, &hint01,
+                            sample_tile_alpha_pair_from_line_external(canvas, tile_glyphs, &tile_lines[line0], sx, sy, bpp, &a00, &a01, &hint00, &hint01,
                                                                       &external_row_cache);
 #endif
                         }
@@ -4679,7 +4595,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                         if (draw_font_is_external)
                         {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                            sample_tile_alpha_pair_from_line_external(tile_glyphs, &tile_lines[line1], sx, sy + 1, bpp, &a10, &a11, &hint10, &hint11,
+                            sample_tile_alpha_pair_from_line_external(canvas, tile_glyphs, &tile_lines[line1], sx, sy + 1, bpp, &a10, &a11, &hint10, &hint11,
                                                                       &external_row_cache);
 #endif
                         }
@@ -4786,15 +4702,15 @@ cleanup:;
 #if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
     if (tile_alpha8_layout_glyph_indices != NULL)
     {
-        egui_free((void *)tile_alpha8_layout_glyph_indices);
+        egui_free(canvas->core, (void *)tile_alpha8_layout_glyph_indices);
     }
-    text_transform_release_tile_scratch(&tile_scratch);
-    text_transform_release_layout_scratch(&layout_scratch);
+    text_transform_release_tile_scratch(canvas->core, &tile_scratch);
+    text_transform_release_layout_scratch(canvas->core, &layout_scratch);
 #endif
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (external_row_cache_ready)
     {
-        text_transform_external_glyph_row_cache_release(&external_row_cache);
+        text_transform_external_glyph_row_cache_release(canvas->core, &external_row_cache);
     }
 #endif
 }
@@ -4949,9 +4865,9 @@ static void rasterize_glyph4_to_alpha8_inside_overwrite(uint8_t *buf, int buf_w,
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static int rasterize_external_layout_glyph4_to_alpha8_inside_common(uint8_t *buf, int buf_w, int dst_x, int dst_y, const egui_font_std_info_t *font_info,
-                                                                    const text_transform_layout_glyph_t *glyph, int overwrite,
-                                                                    text_transform_external_layout_glyph_row_scratch_t *scratch)
+static int rasterize_external_layout_glyph4_to_alpha8_inside_common(egui_canvas_t *canvas, uint8_t *buf, int buf_w, int dst_x, int dst_y,
+                                                                    const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyph,
+                                                                    int overwrite, text_transform_external_layout_glyph_row_scratch_t *scratch)
 {
     int chunk_rows;
     int row_bytes;
@@ -4987,7 +4903,7 @@ static int rasterize_external_layout_glyph4_to_alpha8_inside_common(uint8_t *buf
         {
             rows_this_chunk = chunk_rows;
         }
-        if (!text_transform_load_external_layout_glyph_rows(font_info, glyph, row, rows_this_chunk, scratch))
+        if (!text_transform_load_external_layout_glyph_rows(canvas, font_info, glyph, row, rows_this_chunk, scratch))
         {
             return 0;
         }
@@ -5069,22 +4985,22 @@ static int rasterize_external_layout_glyph4_to_alpha8_inside_common(uint8_t *buf
     return 1;
 }
 
-static int rasterize_external_layout_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x, int dst_y, const egui_font_std_info_t *font_info,
-                                                             const text_transform_layout_glyph_t *glyph,
+static int rasterize_external_layout_glyph4_to_alpha8_inside(egui_canvas_t *canvas, uint8_t *buf, int buf_w, int dst_x, int dst_y,
+                                                             const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyph,
                                                              text_transform_external_layout_glyph_row_scratch_t *scratch)
 {
-    return rasterize_external_layout_glyph4_to_alpha8_inside_common(buf, buf_w, dst_x, dst_y, font_info, glyph, 0, scratch);
+    return rasterize_external_layout_glyph4_to_alpha8_inside_common(canvas, buf, buf_w, dst_x, dst_y, font_info, glyph, 0, scratch);
 }
 
-static int rasterize_external_layout_glyph4_to_alpha8_inside_overwrite(uint8_t *buf, int buf_w, int dst_x, int dst_y, const egui_font_std_info_t *font_info,
-                                                                       const text_transform_layout_glyph_t *glyph,
+static int rasterize_external_layout_glyph4_to_alpha8_inside_overwrite(egui_canvas_t *canvas, uint8_t *buf, int buf_w, int dst_x, int dst_y,
+                                                                       const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyph,
                                                                        text_transform_external_layout_glyph_row_scratch_t *scratch)
 {
-    return rasterize_external_layout_glyph4_to_alpha8_inside_common(buf, buf_w, dst_x, dst_y, font_info, glyph, 1, scratch);
+    return rasterize_external_layout_glyph4_to_alpha8_inside_common(canvas, buf, buf_w, dst_x, dst_y, font_info, glyph, 1, scratch);
 }
 #endif
 
-static int text_transform_rasterize_visible_alpha8_layout(uint8_t *alpha8_buf, int buf_w, int buf_h, int16_t src_x0, int16_t src_y0,
+static int text_transform_rasterize_visible_alpha8_layout(egui_canvas_t *canvas, uint8_t *alpha8_buf, int buf_w, int buf_h, int16_t src_x0, int16_t src_y0,
                                                           const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *layout_glyphs,
                                                           const text_transform_layout_index_t *glyph_indices, int glyph_count, int glyphs_overlap)
 {
@@ -5105,7 +5021,7 @@ static int text_transform_rasterize_visible_alpha8_layout(uint8_t *alpha8_buf, i
     {
         int max_row_bytes = text_transform_measure_visible_max_row_bytes(layout_glyphs, glyph_indices, glyph_count);
 
-        if (max_row_bytes > 0 && text_transform_external_layout_glyph_row_scratch_init(&external_row_scratch, max_row_bytes) != 0)
+        if (max_row_bytes > 0 && text_transform_external_layout_glyph_row_scratch_init(canvas->core, &external_row_scratch, max_row_bytes) != 0)
         {
             EGUI_ASSERT(0);
             return -1;
@@ -5124,7 +5040,7 @@ static int text_transform_rasterize_visible_alpha8_layout(uint8_t *alpha8_buf, i
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
             if (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
             {
-                if (!rasterize_external_layout_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info, glyph,
+                if (!rasterize_external_layout_glyph4_to_alpha8_inside(canvas, alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info, glyph,
                                                                        &external_row_scratch))
                 {
                     status = -1;
@@ -5148,8 +5064,8 @@ static int text_transform_rasterize_visible_alpha8_layout(uint8_t *alpha8_buf, i
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
             if (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
             {
-                if (!rasterize_external_layout_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info, glyph,
-                                                                                 &external_row_scratch))
+                if (!rasterize_external_layout_glyph4_to_alpha8_inside_overwrite(canvas, alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info,
+                                                                                 glyph, &external_row_scratch))
                 {
                     status = -1;
                     goto cleanup;
@@ -5166,12 +5082,12 @@ static int text_transform_rasterize_visible_alpha8_layout(uint8_t *alpha8_buf, i
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 cleanup:;
-    text_transform_external_layout_glyph_row_scratch_release(&external_row_scratch);
+    text_transform_external_layout_glyph_row_scratch_release(canvas->core, &external_row_scratch);
 #endif
     return status;
 }
 
-static int text_transform_ensure_visible_tile_capacity(int needed, uint8_t **buf, int *capacity)
+static int text_transform_ensure_visible_tile_capacity(egui_core_t *core, int needed, uint8_t **buf, int *capacity)
 {
     int alloc_size;
     uint8_t *new_buf;
@@ -5194,7 +5110,7 @@ static int text_transform_ensure_visible_tile_capacity(int needed, uint8_t **buf
     }
 #endif
 
-    new_buf = (uint8_t *)egui_malloc(alloc_size);
+    new_buf = (uint8_t *)egui_malloc(core, alloc_size);
     if (new_buf == NULL)
     {
         return -1;
@@ -5202,7 +5118,7 @@ static int text_transform_ensure_visible_tile_capacity(int needed, uint8_t **buf
 
     if (*buf != NULL)
     {
-        egui_free(*buf);
+        egui_free(core, *buf);
     }
 
     *buf = new_buf;
@@ -6383,7 +6299,7 @@ static void rasterize_glyph4_to_packed_inside_overwrite(uint8_t *buf, int buf_w,
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static int rasterize_external_layout_glyph4_to_packed_inside_common(uint8_t *buf, int buf_w, int buf_h, int dst_x, int dst_y,
+static int rasterize_external_layout_glyph4_to_packed_inside_common(egui_canvas_t *canvas, uint8_t *buf, int buf_w, int buf_h, int dst_x, int dst_y,
                                                                     const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyph,
                                                                     int overwrite, text_transform_external_layout_glyph_row_scratch_t *scratch)
 {
@@ -6421,7 +6337,7 @@ static int rasterize_external_layout_glyph4_to_packed_inside_common(uint8_t *buf
             {
                 rows_this_chunk = chunk_rows;
             }
-            if (!text_transform_load_external_layout_glyph_rows(font_info, glyph, row, rows_this_chunk, scratch))
+            if (!text_transform_load_external_layout_glyph_rows(canvas, font_info, glyph, row, rows_this_chunk, scratch))
             {
                 return 0;
             }
@@ -6447,7 +6363,7 @@ static int rasterize_external_layout_glyph4_to_packed_inside_common(uint8_t *buf
         {
             rows_this_chunk = chunk_rows;
         }
-        if (!text_transform_load_external_layout_glyph_rows(font_info, glyph, row, rows_this_chunk, scratch))
+        if (!text_transform_load_external_layout_glyph_rows(canvas, font_info, glyph, row, rows_this_chunk, scratch))
         {
             return 0;
         }
@@ -6486,18 +6402,18 @@ static int rasterize_external_layout_glyph4_to_packed_inside_common(uint8_t *buf
     return 1;
 }
 
-static int rasterize_external_layout_glyph4_to_packed_inside(uint8_t *buf, int buf_w, int buf_h, int dst_x, int dst_y, const egui_font_std_info_t *font_info,
-                                                             const text_transform_layout_glyph_t *glyph,
+static int rasterize_external_layout_glyph4_to_packed_inside(egui_canvas_t *canvas, uint8_t *buf, int buf_w, int buf_h, int dst_x, int dst_y,
+                                                             const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyph,
                                                              text_transform_external_layout_glyph_row_scratch_t *scratch)
 {
-    return rasterize_external_layout_glyph4_to_packed_inside_common(buf, buf_w, buf_h, dst_x, dst_y, font_info, glyph, 0, scratch);
+    return rasterize_external_layout_glyph4_to_packed_inside_common(canvas, buf, buf_w, buf_h, dst_x, dst_y, font_info, glyph, 0, scratch);
 }
 
-static int rasterize_external_layout_glyph4_to_packed_inside_overwrite(uint8_t *buf, int buf_w, int buf_h, int dst_x, int dst_y,
+static int rasterize_external_layout_glyph4_to_packed_inside_overwrite(egui_canvas_t *canvas, uint8_t *buf, int buf_w, int buf_h, int dst_x, int dst_y,
                                                                        const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyph,
                                                                        text_transform_external_layout_glyph_row_scratch_t *scratch)
 {
-    return rasterize_external_layout_glyph4_to_packed_inside_common(buf, buf_w, buf_h, dst_x, dst_y, font_info, glyph, 1, scratch);
+    return rasterize_external_layout_glyph4_to_packed_inside_common(canvas, buf, buf_w, buf_h, dst_x, dst_y, font_info, glyph, 1, scratch);
 }
 #endif
 
@@ -6827,11 +6743,13 @@ static int text_transform_draw_packed4_buffer(const text_transform_ctx_t *ctx, e
     return 1;
 }
 
-static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                                                          const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *layout_glyphs,
+static int text_transform_draw_visible_alpha8_tile_layout(egui_canvas_t *canvas, const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y,
+                                                          egui_color_t color, const egui_font_std_info_t *font_info,
+                                                          const text_transform_layout_glyph_t *layout_glyphs,
                                                           const text_transform_layout_index_t *glyph_indices, int glyph_count, int16_t src_x0, int16_t src_y0,
                                                           int16_t src_x1, int16_t src_y1, int glyphs_overlap)
 {
+    egui_core_t *core = canvas->core;
     int buf_w;
     int buf_h;
     int buf_size;
@@ -6862,8 +6780,8 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
     {
         uint8_t alpha8_stack_buf[EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES];
 
-        if (text_transform_rasterize_visible_alpha8_layout(alpha8_stack_buf, buf_w, buf_h, src_x0, src_y0, font_info, layout_glyphs, glyph_indices, glyph_count,
-                                                           glyphs_overlap) == 0 &&
+        if (text_transform_rasterize_visible_alpha8_layout(canvas, alpha8_stack_buf, buf_w, buf_h, src_x0, src_y0, font_info, layout_glyphs, glyph_indices,
+                                                           glyph_count, glyphs_overlap) == 0 &&
             text_transform_draw_alpha8_buffer(ctx, x, y, color, alpha8_stack_buf, src_x0, src_y0, buf_w, buf_h, src_y0, src_y1))
         {
             return 1;
@@ -6873,11 +6791,12 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
 
     /* Keep the alpha8 fast path for smaller visible tiles, but cap its peak heap usage. */
     if (buf_size > 0 && buf_size <= EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES &&
-        text_transform_ensure_visible_tile_capacity(buf_size, &g_text_transform_visible_tile_cache.buf, &g_text_transform_visible_tile_cache.capacity) == 0)
+        text_transform_ensure_visible_tile_capacity(canvas->core, buf_size, &g_text_transform_visible_tile_cache.buf,
+                                                    &g_text_transform_visible_tile_cache.capacity) == 0)
     {
         alpha8_buf = g_text_transform_visible_tile_cache.buf;
-        if (text_transform_rasterize_visible_alpha8_layout(alpha8_buf, buf_w, buf_h, src_x0, src_y0, font_info, layout_glyphs, glyph_indices, glyph_count,
-                                                           glyphs_overlap) == 0 &&
+        if (text_transform_rasterize_visible_alpha8_layout(canvas, alpha8_buf, buf_w, buf_h, src_x0, src_y0, font_info, layout_glyphs, glyph_indices,
+                                                           glyph_count, glyphs_overlap) == 0 &&
             text_transform_draw_alpha8_buffer(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h, src_y0, src_y1))
         {
             return 1;
@@ -6886,7 +6805,8 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
 
     /* Larger tiles fall back to packed4 to avoid large transient heap buffers. */
     packed_size = packed_row_bytes(buf_w, 4) * buf_h;
-    if (text_transform_ensure_visible_tile_capacity(packed_size, &g_text_transform_visible_tile_cache.buf, &g_text_transform_visible_tile_cache.capacity) == 0)
+    if (text_transform_ensure_visible_tile_capacity(canvas->core, packed_size, &g_text_transform_visible_tile_cache.buf,
+                                                    &g_text_transform_visible_tile_cache.capacity) == 0)
     {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         text_transform_external_layout_glyph_row_scratch_t external_row_scratch = {
@@ -6901,7 +6821,7 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
         {
             int max_row_bytes = text_transform_measure_visible_max_row_bytes(layout_glyphs, glyph_indices, glyph_count);
 
-            if (max_row_bytes > 0 && text_transform_external_layout_glyph_row_scratch_init(&external_row_scratch, max_row_bytes) != 0)
+            if (max_row_bytes > 0 && text_transform_external_layout_glyph_row_scratch_init(core, &external_row_scratch, max_row_bytes) != 0)
             {
                 EGUI_ASSERT(0);
                 return 0;
@@ -6918,10 +6838,10 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
                 if (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
                 {
-                    if (!rasterize_external_layout_glyph4_to_packed_inside(packed_buf, buf_w, buf_h, glyph->x - src_x0, glyph->y - src_y0, font_info, glyph,
-                                                                           &external_row_scratch))
+                    if (!rasterize_external_layout_glyph4_to_packed_inside(canvas, packed_buf, buf_w, buf_h, glyph->x - src_x0, glyph->y - src_y0, font_info,
+                                                                           glyph, &external_row_scratch))
                     {
-                        text_transform_external_layout_glyph_row_scratch_release(&external_row_scratch);
+                        text_transform_external_layout_glyph_row_scratch_release(core, &external_row_scratch);
                         return 0;
                     }
                 }
@@ -6942,10 +6862,10 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
                 if (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
                 {
-                    if (!rasterize_external_layout_glyph4_to_packed_inside_overwrite(packed_buf, buf_w, buf_h, glyph->x - src_x0, glyph->y - src_y0, font_info,
-                                                                                     glyph, &external_row_scratch))
+                    if (!rasterize_external_layout_glyph4_to_packed_inside_overwrite(canvas, packed_buf, buf_w, buf_h, glyph->x - src_x0, glyph->y - src_y0,
+                                                                                     font_info, glyph, &external_row_scratch))
                     {
-                        text_transform_external_layout_glyph_row_scratch_release(&external_row_scratch);
+                        text_transform_external_layout_glyph_row_scratch_release(core, &external_row_scratch);
                         return 0;
                     }
                 }
@@ -6959,7 +6879,7 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
         }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        text_transform_external_layout_glyph_row_scratch_release(&external_row_scratch);
+        text_transform_external_layout_glyph_row_scratch_release(core, &external_row_scratch);
 #endif
         if (text_transform_draw_packed4_buffer(ctx, x, y, color, packed_buf, src_x0, src_y0, buf_w, buf_h))
         {

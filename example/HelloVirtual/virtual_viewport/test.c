@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <string.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define DEMO_MAX_ITEMS                 1200U
 #define DEMO_FEED_ITEMS                1080U
@@ -163,6 +163,7 @@ static egui_view_button_t scene_buttons[DEMO_SCENE_COUNT];
 static egui_view_button_t action_buttons[DEMO_ACTION_COUNT];
 static egui_view_virtual_viewport_t viewport_1;
 static demo_virtual_viewport_context_t viewport_context;
+static egui_core_t *s_core;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
@@ -631,7 +632,7 @@ static void demo_capture_row_state(demo_virtual_row_t *row, demo_virtual_row_sta
 
     if (anim->start_time != (uint32_t)-1 && anim->duration > 0)
     {
-        uint32_t elapsed_ms = egui_api_timer_get_current() - anim->start_time;
+        uint32_t elapsed_ms = egui_api_timer_get_current_core(s_core) - anim->start_time;
 
         if (elapsed_ms >= anim->duration)
         {
@@ -664,7 +665,7 @@ static void demo_restore_row_state(demo_virtual_row_t *row, const demo_virtual_r
     anim->is_ended = 0;
     anim->is_cycle_flip = state->pulse_cycle_flip ? 1U : 0U;
     anim->repeated = (int8_t)state->pulse_repeated;
-    anim->start_time = egui_api_timer_get_current() - state->pulse_elapsed_ms;
+    anim->start_time = egui_api_timer_get_current_core(s_core) - state->pulse_elapsed_ms;
 }
 
 static void demo_style_scene_buttons(void)
@@ -1801,14 +1802,14 @@ static egui_view_t *demo_create_item_view(void *adapter_context, uint16_t view_t
     row->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
     row->view_type = view_type;
 
-    egui_view_group_init(EGUI_VIEW_OF(&row->root));
-    egui_view_card_init(EGUI_VIEW_OF(&row->surface));
-    egui_view_label_init(EGUI_VIEW_OF(&row->title));
-    egui_view_label_init(EGUI_VIEW_OF(&row->subtitle));
-    egui_view_label_init(EGUI_VIEW_OF(&row->meta));
-    egui_view_label_init(EGUI_VIEW_OF(&row->badge));
-    egui_view_progress_bar_init(EGUI_VIEW_OF(&row->progress));
-    egui_view_init(EGUI_VIEW_OF(&row->pulse));
+    egui_view_group_init(EGUI_VIEW_OF(&row->root), s_core);
+    egui_view_card_init(EGUI_VIEW_OF(&row->surface), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&row->title), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&row->subtitle), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&row->meta), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&row->badge), s_core);
+    egui_view_progress_bar_init(EGUI_VIEW_OF(&row->progress), s_core);
+    egui_view_init(EGUI_VIEW_OF(&row->pulse), s_core);
 
     egui_view_label_set_font(EGUI_VIEW_OF(&row->title), DEMO_FONT_TITLE);
     egui_view_label_set_font(EGUI_VIEW_OF(&row->subtitle), DEMO_FONT_BODY);
@@ -2007,7 +2008,7 @@ static void action_button_click_cb(egui_view_t *self)
 static void demo_init_chip_button(egui_view_button_t *button, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const char *text,
                                   egui_view_on_click_listener_t listener)
 {
-    egui_view_button_init(EGUI_VIEW_OF(button));
+    egui_view_button_init(EGUI_VIEW_OF(button), s_core);
     egui_view_set_position(EGUI_VIEW_OF(button), x, y);
     egui_view_set_size(EGUI_VIEW_OF(button), width, height);
     egui_view_label_set_text(EGUI_VIEW_OF(button), text);
@@ -2089,10 +2090,11 @@ static egui_view_t *find_first_fully_visible_view_after(uint32_t min_index)
 }
 #endif
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     uint8_t i;
 
+    s_core = core;
     memset(&viewport_context, 0, sizeof(viewport_context));
     viewport_context.selected_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
     viewport_context.last_clicked_index = DEMO_INVALID_INDEX;
@@ -2103,18 +2105,18 @@ void test_init_ui(void)
     recording_mutation_verify_retry = 0U;
 #endif
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
+    egui_view_init(EGUI_VIEW_OF(&background_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&screen_bg));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), &header_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &header_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&header_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&header_card), 1, EGUI_COLOR_HEX(0xD7E1EA));
     egui_view_set_shadow(EGUI_VIEW_OF(&header_card), &demo_card_shadow);
 
-    egui_view_label_init(EGUI_VIEW_OF(&header_title));
-    egui_view_label_init(EGUI_VIEW_OF(&header_detail));
-    egui_view_label_init(EGUI_VIEW_OF(&header_hint));
+    egui_view_label_init(EGUI_VIEW_OF(&header_title), core);
+    egui_view_label_init(EGUI_VIEW_OF(&header_detail), core);
+    egui_view_label_init(EGUI_VIEW_OF(&header_hint), core);
 
     egui_view_label_set_font(EGUI_VIEW_OF(&header_title), DEMO_FONT_HEADER);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_detail), DEMO_FONT_CAP);
@@ -2143,7 +2145,7 @@ void test_init_ui(void)
         egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&scene_buttons[i]));
     }
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), &toolbar_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &toolbar_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&toolbar_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&toolbar_card), 1, EGUI_COLOR_HEX(0xD7E1EA));
 
@@ -2164,7 +2166,7 @@ void test_init_ui(void)
                 .state_cache_max_bytes = DEMO_STATE_CACHE_COUNT * (uint32_t)sizeof(demo_virtual_row_state_t),
         };
 
-        egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&viewport_1), &viewport_setup);
+        egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&viewport_1), core, &viewport_setup);
     }
     egui_view_set_background(EGUI_VIEW_OF(&viewport_1), EGUI_BG_OF(&list_bg));
     egui_view_set_shadow(EGUI_VIEW_OF(&viewport_1), &demo_card_shadow);

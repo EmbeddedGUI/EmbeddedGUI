@@ -91,11 +91,11 @@ void egui_view_digital_clock_set_show_second(egui_view_t *self, uint8_t show)
     format_time(self);
 }
 
-void egui_view_digital_clock_init(egui_view_t *self)
+void egui_view_digital_clock_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_digital_clock_t);
     // call super init.
-    egui_view_label_init(self);
+    egui_view_label_init(self, core);
     local->base.font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
     egui_view_label_set_text(self, local->time_buffer);
 
@@ -112,8 +112,8 @@ void egui_view_digital_clock_init(egui_view_t *self)
     egui_view_set_view_name(self, "egui_view_digital_clock");
 }
 
-void egui_view_digital_clock_init_with_params(egui_view_t *self, const egui_view_label_params_t *params)
+void egui_view_digital_clock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params)
 {
-    egui_view_digital_clock_init(self);
+    egui_view_digital_clock_init(self, core);
     egui_view_label_apply_params(self, params);
 }

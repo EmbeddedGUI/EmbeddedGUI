@@ -1,4 +1,4 @@
-#include "egui_canvas.h"
+﻿#include "egui_canvas.h"
 
 /**
  * @brief High-quality line/polyline drawing with sub-pixel sampling.
@@ -11,9 +11,9 @@
 /* ========================== Config & Alpha Tables ========================== */
 
 /* NOTE: Scale must be 2x the logical sample count so that sub-pixel offsets
- * (±1, ±3) land INSIDE the pixel boundary (±0.5 original pixel).
- * 2x2 mode: SCALE=4 → offsets ±1 map to ±0.25 pixel  (within ±0.5) ✓
- * 4x4 mode: SCALE=8 → offsets ±1,±3 map to ±0.125,±0.375 pixel (within ±0.5) ✓
+ * (卤1, 卤3) land INSIDE the pixel boundary (卤0.5 original pixel).
+ * 2x2 mode: SCALE=4 锟?offsets 卤1 map to 卤0.25 pixel  (within 卤0.5) 锟?
+ * 4x4 mode: SCALE=8 锟?offsets 卤1,卤3 map to 卤0.125,卤0.375 pixel (within 卤0.5) 锟?
  */
 #if EGUI_CONFIG_LINE_HQ_SAMPLE_2X2
 #define LINE_HQ_SCALE    4
@@ -98,8 +98,7 @@ static uint16_t line_hq_isqrt32(uint32_t n)
 #define LINE_HQ_SAMPLE_FIRST_OFFSET (-3)
 #endif
 
-#define LINE_HQ_SAMPLE_STEP         2
-#define LINE_HQ_PIXEL_CENTER_OFFSET (LINE_HQ_SCALE / 2)
+#define LINE_HQ_SAMPLE_STEP 2
 
 typedef struct line_hq_sample_ctx_t
 {
@@ -183,7 +182,7 @@ static void line_hq_init_sample_ctx(line_hq_sample_ctx_t *ctx, int32_t dx, int32
     ctx->dot_step_x = (int64_t)ctx->dx_s * LINE_HQ_SAMPLE_STEP;
 }
 
-__EGUI_STATIC_INLINE__ int32_t line_hq_fp16_to_int_trunc0(int64_t value)
+__EGUI_STATIC_INLINE__ int32_t line_hq_fp16_to_int_trunc0(egui_canvas_t *self, int64_t value)
 {
     if (value >= 0)
     {
@@ -202,8 +201,8 @@ __EGUI_STATIC_INLINE__ int32_t line_hq_fp16_to_int_trunc0(int64_t value)
  */
 static uint8_t line_hq_get_pixel_coverage(int32_t rel_x, int32_t rel_y, const line_hq_sample_ctx_t *ctx)
 {
-    int32_t spx = rel_x * LINE_HQ_SCALE + LINE_HQ_PIXEL_CENTER_OFFSET + LINE_HQ_SAMPLE_FIRST_OFFSET;
-    int32_t spy = rel_y * LINE_HQ_SCALE + LINE_HQ_PIXEL_CENTER_OFFSET + LINE_HQ_SAMPLE_FIRST_OFFSET;
+    int32_t spx = rel_x * LINE_HQ_SCALE + LINE_HQ_SAMPLE_FIRST_OFFSET;
+    int32_t spy = rel_y * LINE_HQ_SCALE + LINE_HQ_SAMPLE_FIRST_OFFSET;
     uint8_t count = 0;
     uint8_t sy;
 
@@ -243,8 +242,8 @@ static uint8_t line_hq_get_pixel_coverage(int32_t rel_x, int32_t rel_y, const li
  */
 static uint8_t line_hq_get_pixel_coverage_round_cap(int32_t rel_x, int32_t rel_y, const line_hq_sample_ctx_t *ctx, int32_t cap_start, int32_t cap_end)
 {
-    int32_t spx_row = rel_x * LINE_HQ_SCALE + LINE_HQ_PIXEL_CENTER_OFFSET + LINE_HQ_SAMPLE_FIRST_OFFSET;
-    int32_t spy = rel_y * LINE_HQ_SCALE + LINE_HQ_PIXEL_CENTER_OFFSET + LINE_HQ_SAMPLE_FIRST_OFFSET;
+    int32_t spx_row = rel_x * LINE_HQ_SCALE + LINE_HQ_SAMPLE_FIRST_OFFSET;
+    int32_t spy = rel_y * LINE_HQ_SCALE + LINE_HQ_SAMPLE_FIRST_OFFSET;
     uint8_t count = 0;
     uint8_t sy;
 
@@ -300,9 +299,9 @@ static uint8_t line_hq_get_pixel_coverage_round_cap(int32_t rel_x, int32_t rel_y
 
 /* ========================== Line HQ ========================== */
 
-void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_line_hq(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
+                              egui_alpha_t alpha)
 {
-    egui_canvas_t *self = &canvas_data;
 
     egui_dim_t deltax = EGUI_ABS(x2 - x1);
     egui_dim_t deltay = EGUI_ABS(y2 - y1);
@@ -312,7 +311,7 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
     {
         egui_dim_t min_y = EGUI_MIN(y1, y2);
         egui_dim_t half_w = stroke_width >> 1;
-        egui_canvas_draw_fillrect(x1 - half_w, min_y, stroke_width, deltay + 1, color, alpha);
+        egui_canvas_draw_fillrect(self, x1 - half_w, min_y, stroke_width, deltay + 1, color, alpha);
         return;
     }
     // Special case: horizontal line
@@ -320,14 +319,14 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
     {
         egui_dim_t min_x = EGUI_MIN(x1, x2);
         egui_dim_t half_w = stroke_width >> 1;
-        egui_canvas_draw_fillrect(min_x, y1 - half_w, deltax + 1, stroke_width, color, alpha);
+        egui_canvas_draw_fillrect(self, min_x, y1 - half_w, deltax + 1, stroke_width, color, alpha);
         return;
     }
 
     // Thin lines: delegate to existing Wu's algorithm
     if (stroke_width <= 1)
     {
-        egui_canvas_draw_line(x1, y1, x2, y2, stroke_width, color, alpha);
+        egui_canvas_draw_line(self, x1, y1, x2, y2, stroke_width, color, alpha);
         return;
     }
 
@@ -418,7 +417,7 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
         }
 
         // Narrow x scan range based on cross product geometry
-        int32_t x_center = line_hq_fp16_to_int_trunc0(x_center_fp);
+        int32_t x_center = line_hq_fp16_to_int_trunc0(self, x_center_fp);
         egui_dim_t row_x1 = (egui_dim_t)EGUI_MAX((int32_t)scan_x1, x_center - half_range_x);
         egui_dim_t row_x2 = (egui_dim_t)EGUI_MIN((int32_t)scan_x2, x_center + half_range_x);
         int32_t rel_y = py - y1;
@@ -450,7 +449,7 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
                 }
                 else
                 {
-                    egui_canvas_draw_point(px, py, color, solid_alpha);
+                    egui_canvas_draw_point(self, px, py, color, solid_alpha);
                 }
                 continue;
             }
@@ -465,7 +464,7 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
                 }
                 else
                 {
-                    egui_canvas_draw_point(px, py, color, sample_alpha_table[cov_idx]);
+                    egui_canvas_draw_point(self, px, py, color, sample_alpha_table[cov_idx]);
                 }
             }
         }
@@ -476,40 +475,12 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
 
 /* ========================== Line Segment HQ ========================== */
 
-void egui_canvas_draw_line_segment_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
-                                      egui_alpha_t alpha)
+void egui_canvas_draw_line_segment_hq(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width,
+                                      egui_color_t color, egui_alpha_t alpha)
 {
-    egui_dim_t deltax = EGUI_ABS(x2 - x1);
-    egui_dim_t deltay = EGUI_ABS(y2 - y1);
-
-    if (deltax == 0 && deltay == 0)
-    {
-        egui_canvas_draw_line_hq(x1, y1, x2, y2, stroke_width, color, alpha);
-        return;
-    }
-
-    /* Unlike generic canvas lines, SVG stroke segments use butt endpoints.
-     * Axis-aligned segment fast paths must therefore keep the end pixel exclusive.
-     */
-    if (deltax == 0)
-    {
-        egui_dim_t min_y = EGUI_MIN(y1, y2);
-        egui_dim_t half_w = stroke_width >> 1;
-
-        egui_canvas_draw_fillrect(x1 - half_w, min_y, stroke_width, deltay, color, alpha);
-        return;
-    }
-    if (deltay == 0)
-    {
-        egui_dim_t min_x = EGUI_MIN(x1, x2);
-        egui_dim_t half_w = stroke_width >> 1;
-
-        egui_canvas_draw_fillrect(min_x, y1 - half_w, deltax, stroke_width, color, alpha);
-        return;
-    }
-
-    // For non-axis-aligned segments, reuse the HQ path which already samples butt caps.
-    egui_canvas_draw_line_hq(x1, y1, x2, y2, stroke_width, color, alpha);
+    // For HQ, line and line_segment use the same sub-pixel sampling
+    // which naturally handles butt caps via the dot product test
+    egui_canvas_draw_line_hq(self, x1, y1, x2, y2, stroke_width, color, alpha);
 }
 
 /* ========================== Line Round Cap HQ ========================== */
@@ -520,10 +491,9 @@ void egui_canvas_draw_line_segment_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x
  * The round cap extends the line by half_w at each endpoint as a semicircle,
  * giving a smooth rounded appearance. Uses sub-pixel sampling for AA.
  */
-void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
-                                        egui_alpha_t alpha)
+void egui_canvas_draw_line_round_cap_hq(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width,
+                                        egui_color_t color, egui_alpha_t alpha)
 {
-    egui_canvas_t *self = &canvas_data;
 
     egui_dim_t deltax = EGUI_ABS(x2 - x1);
     egui_dim_t deltay = EGUI_ABS(y2 - y1);
@@ -534,11 +504,11 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
         egui_dim_t r = stroke_width >> 1;
         if (r > 0)
         {
-            egui_canvas_draw_circle_fill_hq(x1, y1, r, color, alpha);
+            egui_canvas_draw_circle_fill_hq(self, x1, y1, r, color, alpha);
         }
         else
         {
-            egui_canvas_draw_point(x1, y1, color, alpha);
+            egui_canvas_draw_point(self, x1, y1, color, alpha);
         }
         return;
     }
@@ -546,7 +516,7 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
     // Thin lines: delegate to existing Wu's algorithm
     if (stroke_width <= 1)
     {
-        egui_canvas_draw_line(x1, y1, x2, y2, stroke_width, color, alpha);
+        egui_canvas_draw_line(self, x1, y1, x2, y2, stroke_width, color, alpha);
         return;
     }
 
@@ -657,7 +627,7 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
                     }
                     else
                     {
-                        egui_canvas_draw_point(px, py, color, solid_alpha);
+                        egui_canvas_draw_point(self, px, py, color, solid_alpha);
                     }
                     continue;
                 }
@@ -695,7 +665,7 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
                 }
                 else
                 {
-                    egui_canvas_draw_point(px, py, color, sample_alpha_table[cov_idx]);
+                    egui_canvas_draw_point(self, px, py, color, sample_alpha_table[cov_idx]);
                 }
             }
         }
@@ -886,7 +856,7 @@ static void line_hq_draw_polyline_segment(const line_hq_polyline_draw_ctx_t *ctx
                     }
                     else
                     {
-                        egui_canvas_draw_point(px, py, color, solid_alpha);
+                        egui_canvas_draw_point(self, px, py, color, solid_alpha);
                     }
                     continue;
                 }
@@ -921,17 +891,16 @@ static void line_hq_draw_polyline_segment(const line_hq_polyline_draw_ctx_t *ctx
                 }
                 else
                 {
-                    egui_canvas_draw_point(px, py, color, sample_alpha_table[cov_idx]);
+                    egui_canvas_draw_point(self, px, py, color, sample_alpha_table[cov_idx]);
                 }
             }
         }
     }
 }
 
-static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha,
-                                           int32_t round_cap)
+static void line_hq_draw_polyline_internal(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color,
+                                           egui_alpha_t alpha, int32_t round_cap)
 {
-    egui_canvas_t *self = &canvas_data;
 
     if (count < 2)
     {
@@ -941,7 +910,7 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
     // Thin lines: delegate to existing polyline
     if (stroke_width <= 1)
     {
-        egui_canvas_draw_polyline(points, count, stroke_width, color, alpha);
+        egui_canvas_draw_polyline(self, points, count, stroke_width, color, alpha);
         return;
     }
 
@@ -998,20 +967,21 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
         {
             for (uint8_t i = 1; i < count - 1; i++)
             {
-                egui_canvas_draw_circle_fill_hq(points[i * 2], points[i * 2 + 1], joint_r, color, alpha);
+                egui_canvas_draw_circle_fill_hq(self, points[i * 2], points[i * 2 + 1], joint_r, color, alpha);
             }
         }
     }
 }
 
-void egui_canvas_draw_polyline_hq(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_polyline_hq(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
-    line_hq_draw_polyline_internal(points, count, stroke_width, color, alpha, 0);
+    line_hq_draw_polyline_internal(self, points, count, stroke_width, color, alpha, 0);
 }
 
-void egui_canvas_draw_polyline_round_cap_hq(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_polyline_round_cap_hq(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color,
+                                            egui_alpha_t alpha)
 {
-    line_hq_draw_polyline_internal(points, count, stroke_width, color, alpha, 1);
+    line_hq_draw_polyline_internal(self, points, count, stroke_width, color, alpha, 1);
 }
 
 /* ========================== Arc Round Cap HQ ========================== */
@@ -1024,12 +994,12 @@ void egui_canvas_draw_polyline_round_cap_hq(const egui_dim_t *points, uint8_t co
  * Draws the arc using egui_canvas_draw_arc_hq(), then adds filled circles
  * at the start and end points of the arc stroke (at the middle radius).
  */
-void egui_canvas_draw_arc_round_cap_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_dim_t stroke_width,
-                                       egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_arc_round_cap_hq(egui_canvas_t *self, egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
+                                       egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
     if (radius <= stroke_width)
     {
-        egui_canvas_draw_arc_fill_hq(cx, cy, radius, start_angle, end_angle, color, alpha);
+        egui_canvas_draw_arc_fill_hq(self, cx, cy, radius, start_angle, end_angle, color, alpha);
         return;
     }
     if (start_angle < 0 || end_angle < 0 || start_angle > end_angle || start_angle == end_angle)
@@ -1038,7 +1008,7 @@ void egui_canvas_draw_arc_round_cap_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t 
         return;
 
     // Draw the arc stroke
-    egui_canvas_draw_arc_hq(cx, cy, radius, start_angle, end_angle, stroke_width, color, alpha);
+    egui_canvas_draw_arc_hq(self, cx, cy, radius, start_angle, end_angle, stroke_width, color, alpha);
 
     // Compute cap radius and middle radius (align with activity_ring cap geometry)
     egui_dim_t half_sw = stroke_width >> 1;
@@ -1078,6 +1048,6 @@ void egui_canvas_draw_arc_round_cap_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t 
     egui_dim_t ey = cy + (egui_dim_t)((ey_raw + (ey_raw >= 0 ? 128 : -128)) / 256);
 
     // Draw round caps as filled circles
-    egui_canvas_draw_circle_fill_hq(sx, sy, cap_r, color, alpha);
-    egui_canvas_draw_circle_fill_hq(ex, ey, cap_r, color, alpha);
+    egui_canvas_draw_circle_fill_hq(self, sx, sy, cap_r, color, alpha);
+    egui_canvas_draw_circle_fill_hq(self, ex, ey, cap_r, color, alpha);
 }

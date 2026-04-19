@@ -39,14 +39,14 @@ struct egui_view_line_params
     static const egui_view_line_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .line_width = (_line_width), .line_color = _line_color}
 
 void egui_view_line_apply_params(egui_view_t *self, const egui_view_line_params_t *params);
-void egui_view_line_init_with_params(egui_view_t *self, const egui_view_line_params_t *params);
+void egui_view_line_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_line_params_t *params);
 
 void egui_view_line_set_points(egui_view_t *self, const egui_view_line_point_t *points, uint8_t count);
 void egui_view_line_set_line_width(egui_view_t *self, uint8_t width);
 void egui_view_line_set_line_color(egui_view_t *self, egui_color_t color);
 void egui_view_line_set_use_round_cap(egui_view_t *self, uint8_t enable);
 void egui_view_line_on_draw(egui_view_t *self);
-void egui_view_line_init(egui_view_t *self);
+void egui_view_line_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

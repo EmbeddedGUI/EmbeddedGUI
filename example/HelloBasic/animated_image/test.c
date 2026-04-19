@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // views
 static egui_view_animated_image_t anim_img;
@@ -29,13 +29,13 @@ static void anim_timer_callback(egui_timer_t *timer)
 EGUI_VIEW_ANIMATED_IMAGE_PARAMS_INIT(anim_img_params, 0, 0, ANIM_IMG_WIDTH, ANIM_IMG_HEIGHT, 100);
 EGUI_VIEW_LABEL_PARAMS_INIT(label_title_params, 0, 0, 200, 32, "AnimatedImage", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_PRIMARY_DARK, EGUI_ALPHA_100);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init label
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title), &label_title_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title), core, &label_title_params);
 
     // Init animated image
-    egui_view_animated_image_init_with_params(EGUI_VIEW_OF(&anim_img), &anim_img_params);
+    egui_view_animated_image_init_with_params(EGUI_VIEW_OF(&anim_img), core, &anim_img_params);
     egui_view_animated_image_set_frames(EGUI_VIEW_OF(&anim_img), frame_list, 2);
     egui_view_set_margin_all(EGUI_VIEW_OF(&anim_img), 6);
     egui_view_animated_image_set_loop(EGUI_VIEW_OF(&anim_img), 1);
@@ -46,11 +46,11 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&anim_img));
 
     // Layout childrens of root view
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&anim_img), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 
     // Drive frame update by timer
     egui_timer_init_timer(&anim_timer, NULL, anim_timer_callback);
-    egui_timer_start_timer(&anim_timer, 120, 120);
+    egui_view_start_timer(EGUI_VIEW_OF(&anim_img), &anim_timer, 120, 120);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

@@ -29,11 +29,11 @@ struct egui_view_divider_params
     static const egui_view_divider_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .color = _color}
 
 void egui_view_divider_apply_params(egui_view_t *self, const egui_view_divider_params_t *params);
-void egui_view_divider_init_with_params(egui_view_t *self, const egui_view_divider_params_t *params);
+void egui_view_divider_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_divider_params_t *params);
 
 void egui_view_divider_set_color(egui_view_t *self, egui_color_t color);
 void egui_view_divider_on_draw(egui_view_t *self);
-void egui_view_divider_init(egui_view_t *self);
+void egui_view_divider_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

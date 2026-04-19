@@ -148,8 +148,9 @@ static void xpt2046_del(egui_hal_touch_driver_t *self)
 }
 
 /* Driver: read */
-static int xpt2046_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int xpt2046_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     egui_touch_xpt2046_priv_t *priv = (egui_touch_xpt2046_priv_t *)self->priv;
 
     /* Clear output */

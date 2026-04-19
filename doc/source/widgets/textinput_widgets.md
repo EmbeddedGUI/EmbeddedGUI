@@ -16,7 +16,7 @@
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_textinput_init(self)` | 初始化文本输入框 |
+| `egui_view_textinput_init(self, core)` | 初始化文本输入框 |
 | `egui_view_textinput_set_text(self, text)` | 设置文本内容 |
 | `egui_view_textinput_get_text(self)` | 获取文本内容 |
 | `egui_view_textinput_clear(self)` | 清空文本 |
@@ -86,9 +86,9 @@ static void on_submit(egui_view_t *self, const char *text)
     EGUI_LOG_INF("Submit: %s\n", text);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
-    egui_view_textinput_init(EGUI_VIEW_OF(&input));
+    egui_view_textinput_init(EGUI_VIEW_OF(&input), core);
     egui_view_set_position(EGUI_VIEW_OF(&input), 10, 10);
     egui_view_set_size(EGUI_VIEW_OF(&input), 200, 30);
     egui_view_textinput_set_placeholder(EGUI_VIEW_OF(&input), "Enter text...");
@@ -96,7 +96,7 @@ void init_ui(void)
     egui_view_textinput_set_on_text_changed(EGUI_VIEW_OF(&input),
         on_text_changed);
     egui_view_textinput_set_on_submit(EGUI_VIEW_OF(&input), on_submit);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&input));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&input));
 }
 ```
 
@@ -123,7 +123,7 @@ Keyboard 需要同时启用按键和焦点支持：
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_keyboard_init(self)` | 初始化键盘 |
+| `egui_view_keyboard_init(self, core)` | 初始化键盘 |
 | `egui_view_keyboard_set_font(self, font)` | 设置按键字体 |
 | `egui_view_keyboard_show(self, target_textinput)` | 显示键盘并绑定目标输入框 |
 | `egui_view_keyboard_hide(self)` | 隐藏键盘 |
@@ -152,20 +152,20 @@ Keyboard 需要同时启用按键和焦点支持：
 static egui_view_textinput_t input;
 static egui_view_keyboard_t keyboard;
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     // 初始化输入框
-    egui_view_textinput_init(EGUI_VIEW_OF(&input));
+    egui_view_textinput_init(EGUI_VIEW_OF(&input), core);
     egui_view_set_position(EGUI_VIEW_OF(&input), 10, 10);
     egui_view_set_size(EGUI_VIEW_OF(&input), 220, 30);
     egui_view_textinput_set_placeholder(EGUI_VIEW_OF(&input), "Tap to type");
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&input));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&input));
 
     // 初始化键盘
-    egui_view_keyboard_init(EGUI_VIEW_OF(&keyboard));
+    egui_view_keyboard_init(EGUI_VIEW_OF(&keyboard), core);
     egui_view_set_position(EGUI_VIEW_OF(&keyboard),
         0, EGUI_CONFIG_SCEEN_HEIGHT - EGUI_KEYBOARD_DEFAULT_HEIGHT);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&keyboard));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&keyboard));
 }
 
 void show_keyboard(void)

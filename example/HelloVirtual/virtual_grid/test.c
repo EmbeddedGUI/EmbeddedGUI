@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define GRID_MAX_ITEMS          420U
 #define GRID_INITIAL_ITEMS      320U
@@ -151,6 +151,7 @@ static egui_view_button_t action_buttons[GRID_ACTION_COUNT];
 static egui_view_button_t mode_buttons[3];
 static egui_view_virtual_grid_t grid_view;
 static grid_demo_context_t grid_demo_ctx;
+static egui_core_t *s_core;
 
 EGUI_VIEW_CARD_PARAMS_INIT(header_card_params, GRID_MARGIN_X, GRID_TOP_Y, GRID_CONTENT_W, GRID_HEADER_H, 14);
 EGUI_VIEW_CARD_PARAMS_INIT(toolbar_card_params, GRID_MARGIN_X, GRID_TOOLBAR_Y, GRID_CONTENT_W, GRID_TOOLBAR_H, 12);
@@ -486,7 +487,7 @@ static void grid_demo_capture_view_state(grid_demo_item_view_t *item_view, grid_
 
     if (anim->start_time != (uint32_t)-1 && anim->duration > 0)
     {
-        uint32_t elapsed_ms = egui_api_timer_get_current() - anim->start_time;
+        uint32_t elapsed_ms = egui_api_timer_get_current_core(s_core) - anim->start_time;
 
         if (elapsed_ms >= anim->duration)
         {
@@ -519,7 +520,7 @@ static void grid_demo_restore_view_state(grid_demo_item_view_t *item_view, const
     anim->is_ended = 0;
     anim->is_cycle_flip = state->pulse_cycle_flip ? 1U : 0U;
     anim->repeated = (int8_t)state->pulse_repeated;
-    anim->start_time = egui_api_timer_get_current() - state->pulse_elapsed_ms;
+    anim->start_time = egui_api_timer_get_current_core(s_core) - state->pulse_elapsed_ms;
 }
 
 static void grid_demo_layout_card_children(grid_demo_item_view_t *item_view, const grid_demo_item_t *item, int pool_index, uint32_t index, uint8_t selected)
@@ -883,46 +884,46 @@ static egui_view_t *grid_demo_create_item_view(void *data_source_context, uint16
     item_view = &ctx->item_views[ctx->created_count];
     memset(item_view, 0, sizeof(*item_view));
 
-    egui_view_group_init(EGUI_VIEW_OF(&item_view->root));
+    egui_view_group_init(EGUI_VIEW_OF(&item_view->root), s_core);
 
-    egui_view_card_init(EGUI_VIEW_OF(&item_view->card));
+    egui_view_card_init(EGUI_VIEW_OF(&item_view->card), s_core);
     egui_view_card_set_border(EGUI_VIEW_OF(&item_view->card), 1, EGUI_COLOR_HEX(0xD8E1EA));
     egui_view_set_clickable(EGUI_VIEW_OF(&item_view->root), 1);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&item_view->root), grid_demo_card_click_cb);
     egui_view_group_add_child(EGUI_VIEW_OF(&item_view->root), EGUI_VIEW_OF(&item_view->card));
 
-    egui_view_card_init(EGUI_VIEW_OF(&item_view->accent));
+    egui_view_card_init(EGUI_VIEW_OF(&item_view->accent), s_core);
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->accent));
 
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->tag));
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->tag), s_core);
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->tag), GRID_FONT_CAPTION);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->tag), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->tag));
 
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->title));
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->title), s_core);
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->title), GRID_FONT_TITLE);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->title), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->title));
 
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->meta));
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->meta), s_core);
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->meta), GRID_FONT_META);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->meta), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->meta));
 
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->badge));
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->badge), s_core);
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->badge), GRID_FONT_CAPTION);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->badge), EGUI_ALIGN_CENTER);
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->badge));
 
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->footer));
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->footer), s_core);
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->footer), GRID_FONT_META);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->footer), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->footer));
 
-    egui_view_progress_bar_init(EGUI_VIEW_OF(&item_view->progress));
+    egui_view_progress_bar_init(EGUI_VIEW_OF(&item_view->progress), s_core);
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->progress));
 
-    egui_view_init(EGUI_VIEW_OF(&item_view->pulse));
+    egui_view_init(EGUI_VIEW_OF(&item_view->pulse), s_core);
     egui_view_set_gone(EGUI_VIEW_OF(&item_view->pulse), 1);
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->pulse));
 
@@ -1301,7 +1302,7 @@ static void grid_demo_action_click_cb(egui_view_t *self)
 
 static void grid_demo_init_button(egui_view_button_t *button, egui_dim_t x, egui_dim_t y, egui_dim_t width, const char *text)
 {
-    egui_view_button_init(EGUI_VIEW_OF(button));
+    egui_view_button_init(EGUI_VIEW_OF(button), s_core);
     egui_view_set_position(EGUI_VIEW_OF(button), x, y);
     egui_view_set_size(EGUI_VIEW_OF(button), width, y == 6 ? GRID_ACTION_BUTTON_H : GRID_MODE_BUTTON_H);
     egui_view_label_set_text(EGUI_VIEW_OF(button), text);
@@ -1311,24 +1312,25 @@ static void grid_demo_init_button(egui_view_button_t *button, egui_dim_t x, egui
     egui_view_set_on_click_listener(EGUI_VIEW_OF(button), grid_demo_action_click_cb);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     uint8_t i;
     egui_dim_t button_x = 10;
     static const char *mode_labels[3] = {"2 Col", "3 Col", "4 Col"};
 
     grid_demo_reset_model();
+    s_core = core;
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
+    egui_view_init(EGUI_VIEW_OF(&background_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&grid_demo_screen_bg));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), &header_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &header_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&header_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&header_card), 1, EGUI_COLOR_HEX(0xD8E1EA));
     egui_view_set_shadow(EGUI_VIEW_OF(&header_card), &grid_demo_card_shadow);
 
-    egui_view_label_init(EGUI_VIEW_OF(&header_title));
+    egui_view_label_init(EGUI_VIEW_OF(&header_title), core);
     egui_view_set_position(EGUI_VIEW_OF(&header_title), 12, 10);
     egui_view_set_size(EGUI_VIEW_OF(&header_title), GRID_CONTENT_W - 24, 12);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_title), GRID_FONT_HEADER);
@@ -1336,7 +1338,7 @@ void test_init_ui(void)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&header_title), EGUI_COLOR_HEX(0x203243), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_title));
 
-    egui_view_label_init(EGUI_VIEW_OF(&header_detail));
+    egui_view_label_init(EGUI_VIEW_OF(&header_detail), core);
     egui_view_set_position(EGUI_VIEW_OF(&header_detail), 12, 30);
     egui_view_set_size(EGUI_VIEW_OF(&header_detail), GRID_CONTENT_W - 24, 10);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_detail), GRID_FONT_META);
@@ -1344,7 +1346,7 @@ void test_init_ui(void)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&header_detail), EGUI_COLOR_HEX(0x597082), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_detail));
 
-    egui_view_label_init(EGUI_VIEW_OF(&header_hint));
+    egui_view_label_init(EGUI_VIEW_OF(&header_hint), core);
     egui_view_set_position(EGUI_VIEW_OF(&header_hint), 12, 46);
     egui_view_set_size(EGUI_VIEW_OF(&header_hint), GRID_CONTENT_W - 24, 12);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_hint), GRID_FONT_META);
@@ -1352,7 +1354,7 @@ void test_init_ui(void)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&header_hint), EGUI_COLOR_HEX(0x6B7C8A), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_hint));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), &toolbar_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &toolbar_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&toolbar_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&toolbar_card), 1, EGUI_COLOR_HEX(0xD8E1EA));
 
@@ -1385,7 +1387,7 @@ void test_init_ui(void)
                 .state_cache_max_bytes = GRID_STATE_CACHE_COUNT * (uint32_t)sizeof(grid_demo_item_state_t),
         };
 
-        egui_view_virtual_grid_init_with_setup(EGUI_VIEW_OF(&grid_view), &grid_view_setup);
+        egui_view_virtual_grid_init_with_setup(EGUI_VIEW_OF(&grid_view), core, &grid_view_setup);
     }
     egui_view_set_background(EGUI_VIEW_OF(&grid_view), EGUI_BG_OF(&grid_demo_view_bg));
 

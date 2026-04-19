@@ -1,6 +1,7 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "egui_view_virtual_stage.h"
+#include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "core/egui_common.h"
 
@@ -241,12 +242,12 @@ static void egui_view_virtual_stage_release_cache(egui_view_virtual_stage_t *loc
 {
     if (local->node_cache != NULL)
     {
-        egui_free(local->node_cache);
+        egui_free(EGUI_VIEW_OF(local)->core, local->node_cache);
         local->node_cache = NULL;
     }
     if (local->draw_order != NULL)
     {
-        egui_free(local->draw_order);
+        egui_free(EGUI_VIEW_OF(local)->core, local->draw_order);
         local->draw_order = NULL;
     }
 
@@ -270,16 +271,16 @@ static uint8_t egui_view_virtual_stage_ensure_cache_capacity(egui_view_virtual_s
         return 1;
     }
 
-    nodes = (egui_view_virtual_stage_cached_node_t *)egui_malloc((int)(sizeof(*nodes) * target_capacity));
+    nodes = (egui_view_virtual_stage_cached_node_t *)egui_malloc(EGUI_VIEW_OF(local)->core, (int)(sizeof(*nodes) * target_capacity));
     if (nodes == NULL)
     {
         return 0;
     }
 
-    draw_order = (uint32_t *)egui_malloc((int)(sizeof(*draw_order) * target_capacity));
+    draw_order = (uint32_t *)egui_malloc(EGUI_VIEW_OF(local)->core, (int)(sizeof(*draw_order) * target_capacity));
     if (draw_order == NULL)
     {
-        egui_free(nodes);
+        egui_free(EGUI_VIEW_OF(local)->core, nodes);
         return 0;
     }
 
@@ -294,7 +295,7 @@ static void egui_view_virtual_stage_release_pins(egui_view_virtual_stage_t *loca
 {
     if (local->pin_entries != NULL)
     {
-        egui_free(local->pin_entries);
+        egui_free(EGUI_VIEW_OF(local)->core, local->pin_entries);
         local->pin_entries = NULL;
     }
 
@@ -609,7 +610,7 @@ static uint8_t egui_view_virtual_stage_ensure_pin_capacity(egui_view_virtual_sta
         new_capacity = target_count;
     }
 
-    pins = (egui_view_virtual_stage_pin_entry_t *)egui_malloc((int)(sizeof(egui_view_virtual_stage_pin_entry_t) * new_capacity));
+    pins = (egui_view_virtual_stage_pin_entry_t *)egui_malloc(EGUI_VIEW_OF(local)->core, (int)(sizeof(egui_view_virtual_stage_pin_entry_t) * new_capacity));
     if (pins == NULL)
     {
         return 0;
@@ -618,7 +619,7 @@ static uint8_t egui_view_virtual_stage_ensure_pin_capacity(egui_view_virtual_sta
     if (local->pin_entries != NULL && local->pin_count > 0)
     {
         egui_api_memcpy(pins, local->pin_entries, (int)(sizeof(egui_view_virtual_stage_pin_entry_t) * local->pin_count));
-        egui_free(local->pin_entries);
+        egui_free(EGUI_VIEW_OF(local)->core, local->pin_entries);
     }
 
     local->pin_entries = pins;
@@ -661,7 +662,7 @@ static void egui_view_virtual_stage_clear_focus_if_needed(egui_view_t *view)
 {
     if (view != NULL && view->is_focused)
     {
-        egui_focus_manager_clear_focus();
+        egui_view_clear_focus(view);
     }
 }
 #else
@@ -1477,6 +1478,7 @@ static const egui_motion_event_t *egui_view_virtual_stage_adjust_followup_event_
 
 static int egui_view_virtual_stage_dispatch_touch_to_slot(egui_view_virtual_stage_t *local, egui_view_virtual_stage_slot_t *slot, egui_motion_event_t *event)
 {
+    egui_core_t *core;
     egui_view_group_touch_state_snapshot_t outer_touch_state;
 
     if (slot == NULL || slot->view == NULL)
@@ -1484,14 +1486,15 @@ static int egui_view_virtual_stage_dispatch_touch_to_slot(egui_view_virtual_stag
         return 0;
     }
 
+    core = egui_view_get_core(EGUI_VIEW_OF(local));
     slot->last_used_seq = ++local->slot_use_seq;
     egui_api_memset(&outer_touch_state, 0, (int)sizeof(outer_touch_state));
-    egui_view_group_touch_state_exchange(&outer_touch_state);
-    egui_view_group_touch_state_exchange(&slot->touch_state);
+    egui_view_group_touch_state_exchange(core, &outer_touch_state);
+    egui_view_group_touch_state_exchange(core, &slot->touch_state);
     {
         int handled = slot->view->api->dispatch_touch_event(slot->view, event);
-        egui_view_group_touch_state_exchange(&slot->touch_state);
-        egui_view_group_touch_state_exchange(&outer_touch_state);
+        egui_view_group_touch_state_exchange(core, &slot->touch_state);
+        egui_view_group_touch_state_exchange(core, &outer_touch_state);
         return handled;
     }
 }
@@ -1634,12 +1637,13 @@ static int egui_view_virtual_stage_dispatch_touch_event(egui_view_t *self, egui_
 
 static void egui_view_virtual_stage_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_virtual_stage_t);
-    egui_alpha_t alpha = egui_canvas_get_alpha();
+    egui_alpha_t alpha = egui_canvas_get_alpha(canvas);
     egui_view_virtual_stage_cached_node_t *nodes = egui_view_virtual_stage_get_nodes(local);
     uint32_t draw_pos;
     egui_region_t clip_region;
-    const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+    const egui_region_t *prev_clip = egui_canvas_get_extra_clip(canvas);
     const egui_region_t *active_clip = &self->region_screen;
 
     if (prev_clip != NULL)
@@ -1648,19 +1652,19 @@ static void egui_view_virtual_stage_draw(egui_view_t *self)
         active_clip = &clip_region;
     }
 
-    egui_canvas_set_extra_clip(active_clip);
+    egui_canvas_set_extra_clip(canvas, active_clip);
     egui_view_draw(self);
 
     if (!self->is_visible || self->is_gone || nodes == NULL || local->draw_order == NULL)
     {
-        egui_canvas_set_alpha(alpha);
+        egui_canvas_set_alpha(canvas, alpha);
         if (prev_clip != NULL)
         {
-            egui_canvas_set_extra_clip(prev_clip);
+            egui_canvas_set_extra_clip(canvas, prev_clip);
         }
         else
         {
-            egui_canvas_clear_extra_clip();
+            egui_canvas_clear_extra_clip(canvas);
         }
         return;
     }
@@ -1677,15 +1681,15 @@ static void egui_view_virtual_stage_draw(egui_view_t *self)
         }
 
         egui_view_virtual_stage_get_screen_region(self, &node->desc, &screen_region);
-        egui_canvas_calc_work_region(&self->region_screen);
-        if (!egui_canvas_is_region_active(&screen_region))
+        egui_canvas_calc_work_region(canvas, &self->region_screen);
+        if (!egui_canvas_is_region_active(canvas, &screen_region))
         {
             continue;
         }
 
         slot_index = egui_view_virtual_stage_find_slot_index_by_stable_id(local, node->desc.stable_id);
-        egui_canvas_set_alpha(alpha);
-        egui_canvas_mix_alpha(self->alpha);
+        egui_canvas_set_alpha(canvas, alpha);
+        egui_canvas_mix_alpha(canvas, self->alpha);
 
         if (slot_index >= 0 && egui_view_virtual_stage_slot_is_bound(&local->slots[slot_index]) && local->slots[slot_index].view != NULL)
         {
@@ -1693,22 +1697,22 @@ static void egui_view_virtual_stage_draw(egui_view_t *self)
         }
         else if (local->adapter != NULL && local->adapter->draw_node != NULL)
         {
-            egui_canvas_calc_work_region(&screen_region);
-            if (!egui_region_is_empty(egui_canvas_get_base_view_work_region()))
+            egui_canvas_calc_work_region(canvas, &screen_region);
+            if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
             {
                 local->adapter->draw_node(local->adapter_context, self, node->index, &node->desc, &screen_region);
             }
         }
     }
 
-    egui_canvas_set_alpha(alpha);
+    egui_canvas_set_alpha(canvas, alpha);
     if (prev_clip != NULL)
     {
-        egui_canvas_set_extra_clip(prev_clip);
+        egui_canvas_set_extra_clip(canvas, prev_clip);
     }
     else
     {
-        egui_canvas_clear_extra_clip();
+        egui_canvas_clear_extra_clip(canvas);
     }
 }
 
@@ -1753,9 +1757,9 @@ void egui_view_virtual_stage_apply_params(egui_view_t *self, const egui_view_vir
     egui_view_virtual_stage_mark_dirty(self, local, 1, 1);
 }
 
-void egui_view_virtual_stage_init_with_params(egui_view_t *self, const egui_view_virtual_stage_params_t *params)
+void egui_view_virtual_stage_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_stage_params_t *params)
 {
-    egui_view_virtual_stage_init(self);
+    egui_view_virtual_stage_init(self, core);
     egui_view_virtual_stage_apply_params(self, params);
 }
 
@@ -1780,9 +1784,9 @@ void egui_view_virtual_stage_apply_setup(egui_view_t *self, const egui_view_virt
     egui_view_virtual_stage_set_adapter(self, setup->adapter, setup->adapter_context);
 }
 
-void egui_view_virtual_stage_init_with_setup(egui_view_t *self, const egui_view_virtual_stage_setup_t *setup)
+void egui_view_virtual_stage_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_stage_setup_t *setup)
 {
-    egui_view_virtual_stage_init(self);
+    egui_view_virtual_stage_init(self, core);
     egui_view_virtual_stage_apply_setup(self, setup);
 }
 
@@ -1812,10 +1816,10 @@ void egui_view_virtual_stage_apply_array_setup(egui_view_t *self, egui_view_virt
     egui_view_virtual_stage_apply_setup(self, &bridge_setup);
 }
 
-void egui_view_virtual_stage_init_with_array_setup(egui_view_t *self, egui_view_virtual_stage_array_adapter_t *adapter,
+void egui_view_virtual_stage_init_with_array_setup(egui_view_t *self, egui_core_t *core, egui_view_virtual_stage_array_adapter_t *adapter,
                                                    const egui_view_virtual_stage_array_setup_t *setup)
 {
-    egui_view_virtual_stage_init(self);
+    egui_view_virtual_stage_init(self, core);
     egui_view_virtual_stage_apply_array_setup(self, adapter, setup);
 }
 
@@ -2173,14 +2177,14 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_virtual_stage_t) = {
 #endif
 };
 
-void egui_view_virtual_stage_init(egui_view_t *self)
+void egui_view_virtual_stage_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_virtual_stage_t);
 
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_virtual_stage_t);
 
-    egui_view_group_init(EGUI_VIEW_OF(&local->content_layer));
+    egui_view_group_init(EGUI_VIEW_OF(&local->content_layer), core);
     egui_view_set_position(EGUI_VIEW_OF(&local->content_layer), 0, 0);
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->content_layer));
 

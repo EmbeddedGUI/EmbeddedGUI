@@ -1,9 +1,10 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <stdint.h>
 
 #include "egui_view_chart_axis.h"
+#include "core/egui_core.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
@@ -29,6 +30,7 @@ int egui_view_chart_axis_on_touch_event(egui_view_t *self, egui_motion_event_t *
 void egui_view_chart_axis_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -38,14 +40,14 @@ void egui_view_chart_axis_on_draw(egui_view_t *self)
     }
 
     // 1. Draw background
-    egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, local->ab.bg_color, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, local->ab.bg_color, EGUI_ALPHA_100);
 
     // 2. Calculate plot area (in view-local coordinates)
     egui_region_t plot_area;
     egui_chart_calc_plot_area(&local->ab, &region, &plot_area);
 
     // 3. Draw axes (in view-local coordinate system)
-    egui_chart_draw_axes(&local->ab, &region, &plot_area);
+    egui_chart_draw_axes(canvas, &local->ab, &region, &plot_area);
 
     // 4. Set clip region for data drawing
     //    Inset by 1px from axes so data never overlaps axis lines.
@@ -55,10 +57,10 @@ void egui_view_chart_axis_on_draw(egui_view_t *self)
     clip.location.y = plot_area.location.y + 1 + self->region_screen.location.y;
     clip.size.width = plot_area.size.width - 2;
     clip.size.height = plot_area.size.height - 2;
-    egui_canvas_calc_work_region(&clip);
+    egui_canvas_calc_work_region(canvas, &clip);
 
     // 5. Call draw_data virtual function (with clip-local coordinates)
-    if (!egui_region_is_empty(egui_canvas_get_base_view_work_region()))
+    if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
     {
         const egui_view_chart_axis_api_t *api = (const egui_view_chart_axis_api_t *)self->api;
         if (api->draw_data)
@@ -74,12 +76,12 @@ void egui_view_chart_axis_on_draw(egui_view_t *self)
     }
 
     // 6. Restore clip
-    egui_canvas_calc_work_region(&self->region_screen);
+    egui_canvas_calc_work_region(canvas, &self->region_screen);
 
     // 7. Draw legend
     if (local->ab.draw_legend_series != NULL)
     {
-        local->ab.draw_legend_series(&local->ab, &region, &plot_area);
+        local->ab.draw_legend_series(canvas, &local->ab, &region, &plot_area);
     }
 }
 
@@ -112,12 +114,12 @@ const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_axis_t
 
 // ============== Init ==============
 
-void egui_view_chart_axis_init(egui_view_t *self)
+void egui_view_chart_axis_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_chart_axis_t);
 
     // Initialize base view
-    egui_view_init(self);
+    egui_view_init(self, core);
     self->api = (const egui_view_api_t *)&EGUI_VIEW_API_TABLE_NAME(egui_view_chart_axis_t);
 
     // Initialize axis base with defaults

@@ -53,7 +53,7 @@ void *egui_svg_alloc_malloc(size_t size)
         return NULL;
     }
 
-    header = (egui_svg_alloc_header_t *)egui_malloc((int)total);
+    header = (egui_svg_alloc_header_t *)egui_malloc(NULL, (int)total);
     if (header == NULL)
     {
         return NULL;
@@ -125,7 +125,7 @@ void egui_svg_alloc_free(void *ptr)
 
     if (header != NULL)
     {
-        egui_free(header);
+        egui_free(NULL, header);
     }
 }
 
@@ -218,17 +218,17 @@ static void egui_svg_release_raster(egui_svg_doc_t *doc)
 
     if (doc->data_buf != NULL)
     {
-        egui_free(doc->data_buf);
+        egui_free(NULL, doc->data_buf);
         doc->data_buf = NULL;
     }
     if (doc->alpha_buf != NULL)
     {
-        egui_free(doc->alpha_buf);
+        egui_free(NULL, doc->alpha_buf);
         doc->alpha_buf = NULL;
     }
     if (doc->row_meta != NULL)
     {
-        egui_free(doc->row_meta);
+        egui_free(NULL, doc->row_meta);
         doc->row_meta = NULL;
     }
 
@@ -257,7 +257,7 @@ static void egui_svg_doc_destroy(egui_svg_doc_t *doc)
         plutosvg_document_destroy(doc->document);
         doc->document = NULL;
     }
-    egui_free(doc);
+    egui_free(NULL, doc);
 }
 
 static int egui_svg_build_raster_from_argb32(int width, int height, int stride, const unsigned char *surface_data, uint16_t **out_data_buf,
@@ -352,7 +352,7 @@ static int egui_svg_build_raster_from_argb32(int width, int height, int stride, 
         return 0;
     }
 
-    data_buf = (uint16_t *)egui_malloc((int)data_bytes);
+    data_buf = (uint16_t *)egui_malloc(NULL, (int)data_bytes);
     if (data_buf == NULL)
     {
         return 0;
@@ -360,10 +360,10 @@ static int egui_svg_build_raster_from_argb32(int width, int height, int stride, 
     alpha_buf = NULL;
     if (!crop_is_opaque)
     {
-        alpha_buf = (uint8_t *)egui_malloc((int)alpha_bytes);
+        alpha_buf = (uint8_t *)egui_malloc(NULL, (int)alpha_bytes);
         if (alpha_buf == NULL)
         {
-            egui_free(data_buf);
+            egui_free(NULL, data_buf);
             return 0;
         }
     }
@@ -371,11 +371,11 @@ static int egui_svg_build_raster_from_argb32(int width, int height, int stride, 
     row_meta = NULL;
     if (enable_row_meta)
     {
-        row_meta = (egui_svg_raster_row_meta_t *)egui_malloc((int)row_meta_bytes);
+        row_meta = (egui_svg_raster_row_meta_t *)egui_malloc(NULL, (int)row_meta_bytes);
         if (row_meta == NULL)
         {
-            egui_free(alpha_buf);
-            egui_free(data_buf);
+            egui_free(NULL, alpha_buf);
+            egui_free(NULL, data_buf);
             return 0;
         }
     }
@@ -915,7 +915,7 @@ static void egui_image_svg_release_owned_data(egui_image_svg_t *self)
 {
     if (self->owned_data_buf != NULL)
     {
-        egui_free(self->owned_data_buf);
+        egui_free(NULL, self->owned_data_buf);
         self->owned_data_buf = NULL;
     }
 }
@@ -946,7 +946,7 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
     {
         if (owned_data_buf != NULL)
         {
-            egui_free(owned_data_buf);
+            egui_free(NULL, owned_data_buf);
         }
         return 0;
     }
@@ -956,7 +956,7 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
     if (document == NULL)
     {
         EGUI_LOG_WRN("PlutoSVG parse failed.\n");
-        egui_free(owned_data_buf);
+        egui_free(NULL, owned_data_buf);
         return 0;
     }
 
@@ -966,7 +966,7 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
     {
         EGUI_LOG_WRN("SVG root size invalid, discard document.\n");
         plutosvg_document_destroy(document);
-        egui_free(owned_data_buf);
+        egui_free(NULL, owned_data_buf);
         return 0;
     }
     if (natural_width_raw > (float)EGUI_DIM_MAX || natural_height_raw > (float)EGUI_DIM_MAX || !egui_svg_dim_from_float(natural_width_raw, &natural_width) ||
@@ -975,15 +975,15 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
         EGUI_LOG_WRN("SVG root size %ld x %ld exceeds egui_dim_t max %d, discard document.\n", (long)egui_svg_dim_for_log(natural_width_raw),
                      (long)egui_svg_dim_for_log(natural_height_raw), EGUI_DIM_MAX);
         plutosvg_document_destroy(document);
-        egui_free(owned_data_buf);
+        egui_free(NULL, owned_data_buf);
         return 0;
     }
 
-    doc = (egui_svg_doc_t *)egui_malloc(sizeof(*doc));
+    doc = (egui_svg_doc_t *)egui_malloc(NULL, sizeof(*doc));
     if (doc == NULL)
     {
         plutosvg_document_destroy(document);
-        egui_free(owned_data_buf);
+        egui_free(NULL, owned_data_buf);
         return 0;
     }
     memset(doc, 0, sizeof(*doc));
@@ -1113,7 +1113,7 @@ int egui_image_svg_load_memory_len(egui_image_svg_t *self, const char *svg_text,
         return 0;
     }
 
-    owned_data_buf = (uint8_t *)egui_malloc((int)svg_len + 1);
+    owned_data_buf = (uint8_t *)egui_malloc(NULL, (int)svg_len + 1);
     if (owned_data_buf == NULL)
     {
         return 0;
@@ -1134,7 +1134,7 @@ int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t
         return 0;
     }
 
-    owned_data_buf = (uint8_t *)egui_malloc((int)res->data_size + 1);
+    owned_data_buf = (uint8_t *)egui_malloc(NULL, (int)res->data_size + 1);
     if (owned_data_buf == NULL)
     {
         return 0;
@@ -1150,7 +1150,7 @@ int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t
     }
     else
     {
-        egui_free(owned_data_buf);
+        egui_free(NULL, owned_data_buf);
         return 0;
     }
     owned_data_buf[res->data_size] = '\0';

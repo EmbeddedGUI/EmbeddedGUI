@@ -1,4 +1,5 @@
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "font/egui_font_std.h"
 #include "test/egui_test.h"
 #include "test_font_std.h"
@@ -10,6 +11,15 @@
 
 static egui_color_int_t test_font_pfb[TEST_FONT_CANVAS_W * TEST_FONT_CANVAS_H];
 static egui_color_int_t expected_font_pfb[TEST_FONT_CANVAS_W * TEST_FONT_CANVAS_H];
+static egui_canvas_t test_font_canvas;
+
+static egui_core_t *test_font_std_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static const egui_font_std_code_descriptor_t test_font_code_array[] = {
         {.code = 'A'},
@@ -106,56 +116,57 @@ EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_invalid_offscreen, &test_
 
 static void test_font_setup_canvas(void)
 {
+    egui_core_t *core = test_font_std_get_core();
     egui_region_t pfb_region;
     egui_region_t base_region;
 
-    egui_font_std_release_frame_cache();
+    egui_font_std_release_frame_cache(core);
     memset(test_font_pfb, 0, sizeof(test_font_pfb));
     egui_region_init(&pfb_region, 0, 0, TEST_FONT_CANVAS_W, TEST_FONT_CANVAS_H);
-    egui_canvas_init(test_font_pfb, &pfb_region);
+    egui_canvas_init(&test_font_canvas, core, test_font_pfb, &pfb_region);
     egui_region_init(&base_region, 0, 0, TEST_FONT_CANVAS_W, TEST_FONT_CANVAS_H);
-    egui_canvas_calc_work_region(&base_region);
+    egui_canvas_calc_work_region(&test_font_canvas, &base_region);
 }
 
-static void test_font_draw_and_capture_char(const egui_font_t *font, const char *text)
+static void test_font_draw_and_capture_char(egui_canvas_t *canvas, const egui_font_t *font, const char *text)
 {
     egui_region_t rect;
 
     test_font_setup_canvas();
     egui_region_init(&rect, 4, 5, 6, 4);
-    egui_canvas_draw_text_in_rect(font, text, &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect(canvas, font, text, &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
-static void test_font_draw_and_capture_repeat_in_rect(const egui_font_t *font, const char *text)
+static void test_font_draw_and_capture_repeat_in_rect(egui_canvas_t *canvas, const egui_font_t *font, const char *text)
 {
     egui_region_t rect;
 
     test_font_setup_canvas();
     egui_region_init(&rect, 1, 1, 12, 6);
-    egui_canvas_draw_text_in_rect(font, text, &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect(canvas, font, text, &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void test_font_std_compressed_draw_matches_raw(void)
 {
-    test_font_draw_and_capture_char((const egui_font_t *)&test_font_raw, "A");
+    test_font_draw_and_capture_char(&test_font_canvas, (const egui_font_t *)&test_font_raw, "A");
     memcpy(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb));
 
-    test_font_draw_and_capture_char((const egui_font_t *)&test_font_rle4, "A");
+    test_font_draw_and_capture_char(&test_font_canvas, (const egui_font_t *)&test_font_rle4, "A");
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
 
-    test_font_draw_and_capture_char((const egui_font_t *)&test_font_rle4xor, "A");
+    test_font_draw_and_capture_char(&test_font_canvas, (const egui_font_t *)&test_font_rle4xor, "A");
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
 }
 
 static void test_font_std_odd_width_compressed_draw_matches_raw(void)
 {
-    test_font_draw_and_capture_char((const egui_font_t *)&test_font_raw, "B");
+    test_font_draw_and_capture_char(&test_font_canvas, (const egui_font_t *)&test_font_raw, "B");
     memcpy(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb));
 
-    test_font_draw_and_capture_char((const egui_font_t *)&test_font_rle4, "B");
+    test_font_draw_and_capture_char(&test_font_canvas, (const egui_font_t *)&test_font_rle4, "B");
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
 
-    test_font_draw_and_capture_char((const egui_font_t *)&test_font_rle4xor, "B");
+    test_font_draw_and_capture_char(&test_font_canvas, (const egui_font_t *)&test_font_rle4xor, "B");
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
 }
 
@@ -182,7 +193,8 @@ static void test_font_std_offscreen_compressed_glyph_skips_decode(void)
 {
     memset(expected_font_pfb, 0, sizeof(expected_font_pfb));
     test_font_setup_canvas();
-    test_font_invalid_offscreen.base.api->draw_string((const egui_font_t *)&test_font_invalid_offscreen, "A", 0, 5, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    test_font_invalid_offscreen.base.api->draw_string((const egui_font_t *)&test_font_invalid_offscreen, &test_font_canvas, "A", 0, 5, EGUI_COLOR_WHITE,
+                                                      EGUI_ALPHA_100);
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
 }
 
@@ -190,13 +202,13 @@ static void test_font_std_repeated_compressed_draw_in_rect_matches_raw(void)
 {
     static const char repeat_text[] = "ABAB\nBABA";
 
-    test_font_draw_and_capture_repeat_in_rect((const egui_font_t *)&test_font_raw, repeat_text);
+    test_font_draw_and_capture_repeat_in_rect(&test_font_canvas, (const egui_font_t *)&test_font_raw, repeat_text);
     memcpy(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb));
 
-    test_font_draw_and_capture_repeat_in_rect((const egui_font_t *)&test_font_rle4, repeat_text);
+    test_font_draw_and_capture_repeat_in_rect(&test_font_canvas, (const egui_font_t *)&test_font_rle4, repeat_text);
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
 
-    test_font_draw_and_capture_repeat_in_rect((const egui_font_t *)&test_font_rle4xor, repeat_text);
+    test_font_draw_and_capture_repeat_in_rect(&test_font_canvas, (const egui_font_t *)&test_font_rle4xor, repeat_text);
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
 }
 

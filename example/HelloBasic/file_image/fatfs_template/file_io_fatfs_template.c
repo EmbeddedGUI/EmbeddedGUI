@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "file_io_fatfs_template.h"
 #include "core/egui_common.h"
@@ -89,7 +89,7 @@ static void *file_image_fatfs_open(void *user_data, const char *path)
         return NULL;
     }
 
-    handle = (file_image_fatfs_handle_t *)egui_malloc(sizeof(*handle));
+    handle = (file_image_fatfs_handle_t *)egui_malloc(NULL, sizeof(*handle));
     if (handle == NULL)
     {
         return NULL;
@@ -99,7 +99,7 @@ static void *file_image_fatfs_open(void *user_data, const char *path)
     fr = f_open(&handle->fil, full_path, FA_READ);
     if (fr != FR_OK)
     {
-        egui_free(handle);
+        egui_free(NULL, handle);
         return NULL;
     }
 
@@ -171,7 +171,7 @@ static void file_image_fatfs_close(void *user_data, void *handle_ptr)
     }
 
     f_close(&handle->fil);
-    egui_free(handle);
+    egui_free(NULL, handle);
 }
 
 void file_image_fatfs_io_init(egui_image_file_io_t *io, file_image_fatfs_context_t *ctx)
@@ -189,3 +189,4 @@ void file_image_fatfs_io_init(egui_image_file_io_t *io, file_image_fatfs_context
     io->tell = file_image_fatfs_tell;
     io->close = file_image_fatfs_close;
 }
+

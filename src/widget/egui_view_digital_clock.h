@@ -33,8 +33,8 @@ void egui_view_digital_clock_set_format(egui_view_t *self, uint8_t format_24h);
 void egui_view_digital_clock_set_colon_blink(egui_view_t *self, uint8_t enable);
 void egui_view_digital_clock_set_colon_visible(egui_view_t *self, uint8_t visible);
 void egui_view_digital_clock_set_show_second(egui_view_t *self, uint8_t show);
-void egui_view_digital_clock_init(egui_view_t *self);
-void egui_view_digital_clock_init_with_params(egui_view_t *self, const egui_view_label_params_t *params);
+void egui_view_digital_clock_init(egui_view_t *self, egui_core_t *core);
+void egui_view_digital_clock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -92,6 +92,11 @@ static egui_display_driver_t port_display_driver = {
         .power_on = 1,
 };
 
+static void designer_assert_single_display_core(egui_core_t *core)
+{
+    EGUI_ASSERT(core == NULL || core->id == 0);
+}
+
 static int designer_lcd_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
 {
     memcpy(&self->config, config, sizeof(*config));
@@ -155,6 +160,21 @@ static void designer_lcd_setup(egui_hal_lcd_driver_t *storage)
  * ============================================================================ */
 
 static egui_hal_touch_driver_t designer_touch_driver;
+
+static void designer_touch_register(egui_core_t *core)
+{
+    egui_hal_touch_config_t touch_config = {
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+    };
+
+    designer_assert_single_display_core(core);
+    egui_hal_touch_register(core, &designer_touch_driver, &touch_config);
+}
+
 static struct
 {
     uint8_t pressed;
@@ -182,9 +202,10 @@ static void designer_touch_del(egui_hal_touch_driver_t *self)
     memset(self, 0, sizeof(egui_hal_touch_driver_t));
 }
 
-static int designer_touch_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int designer_touch_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
     EGUI_UNUSED(self);
+    designer_assert_single_display_core(core);
 
     memset(data, 0, sizeof(*data));
     if (!designer_touch_state.pressed)
@@ -328,12 +349,15 @@ static FILE *designer_get_external_resource_file(void)
     return s_designer_resource_file;
 }
 
-static void designer_load_external_resource(void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
+static void designer_load_external_resource(egui_core_t *core, void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
 {
     extern const uint32_t egui_ext_res_id_map[];
     uint32_t res_offset = egui_ext_res_id_map[res_id];
     uint32_t res_real_offset = res_offset + start_offset;
     FILE *file = designer_get_external_resource_file();
+
+    designer_assert_single_display_core(core);
+
     if (file == NULL)
     {
         return;
@@ -394,8 +418,10 @@ static egui_platform_t designer_platform = {
  * Port initialization
  * ============================================================================ */
 
-void egui_port_init(void)
+void egui_port_init(egui_core_t *core)
 {
+    EGUI_ASSERT(core != NULL);
+
     egui_hal_lcd_config_t lcd_config = {
             .width = EGUI_CONFIG_SCEEN_WIDTH,
             .height = EGUI_CONFIG_SCEEN_HEIGHT,
@@ -413,17 +439,20 @@ void egui_port_init(void)
     egui_hal_lcd_register(&port_display_driver, &designer_lcd_driver, &lcd_config);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    egui_hal_touch_config_t touch_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
-            .swap_xy = 0,
-            .mirror_x = 0,
-            .mirror_y = 0,
-    };
-
     designer_touch_setup(&designer_touch_driver);
-    egui_hal_touch_register(&designer_touch_driver, &touch_config);
 #endif
 
-    egui_platform_register(&designer_platform);
+    egui_platform_register(core, &designer_platform);
 }
+
+egui_display_driver_t *egui_port_get_display_driver(void)
+{
+    return &port_display_driver;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+void egui_port_register_touch_driver(egui_core_t *core)
+{
+    designer_touch_register(core);
+}
+#endif

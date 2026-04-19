@@ -8,7 +8,7 @@
 #endif
 
 #include "app_egui_resource_generate.h"
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define BASIC_STAGE_NODE_COUNT       12U
 #define BASIC_DEVICE_COUNT           3U
@@ -112,6 +112,7 @@ static const char *basic_device_names[] = {"Pump", "Valve", "Fan"};
 static egui_view_canvas_panner_t basic_root;
 static egui_view_virtual_stage_t basic_stage_view;
 static basic_stage_context_t basic_ctx;
+static egui_core_t *s_core;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
@@ -451,7 +452,7 @@ static void basic_format_button_text(uint32_t stable_id, char *dst, size_t dst_s
     snprintf(dst, dst_size, "Action");
 }
 
-static void basic_draw_button_preview(const egui_region_t *screen_region, uint32_t stable_id)
+static void basic_draw_button_preview(egui_canvas_t *canvas, const egui_region_t *screen_region, uint32_t stable_id)
 {
     char text[BASIC_BUTTON_TEXT_LEN];
     egui_region_t text_region = *screen_region;
@@ -484,14 +485,14 @@ static void basic_draw_button_preview(const egui_region_t *screen_region, uint32
         break;
     }
 
-    egui_canvas_draw_round_rectangle_fill(screen_region->location.x, screen_region->location.y, screen_region->size.width, screen_region->size.height, 10, fill,
-                                          EGUI_ALPHA_100);
-    egui_canvas_draw_round_rectangle(screen_region->location.x, screen_region->location.y, screen_region->size.width, screen_region->size.height, 10, 1, border,
-                                     EGUI_ALPHA_100);
-    egui_canvas_draw_text_in_rect(BASIC_FONT_BODY, text, &text_region, EGUI_ALIGN_CENTER, basic_get_button_text_color(stable_id), EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle_fill(canvas, screen_region->location.x, screen_region->location.y, screen_region->size.width, screen_region->size.height,
+                                          10, fill, EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle(canvas, screen_region->location.x, screen_region->location.y, screen_region->size.width, screen_region->size.height, 10, 1,
+                                     border, EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect(canvas, BASIC_FONT_BODY, text, &text_region, EGUI_ALIGN_CENTER, basic_get_button_text_color(stable_id), EGUI_ALPHA_100);
 }
 
-static void basic_draw_image_preview(const egui_region_t *screen_region, uint32_t stable_id)
+static void basic_draw_image_preview(egui_canvas_t *canvas, const egui_region_t *screen_region, uint32_t stable_id)
 {
     uint8_t device_index = basic_get_device_index_by_stable_id(stable_id);
     egui_color_t color;
@@ -504,12 +505,12 @@ static void basic_draw_image_preview(const egui_region_t *screen_region, uint32_
 
     color = basic_ctx.device_enabled[device_index] ? basic_get_device_color(device_index) : basic_get_device_dim_color(device_index);
     alpha = basic_ctx.device_enabled[device_index] ? EGUI_ALPHA_100 : EGUI_ALPHA_60;
-    egui_canvas_draw_image_resize_color((const egui_image_t *)&egui_res_image_star_alpha_4, (egui_dim_t)(screen_region->location.x + 4),
+    egui_canvas_draw_image_resize_color(canvas, (const egui_image_t *)&egui_res_image_star_alpha_4, (egui_dim_t)(screen_region->location.x + 4),
                                         (egui_dim_t)(screen_region->location.y + 4), (egui_dim_t)(screen_region->size.width - 8),
                                         (egui_dim_t)(screen_region->size.height - 8), color, alpha);
 }
 
-static void basic_draw_progress_preview(const egui_region_t *screen_region, uint32_t stable_id)
+static void basic_draw_progress_preview(egui_canvas_t *canvas, const egui_region_t *screen_region, uint32_t stable_id)
 {
     uint8_t device_index = basic_get_device_index_by_stable_id(stable_id);
     egui_dim_t track_y;
@@ -523,35 +524,37 @@ static void basic_draw_progress_preview(const egui_region_t *screen_region, uint
     track_y = (egui_dim_t)(screen_region->location.y + (screen_region->size.height - 8) / 2);
     fill_w = (egui_dim_t)((screen_region->size.width * basic_ctx.device_progress[device_index]) / 100U);
 
-    egui_canvas_draw_round_rectangle_fill(screen_region->location.x, track_y, screen_region->size.width, 8, 4, EGUI_COLOR_HEX(0xD5E0E8), EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle_fill(canvas, screen_region->location.x, track_y, screen_region->size.width, 8, 4, EGUI_COLOR_HEX(0xD5E0E8),
+                                          EGUI_ALPHA_100);
     if (fill_w > 0)
     {
-        egui_canvas_draw_round_rectangle_fill(screen_region->location.x, track_y, fill_w, 8, 4, basic_get_device_color(device_index), EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(canvas, screen_region->location.x, track_y, fill_w, 8, 4, basic_get_device_color(device_index), EGUI_ALPHA_100);
     }
 }
 
-static void basic_draw_combobox_preview(const egui_region_t *screen_region)
+static void basic_draw_combobox_preview(egui_canvas_t *canvas, const egui_region_t *screen_region)
 {
     egui_region_t value_region = *screen_region;
     egui_region_t arrow_region = *screen_region;
 
-    egui_canvas_draw_round_rectangle_fill(screen_region->location.x, screen_region->location.y, screen_region->size.width, screen_region->size.height, 10,
-                                          EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-    egui_canvas_draw_round_rectangle(screen_region->location.x, screen_region->location.y, screen_region->size.width, screen_region->size.height, 10, 1,
+    egui_canvas_draw_round_rectangle_fill(canvas, screen_region->location.x, screen_region->location.y, screen_region->size.width, screen_region->size.height,
+                                          10, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle(canvas, screen_region->location.x, screen_region->location.y, screen_region->size.width, screen_region->size.height, 10, 1,
                                      EGUI_COLOR_HEX(0x8FA4B1), EGUI_ALPHA_100);
 
     value_region.location.x += 10;
     value_region.location.y += 8;
     value_region.size.width -= 34;
     value_region.size.height = 16;
-    egui_canvas_draw_text_in_rect(BASIC_FONT_BODY, basic_get_mode_text(), &value_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x22384B),
+    egui_canvas_draw_text_in_rect(canvas, BASIC_FONT_BODY, basic_get_mode_text(), &value_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x22384B),
                                   EGUI_ALPHA_100);
 
     arrow_region.location.x = (egui_dim_t)(screen_region->location.x + screen_region->size.width - 24);
     arrow_region.location.y += 7;
     arrow_region.size.width = 16;
     arrow_region.size.height = 18;
-    egui_canvas_draw_text_in_rect(EGUI_FONT_ICON_MS_16, EGUI_ICON_MS_EXPAND_MORE, &arrow_region, EGUI_ALIGN_CENTER, EGUI_COLOR_HEX(0x557082), EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect(canvas, EGUI_FONT_ICON_MS_16, EGUI_ICON_MS_EXPAND_MORE, &arrow_region, EGUI_ALIGN_CENTER, EGUI_COLOR_HEX(0x557082),
+                                  EGUI_ALPHA_100);
 }
 
 static void basic_image_click_cb(egui_view_t *self)
@@ -659,14 +662,14 @@ static egui_view_t *basic_adapter_create_view(void *user_context, uint16_t view_
     {
     case BASIC_VIEW_TYPE_IMAGE:
     {
-        basic_image_view_t *image_view = (basic_image_view_t *)egui_malloc(sizeof(basic_image_view_t));
+        basic_image_view_t *image_view = (basic_image_view_t *)egui_malloc(s_core, sizeof(basic_image_view_t));
         if (image_view == NULL)
         {
             return NULL;
         }
 
         memset(image_view, 0, sizeof(*image_view));
-        egui_view_image_init(EGUI_VIEW_OF(&image_view->image));
+        egui_view_image_init(EGUI_VIEW_OF(&image_view->image), s_core);
         egui_view_image_set_image_type(EGUI_VIEW_OF(&image_view->image), EGUI_VIEW_IMAGE_TYPE_RESIZE);
         egui_view_image_set_image(EGUI_VIEW_OF(&image_view->image), (egui_image_t *)&egui_res_image_star_alpha_4);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&image_view->image), basic_image_click_cb);
@@ -674,28 +677,28 @@ static egui_view_t *basic_adapter_create_view(void *user_context, uint16_t view_
     }
     case BASIC_VIEW_TYPE_PROGRESS:
     {
-        basic_progress_view_t *progress_view = (basic_progress_view_t *)egui_malloc(sizeof(basic_progress_view_t));
+        basic_progress_view_t *progress_view = (basic_progress_view_t *)egui_malloc(s_core, sizeof(basic_progress_view_t));
         if (progress_view == NULL)
         {
             return NULL;
         }
 
         memset(progress_view, 0, sizeof(*progress_view));
-        egui_view_progress_bar_init(EGUI_VIEW_OF(&progress_view->progress));
+        egui_view_progress_bar_init(EGUI_VIEW_OF(&progress_view->progress), s_core);
         progress_view->progress.is_show_control = 0U;
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&progress_view->progress), basic_progress_click_cb);
         return EGUI_VIEW_OF(&progress_view->progress);
     }
     case BASIC_VIEW_TYPE_BUTTON:
     {
-        basic_button_view_t *button_view = (basic_button_view_t *)egui_malloc(sizeof(basic_button_view_t));
+        basic_button_view_t *button_view = (basic_button_view_t *)egui_malloc(s_core, sizeof(basic_button_view_t));
         if (button_view == NULL)
         {
             return NULL;
         }
 
         memset(button_view, 0, sizeof(*button_view));
-        egui_view_button_init(EGUI_VIEW_OF(&button_view->button));
+        egui_view_button_init(EGUI_VIEW_OF(&button_view->button), s_core);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_view->button), basic_button_click_cb);
         egui_view_label_set_font(EGUI_VIEW_OF(&button_view->button), BASIC_FONT_BODY);
         egui_view_label_set_align_type(EGUI_VIEW_OF(&button_view->button), EGUI_ALIGN_CENTER);
@@ -704,14 +707,14 @@ static egui_view_t *basic_adapter_create_view(void *user_context, uint16_t view_
     }
     case BASIC_VIEW_TYPE_COMBOBOX:
     {
-        basic_combobox_view_t *combobox_view = (basic_combobox_view_t *)egui_malloc(sizeof(basic_combobox_view_t));
+        basic_combobox_view_t *combobox_view = (basic_combobox_view_t *)egui_malloc(s_core, sizeof(basic_combobox_view_t));
         if (combobox_view == NULL)
         {
             return NULL;
         }
 
         memset(combobox_view, 0, sizeof(*combobox_view));
-        egui_view_combobox_init(EGUI_VIEW_OF(&combobox_view->combobox));
+        egui_view_combobox_init(EGUI_VIEW_OF(&combobox_view->combobox), s_core);
         egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combobox_view->combobox), basic_combobox_selected);
         egui_view_combobox_set_font(EGUI_VIEW_OF(&combobox_view->combobox), BASIC_FONT_BODY);
         egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combobox_view->combobox), EGUI_FONT_ICON_MS_16);
@@ -728,7 +731,7 @@ static void basic_adapter_destroy_view(void *user_context, egui_view_t *view, ui
 {
     EGUI_UNUSED(user_context);
     EGUI_UNUSED(view_type);
-    egui_free(view);
+    egui_free(s_core, view);
 }
 
 static void basic_adapter_bind_view(void *user_context, egui_view_t *view, uint32_t index, uint32_t stable_id, const egui_virtual_stage_node_desc_t *desc)
@@ -835,6 +838,7 @@ static void basic_adapter_draw_node(void *user_context, egui_view_t *page, uint3
                                     const egui_region_t *screen_region)
 {
     egui_region_t local_region;
+    egui_canvas_t *canvas = &page->core->canvas;
 
     EGUI_UNUSED(user_context);
     EGUI_UNUSED(page);
@@ -845,16 +849,16 @@ static void basic_adapter_draw_node(void *user_context, egui_view_t *page, uint3
     switch (desc->view_type)
     {
     case BASIC_VIEW_TYPE_IMAGE:
-        basic_draw_image_preview(&local_region, desc->stable_id);
+        basic_draw_image_preview(canvas, &local_region, desc->stable_id);
         break;
     case BASIC_VIEW_TYPE_PROGRESS:
-        basic_draw_progress_preview(&local_region, desc->stable_id);
+        basic_draw_progress_preview(canvas, &local_region, desc->stable_id);
         break;
     case BASIC_VIEW_TYPE_BUTTON:
-        basic_draw_button_preview(&local_region, desc->stable_id);
+        basic_draw_button_preview(canvas, &local_region, desc->stable_id);
         break;
     case BASIC_VIEW_TYPE_COMBOBOX:
-        basic_draw_combobox_preview(&local_region);
+        basic_draw_combobox_preview(canvas, &local_region);
         break;
     default:
         break;
@@ -867,8 +871,10 @@ EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_INTERACTIVE_BRIDGE_INIT_WITH_LIMIT(basic_stag
                                                                       basic_adapter_draw_node, basic_adapter_hit_test, basic_adapter_should_keep_alive,
                                                                       &basic_ctx);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
+    s_core = core;
+
     memset(&basic_ctx, 0, sizeof(basic_ctx));
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
@@ -885,12 +891,12 @@ void test_init_ui(void)
     basic_apply_default_state();
     basic_init_nodes();
 
-    egui_view_canvas_panner_init(EGUI_VIEW_OF(&basic_root));
+    egui_view_canvas_panner_init(EGUI_VIEW_OF(&basic_root), core);
     egui_view_set_size(EGUI_VIEW_OF(&basic_root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&basic_root), BASIC_CANVAS_WIDTH, BASIC_CANVAS_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&basic_root), EGUI_BG_OF(&basic_screen_bg));
 
-    EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&basic_stage_view, &basic_stage_bridge);
+    EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&basic_stage_view, core, &basic_stage_bridge);
     EGUI_VIEW_VIRTUAL_STAGE_SET_BACKGROUND(&basic_stage_view, EGUI_BG_OF(&basic_stage_bg));
 
     egui_view_group_add_child(EGUI_VIEW_OF(&basic_root), EGUI_VIEW_OF(&basic_stage_view));

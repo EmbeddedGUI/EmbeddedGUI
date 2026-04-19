@@ -1,4 +1,5 @@
-#include "egui_view_chart_line.h"
+﻿#include "egui_view_chart_line.h"
+#include "core/egui_core.h"
 #include "core/egui_canvas_gradient.h"
 
 // ============== Line Drawing ==============
@@ -220,9 +221,10 @@ static int egui_view_chart_line_get_visible_data_y_range(const egui_region_t *pl
 
 static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_chart_line_t);
     egui_chart_axis_base_t *ab = &local->axis_base.ab;
-    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
     egui_dim_t clip_expand = local->point_radius > local->line_width ? local->point_radius : local->line_width;
     egui_dim_t work_x1;
     egui_dim_t work_y1;
@@ -307,9 +309,9 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                 egui_dim_t px = egui_view_chart_line_map_x_fast(series->points[0].x, plot_x, plot_w_span, view_x_min, range_x);
                 egui_dim_t py = egui_view_chart_line_map_y_fast(series->points[0].y, plot_y, plot_h_span, view_y_min, range_y);
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-                egui_canvas_draw_circle_fill_gradient(px, py, local->point_radius, &grad);
+                egui_canvas_draw_circle_fill_gradient(canvas, px, py, local->point_radius, &grad);
 #else
-                egui_canvas_draw_circle_fill(px, py, local->point_radius, series->color, EGUI_ALPHA_100);
+                egui_canvas_draw_circle_fill(canvas, px, py, local->point_radius, series->color, EGUI_ALPHA_100);
 #endif
             }
             continue;
@@ -340,7 +342,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                     coords[i * 2 + 1] = egui_view_chart_line_map_y_fast(point->y, plot_y, plot_h_span, view_y_min, range_y);
                 }
 
-                egui_canvas_draw_polyline(coords, pt_count, local->line_width, series->color, EGUI_ALPHA_100);
+                egui_canvas_draw_polyline(canvas, coords, pt_count, local->line_width, series->color, EGUI_ALPHA_100);
 
                 if ((uint8_t)(chunk_start + pt_count) >= draw_point_count)
                 {
@@ -396,9 +398,9 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                     continue;
                 }
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-                egui_canvas_draw_circle_fill_gradient(px, py, local->point_radius, &grad);
+                egui_canvas_draw_circle_fill_gradient(canvas, px, py, local->point_radius, &grad);
 #else
-                egui_canvas_draw_circle_fill(px, py, local->point_radius, series->color, EGUI_ALPHA_100);
+                egui_canvas_draw_circle_fill(canvas, px, py, local->point_radius, series->color, EGUI_ALPHA_100);
 #endif
             }
         }
@@ -434,11 +436,11 @@ const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_line_t
 
 // ============== Init / Params ==============
 
-void egui_view_chart_line_init(egui_view_t *self)
+void egui_view_chart_line_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_chart_line_t);
     // call base class init
-    egui_view_chart_axis_init(self);
+    egui_view_chart_axis_init(self, core);
     // update api
     self->api = (const egui_view_api_t *)&EGUI_VIEW_API_TABLE_NAME(egui_view_chart_line_t);
 
@@ -456,9 +458,9 @@ void egui_view_chart_line_apply_params(egui_view_t *self, const egui_view_chart_
     egui_view_invalidate(self);
 }
 
-void egui_view_chart_line_init_with_params(egui_view_t *self, const egui_view_chart_line_params_t *params)
+void egui_view_chart_line_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_line_params_t *params)
 {
-    egui_view_chart_line_init(self);
+    egui_view_chart_line_init(self, core);
     egui_view_chart_line_apply_params(self, params);
 }
 

@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define WT_FONT_CLOCK    EGUI_FONT_OF(&egui_res_font_montserrat_32_4)
 #define WT_FONT_DATE     EGUI_FONT_OF(&egui_res_font_montserrat_16_4)
@@ -46,7 +46,7 @@ static void wt_ring_timer_callback(egui_timer_t *timer)
     wt_ring_frame++;
     if (wt_ring_frame > WT_RING_FRAMES)
     {
-        egui_timer_stop_timer(&wt_ring_timer);
+        egui_view_stop_timer(EGUI_VIEW_OF(&wt_ring), &wt_ring_timer);
         return;
     }
 
@@ -70,8 +70,10 @@ static void wt_theme_btn_click(egui_view_t *self)
 
 void uicode_init_page_watch(egui_view_t *parent)
 {
+    egui_core_t *core = egui_view_get_core(parent);
+
     // Digital clock (top center)
-    egui_view_digital_clock_init(EGUI_VIEW_OF(&wt_clock));
+    egui_view_digital_clock_init(EGUI_VIEW_OF(&wt_clock), core);
     egui_view_set_position(EGUI_VIEW_OF(&wt_clock), 30, 8);
     egui_view_set_size(EGUI_VIEW_OF(&wt_clock), 180, 42);
     egui_view_digital_clock_set_time(EGUI_VIEW_OF(&wt_clock), 12, 45, 0);
@@ -81,7 +83,7 @@ void uicode_init_page_watch(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&wt_clock));
 
     // Date label
-    egui_view_label_init(EGUI_VIEW_OF(&wt_date));
+    egui_view_label_init(EGUI_VIEW_OF(&wt_date), core);
     egui_view_set_position(EGUI_VIEW_OF(&wt_date), 50, 52);
     egui_view_set_size(EGUI_VIEW_OF(&wt_date), 140, 22);
     egui_view_label_set_text(EGUI_VIEW_OF(&wt_date), "Wed, Feb 25");
@@ -90,7 +92,7 @@ void uicode_init_page_watch(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&wt_date));
 
     // Activity ring (center) - start at 0, will animate to target
-    egui_view_activity_ring_init(EGUI_VIEW_OF(&wt_ring));
+    egui_view_activity_ring_init(EGUI_VIEW_OF(&wt_ring), core);
     egui_view_set_position(EGUI_VIEW_OF(&wt_ring), 50, 72);
     egui_view_set_size(EGUI_VIEW_OF(&wt_ring), 140, 140);
     egui_view_activity_ring_set_ring_count(EGUI_VIEW_OF(&wt_ring), 3);
@@ -109,7 +111,7 @@ void uicode_init_page_watch(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&wt_ring));
 
     // Heart rate
-    egui_view_heart_rate_init(EGUI_VIEW_OF(&wt_heart));
+    egui_view_heart_rate_init(EGUI_VIEW_OF(&wt_heart), core);
     egui_view_set_position(EGUI_VIEW_OF(&wt_heart), 70, 220);
     egui_view_set_size(EGUI_VIEW_OF(&wt_heart), 100, 40);
     egui_view_heart_rate_set_bpm(EGUI_VIEW_OF(&wt_heart), 72);
@@ -117,14 +119,14 @@ void uicode_init_page_watch(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&wt_heart));
 
     // Weather card (bottom-left) - start invisible for fade-in
-    egui_view_card_init(EGUI_VIEW_OF(&wt_weather_card));
+    egui_view_card_init(EGUI_VIEW_OF(&wt_weather_card), core);
     egui_view_set_position(EGUI_VIEW_OF(&wt_weather_card), 10, 270);
     egui_view_set_size(EGUI_VIEW_OF(&wt_weather_card), 105, 40);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&wt_weather_card), 8);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&wt_weather_card), EGUI_COLOR_MAKE(0x33, 0x41, 0x55), EGUI_ALPHA_100);
     egui_view_set_alpha(EGUI_VIEW_OF(&wt_weather_card), 0);
 
-    egui_view_label_init(EGUI_VIEW_OF(&wt_weather_label));
+    egui_view_label_init(EGUI_VIEW_OF(&wt_weather_label), core);
     egui_view_set_position(EGUI_VIEW_OF(&wt_weather_label), 5, 5);
     egui_view_set_size(EGUI_VIEW_OF(&wt_weather_label), 95, 28);
     egui_view_label_set_text(EGUI_VIEW_OF(&wt_weather_label), "18\xC2\xB0"
@@ -136,7 +138,7 @@ void uicode_init_page_watch(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&wt_weather_card));
 
     // Theme toggle button (bottom-right, icon)
-    egui_view_button_init(EGUI_VIEW_OF(&wt_theme_btn));
+    egui_view_button_init(EGUI_VIEW_OF(&wt_theme_btn), core);
     egui_view_set_position(EGUI_VIEW_OF(&wt_theme_btn), 125, 270);
     egui_view_set_size(EGUI_VIEW_OF(&wt_theme_btn), 105, 40);
     egui_view_label_set_text(EGUI_VIEW_OF(&wt_theme_btn), ICON_LIGHT_MODE);
@@ -169,7 +171,7 @@ void uicode_page_watch_on_enter(void)
     egui_view_activity_ring_set_value(EGUI_VIEW_OF(&wt_ring), 2, 0);
 
     // Start ring growth animation
-    egui_timer_start_timer(&wt_ring_timer, WT_RING_INTERVAL, WT_RING_INTERVAL);
+    egui_view_start_timer(EGUI_VIEW_OF(&wt_ring), &wt_ring_timer, WT_RING_INTERVAL, WT_RING_INTERVAL);
 
     // Start weather card fade-in
     egui_view_set_alpha(EGUI_VIEW_OF(&wt_weather_card), 0);

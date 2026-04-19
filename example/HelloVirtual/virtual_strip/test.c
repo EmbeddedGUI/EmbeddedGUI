@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define STRIP_MAX_ITEMS         420U
 #define STRIP_GALLERY_ITEMS     260U
@@ -164,6 +164,7 @@ static egui_view_group_t strip_overlay_view;
 static egui_view_card_t strip_overlay_line;
 static egui_view_card_t strip_overlay_dot;
 static strip_demo_context_t strip_demo_ctx;
+static egui_core_t *s_core;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
@@ -649,7 +650,7 @@ static void strip_demo_capture_view_state(strip_demo_item_view_t *item_view, str
 
     if (anim->start_time != (uint32_t)-1 && anim->duration > 0)
     {
-        uint32_t elapsed_ms = egui_api_timer_get_current() - anim->start_time;
+        uint32_t elapsed_ms = egui_api_timer_get_current_core(s_core) - anim->start_time;
 
         if (elapsed_ms >= anim->duration)
         {
@@ -682,7 +683,7 @@ static void strip_demo_restore_view_state(strip_demo_item_view_t *item_view, con
     anim->is_ended = 0;
     anim->is_cycle_flip = state->pulse_cycle_flip ? 1U : 0U;
     anim->repeated = (int8_t)state->pulse_repeated;
-    anim->start_time = egui_api_timer_get_current() - state->pulse_elapsed_ms;
+    anim->start_time = egui_api_timer_get_current_core(s_core) - state->pulse_elapsed_ms;
 }
 
 static void strip_demo_fill_item_texts(strip_demo_item_view_t *item_view, int pool_index, const strip_demo_item_t *item, uint32_t index, uint8_t selected,
@@ -1238,16 +1239,16 @@ static egui_view_t *strip_demo_create_item_view(void *data_source_context, uint1
     item_view = &ctx->item_views[ctx->created_count];
     memset(item_view, 0, sizeof(*item_view));
 
-    egui_view_group_init(EGUI_VIEW_OF(&item_view->root));
-    egui_view_card_init(EGUI_VIEW_OF(&item_view->card));
+    egui_view_group_init(EGUI_VIEW_OF(&item_view->root), s_core);
+    egui_view_card_init(EGUI_VIEW_OF(&item_view->card), s_core);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&item_view->card), 14);
-    egui_view_init(EGUI_VIEW_OF(&item_view->accent));
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->tag));
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->title));
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->meta));
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->badge));
-    egui_view_progress_bar_init(EGUI_VIEW_OF(&item_view->progress));
-    egui_view_init(EGUI_VIEW_OF(&item_view->pulse));
+    egui_view_init(EGUI_VIEW_OF(&item_view->accent), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->tag), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->title), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->meta), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->badge), s_core);
+    egui_view_progress_bar_init(EGUI_VIEW_OF(&item_view->progress), s_core);
+    egui_view_init(EGUI_VIEW_OF(&item_view->pulse), s_core);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&item_view->root), EGUI_VIEW_OF(&item_view->card));
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->accent));
@@ -1656,7 +1657,7 @@ static void strip_demo_button_click_cb(egui_view_t *self)
 
 static void strip_demo_init_button(egui_view_button_t *button, egui_dim_t x, egui_dim_t y, egui_dim_t width, const char *text)
 {
-    egui_view_button_init(EGUI_VIEW_OF(button));
+    egui_view_button_init(EGUI_VIEW_OF(button), s_core);
     egui_view_set_position(EGUI_VIEW_OF(button), x, y);
     egui_view_set_size(EGUI_VIEW_OF(button), width, STRIP_BUTTON_H);
     egui_view_label_set_text(EGUI_VIEW_OF(button), text);
@@ -1666,12 +1667,13 @@ static void strip_demo_init_button(egui_view_button_t *button, egui_dim_t x, egu
     egui_view_set_on_click_listener(EGUI_VIEW_OF(button), strip_demo_button_click_cb);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     uint8_t i;
     egui_dim_t x;
 
     memset(&strip_demo_ctx, 0, sizeof(strip_demo_ctx));
+    s_core = core;
     strip_demo_ctx.selected_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
     strip_demo_ctx.last_clicked_index = STRIP_INVALID_INDEX;
     strip_demo_reset_scene_model(STRIP_SCENE_GALLERY);
@@ -1684,16 +1686,16 @@ void test_init_ui(void)
     recording_swipe_verify_retry = 0U;
 #endif
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
+    egui_view_init(EGUI_VIEW_OF(&background_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&strip_screen_bg));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), &strip_header_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &strip_header_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&header_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&header_card), 1, EGUI_COLOR_HEX(0xD8E1EA));
     egui_view_set_shadow(EGUI_VIEW_OF(&header_card), &strip_demo_card_shadow);
 
-    egui_view_label_init(EGUI_VIEW_OF(&header_title));
+    egui_view_label_init(EGUI_VIEW_OF(&header_title), core);
     egui_view_set_position(EGUI_VIEW_OF(&header_title), 12, 10);
     egui_view_set_size(EGUI_VIEW_OF(&header_title), STRIP_CONTENT_W - 24, 16);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_title), STRIP_FONT_HEADER);
@@ -1701,7 +1703,7 @@ void test_init_ui(void)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&header_title), EGUI_COLOR_HEX(0x243646), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_title));
 
-    egui_view_label_init(EGUI_VIEW_OF(&header_detail));
+    egui_view_label_init(EGUI_VIEW_OF(&header_detail), core);
     egui_view_set_position(EGUI_VIEW_OF(&header_detail), 12, 28);
     egui_view_set_size(EGUI_VIEW_OF(&header_detail), STRIP_CONTENT_W - 24, 14);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_detail), STRIP_FONT_BODY);
@@ -1709,7 +1711,7 @@ void test_init_ui(void)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&header_detail), EGUI_COLOR_HEX(0x5B6C7A), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_detail));
 
-    egui_view_label_init(EGUI_VIEW_OF(&header_hint));
+    egui_view_label_init(EGUI_VIEW_OF(&header_hint), core);
     egui_view_set_position(EGUI_VIEW_OF(&header_hint), 12, 42);
     egui_view_set_size(EGUI_VIEW_OF(&header_hint), STRIP_CONTENT_W - 24, 14);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_hint), STRIP_FONT_BODY);
@@ -1725,7 +1727,7 @@ void test_init_ui(void)
         x += STRIP_SCENE_BUTTON_W + STRIP_SCENE_BUTTON_GAP;
     }
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), &strip_toolbar_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &strip_toolbar_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&toolbar_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&toolbar_card), 1, EGUI_COLOR_HEX(0xD8E1EA));
 
@@ -1750,21 +1752,21 @@ void test_init_ui(void)
                 .state_cache_max_bytes = STRIP_STATE_CACHE_COUNT * (uint32_t)sizeof(strip_demo_item_state_t),
         };
 
-        egui_view_virtual_strip_init_with_setup(EGUI_VIEW_OF(&strip_view), &strip_view_setup);
+        egui_view_virtual_strip_init_with_setup(EGUI_VIEW_OF(&strip_view), core, &strip_view_setup);
     }
     egui_view_set_background(EGUI_VIEW_OF(&strip_view), EGUI_BG_OF(&strip_view_bg));
     egui_view_set_shadow(EGUI_VIEW_OF(&strip_view), &strip_demo_card_shadow);
 
-    egui_view_group_init(EGUI_VIEW_OF(&strip_overlay_view));
+    egui_view_group_init(EGUI_VIEW_OF(&strip_overlay_view), core);
     egui_view_set_position(EGUI_VIEW_OF(&strip_overlay_view), STRIP_MARGIN_X, STRIP_VIEW_Y);
     egui_view_set_size(EGUI_VIEW_OF(&strip_overlay_view), STRIP_CONTENT_W, STRIP_VIEW_H);
     egui_view_set_clickable(EGUI_VIEW_OF(&strip_overlay_view), 0);
 
-    egui_view_card_init(EGUI_VIEW_OF(&strip_overlay_line));
+    egui_view_card_init(EGUI_VIEW_OF(&strip_overlay_line), core);
     egui_view_set_clickable(EGUI_VIEW_OF(&strip_overlay_line), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&strip_overlay_view), EGUI_VIEW_OF(&strip_overlay_line));
 
-    egui_view_card_init(EGUI_VIEW_OF(&strip_overlay_dot));
+    egui_view_card_init(EGUI_VIEW_OF(&strip_overlay_dot), core);
     egui_view_set_clickable(EGUI_VIEW_OF(&strip_overlay_dot), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&strip_overlay_view), EGUI_VIEW_OF(&strip_overlay_dot));
 

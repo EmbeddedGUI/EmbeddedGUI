@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // Clock 1: 24h format with seconds
 static egui_view_digital_clock_t clock_24h;
@@ -21,15 +21,15 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_12h, &bg_12h_params);
 EGUI_VIEW_DIGITAL_CLOCK_PARAMS_INIT(clock_24h_params, 0, 0, 200, 50, "00:00:00", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_PRIMARY_DARK, EGUI_ALPHA_100);
 EGUI_VIEW_DIGITAL_CLOCK_PARAMS_INIT(clock_12h_params, 0, 0, 200, 50, "12:00 AM", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_PRIMARY_DARK, EGUI_ALPHA_100);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init clock 1: 24h format, 14:30:45
-    egui_view_digital_clock_init_with_params(EGUI_VIEW_OF(&clock_24h), &clock_24h_params);
+    egui_view_digital_clock_init_with_params(EGUI_VIEW_OF(&clock_24h), core, &clock_24h_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&clock_24h), EGUI_ALIGN_CENTER);
     egui_view_digital_clock_set_time(EGUI_VIEW_OF(&clock_24h), 14, 30, 45);
 
     // Init clock 2: 12h format, 14:30:00, no seconds
-    egui_view_digital_clock_init_with_params(EGUI_VIEW_OF(&clock_12h), &clock_12h_params);
+    egui_view_digital_clock_init_with_params(EGUI_VIEW_OF(&clock_12h), core, &clock_12h_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&clock_12h), EGUI_ALIGN_CENTER);
     egui_view_digital_clock_set_format(EGUI_VIEW_OF(&clock_12h), 0);
     egui_view_digital_clock_set_show_second(EGUI_VIEW_OF(&clock_12h), 0);
@@ -44,7 +44,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&clock_12h));
 
     // Layout
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&clock_24h), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

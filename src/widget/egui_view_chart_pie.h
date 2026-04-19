@@ -41,9 +41,9 @@ struct egui_view_chart_pie_params
 // ============== API ==============
 
 // lifecycle
-void egui_view_chart_pie_init(egui_view_t *self);
+void egui_view_chart_pie_init(egui_view_t *self, egui_core_t *core);
 void egui_view_chart_pie_apply_params(egui_view_t *self, const egui_view_chart_pie_params_t *params);
-void egui_view_chart_pie_init_with_params(egui_view_t *self, const egui_view_chart_pie_params_t *params);
+void egui_view_chart_pie_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_pie_params_t *params);
 
 // data
 void egui_view_chart_pie_set_slices(egui_view_t *self, const egui_chart_pie_slice_t *slices, uint8_t count);

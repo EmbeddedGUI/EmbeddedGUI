@@ -3,16 +3,18 @@
 #include <stdlib.h>
 
 #include "egui.h"
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "designer_ipc.h"
 
-extern void egui_port_init(void);
+extern void egui_port_init(egui_core_t *core);
 extern void designer_fb_to_rgb888(void);
 extern uint8_t *designer_get_rgb888(void);
 extern uint32_t designer_get_rgb888_size(void);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 extern void designer_touch_set_state(uint8_t pressed, int16_t x, int16_t y);
 #endif
+
+egui_core_t core;
 
 EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
@@ -46,13 +48,19 @@ int main(int argc, const char *argv[])
     designer_ipc_init();
 
     /* Init EGUI */
-    egui_port_init();
-    egui_init(egui_pfb);
-    uicode_create_ui();
-    egui_screen_on();
+    egui_init(&core, egui_pfb);
+    egui_port_init(&core);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    extern void egui_port_register_touch_driver(egui_core_t * core);
+    egui_port_register_touch_driver(&core);
+#endif
+    extern egui_display_driver_t *egui_port_get_display_driver(void);
+    egui_display_driver_register(&core, egui_port_get_display_driver());
+    uicode_disp0_init(&core);
+    egui_screen_on(&core);
 
     /* Do initial render */
-    egui_polling_work();
+    egui_polling_work(&core);
 
     /* Signal ready to Python */
     designer_ipc_send_ready();
@@ -71,7 +79,7 @@ int main(int argc, const char *argv[])
         switch (cmd)
         {
         case DESIGNER_CMD_RENDER:
-            egui_polling_work();
+            egui_polling_work(&core);
             designer_fb_to_rgb888();
             designer_ipc_send_frame(designer_get_rgb888(), designer_get_rgb888_size());
             break;
@@ -93,7 +101,7 @@ int main(int argc, const char *argv[])
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
             uint8_t type = payload[0];
             uint16_t code = payload[1] | (payload[2] << 8);
-            egui_input_add_key(type, code, 0, 0);
+            egui_input_add_key(&core, type, code, 0, 0);
 #endif
             break;
         }

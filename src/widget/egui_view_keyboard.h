@@ -76,7 +76,7 @@ struct egui_view_keyboard
     egui_dim_t saved_y;         // original Y position before adjustment
 };
 
-void egui_view_keyboard_init(egui_view_t *self);
+void egui_view_keyboard_init(egui_view_t *self, egui_core_t *core);
 void egui_view_keyboard_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_keyboard_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shift_icon, const char *backspace_icon, const char *enter_icon);

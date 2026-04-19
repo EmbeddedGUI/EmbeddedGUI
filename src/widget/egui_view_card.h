@@ -33,7 +33,7 @@ struct egui_view_card_params
     static const egui_view_card_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .corner_radius = (_radius)}
 
 void egui_view_card_apply_params(egui_view_t *self, const egui_view_card_params_t *params);
-void egui_view_card_init_with_params(egui_view_t *self, const egui_view_card_params_t *params);
+void egui_view_card_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_card_params_t *params);
 
 void egui_view_card_set_corner_radius(egui_view_t *self, egui_dim_t radius);
 void egui_view_card_set_border(egui_view_t *self, egui_dim_t width, egui_color_t color);
@@ -41,7 +41,7 @@ void egui_view_card_set_bg_color(egui_view_t *self, egui_color_t color, egui_alp
 void egui_view_card_add_child(egui_view_t *self, egui_view_t *child);
 void egui_view_card_layout_childs(egui_view_t *self, uint8_t is_horizontal, uint8_t align_type);
 void egui_view_card_on_draw(egui_view_t *self);
-void egui_view_card_init(egui_view_t *self);
+void egui_view_card_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

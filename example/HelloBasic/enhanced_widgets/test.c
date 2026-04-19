@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // ============================================================================
 // Enhanced Widgets Demo
@@ -48,19 +48,19 @@ static egui_view_gridlayout_t grid;
 EGUI_VIEW_SCROLL_PARAMS_INIT(scroll_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 520, 1, EGUI_ALIGN_CENTER);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
-    egui_view_scroll_init_with_params(EGUI_VIEW_OF(&scroll), &scroll_params);
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_scroll_init_with_params(EGUI_VIEW_OF(&scroll), core, &scroll_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Button
-    egui_view_button_init(EGUI_VIEW_OF(&btn));
+    egui_view_button_init(EGUI_VIEW_OF(&btn), core);
     egui_view_set_size(EGUI_VIEW_OF(&btn), 160, 38);
     egui_view_label_set_text(EGUI_VIEW_OF(&btn), btn_text);
     egui_view_set_margin_all(EGUI_VIEW_OF(&btn), 3);
 
     // Switch ON
-    egui_view_switch_init(EGUI_VIEW_OF(&sw_on));
+    egui_view_switch_init(EGUI_VIEW_OF(&sw_on), core);
     egui_view_set_size(EGUI_VIEW_OF(&sw_on), 50, 26);
     egui_view_switch_set_checked(EGUI_VIEW_OF(&sw_on), 1);
     egui_view_switch_set_state_icons(EGUI_VIEW_OF(&sw_on), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CROSS);
@@ -68,26 +68,26 @@ void test_init_ui(void)
     egui_view_set_margin_all(EGUI_VIEW_OF(&sw_on), 3);
 
     // Switch OFF
-    egui_view_switch_init(EGUI_VIEW_OF(&sw_off));
+    egui_view_switch_init(EGUI_VIEW_OF(&sw_off), core);
     egui_view_set_size(EGUI_VIEW_OF(&sw_off), 50, 26);
     egui_view_switch_set_state_icons(EGUI_VIEW_OF(&sw_off), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CROSS);
     egui_view_switch_set_icon_font(EGUI_VIEW_OF(&sw_off), EGUI_FONT_ICON_MS_20);
     egui_view_set_margin_all(EGUI_VIEW_OF(&sw_off), 3);
 
     // Slider
-    egui_view_slider_init(EGUI_VIEW_OF(&slider));
+    egui_view_slider_init(EGUI_VIEW_OF(&slider), core);
     egui_view_set_size(EGUI_VIEW_OF(&slider), 160, 26);
     egui_view_slider_set_value(EGUI_VIEW_OF(&slider), 60);
     egui_view_set_margin_all(EGUI_VIEW_OF(&slider), 3);
 
     // ProgressBar
-    egui_view_progress_bar_init(EGUI_VIEW_OF(&pbar));
+    egui_view_progress_bar_init(EGUI_VIEW_OF(&pbar), core);
     egui_view_set_size(EGUI_VIEW_OF(&pbar), 160, 12);
     egui_view_progress_bar_set_process(EGUI_VIEW_OF(&pbar), 70);
     egui_view_set_margin_all(EGUI_VIEW_OF(&pbar), 3);
 
     // Checkbox checked
-    egui_view_checkbox_init(EGUI_VIEW_OF(&cb_on));
+    egui_view_checkbox_init(EGUI_VIEW_OF(&cb_on), core);
     egui_view_set_size(EGUI_VIEW_OF(&cb_on), 120, 20);
     egui_view_checkbox_set_text(EGUI_VIEW_OF(&cb_on), "Checked");
     egui_view_checkbox_set_checked(EGUI_VIEW_OF(&cb_on), 1);
@@ -96,7 +96,7 @@ void test_init_ui(void)
     egui_view_set_margin_all(EGUI_VIEW_OF(&cb_on), 3);
 
     // Checkbox unchecked
-    egui_view_checkbox_init(EGUI_VIEW_OF(&cb_off));
+    egui_view_checkbox_init(EGUI_VIEW_OF(&cb_off), core);
     egui_view_set_size(EGUI_VIEW_OF(&cb_off), 120, 20);
     egui_view_checkbox_set_text(EGUI_VIEW_OF(&cb_off), "Unchecked");
     egui_view_checkbox_set_mark_style(EGUI_VIEW_OF(&cb_off), EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON);
@@ -104,31 +104,31 @@ void test_init_ui(void)
     egui_view_set_margin_all(EGUI_VIEW_OF(&cb_off), 3);
 
     // Card
-    egui_view_card_init(EGUI_VIEW_OF(&card));
+    egui_view_card_init(EGUI_VIEW_OF(&card), core);
     egui_view_set_size(EGUI_VIEW_OF(&card), 160, 50);
     egui_view_set_margin_all(EGUI_VIEW_OF(&card), 3);
-    egui_view_label_init(EGUI_VIEW_OF(&card_label));
+    egui_view_label_init(EGUI_VIEW_OF(&card_label), core);
     egui_view_set_size(EGUI_VIEW_OF(&card_label), 140, 30);
     egui_view_label_set_text(EGUI_VIEW_OF(&card_label), card_text);
     egui_view_card_add_child(EGUI_VIEW_OF(&card), EGUI_VIEW_OF(&card_label));
 
     // Radio buttons
     egui_view_radio_group_init(&rb_group);
-    egui_view_radio_button_init(EGUI_VIEW_OF(&rb_on));
+    egui_view_radio_button_init(EGUI_VIEW_OF(&rb_on), core);
     egui_view_set_size(EGUI_VIEW_OF(&rb_on), 120, 20);
     egui_view_radio_button_set_text(EGUI_VIEW_OF(&rb_on), "Selected");
     egui_view_radio_button_set_checked(EGUI_VIEW_OF(&rb_on), 1);
     egui_view_set_margin_all(EGUI_VIEW_OF(&rb_on), 3);
     egui_view_radio_group_add(&rb_group, EGUI_VIEW_OF(&rb_on));
 
-    egui_view_radio_button_init(EGUI_VIEW_OF(&rb_off));
+    egui_view_radio_button_init(EGUI_VIEW_OF(&rb_off), core);
     egui_view_set_size(EGUI_VIEW_OF(&rb_off), 120, 20);
     egui_view_radio_button_set_text(EGUI_VIEW_OF(&rb_off), "Option B");
     egui_view_set_margin_all(EGUI_VIEW_OF(&rb_off), 3);
     egui_view_radio_group_add(&rb_group, EGUI_VIEW_OF(&rb_off));
 
     // Toggle buttons
-    egui_view_toggle_button_init(EGUI_VIEW_OF(&tb_on));
+    egui_view_toggle_button_init(EGUI_VIEW_OF(&tb_on), core);
     egui_view_set_size(EGUI_VIEW_OF(&tb_on), 132, 32);
     egui_view_toggle_button_set_icon(EGUI_VIEW_OF(&tb_on), EGUI_ICON_MS_HEART);
     egui_view_toggle_button_set_text(EGUI_VIEW_OF(&tb_on), "Favorite");
@@ -138,7 +138,7 @@ void test_init_ui(void)
     egui_view_toggle_button_set_toggled(EGUI_VIEW_OF(&tb_on), 1);
     egui_view_set_margin_all(EGUI_VIEW_OF(&tb_on), 3);
 
-    egui_view_toggle_button_init(EGUI_VIEW_OF(&tb_off));
+    egui_view_toggle_button_init(EGUI_VIEW_OF(&tb_off), core);
     egui_view_set_size(EGUI_VIEW_OF(&tb_off), 132, 32);
     egui_view_toggle_button_set_icon(EGUI_VIEW_OF(&tb_off), EGUI_ICON_MS_VISIBILITY_OFF);
     egui_view_toggle_button_set_text(EGUI_VIEW_OF(&tb_off), "Hidden");
@@ -148,23 +148,23 @@ void test_init_ui(void)
     egui_view_set_margin_all(EGUI_VIEW_OF(&tb_off), 3);
 
     // LEDs
-    egui_view_led_init(EGUI_VIEW_OF(&led_on));
+    egui_view_led_init(EGUI_VIEW_OF(&led_on), core);
     egui_view_set_size(EGUI_VIEW_OF(&led_on), 24, 24);
     egui_view_led_set_on(EGUI_VIEW_OF(&led_on));
     egui_view_set_margin_all(EGUI_VIEW_OF(&led_on), 3);
 
-    egui_view_led_init(EGUI_VIEW_OF(&led_off));
+    egui_view_led_init(EGUI_VIEW_OF(&led_off), core);
     egui_view_set_size(EGUI_VIEW_OF(&led_off), 24, 24);
     egui_view_set_margin_all(EGUI_VIEW_OF(&led_off), 3);
 
     // Notification badge
-    egui_view_notification_badge_init(EGUI_VIEW_OF(&badge));
+    egui_view_notification_badge_init(EGUI_VIEW_OF(&badge), core);
     egui_view_set_size(EGUI_VIEW_OF(&badge), 24, 20);
     egui_view_notification_badge_set_count(EGUI_VIEW_OF(&badge), 5);
     egui_view_set_margin_all(EGUI_VIEW_OF(&badge), 3);
 
     // Page indicator
-    egui_view_page_indicator_init(EGUI_VIEW_OF(&indicator));
+    egui_view_page_indicator_init(EGUI_VIEW_OF(&indicator), core);
     egui_view_set_size(EGUI_VIEW_OF(&indicator), 120, 16);
     egui_view_page_indicator_set_total_count(EGUI_VIEW_OF(&indicator), 5);
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&indicator), 2);

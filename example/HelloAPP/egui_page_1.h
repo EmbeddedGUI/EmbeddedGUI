@@ -28,7 +28,7 @@ struct egui_page_1
 };
 
 void egui_page_1_set_index(egui_page_base_t *self, int index);
-void egui_page_1_init(egui_page_base_t *self);
+void egui_page_1_init(egui_page_base_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -76,11 +76,11 @@ void egui_view_gridlayout_layout_childs(egui_view_t *self)
     }
 }
 
-void egui_view_gridlayout_init(egui_view_t *self)
+void egui_view_gridlayout_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_gridlayout_t);
     // call super init.
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
 
     // init local data.
     local->col_count = 2;
@@ -101,8 +101,8 @@ void egui_view_gridlayout_apply_params(egui_view_t *self, const egui_view_gridla
     egui_view_invalidate(self);
 }
 
-void egui_view_gridlayout_init_with_params(egui_view_t *self, const egui_view_gridlayout_params_t *params)
+void egui_view_gridlayout_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_gridlayout_params_t *params)
 {
-    egui_view_gridlayout_init(self);
+    egui_view_gridlayout_init(self, core);
     egui_view_gridlayout_apply_params(self, params);
 }

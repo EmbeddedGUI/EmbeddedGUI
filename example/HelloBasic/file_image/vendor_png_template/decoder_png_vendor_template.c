@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "decoder_png_vendor_template.h"
 #include "core/egui_common.h"
@@ -110,13 +110,13 @@ static void file_image_vendor_png_close(void *decoder_ctx)
     file_image_vendor_png_release(ctx);
     if (ctx->pixels != NULL)
     {
-        egui_free(ctx->pixels);
+        egui_free(NULL, ctx->pixels);
     }
     if (ctx->alpha != NULL)
     {
-        egui_free(ctx->alpha);
+        egui_free(NULL, ctx->alpha);
     }
-    egui_free(ctx);
+    egui_free(NULL, ctx);
 }
 
 static int file_image_vendor_png_open(const egui_image_file_io_t *io, void *file_handle, const char *path, void **decoder_ctx, egui_image_file_open_result_t *out_info)
@@ -134,7 +134,7 @@ static int file_image_vendor_png_open(const egui_image_file_io_t *io, void *file
         return 0;
     }
 
-    ctx = (file_image_vendor_png_ctx_t *)egui_malloc(sizeof(*ctx));
+    ctx = (file_image_vendor_png_ctx_t *)egui_malloc(NULL, sizeof(*ctx));
     if (ctx == NULL)
     {
         return 0;
@@ -160,7 +160,7 @@ static int file_image_vendor_png_open(const egui_image_file_io_t *io, void *file
         return 0;
     }
 
-    ctx->pixels = (uint16_t *)egui_malloc((int)(pixel_count * sizeof(uint16_t)));
+    ctx->pixels = (uint16_t *)egui_malloc(NULL, (int)(pixel_count * sizeof(uint16_t)));
     if (ctx->pixels == NULL)
     {
         file_image_vendor_png_close(ctx);
@@ -169,7 +169,7 @@ static int file_image_vendor_png_open(const egui_image_file_io_t *io, void *file
 
     if (has_alpha)
     {
-        ctx->alpha = (uint8_t *)egui_malloc((int)pixel_count);
+        ctx->alpha = (uint8_t *)egui_malloc(NULL, (int)pixel_count);
         if (ctx->alpha == NULL)
         {
             file_image_vendor_png_close(ctx);
@@ -221,3 +221,4 @@ const egui_image_file_decoder_t g_file_image_png_vendor_template_decoder = {
         .read_row = file_image_vendor_png_read_row,
         .close = file_image_vendor_png_close,
 };
+

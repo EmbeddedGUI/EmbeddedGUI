@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_viewpage_t viewpage;
 static egui_view_label_t page_1;
@@ -45,13 +45,13 @@ static void sync_timer_callback(egui_timer_t *timer)
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&indicator), vp->current_page_index);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
-    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), &viewpage_params);
+    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), core, &viewpage_params);
 
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&page_1), &page_1_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&page_2), &page_2_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&page_3), &page_3_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&page_1), core, &page_1_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&page_2), core, &page_2_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&page_3), core, &page_3_params);
 
     egui_view_set_background(EGUI_VIEW_OF(&page_1), EGUI_BG_OF(&bg_1));
     egui_view_set_background(EGUI_VIEW_OF(&page_2), EGUI_BG_OF(&bg_2));
@@ -62,7 +62,7 @@ void test_init_ui(void)
     egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage), EGUI_VIEW_OF(&page_3));
     egui_view_viewpage_layout_childs(EGUI_VIEW_OF(&viewpage));
 
-    egui_view_page_indicator_init_with_params(EGUI_VIEW_OF(&indicator), &indicator_params);
+    egui_view_page_indicator_init_with_params(EGUI_VIEW_OF(&indicator), core, &indicator_params);
     egui_view_page_indicator_set_mark_style(EGUI_VIEW_OF(&indicator), EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON);
     egui_view_page_indicator_set_icons(EGUI_VIEW_OF(&indicator), page_icons);
     egui_view_page_indicator_set_icon_font(EGUI_VIEW_OF(&indicator), EGUI_FONT_ICON_MS_16);
@@ -72,10 +72,10 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&viewpage));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&indicator));
 
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&viewpage), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
 
     egui_timer_init_timer(&sync_timer, NULL, sync_timer_callback);
-    egui_timer_start_timer(&sync_timer, 100, 100);
+    egui_view_start_timer(EGUI_VIEW_OF(&viewpage), &sync_timer, 100, 100);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

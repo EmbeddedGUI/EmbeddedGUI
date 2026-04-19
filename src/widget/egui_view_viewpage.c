@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_viewpage.h"
+#include "core/egui_core.h"
 #include "font/egui_font.h"
 #include "core/egui_input.h"
 
@@ -118,7 +119,7 @@ void egui_view_viewpage_fling(egui_view_t *self, egui_float_t velocity_x)
         if (right_limit > 0)
         {
             // EGUI_LOG_DBG("egui_view_viewpage_fling up limit: %d\n", right_limit);
-            egui_scroller_start_filing(&local->scroller, right_limit, velocity_x);
+            egui_scroller_start_filing(&local->scroller, egui_view_get_core(self), right_limit, velocity_x);
             return;
         }
     }
@@ -130,7 +131,7 @@ void egui_view_viewpage_fling(egui_view_t *self, egui_float_t velocity_x)
         if (real_left < 0)
         {
             // EGUI_LOG_DBG("egui_view_viewpage_fling down limit: %d\n", real_left);
-            egui_scroller_start_filing(&local->scroller, real_left, velocity_x);
+            egui_scroller_start_filing(&local->scroller, egui_view_get_core(self), real_left, velocity_x);
             return;
         }
     }
@@ -159,7 +160,7 @@ void egui_view_viewpage_scroll_to_page(egui_view_t *self, int page_index)
     local->current_page_index = page_index;
 
     // egui_view_viewpage_start_container_scroll(self, diff_x);
-    egui_scroller_start_scroll(&local->scroller, diff_x, EGUI_ABS(diff_x) * 3 / 2);
+    egui_scroller_start_scroll(&local->scroller, egui_view_get_core(self), diff_x, EGUI_ABS(diff_x) * 3 / 2);
 
     if (page_index != old_page_index && local->on_page_changed)
     {
@@ -216,7 +217,7 @@ void egui_view_viewpage_compute_scroll(egui_view_t *self)
     egui_view_group_compute_scroll(self);
 
     // compute container scroll.
-    int offset = egui_scroller_compute_scroll_offset(&local->scroller);
+    int offset = egui_scroller_compute_scroll_offset(&local->scroller, egui_view_get_core(self));
     if (offset)
     {
         // EGUI_LOG_DBG("egui_view_viewpage_compute_scroll offset: %d\n", offset);
@@ -434,7 +435,7 @@ int egui_view_viewpage_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
         if (local->is_begin_dragged)
         {
             // egui_scroller_start_scroll(&local->scroller, 100, 1000);
-            egui_float_t velocity_x = egui_input_get_velocity_x();
+            egui_float_t velocity_x = egui_view_get_velocity_x(self);
             // EGUI_LOG_DBG("egui_view_viewpage_on_touch_event velocity_x: %d\n", velocity_x);
             int container_count = egui_view_group_get_child_count((egui_view_t *)&local->container);
             if (velocity_x > (EGUI_FLOAT_VALUE(0.05f)) && local->current_page_index > 0)
@@ -473,6 +474,7 @@ void egui_view_viewpage_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled
 
 void egui_view_viewpage_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_viewpage_t);
 
     // Draw the view group normally (self + children)
@@ -536,22 +538,22 @@ void egui_view_viewpage_draw(egui_view_t *self)
     }
 
     // Re-establish canvas work region for scrollbar drawing
-    egui_alpha_t alpha = egui_canvas_get_alpha();
-    egui_canvas_clear_mask();
-    egui_canvas_mix_alpha(self->alpha);
-    egui_canvas_calc_work_region(&self->region_screen);
+    egui_alpha_t alpha = egui_canvas_get_alpha(canvas);
+    egui_canvas_clear_mask(canvas);
+    egui_canvas_mix_alpha(canvas, self->alpha);
+    egui_canvas_calc_work_region(canvas, &self->region_screen);
 
-    if (!egui_region_is_empty(egui_canvas_get_base_view_work_region()))
+    if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
     {
         // Draw scrollbar on bottom side
         egui_dim_t bar_x = margin + thumb_x;
         egui_dim_t bar_y = self->region.size.height - EGUI_THEME_SCROLLBAR_THICKNESS - margin;
 
-        egui_canvas_draw_round_rectangle_fill(bar_x, bar_y, thumb_length, EGUI_THEME_SCROLLBAR_THICKNESS, EGUI_THEME_SCROLLBAR_RADIUS,
+        egui_canvas_draw_round_rectangle_fill(canvas, bar_x, bar_y, thumb_length, EGUI_THEME_SCROLLBAR_THICKNESS, EGUI_THEME_SCROLLBAR_RADIUS,
                                               EGUI_THEME_SCROLLBAR_COLOR, EGUI_THEME_SCROLLBAR_ALPHA);
     }
 
-    egui_canvas_set_alpha(alpha);
+    egui_canvas_set_alpha(canvas, alpha);
 }
 #else
 void egui_view_viewpage_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
@@ -594,11 +596,11 @@ void egui_view_viewpage_set_on_page_changed(egui_view_t *self, egui_view_viewpag
     local->on_page_changed = callback;
 }
 
-void egui_view_viewpage_init(egui_view_t *self)
+void egui_view_viewpage_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_viewpage_t);
     // call super init.
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
 
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_viewpage_t);
@@ -611,7 +613,7 @@ void egui_view_viewpage_init(egui_view_t *self)
     local->current_page_index = 0;
     local->on_page_changed = NULL;
 
-    egui_view_linearlayout_init((egui_view_t *)&local->container);
+    egui_view_linearlayout_init((egui_view_t *)&local->container, core);
     egui_view_set_position((egui_view_t *)&local->container, 0, 0);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->container, 0);
     egui_view_linearlayout_set_auto_width((egui_view_t *)&local->container, 1);
@@ -619,7 +621,7 @@ void egui_view_viewpage_init(egui_view_t *self)
     egui_view_linearlayout_set_orientation((egui_view_t *)&local->container, 1);
     egui_view_group_add_child(self, (egui_view_t *)&local->container);
 
-    egui_scroller_init(&local->scroller);
+    egui_scroller_init(&local->scroller, core);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
     local->is_scrollbar_enabled = 0;
@@ -636,8 +638,8 @@ void egui_view_viewpage_apply_params(egui_view_t *self, const egui_view_viewpage
     egui_view_invalidate(self);
 }
 
-void egui_view_viewpage_init_with_params(egui_view_t *self, const egui_view_viewpage_params_t *params)
+void egui_view_viewpage_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_viewpage_params_t *params)
 {
-    egui_view_viewpage_init(self);
+    egui_view_viewpage_init(self, core);
     egui_view_viewpage_apply_params(self, params);
 }

@@ -33,8 +33,8 @@ uint32_t egui_view_stopwatch_get_elapsed(egui_view_t *self);
 void egui_view_stopwatch_set_state(egui_view_t *self, uint8_t state);
 uint8_t egui_view_stopwatch_get_state(egui_view_t *self);
 void egui_view_stopwatch_set_show_ms(egui_view_t *self, uint8_t show);
-void egui_view_stopwatch_init(egui_view_t *self);
-void egui_view_stopwatch_init_with_params(egui_view_t *self, const egui_view_label_params_t *params);
+void egui_view_stopwatch_init(egui_view_t *self, egui_core_t *core);
+void egui_view_stopwatch_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

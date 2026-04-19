@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_checkbox.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
@@ -177,6 +178,7 @@ static int egui_view_checkbox_perform_click(egui_view_t *self)
 
 static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_icon_mark)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_checkbox_t);
 
     egui_region_t region;
@@ -196,7 +198,8 @@ static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_ico
     }
 
     /* Query theme style with CHECKED state support */
-    const egui_widget_style_desc_t *desc = egui_current_theme ? egui_current_theme->checkbox : NULL;
+    const egui_theme_t *theme = egui_theme_get(egui_view_get_core(self));
+    const egui_widget_style_desc_t *desc = theme ? theme->checkbox : NULL;
     egui_state_t cb_state;
     if (!egui_view_get_enable(self))
         cb_state = EGUI_STATE_DISABLED;
@@ -235,10 +238,10 @@ static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_ico
                     .stops = cb_stops,
             };
             egui_dim_t cb_radius = box_size / 6;
-            egui_canvas_draw_round_rectangle_fill_gradient(box_x, box_y, box_size, box_size, cb_radius, &cb_grad);
+            egui_canvas_draw_round_rectangle_fill_gradient(canvas, box_x, box_y, box_size, box_size, cb_radius, &cb_grad);
         }
 #else
-        egui_canvas_draw_round_rectangle_fill(box_x, box_y, box_size, box_size, box_size / 6, fill_color, local->alpha);
+        egui_canvas_draw_round_rectangle_fill(canvas, box_x, box_y, box_size, box_size, box_size / 6, fill_color, local->alpha);
 #endif
 
         if (use_icon_mark)
@@ -247,7 +250,7 @@ static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_ico
             const egui_font_t *icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, box_size, 18, 22);
             if (icon_font != NULL && EGUI_VIEW_ICON_TEXT_VALID(local->mark_icon))
             {
-                egui_canvas_draw_text_in_rect(icon_font, local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, check_color, local->alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, check_color, local->alpha);
             }
         }
         else
@@ -264,17 +267,17 @@ static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_ico
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
             {
                 egui_dim_t check_pts[] = {x1, y1, x2, y2, x3, y3};
-                egui_canvas_draw_polyline_round_cap_hq(check_pts, 3, stroke, check_color, local->alpha);
+                egui_canvas_draw_polyline_round_cap_hq(canvas, check_pts, 3, stroke, check_color, local->alpha);
                 // Round joint at the V junction to fill the acute-angle gap
                 egui_dim_t joint_r = stroke >> 1;
                 if (joint_r > 0)
                 {
-                    egui_canvas_draw_circle_fill_hq(x2, y2, joint_r, check_color, local->alpha);
+                    egui_canvas_draw_circle_fill_hq(canvas, x2, y2, joint_r, check_color, local->alpha);
                 }
             }
 #else
-            egui_canvas_draw_line(x1, y1, x2, y2, stroke, check_color, local->alpha);
-            egui_canvas_draw_line(x2, y2, x3, y3, stroke, check_color, local->alpha);
+            egui_canvas_draw_line(canvas, x1, y1, x2, y2, stroke, check_color, local->alpha);
+            egui_canvas_draw_line(canvas, x2, y2, x3, y3, stroke, check_color, local->alpha);
 #endif
         }
     }
@@ -292,10 +295,10 @@ static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_ico
             inner_radius = 0;
         }
 
-        egui_canvas_draw_round_rectangle_fill(box_x, box_y, box_size, box_size, radius, box_color, local->alpha);
+        egui_canvas_draw_round_rectangle_fill(canvas, box_x, box_y, box_size, box_size, radius, box_color, local->alpha);
         if (inner_size > 0)
         {
-            egui_canvas_draw_round_rectangle_fill(box_x + stroke, box_y + stroke, inner_size, inner_size, inner_radius, surface_color, local->alpha);
+            egui_canvas_draw_round_rectangle_fill(canvas, box_x + stroke, box_y + stroke, inner_size, inner_size, inner_radius, surface_color, local->alpha);
         }
     }
 }
@@ -303,6 +306,7 @@ static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_ico
 void egui_view_checkbox_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t region;
     egui_dim_t box_size;
     egui_dim_t box_x;
@@ -328,7 +332,7 @@ void egui_view_checkbox_on_draw(egui_view_t *self)
         text_region.size.height = region.size.height;
         if (text_region.size.width > 0 && font != NULL)
         {
-            egui_canvas_draw_text_in_rect(font, local->text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, local->alpha);
+            egui_canvas_draw_text_in_rect(canvas, font, local->text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, local->alpha);
         }
     }
 }
@@ -353,11 +357,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_checkbox_t) = {
 #endif
 };
 
-void egui_view_checkbox_init(egui_view_t *self)
+void egui_view_checkbox_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_checkbox_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_checkbox_t);
 
@@ -407,8 +411,8 @@ void egui_view_checkbox_apply_params(egui_view_t *self, const egui_view_checkbox
     egui_view_invalidate(self);
 }
 
-void egui_view_checkbox_init_with_params(egui_view_t *self, const egui_view_checkbox_params_t *params)
+void egui_view_checkbox_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_checkbox_params_t *params)
 {
-    egui_view_checkbox_init(self);
+    egui_view_checkbox_init(self, core);
     egui_view_checkbox_apply_params(self, params);
 }

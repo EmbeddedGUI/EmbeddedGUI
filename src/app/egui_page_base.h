@@ -25,6 +25,8 @@ struct egui_page_base
 {
     egui_view_group_t root_view; // view of the page
 
+    egui_core_t *core; // core instance this page belongs to
+
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     const char *name; // name of the view
 #endif
@@ -33,6 +35,13 @@ struct egui_page_base
 };
 void egui_page_base_add_view(egui_page_base_t *self, egui_view_t *view);
 void egui_page_base_set_name(egui_page_base_t *self, const char *name);
+egui_core_t *egui_page_base_get_core(egui_page_base_t *self);
+egui_toast_t *egui_page_base_get_toast(egui_page_base_t *self);
+void egui_page_base_show_toast_info_with_duration(egui_page_base_t *self, const char *text, uint16_t duration);
+void egui_page_base_show_toast_info(egui_page_base_t *self, const char *text);
+int egui_page_base_start_timer(egui_page_base_t *self, egui_timer_t *handle, uint32_t ms, uint32_t period);
+void egui_page_base_stop_timer(egui_page_base_t *self, egui_timer_t *handle);
+int egui_page_base_check_timer_start(egui_page_base_t *self, egui_timer_t *handle);
 
 void egui_page_base_open(egui_page_base_t *self);
 void egui_page_base_close(egui_page_base_t *self);
@@ -43,7 +52,7 @@ void egui_page_base_on_open(egui_page_base_t *self);
 void egui_page_base_on_close(egui_page_base_t *self);
 void egui_page_base_on_key_pressed(egui_page_base_t *self, uint16_t keycode);
 
-void egui_page_base_init(egui_page_base_t *self);
+void egui_page_base_init(egui_page_base_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

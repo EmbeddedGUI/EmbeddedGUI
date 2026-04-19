@@ -9,6 +9,8 @@
 
 #include "app_egui_resource_generate.h"
 
+static egui_core_t *s_core;
+
 #ifndef EGUI_SHOWCASE_PARITY_RECORDING
 #define EGUI_SHOWCASE_PARITY_RECORDING 0
 #endif
@@ -232,13 +234,11 @@ typedef struct showcase_context
 static showcase_context_t showcase_ctx;
 static showcase_scratch_widget_t showcase_scratch;
 static egui_view_canvas_panner_t showcase_root;
+static egui_view_group_t showcase_scratch_host;
 static egui_view_virtual_stage_t showcase_stage_view;
 static egui_view_keyboard_t showcase_keyboard_view;
 static egui_timer_t showcase_anim_timer;
 static uint8_t showcase_force_english_text;
-#if EGUI_SHOWCASE_PARITY_RECORDING
-static egui_timer_t showcase_bootstrap_timer;
-#endif
 #if EGUI_CONFIG_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
 static const char *showcase_parity_frame_label_pending;
 #endif
@@ -749,6 +749,128 @@ static const egui_font_t *showcase_get_data_font(void)
     return showcase_get_text_font();
 }
 
+static const char *showcase_get_fixed_chinese_text(const char *en)
+{
+    if (en == NULL)
+    {
+        return NULL;
+    }
+
+    if (strcmp(en, "Basic") == 0)
+        return "基础";
+    if (strcmp(en, "Toggle") == 0)
+        return "切换";
+    if (strcmp(en, "Progress") == 0)
+        return "进度";
+    if (strcmp(en, "Canvas") == 0)
+        return "画布";
+    if (strcmp(en, "Slider/Picker") == 0)
+        return "滑块/选择";
+    if (strcmp(en, "Chart") == 0)
+        return "图表";
+    if (strcmp(en, "Time/Date") == 0)
+        return "时间/日期";
+    if (strcmp(en, "Specialized") == 0)
+        return "特殊";
+    if (strcmp(en, "Data/Container") == 0)
+        return "数据/容器";
+    if (strcmp(en, "Button") == 0)
+        return "按钮";
+    if (strcmp(en, "Label Text") == 0)
+        return "标签文本";
+    if (strcmp(en, "Multi-line\ntext block") == 0)
+        return "多行\n文本块";
+    if (strcmp(en, "Dynamic 42") == 0)
+        return "动态 42";
+    if (strcmp(en, "Card Widget") == 0)
+        return "卡片控件";
+    if (strcmp(en, "Checked") == 0)
+        return "已选中";
+    if (strcmp(en, "Option 1") == 0)
+        return "选项 1";
+    if (strcmp(en, "Option 2") == 0)
+        return "选项 2";
+    if (strcmp(en, "ON") == 0)
+        return "开";
+    if (strcmp(en, "Label") == 0)
+        return "标签";
+    if (strcmp(en, "Textblock") == 0)
+        return "文本块";
+    if (strcmp(en, "DynLabel") == 0)
+        return "动态标";
+    if (strcmp(en, "TextInput") == 0)
+        return "输入框";
+    if (strcmp(en, "Switch") == 0)
+        return "开关";
+    if (strcmp(en, "CircProgressBar") == 0)
+        return "圆进度条";
+    if (strcmp(en, "Gauge") == 0)
+        return "仪表盘";
+    if (strcmp(en, "ActivityRing") == 0)
+        return "活动环";
+    if (strcmp(en, "PageIndicator") == 0)
+        return "页码指示";
+    if (strcmp(en, "Gradient") == 0)
+        return "渐变";
+    if (strcmp(en, "Shadow") == 0)
+        return "阴影";
+    if (strcmp(en, "Stroke 1px") == 0)
+        return "边框1";
+    if (strcmp(en, "Round 2px") == 0)
+        return "边框2";
+    if (strcmp(en, "HQ Line") == 0)
+        return "HQ线";
+    if (strcmp(en, "Layer 1") == 0)
+        return "图层1";
+    if (strcmp(en, "Layer 2") == 0)
+        return "图层2";
+    if (strcmp(en, "ArcSlider") == 0)
+        return "弧滑块";
+    if (strcmp(en, "Spinner") == 0)
+        return "旋转框";
+    if (strcmp(en, "Line") == 0)
+        return "线条";
+    if (strcmp(en, "Divider") == 0)
+        return "分割线";
+    if (strcmp(en, "Sky") == 0)
+        return "天空";
+    if (strcmp(en, "Mint") == 0)
+        return "薄荷";
+    if (strcmp(en, "Steel") == 0)
+        return "钢铁";
+    if (strcmp(en, "Home") == 0)
+        return "首页";
+    if (strcmp(en, "Set") == 0)
+        return "设置";
+    if (strcmp(en, "Info") == 0)
+        return "信息";
+    if (strcmp(en, "Settings") == 0)
+        return "设置";
+    if (strcmp(en, "About") == 0)
+        return "关于";
+    if (strcmp(en, "Help") == 0)
+        return "帮助";
+    if (strcmp(en, "Name") == 0)
+        return "名称";
+    if (strcmp(en, "Unit") == 0)
+        return "单位";
+    if (strcmp(en, "Temp") == 0)
+        return "温度";
+    if (strcmp(en, "Hum") == 0)
+        return "湿度";
+    if (strcmp(en, "Primary ") == 0)
+        return "主要 ";
+    if (strcmp(en, "Secondary ") == 0)
+        return "次要 ";
+    if (strcmp(en, "Tertiary") == 0)
+        return "第三";
+    if (strcmp(en, "Window") == 0)
+        return "窗口";
+    if (strcmp(en, "Content") == 0)
+        return "内容";
+    return NULL;
+}
+
 static const char *showcase_text(const char *en, const char *cn)
 {
 #if EGUI_SHOWCASE_PARITY_RECORDING
@@ -757,7 +879,12 @@ static const char *showcase_text(const char *en, const char *cn)
         return en;
     }
 #endif
-    return showcase_ctx.is_chinese ? cn : en;
+    if (showcase_ctx.is_chinese)
+    {
+        const char *fixed = showcase_get_fixed_chinese_text(en);
+        return fixed != NULL ? fixed : cn;
+    }
+    return en;
 }
 
 static egui_color_t showcase_get_text_color(void)
@@ -863,11 +990,14 @@ static void showcase_notify_nodes(const uint32_t *stable_ids, uint32_t count)
 
 static void showcase_draw_view(egui_view_t *view)
 {
-    egui_region_t *dirty_regions = egui_core_get_region_dirty_arr();
+    egui_region_t *dirty_regions = egui_core_get_region_dirty_arr(s_core);
     egui_location_t original_location = view->region.location;
+    uint8_t should_use_scratch_host = 0U;
 
     if (view->parent == NULL)
     {
+        egui_view_group_add_child(EGUI_VIEW_OF(&showcase_scratch_host), view);
+        should_use_scratch_host = 1U;
         view->region.location.x = (egui_dim_t)(view->region.location.x + showcase_draw_origin_x);
         view->region.location.y = (egui_dim_t)(view->region.location.y + showcase_draw_origin_y);
         egui_view_request_layout(view);
@@ -882,22 +1012,23 @@ static void showcase_draw_view(egui_view_t *view)
 
     view->api->draw(view);
 
-    if (view->parent == NULL)
+    if (should_use_scratch_host)
     {
+        egui_view_group_remove_child(EGUI_VIEW_OF(&showcase_scratch_host), view);
         view->region.location = original_location;
     }
 }
 
 static void showcase_reset_scratch(void)
 {
-    memcpy(showcase_scratch_dirty_backup, egui_core_get_region_dirty_arr(), sizeof(showcase_scratch_dirty_backup));
+    memcpy(showcase_scratch_dirty_backup, egui_core_get_region_dirty_arr(s_core), sizeof(showcase_scratch_dirty_backup));
     showcase_scratch_dirty_backup_valid = 1U;
     memset(&showcase_scratch, 0, sizeof(showcase_scratch));
 }
 
 static void showcase_prepare_panel_view(egui_view_t *view, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
-    egui_view_init(view);
+    egui_view_init(view, s_core);
     egui_view_set_position(view, x, y);
     egui_view_set_size(view, w, h);
     egui_view_set_background(view, showcase_ctx.is_dark_theme ? EGUI_BG_OF(&bg_panel_dark) : EGUI_BG_OF(&bg_panel_light));
@@ -905,7 +1036,7 @@ static void showcase_prepare_panel_view(egui_view_t *view, egui_dim_t x, egui_di
 
 static void showcase_prepare_panel_fill_view(egui_view_t *view, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
-    egui_view_init(view);
+    egui_view_init(view, s_core);
     egui_view_set_position(view, x, y);
     egui_view_set_size(view, w, h);
     egui_view_set_background(view, showcase_ctx.is_dark_theme ? EGUI_BG_OF(&bg_panel_fill_dark) : EGUI_BG_OF(&bg_panel_fill_light));
@@ -913,7 +1044,7 @@ static void showcase_prepare_panel_fill_view(egui_view_t *view, egui_dim_t x, eg
 
 static void showcase_prepare_title_label(egui_view_label_t *label, egui_dim_t x, egui_dim_t y, egui_dim_t w, const char *text)
 {
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), s_core);
     egui_view_set_position(EGUI_VIEW_OF(label), x, y);
     egui_view_set_size(EGUI_VIEW_OF(label), w, 20);
     egui_view_label_set_font(EGUI_VIEW_OF(label), showcase_get_text_font());
@@ -924,7 +1055,7 @@ static void showcase_prepare_title_label(egui_view_label_t *label, egui_dim_t x,
 
 static void showcase_prepare_caption_label(egui_view_label_t *label, egui_dim_t x, egui_dim_t y, egui_dim_t w, const char *text, egui_color_t color)
 {
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), s_core);
     egui_view_set_position(EGUI_VIEW_OF(label), x, y);
     egui_view_set_size(EGUI_VIEW_OF(label), w, 20);
     egui_view_label_set_font(EGUI_VIEW_OF(label), showcase_get_text_font());
@@ -1167,7 +1298,7 @@ static void showcase_bind_layer_card_view(egui_view_t *view, uint32_t stable_id)
 static void showcase_prepare_button_preview(uint32_t stable_id, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_button_init(EGUI_VIEW_OF(&showcase_scratch.button));
+    egui_view_button_init(EGUI_VIEW_OF(&showcase_scratch.button), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.button), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.button), w, h);
     showcase_bind_button_view(EGUI_VIEW_OF(&showcase_scratch.button), stable_id);
@@ -1177,7 +1308,7 @@ static void showcase_prepare_button_preview(uint32_t stable_id, egui_dim_t x, eg
 static void showcase_prepare_textinput_preview(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_textinput_init(EGUI_VIEW_OF(&showcase_scratch.textinput));
+    egui_view_textinput_init(EGUI_VIEW_OF(&showcase_scratch.textinput), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.textinput), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.textinput), w, h);
     showcase_bind_textinput_view(EGUI_VIEW_OF(&showcase_scratch.textinput));
@@ -1187,7 +1318,7 @@ static void showcase_prepare_textinput_preview(egui_dim_t x, egui_dim_t y, egui_
 static void showcase_prepare_switch_preview(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_switch_init(EGUI_VIEW_OF(&showcase_scratch.switch_view));
+    egui_view_switch_init(EGUI_VIEW_OF(&showcase_scratch.switch_view), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.switch_view), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.switch_view), w, h);
     showcase_bind_switch_view(EGUI_VIEW_OF(&showcase_scratch.switch_view));
@@ -1197,7 +1328,7 @@ static void showcase_prepare_switch_preview(egui_dim_t x, egui_dim_t y, egui_dim
 static void showcase_prepare_checkbox_preview(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_checkbox_init(EGUI_VIEW_OF(&showcase_scratch.checkbox));
+    egui_view_checkbox_init(EGUI_VIEW_OF(&showcase_scratch.checkbox), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.checkbox), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.checkbox), w, h);
     showcase_bind_checkbox_view(EGUI_VIEW_OF(&showcase_scratch.checkbox));
@@ -1207,7 +1338,7 @@ static void showcase_prepare_checkbox_preview(egui_dim_t x, egui_dim_t y, egui_d
 static void showcase_prepare_radio_preview(uint32_t stable_id, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_radio_button_init(EGUI_VIEW_OF(&showcase_scratch.radio));
+    egui_view_radio_button_init(EGUI_VIEW_OF(&showcase_scratch.radio), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.radio), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.radio), w, h);
     showcase_bind_radio_view(EGUI_VIEW_OF(&showcase_scratch.radio), stable_id);
@@ -1217,7 +1348,7 @@ static void showcase_prepare_radio_preview(uint32_t stable_id, egui_dim_t x, egu
 static void showcase_prepare_toggle_button_preview(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_toggle_button_init(EGUI_VIEW_OF(&showcase_scratch.toggle_button));
+    egui_view_toggle_button_init(EGUI_VIEW_OF(&showcase_scratch.toggle_button), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.toggle_button), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.toggle_button), w, h);
     showcase_bind_toggle_button_view(EGUI_VIEW_OF(&showcase_scratch.toggle_button));
@@ -1227,7 +1358,7 @@ static void showcase_prepare_toggle_button_preview(egui_dim_t x, egui_dim_t y, e
 static void showcase_prepare_slider_preview(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_slider_init(EGUI_VIEW_OF(&showcase_scratch.slider));
+    egui_view_slider_init(EGUI_VIEW_OF(&showcase_scratch.slider), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.slider), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.slider), w, h);
     showcase_bind_slider_view(EGUI_VIEW_OF(&showcase_scratch.slider));
@@ -1237,7 +1368,7 @@ static void showcase_prepare_slider_preview(egui_dim_t x, egui_dim_t y, egui_dim
 static void showcase_prepare_arc_slider_preview(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_arc_slider_init(EGUI_VIEW_OF(&showcase_scratch.arc_slider));
+    egui_view_arc_slider_init(EGUI_VIEW_OF(&showcase_scratch.arc_slider), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.arc_slider), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.arc_slider), w, h);
     showcase_bind_arc_slider_view(EGUI_VIEW_OF(&showcase_scratch.arc_slider));
@@ -1247,7 +1378,7 @@ static void showcase_prepare_arc_slider_preview(egui_dim_t x, egui_dim_t y, egui
 static void showcase_prepare_number_picker_preview(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_number_picker_init(EGUI_VIEW_OF(&showcase_scratch.number_picker));
+    egui_view_number_picker_init(EGUI_VIEW_OF(&showcase_scratch.number_picker), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.number_picker), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.number_picker), w, h);
     showcase_bind_number_picker_view(EGUI_VIEW_OF(&showcase_scratch.number_picker));
@@ -1259,7 +1390,7 @@ static void showcase_prepare_roller_preview(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_ROLLER_PARAMS_INIT(params, 276, 362, 90, 110, showcase_roller_items, 5, 1);
-        egui_view_roller_init_with_params(EGUI_VIEW_OF(&showcase_scratch.roller), &params);
+        egui_view_roller_init_with_params(EGUI_VIEW_OF(&showcase_scratch.roller), s_core, &params);
     }
     showcase_bind_roller_view(EGUI_VIEW_OF(&showcase_scratch.roller));
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.roller));
@@ -1270,7 +1401,7 @@ static void showcase_prepare_combobox_preview(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_COMBOBOX_PARAMS_INIT(params, 16, 520, 150, 30, showcase_combo_items, 3, 0);
-        egui_view_combobox_init_with_params(EGUI_VIEW_OF(&showcase_scratch.combobox), &params);
+        egui_view_combobox_init_with_params(EGUI_VIEW_OF(&showcase_scratch.combobox), s_core, &params);
     }
     showcase_bind_combobox_view(EGUI_VIEW_OF(&showcase_scratch.combobox), &showcase_ctx.nodes[SHOWCASE_NODE_INDEX_COMBOBOX].desc);
     egui_view_combobox_collapse(EGUI_VIEW_OF(&showcase_scratch.combobox));
@@ -1282,7 +1413,7 @@ static void showcase_prepare_mini_calendar_preview(void)
     showcase_reset_scratch();
     {
         egui_view_mini_calendar_params_t params = {.region = {{160, 720}, {180, 150}}, .year = 2026, .month = 3, .day = showcase_ctx.calendar_day};
-        egui_view_mini_calendar_init_with_params(EGUI_VIEW_OF(&showcase_scratch.mini_calendar), &params);
+        egui_view_mini_calendar_init_with_params(EGUI_VIEW_OF(&showcase_scratch.mini_calendar), s_core, &params);
     }
     showcase_bind_mini_calendar_view(EGUI_VIEW_OF(&showcase_scratch.mini_calendar));
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.mini_calendar));
@@ -1293,7 +1424,7 @@ static void showcase_prepare_button_matrix_preview(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_BUTTON_MATRIX_PARAMS_INIT(params, 860, 640, 170, 84, 3, 2);
-        egui_view_button_matrix_init_with_params(EGUI_VIEW_OF(&showcase_scratch.button_matrix), &params);
+        egui_view_button_matrix_init_with_params(EGUI_VIEW_OF(&showcase_scratch.button_matrix), s_core, &params);
     }
     showcase_bind_button_matrix_view(EGUI_VIEW_OF(&showcase_scratch.button_matrix));
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.button_matrix));
@@ -1304,7 +1435,7 @@ static void showcase_prepare_tab_bar_preview(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_TAB_BAR_PARAMS_INIT(params, 640, 748, 160, 34, showcase_tab_texts, 3);
-        egui_view_tab_bar_init_with_params(EGUI_VIEW_OF(&showcase_scratch.tab_bar), &params);
+        egui_view_tab_bar_init_with_params(EGUI_VIEW_OF(&showcase_scratch.tab_bar), s_core, &params);
     }
     showcase_bind_tab_bar_view(EGUI_VIEW_OF(&showcase_scratch.tab_bar));
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.tab_bar));
@@ -1315,7 +1446,7 @@ static void showcase_prepare_list_preview(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_LIST_PARAMS_INIT(params, 640, 794, 140, 110, 30);
-        egui_view_list_init_with_params(EGUI_VIEW_OF(&showcase_scratch.list), &params);
+        egui_view_list_init_with_params(EGUI_VIEW_OF(&showcase_scratch.list), s_core, &params);
     }
     showcase_bind_list_view(EGUI_VIEW_OF(&showcase_scratch.list), &showcase_ctx.nodes[SHOWCASE_NODE_INDEX_LIST].desc);
     egui_view_scroll_to(EGUI_VIEW_OF(&showcase_scratch.list.base.container), 0, showcase_ctx.list_scroll_y);
@@ -1325,7 +1456,7 @@ static void showcase_prepare_list_preview(void)
 static void showcase_prepare_layer_card_preview(uint32_t stable_id, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     showcase_reset_scratch();
-    egui_view_init(&showcase_scratch.view);
+    egui_view_init(&showcase_scratch.view, s_core);
     egui_view_set_position(&showcase_scratch.view, x, y);
     egui_view_set_size(&showcase_scratch.view, w, h);
     showcase_bind_layer_card_view(&showcase_scratch.view, stable_id);
@@ -1341,7 +1472,7 @@ static void showcase_draw_basic_static(void)
     showcase_draw_title(16, 8, 180, showcase_text("Basic", "基础"));
 
     showcase_reset_scratch();
-    egui_view_label_init(EGUI_VIEW_OF(&showcase_scratch.label));
+    egui_view_label_init(EGUI_VIEW_OF(&showcase_scratch.label), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.label), 16, 74);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.label), 110, 20);
     egui_view_label_set_font(EGUI_VIEW_OF(&showcase_scratch.label), showcase_get_text_font());
@@ -1350,7 +1481,7 @@ static void showcase_draw_basic_static(void)
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.label));
 
     showcase_reset_scratch();
-    egui_view_textblock_init(EGUI_VIEW_OF(&showcase_scratch.textblock));
+    egui_view_textblock_init(EGUI_VIEW_OF(&showcase_scratch.textblock), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.textblock), 16, 104);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.textblock), 110, 48);
     egui_view_set_padding(EGUI_VIEW_OF(&showcase_scratch.textblock), 6, 6, 4, 4);
@@ -1361,7 +1492,7 @@ static void showcase_draw_basic_static(void)
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.textblock));
 
     showcase_reset_scratch();
-    egui_view_dynamic_label_init(EGUI_VIEW_OF(&showcase_scratch.dynamic_label));
+    egui_view_dynamic_label_init(EGUI_VIEW_OF(&showcase_scratch.dynamic_label), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.dynamic_label), 16, 160);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.dynamic_label), 110, 20);
     egui_view_label_set_font(EGUI_VIEW_OF(&showcase_scratch.dynamic_label), showcase_get_text_font());
@@ -1370,12 +1501,12 @@ static void showcase_draw_basic_static(void)
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.dynamic_label));
 
     showcase_reset_scratch();
-    egui_view_card_init(EGUI_VIEW_OF(&showcase_scratch.card.card));
+    egui_view_card_init(EGUI_VIEW_OF(&showcase_scratch.card.card), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.card.card), 16, 192);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.card.card), 130, 52);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&showcase_scratch.card.card),
                                 showcase_ctx.is_dark_theme ? EGUI_COLOR_MAKE(30, 40, 55) : EGUI_COLOR_MAKE(255, 255, 255), EGUI_ALPHA_100);
-    egui_view_label_init(EGUI_VIEW_OF(&showcase_scratch.card.child));
+    egui_view_label_init(EGUI_VIEW_OF(&showcase_scratch.card.child), s_core);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.card.child), 110, 30);
     egui_view_set_padding(EGUI_VIEW_OF(&showcase_scratch.card.child), 6, 6, 4, 4);
     egui_view_label_set_font(EGUI_VIEW_OF(&showcase_scratch.card.child), showcase_get_text_font());
@@ -1384,10 +1515,10 @@ static void showcase_draw_basic_static(void)
     egui_view_card_add_child(EGUI_VIEW_OF(&showcase_scratch.card.card), EGUI_VIEW_OF(&showcase_scratch.card.child));
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.card.card));
 
-    showcase_draw_caption(130, 74, 74, showcase_text("Label", "标签"), caption_color);
-    showcase_draw_caption(130, 120, 74, showcase_text("Textblock", "文本块"), caption_color);
-    showcase_draw_caption(130, 160, 74, showcase_text("DynLabel", "动态标"), caption_color);
-    showcase_draw_caption(130, 257, 74, showcase_text("TextInput", "输入框"), caption_color);
+    showcase_draw_caption(130, 74, 74, showcase_text("Label", "鏍囩"), caption_color);
+    showcase_draw_caption(130, 120, 74, showcase_text("Textblock", "Textblock"), caption_color);
+    showcase_draw_caption(130, 160, 74, showcase_text("DynLabel", "鍔ㄦ€佹爣"), caption_color);
+    showcase_draw_caption(130, 257, 74, showcase_text("TextInput", "TextInput"), caption_color);
 }
 
 static void showcase_draw_toggle_static(void)
@@ -1395,18 +1526,18 @@ static void showcase_draw_toggle_static(void)
     egui_color_t caption_color = showcase_get_caption_color();
 
     showcase_draw_panel(234, 4, 178, 260);
-    showcase_draw_title(240, 8, 180, showcase_text("Toggle", "切换"));
-    showcase_draw_caption(300, 36, 70, showcase_text("Switch", "开关"), caption_color);
+    showcase_draw_title(240, 8, 180, showcase_text("Toggle", "鍒囨崲"));
+    showcase_draw_caption(300, 36, 70, showcase_text("Switch", "Switch"), caption_color);
 
     showcase_reset_scratch();
-    egui_view_led_init(EGUI_VIEW_OF(&showcase_scratch.led));
+    egui_view_led_init(EGUI_VIEW_OF(&showcase_scratch.led), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.led), 240, 206);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.led), 26, 26);
     egui_view_led_set_on(EGUI_VIEW_OF(&showcase_scratch.led));
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.led));
 
     showcase_reset_scratch();
-    egui_view_notification_badge_init(EGUI_VIEW_OF(&showcase_scratch.badge));
+    egui_view_notification_badge_init(EGUI_VIEW_OF(&showcase_scratch.badge), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.badge), 298, 210);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.badge), 26, 22);
     egui_view_notification_badge_set_count(EGUI_VIEW_OF(&showcase_scratch.badge), 5);
@@ -1424,7 +1555,7 @@ static void showcase_draw_progress_static(void)
     showcase_draw_title(430, 8, 230, showcase_text("Progress", "进度"));
 
     showcase_reset_scratch();
-    egui_view_gauge_init(EGUI_VIEW_OF(&showcase_scratch.gauge));
+    egui_view_gauge_init(EGUI_VIEW_OF(&showcase_scratch.gauge), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.gauge), 540, 50);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.gauge), 120, 120);
     showcase_scratch.gauge.stroke_width = 12;
@@ -1434,18 +1565,18 @@ static void showcase_draw_progress_static(void)
     showcase_scratch.gauge.text_color = showcase_get_text_color();
     egui_view_gauge_set_value(EGUI_VIEW_OF(&showcase_scratch.gauge), 65);
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.gauge));
-    showcase_draw_caption(430, 148, 120, showcase_text("CircProgressBar", "圆进度条"), caption_color);
-    showcase_draw_caption(570, 150, 60, showcase_text("Gauge", "仪表盘"), caption_color);
+    showcase_draw_caption(430, 148, 120, showcase_text("CircProgressBar", "鍦嗚繘搴︽潯"), caption_color);
+    showcase_draw_caption(570, 150, 60, showcase_text("Gauge", "Gauge"), caption_color);
 
     showcase_reset_scratch();
-    egui_view_page_indicator_init(EGUI_VIEW_OF(&showcase_scratch.page_indicator));
+    egui_view_page_indicator_init(EGUI_VIEW_OF(&showcase_scratch.page_indicator), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.page_indicator), 530, 240);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.page_indicator), 130, 18);
     egui_view_page_indicator_set_total_count(EGUI_VIEW_OF(&showcase_scratch.page_indicator), 5);
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&showcase_scratch.page_indicator), 2);
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.page_indicator));
-    showcase_draw_caption(430, 270, 104, showcase_text("ActivityRing", "活动环"), caption_color);
-    showcase_draw_caption(546, 270, 116, showcase_text("PageIndicator", "页码指示"), caption_color);
+    showcase_draw_caption(430, 270, 104, showcase_text("ActivityRing", "ActivityRing"), caption_color);
+    showcase_draw_caption(546, 270, 116, showcase_text("PageIndicator", "椤电爜鎸囩ず"), caption_color);
 }
 
 static void showcase_draw_progress_bar_anim(void)
@@ -1456,7 +1587,7 @@ static void showcase_draw_progress_bar_anim(void)
     showcase_clear_panel_region(430, 30, 210, 16);
 
     showcase_reset_scratch();
-    egui_view_progress_bar_init(EGUI_VIEW_OF(&showcase_scratch.progress_bar));
+    egui_view_progress_bar_init(EGUI_VIEW_OF(&showcase_scratch.progress_bar), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.progress_bar), 430, 30);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.progress_bar), 210, 16);
     egui_view_progress_bar_set_process(EGUI_VIEW_OF(&showcase_scratch.progress_bar), progress_value);
@@ -1471,7 +1602,7 @@ static void showcase_draw_circular_progress_anim(void)
     showcase_clear_panel_region(430, 56, 90, 90);
 
     showcase_reset_scratch();
-    egui_view_circular_progress_bar_init(EGUI_VIEW_OF(&showcase_scratch.circular_progress_bar));
+    egui_view_circular_progress_bar_init(EGUI_VIEW_OF(&showcase_scratch.circular_progress_bar), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.circular_progress_bar), 430, 56);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.circular_progress_bar), 90, 90);
     egui_view_circular_progress_bar_set_stroke_width(EGUI_VIEW_OF(&showcase_scratch.circular_progress_bar), 8);
@@ -1493,7 +1624,7 @@ static void showcase_draw_activity_ring_anim(void)
     showcase_clear_panel_region(430, 162, 110, 110);
 
     showcase_reset_scratch();
-    egui_view_activity_ring_init(EGUI_VIEW_OF(&showcase_scratch.activity_ring));
+    egui_view_activity_ring_init(EGUI_VIEW_OF(&showcase_scratch.activity_ring), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.activity_ring), 430, 162);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.activity_ring), 110, 110);
     egui_view_activity_ring_set_ring_count(EGUI_VIEW_OF(&showcase_scratch.activity_ring), 3);
@@ -1528,7 +1659,7 @@ static void showcase_draw_canvas_static(void)
     showcase_draw_title(680, 8, 580, showcase_text("Canvas", "画布"));
 
     showcase_reset_scratch();
-    egui_view_init(&showcase_scratch.view);
+    egui_view_init(&showcase_scratch.view, s_core);
     egui_view_set_position(&showcase_scratch.view, 680, 30);
     egui_view_set_size(&showcase_scratch.view, 240, 60);
     egui_view_set_background(&showcase_scratch.view, showcase_ctx.is_dark_theme ? EGUI_BG_OF(&bg_grad_dark) : EGUI_BG_OF(&bg_grad_light));
@@ -1536,7 +1667,7 @@ static void showcase_draw_canvas_static(void)
     showcase_draw_caption(684, 33, 80, showcase_text("Gradient", "渐变"), caption_color);
 
     showcase_reset_scratch();
-    egui_view_init(&showcase_scratch.view);
+    egui_view_init(&showcase_scratch.view, s_core);
     egui_view_set_position(&showcase_scratch.view, 940, 30);
     egui_view_set_size(&showcase_scratch.view, 120, 80);
     egui_view_set_background(&showcase_scratch.view, showcase_ctx.is_dark_theme ? EGUI_BG_OF(&bg_shadow_dark) : EGUI_BG_OF(&bg_shadow_light));
@@ -1545,7 +1676,7 @@ static void showcase_draw_canvas_static(void)
     showcase_draw_caption(944, 33, 70, showcase_text("Shadow", "阴影"), caption_color);
 
     showcase_reset_scratch();
-    egui_view_init(&showcase_scratch.view);
+    egui_view_init(&showcase_scratch.view, s_core);
     egui_view_set_position(&showcase_scratch.view, 680, 102);
     egui_view_set_size(&showcase_scratch.view, 110, 60);
     egui_view_set_background(&showcase_scratch.view, showcase_ctx.is_dark_theme ? EGUI_BG_OF(&bg_border1_dark) : EGUI_BG_OF(&bg_border1_light));
@@ -1553,7 +1684,7 @@ static void showcase_draw_canvas_static(void)
     showcase_draw_caption(685, 105, 84, showcase_text("Stroke 1px", "边框1"), caption_color);
 
     showcase_reset_scratch();
-    egui_view_init(&showcase_scratch.view);
+    egui_view_init(&showcase_scratch.view, s_core);
     egui_view_set_position(&showcase_scratch.view, 806, 102);
     egui_view_set_size(&showcase_scratch.view, 110, 60);
     egui_view_set_background(&showcase_scratch.view, showcase_ctx.is_dark_theme ? EGUI_BG_OF(&bg_border2_dark) : EGUI_BG_OF(&bg_border2_light));
@@ -1561,7 +1692,7 @@ static void showcase_draw_canvas_static(void)
     showcase_draw_caption(811, 105, 84, showcase_text("Round 2px", "边框2"), caption_color);
 
     showcase_reset_scratch();
-    egui_view_line_init(EGUI_VIEW_OF(&showcase_scratch.line));
+    egui_view_line_init(EGUI_VIEW_OF(&showcase_scratch.line), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.line), 940, 140);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.line), 240, 140);
     egui_view_line_set_points(EGUI_VIEW_OF(&showcase_scratch.line), showcase_hq_line_points, 6);
@@ -1570,7 +1701,7 @@ static void showcase_draw_canvas_static(void)
                                   showcase_ctx.is_dark_theme ? EGUI_COLOR_MAKE(63, 185, 80) : EGUI_COLOR_MAKE(9, 105, 218));
     egui_view_line_set_use_round_cap(EGUI_VIEW_OF(&showcase_scratch.line), 1);
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.line));
-    showcase_draw_caption(942, 127, 70, showcase_text("HQ Line", "HQ线"), caption_color);
+    showcase_draw_caption(942, 127, 70, showcase_text("HQ Line", "HQ Line"), caption_color);
 }
 
 static void showcase_draw_alpha_labels(void)
@@ -1590,14 +1721,14 @@ static void showcase_draw_slider_static(void)
     showcase_draw_panel(10, 336, 388, 240);
     showcase_draw_title(16, 340, 380, showcase_text("Slider/Picker", "滑块/选择"));
 
-    showcase_draw_caption(35, 490, 80, showcase_text("ArcSlider", "弧滑块"), caption_color);
+    showcase_draw_caption(35, 490, 80, showcase_text("ArcSlider", "ArcSlider"), caption_color);
 
-    showcase_draw_caption(216, 452, 60, showcase_text("Spinner", "旋转框"), caption_color);
+    showcase_draw_caption(216, 452, 60, showcase_text("Spinner", "Spinner"), caption_color);
 
     showcase_reset_scratch();
     {
         EGUI_VIEW_SCALE_PARAMS_INIT(params, 186, 520, 200, 48, 0, 100, 5);
-        egui_view_scale_init_with_params(EGUI_VIEW_OF(&showcase_scratch.scale), &params);
+        egui_view_scale_init_with_params(EGUI_VIEW_OF(&showcase_scratch.scale), s_core, &params);
     }
     egui_view_scale_set_value(EGUI_VIEW_OF(&showcase_scratch.scale), 60);
     showcase_scratch.scale.label_color = text_color;
@@ -1611,7 +1742,7 @@ static void showcase_draw_spinner_anim(void)
     showcase_clear_panel_region(216, 410, 40, 40);
 
     showcase_reset_scratch();
-    egui_view_spinner_init(EGUI_VIEW_OF(&showcase_scratch.spinner));
+    egui_view_spinner_init(EGUI_VIEW_OF(&showcase_scratch.spinner), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.spinner), 216, 410);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.spinner), 40, 40);
     showcase_scratch.spinner.rotation_angle = (int16_t)((tick * 18U) % 360U);
@@ -1627,7 +1758,7 @@ static void showcase_draw_chart_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_CHART_LINE_PARAMS_INIT(params, 430, 362, 400, 120);
-        egui_view_chart_line_init_with_params(EGUI_VIEW_OF(&showcase_scratch.chart_line), &params);
+        egui_view_chart_line_init_with_params(EGUI_VIEW_OF(&showcase_scratch.chart_line), s_core, &params);
     }
     egui_view_chart_line_set_axis_x(EGUI_VIEW_OF(&showcase_scratch.chart_line), 0, 100, 20);
     egui_view_chart_line_set_axis_y(EGUI_VIEW_OF(&showcase_scratch.chart_line), 0, 80, 20);
@@ -1647,7 +1778,7 @@ static void showcase_draw_chart_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_CHART_BAR_PARAMS_INIT(params, 850, 362, 400, 120);
-        egui_view_chart_bar_init_with_params(EGUI_VIEW_OF(&showcase_scratch.chart_bar), &params);
+        egui_view_chart_bar_init_with_params(EGUI_VIEW_OF(&showcase_scratch.chart_bar), s_core, &params);
     }
     egui_view_chart_bar_set_axis_x(EGUI_VIEW_OF(&showcase_scratch.chart_bar), 0, 4, 1);
     egui_view_chart_bar_set_axis_y(EGUI_VIEW_OF(&showcase_scratch.chart_bar), 0, 60, 20);
@@ -1667,7 +1798,7 @@ static void showcase_draw_chart_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_CHART_PIE_PARAMS_INIT(params, 430, 492, 260, 120);
-        egui_view_chart_pie_init_with_params(EGUI_VIEW_OF(&showcase_scratch.chart_pie), &params);
+        egui_view_chart_pie_init_with_params(EGUI_VIEW_OF(&showcase_scratch.chart_pie), s_core, &params);
     }
     egui_view_chart_pie_set_slices(EGUI_VIEW_OF(&showcase_scratch.chart_pie), showcase_chart_pie_slices, 4);
     egui_view_chart_pie_set_colors(EGUI_VIEW_OF(&showcase_scratch.chart_pie),
@@ -1678,7 +1809,7 @@ static void showcase_draw_chart_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_CHART_SCATTER_PARAMS_INIT(params, 710, 492, 540, 120);
-        egui_view_chart_scatter_init_with_params(EGUI_VIEW_OF(&showcase_scratch.chart_scatter), &params);
+        egui_view_chart_scatter_init_with_params(EGUI_VIEW_OF(&showcase_scratch.chart_scatter), s_core, &params);
     }
     egui_view_chart_scatter_set_axis_x(EGUI_VIEW_OF(&showcase_scratch.chart_scatter), 0, 100, 20);
     egui_view_chart_scatter_set_axis_y(EGUI_VIEW_OF(&showcase_scratch.chart_scatter), 0, 80, 20);
@@ -1715,7 +1846,7 @@ static void showcase_draw_analog_clock_anim(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_ANALOG_CLOCK_PARAMS_INIT(params, 16, 640, 130, 130, 10, 10, 30);
-        egui_view_analog_clock_init_with_params(EGUI_VIEW_OF(&showcase_scratch.analog_clock), &params);
+        egui_view_analog_clock_init_with_params(EGUI_VIEW_OF(&showcase_scratch.analog_clock), s_core, &params);
     }
     egui_view_analog_clock_show_second(EGUI_VIEW_OF(&showcase_scratch.analog_clock), 1);
     egui_view_analog_clock_set_time(EGUI_VIEW_OF(&showcase_scratch.analog_clock), hr, min, sec);
@@ -1734,7 +1865,7 @@ static void showcase_draw_digital_time_anim(void)
     showcase_clear_panel_region(160, 640, 170, 70);
 
     showcase_reset_scratch();
-    egui_view_digital_clock_init(EGUI_VIEW_OF(&showcase_scratch.digital_clock));
+    egui_view_digital_clock_init(EGUI_VIEW_OF(&showcase_scratch.digital_clock), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.digital_clock), 160, 640);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.digital_clock), 170, 30);
     egui_view_digital_clock_set_time(EGUI_VIEW_OF(&showcase_scratch.digital_clock), 14, 30, 0);
@@ -1744,7 +1875,7 @@ static void showcase_draw_digital_time_anim(void)
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.digital_clock));
 
     showcase_reset_scratch();
-    egui_view_stopwatch_init(EGUI_VIEW_OF(&showcase_scratch.stopwatch));
+    egui_view_stopwatch_init(EGUI_VIEW_OF(&showcase_scratch.stopwatch), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.stopwatch), 160, 680);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.stopwatch), 170, 30);
     egui_view_stopwatch_set_state(EGUI_VIEW_OF(&showcase_scratch.stopwatch), 1);
@@ -1764,7 +1895,7 @@ static void showcase_draw_special_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_COMPASS_PARAMS_INIT(params, 400, 640, 110, 110, 45);
-        egui_view_compass_init_with_params(EGUI_VIEW_OF(&showcase_scratch.compass), &params);
+        egui_view_compass_init_with_params(EGUI_VIEW_OF(&showcase_scratch.compass), s_core, &params);
     }
     showcase_scratch.compass.dial_color = text_color;
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.compass));
@@ -1772,7 +1903,7 @@ static void showcase_draw_special_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_LINE_PARAMS_INIT(params, 526, 660, 100, 6, 2, EGUI_COLOR_MAKE(72, 148, 184));
-        egui_view_line_init_with_params(EGUI_VIEW_OF(&showcase_scratch.line), &params);
+        egui_view_line_init_with_params(EGUI_VIEW_OF(&showcase_scratch.line), s_core, &params);
     }
     egui_view_line_set_points(EGUI_VIEW_OF(&showcase_scratch.line), showcase_simple_line_points, 2);
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.line));
@@ -1781,10 +1912,10 @@ static void showcase_draw_special_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_DIVIDER_PARAMS_INIT(params, 556, 672, 2, 80, EGUI_COLOR_MAKE(136, 176, 176));
-        egui_view_divider_init_with_params(EGUI_VIEW_OF(&showcase_scratch.divider), &params);
+        egui_view_divider_init_with_params(EGUI_VIEW_OF(&showcase_scratch.divider), s_core, &params);
     }
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.divider));
-    showcase_draw_caption(562, 678, 60, showcase_text("Divider", "分割线"), caption_color);
+    showcase_draw_caption(562, 678, 60, showcase_text("Divider", "Divider"), caption_color);
 }
 
 static void showcase_draw_heart_rate_anim(void)
@@ -1796,7 +1927,7 @@ static void showcase_draw_heart_rate_anim(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_HEART_RATE_PARAMS_INIT(params, 400, 762, 110, 68, 72);
-        egui_view_heart_rate_init_with_params(EGUI_VIEW_OF(&showcase_scratch.heart_rate), &params);
+        egui_view_heart_rate_init_with_params(EGUI_VIEW_OF(&showcase_scratch.heart_rate), s_core, &params);
     }
     showcase_scratch.heart_rate.ecg_offset = (uint8_t)(tick & 31U);
     showcase_scratch.heart_rate.beat_phase = showcase_scratch.heart_rate.ecg_offset == 10U ? 8U : 0U;
@@ -1816,14 +1947,14 @@ static void showcase_draw_data_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_TABLE_PARAMS_INIT(params, 640, 640, 200, 96, 3, 3);
-        egui_view_table_init_with_params(EGUI_VIEW_OF(&showcase_scratch.table), &params);
+        egui_view_table_init_with_params(EGUI_VIEW_OF(&showcase_scratch.table), s_core, &params);
     }
     egui_view_table_set_header_rows(EGUI_VIEW_OF(&showcase_scratch.table), 1);
     egui_view_table_set_show_grid(EGUI_VIEW_OF(&showcase_scratch.table), 1);
-    egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 0, 0, showcase_text("Name", "名称"));
-    egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 0, 1, showcase_text("Val", "值"));
-    egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 0, 2, showcase_text("Unit", "单位"));
-    egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 1, 0, showcase_text("Temp", "温度"));
+    egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 0, 0, showcase_text("Name", "鍚嶇О"));
+    egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 0, 1, showcase_text("Val", "Val"));
+    egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 0, 2, showcase_text("Unit", "鍗曚綅"));
+    egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 1, 0, showcase_text("Temp", "娓╁害"));
     egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 1, 1, "25");
     egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 1, 2, "C");
     egui_view_table_set_cell(EGUI_VIEW_OF(&showcase_scratch.table), 2, 0, showcase_text("Hum", "湿度"));
@@ -1837,7 +1968,7 @@ static void showcase_draw_data_static(void)
     showcase_draw_view(EGUI_VIEW_OF(&showcase_scratch.table));
 
     showcase_reset_scratch();
-    egui_view_spangroup_init(EGUI_VIEW_OF(&showcase_scratch.spangroup));
+    egui_view_spangroup_init(EGUI_VIEW_OF(&showcase_scratch.spangroup), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_scratch.spangroup), 820, 748);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.spangroup), 180, 40);
     egui_view_spangroup_add_span(EGUI_VIEW_OF(&showcase_scratch.spangroup), showcase_text("Primary ", "主要 "), text_font, EGUI_COLOR_MAKE(72, 144, 168));
@@ -1848,14 +1979,14 @@ static void showcase_draw_data_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_WINDOW_PARAMS_INIT(params, 1060, 640, 150, 96, 20, "Window");
-        egui_view_window_init_with_params(EGUI_VIEW_OF(&showcase_scratch.window.window), &params);
+        egui_view_window_init_with_params(EGUI_VIEW_OF(&showcase_scratch.window.window), s_core, &params);
     }
     showcase_scratch.window.window.header_color = showcase_ctx.is_dark_theme ? EGUI_COLOR_MAKE(31, 35, 42) : EGUI_COLOR_MAKE(9, 105, 218);
     showcase_scratch.window.window.content_bg_color = showcase_ctx.is_dark_theme ? EGUI_COLOR_MAKE(22, 27, 34) : EGUI_COLOR_MAKE(255, 255, 255);
     egui_view_label_set_font(EGUI_VIEW_OF(&showcase_scratch.window.window.title_label), text_font);
     egui_view_window_set_title(EGUI_VIEW_OF(&showcase_scratch.window.window), showcase_text("Window", "窗口"));
     egui_view_label_set_font_color(EGUI_VIEW_OF(&showcase_scratch.window.window.title_label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-    egui_view_label_init(EGUI_VIEW_OF(&showcase_scratch.window.content));
+    egui_view_label_init(EGUI_VIEW_OF(&showcase_scratch.window.content), s_core);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch.window.content), 120, 22);
     egui_view_label_set_font(EGUI_VIEW_OF(&showcase_scratch.window.content), text_font);
     egui_view_label_set_text(EGUI_VIEW_OF(&showcase_scratch.window.content), showcase_text("Content", "内容"));
@@ -1867,7 +1998,7 @@ static void showcase_draw_data_static(void)
     showcase_reset_scratch();
     {
         EGUI_VIEW_MENU_PARAMS_INIT(params, 1060, 752, 150, 86, 20, 20);
-        egui_view_menu_init_with_params(EGUI_VIEW_OF(&showcase_scratch.menu), &params);
+        egui_view_menu_init_with_params(EGUI_VIEW_OF(&showcase_scratch.menu), s_core, &params);
     }
     egui_view_menu_set_pages(EGUI_VIEW_OF(&showcase_scratch.menu), showcase_get_menu_pages(), 1);
     showcase_scratch.menu.font = showcase_get_text_font();
@@ -1885,13 +2016,13 @@ static void showcase_textinput_focus_changed(egui_view_t *self, int is_focused)
     if (is_focused)
     {
         textinput->cursor_visible = 1;
-        egui_timer_start_timer(&textinput->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
+        egui_view_start_timer(self, &textinput->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
         egui_view_keyboard_show(EGUI_VIEW_OF(&showcase_keyboard_view), self);
     }
     else
     {
         textinput->cursor_visible = 0;
-        egui_timer_stop_timer(&textinput->cursor_timer);
+        egui_view_stop_timer(self, &textinput->cursor_timer);
         egui_view_keyboard_hide(EGUI_VIEW_OF(&showcase_keyboard_view));
     }
 
@@ -2038,16 +2169,14 @@ static void showcase_pin_fidelity_nodes(void)
 
 static void showcase_theme_button_click(egui_view_t *view)
 {
-    EGUI_UNUSED(view);
-    egui_focus_manager_clear_focus();
+    egui_view_clear_focus(view);
     showcase_ctx.is_dark_theme = showcase_ctx.is_dark_theme ? 0U : 1U;
     showcase_refresh_theme_views();
 }
 
 static void showcase_language_button_click(egui_view_t *view)
 {
-    EGUI_UNUSED(view);
-    egui_focus_manager_clear_focus();
+    egui_view_clear_focus(view);
     showcase_ctx.is_chinese = showcase_ctx.is_chinese ? 0U : 1U;
     showcase_copy_text(showcase_ctx.textinput_text, sizeof(showcase_ctx.textinput_text), showcase_get_default_textinput_text(showcase_ctx.is_chinese));
     showcase_refresh_language_views();
@@ -2092,9 +2221,8 @@ static void showcase_request_parity_snapshot(const char *label)
     recording_request_snapshot();
 }
 
-static void showcase_bootstrap_cb(egui_timer_t *timer)
+static void showcase_bootstrap_parity_state(void)
 {
-    EGUI_UNUSED(timer);
     showcase_pin_fidelity_nodes();
     showcase_refresh_theme_views();
     showcase_refresh_language_views();
@@ -2218,193 +2346,193 @@ static egui_view_t *showcase_adapter_create_view(void *user_context, uint16_t vi
     {
     case SHOWCASE_VIEW_TYPE_BUTTON:
     {
-        egui_view_button_t *button = (egui_view_button_t *)egui_malloc(sizeof(egui_view_button_t));
+        egui_view_button_t *button = (egui_view_button_t *)egui_malloc(s_core, sizeof(egui_view_button_t));
         if (button == NULL)
         {
             return NULL;
         }
         memset(button, 0, sizeof(*button));
-        egui_view_button_init(EGUI_VIEW_OF(button));
+        egui_view_button_init(EGUI_VIEW_OF(button), s_core);
         return EGUI_VIEW_OF(button);
     }
     case SHOWCASE_VIEW_TYPE_TEXTINPUT:
     {
-        showcase_live_textinput_view_t *textinput = (showcase_live_textinput_view_t *)egui_malloc(sizeof(showcase_live_textinput_view_t));
+        showcase_live_textinput_view_t *textinput = (showcase_live_textinput_view_t *)egui_malloc(s_core, sizeof(showcase_live_textinput_view_t));
         if (textinput == NULL)
         {
             return NULL;
         }
         memset(textinput, 0, sizeof(*textinput));
-        egui_view_textinput_init(EGUI_VIEW_OF(&textinput->textinput));
+        egui_view_textinput_init(EGUI_VIEW_OF(&textinput->textinput), s_core);
         egui_view_textinput_set_on_text_changed(EGUI_VIEW_OF(&textinput->textinput), showcase_textinput_changed);
         egui_view_override_api_on_focus_changed(EGUI_VIEW_OF(&textinput->textinput), &textinput->focus_api, showcase_textinput_focus_changed);
         return EGUI_VIEW_OF(&textinput->textinput);
     }
     case SHOWCASE_VIEW_TYPE_SWITCH:
     {
-        egui_view_switch_t *switch_view = (egui_view_switch_t *)egui_malloc(sizeof(egui_view_switch_t));
+        egui_view_switch_t *switch_view = (egui_view_switch_t *)egui_malloc(s_core, sizeof(egui_view_switch_t));
         if (switch_view == NULL)
         {
             return NULL;
         }
         memset(switch_view, 0, sizeof(*switch_view));
-        egui_view_switch_init(EGUI_VIEW_OF(switch_view));
+        egui_view_switch_init(EGUI_VIEW_OF(switch_view), s_core);
         egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(switch_view), showcase_switch_changed);
         return EGUI_VIEW_OF(switch_view);
     }
     case SHOWCASE_VIEW_TYPE_CHECKBOX:
     {
-        egui_view_checkbox_t *checkbox = (egui_view_checkbox_t *)egui_malloc(sizeof(egui_view_checkbox_t));
+        egui_view_checkbox_t *checkbox = (egui_view_checkbox_t *)egui_malloc(s_core, sizeof(egui_view_checkbox_t));
         if (checkbox == NULL)
         {
             return NULL;
         }
         memset(checkbox, 0, sizeof(*checkbox));
-        egui_view_checkbox_init(EGUI_VIEW_OF(checkbox));
+        egui_view_checkbox_init(EGUI_VIEW_OF(checkbox), s_core);
         egui_view_checkbox_set_on_checked_listener(EGUI_VIEW_OF(checkbox), showcase_checkbox_changed);
         return EGUI_VIEW_OF(checkbox);
     }
     case SHOWCASE_VIEW_TYPE_RADIO_BUTTON:
     {
-        egui_view_radio_button_t *radio = (egui_view_radio_button_t *)egui_malloc(sizeof(egui_view_radio_button_t));
+        egui_view_radio_button_t *radio = (egui_view_radio_button_t *)egui_malloc(s_core, sizeof(egui_view_radio_button_t));
         if (radio == NULL)
         {
             return NULL;
         }
         memset(radio, 0, sizeof(*radio));
-        egui_view_radio_button_init(EGUI_VIEW_OF(radio));
+        egui_view_radio_button_init(EGUI_VIEW_OF(radio), s_core);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(radio), showcase_radio_click);
         return EGUI_VIEW_OF(radio);
     }
     case SHOWCASE_VIEW_TYPE_TOGGLE_BUTTON:
     {
-        egui_view_toggle_button_t *toggle = (egui_view_toggle_button_t *)egui_malloc(sizeof(egui_view_toggle_button_t));
+        egui_view_toggle_button_t *toggle = (egui_view_toggle_button_t *)egui_malloc(s_core, sizeof(egui_view_toggle_button_t));
         if (toggle == NULL)
         {
             return NULL;
         }
         memset(toggle, 0, sizeof(*toggle));
-        egui_view_toggle_button_init(EGUI_VIEW_OF(toggle));
+        egui_view_toggle_button_init(EGUI_VIEW_OF(toggle), s_core);
         egui_view_toggle_button_set_on_toggled_listener(EGUI_VIEW_OF(toggle), showcase_toggle_changed);
         return EGUI_VIEW_OF(toggle);
     }
     case SHOWCASE_VIEW_TYPE_SLIDER:
     {
-        egui_view_slider_t *slider = (egui_view_slider_t *)egui_malloc(sizeof(egui_view_slider_t));
+        egui_view_slider_t *slider = (egui_view_slider_t *)egui_malloc(s_core, sizeof(egui_view_slider_t));
         if (slider == NULL)
         {
             return NULL;
         }
         memset(slider, 0, sizeof(*slider));
-        egui_view_slider_init(EGUI_VIEW_OF(slider));
+        egui_view_slider_init(EGUI_VIEW_OF(slider), s_core);
         egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(slider), showcase_slider_changed);
         return EGUI_VIEW_OF(slider);
     }
     case SHOWCASE_VIEW_TYPE_ARC_SLIDER:
     {
-        egui_view_arc_slider_t *arc_slider = (egui_view_arc_slider_t *)egui_malloc(sizeof(egui_view_arc_slider_t));
+        egui_view_arc_slider_t *arc_slider = (egui_view_arc_slider_t *)egui_malloc(s_core, sizeof(egui_view_arc_slider_t));
         if (arc_slider == NULL)
         {
             return NULL;
         }
         memset(arc_slider, 0, sizeof(*arc_slider));
-        egui_view_arc_slider_init(EGUI_VIEW_OF(arc_slider));
+        egui_view_arc_slider_init(EGUI_VIEW_OF(arc_slider), s_core);
         egui_view_arc_slider_set_on_value_changed_listener(EGUI_VIEW_OF(arc_slider), showcase_arc_slider_changed);
         return EGUI_VIEW_OF(arc_slider);
     }
     case SHOWCASE_VIEW_TYPE_NUMBER_PICKER:
     {
-        egui_view_number_picker_t *picker = (egui_view_number_picker_t *)egui_malloc(sizeof(egui_view_number_picker_t));
+        egui_view_number_picker_t *picker = (egui_view_number_picker_t *)egui_malloc(s_core, sizeof(egui_view_number_picker_t));
         if (picker == NULL)
         {
             return NULL;
         }
         memset(picker, 0, sizeof(*picker));
-        egui_view_number_picker_init(EGUI_VIEW_OF(picker));
+        egui_view_number_picker_init(EGUI_VIEW_OF(picker), s_core);
         egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(picker), showcase_number_picker_changed);
         return EGUI_VIEW_OF(picker);
     }
     case SHOWCASE_VIEW_TYPE_ROLLER:
     {
-        egui_view_roller_t *roller = (egui_view_roller_t *)egui_malloc(sizeof(egui_view_roller_t));
+        egui_view_roller_t *roller = (egui_view_roller_t *)egui_malloc(s_core, sizeof(egui_view_roller_t));
         if (roller == NULL)
         {
             return NULL;
         }
         memset(roller, 0, sizeof(*roller));
-        egui_view_roller_init(EGUI_VIEW_OF(roller));
+        egui_view_roller_init(EGUI_VIEW_OF(roller), s_core);
         egui_view_roller_set_on_selected_listener(EGUI_VIEW_OF(roller), showcase_roller_selected);
         return EGUI_VIEW_OF(roller);
     }
     case SHOWCASE_VIEW_TYPE_COMBOBOX:
     {
-        egui_view_combobox_t *combobox = (egui_view_combobox_t *)egui_malloc(sizeof(egui_view_combobox_t));
+        egui_view_combobox_t *combobox = (egui_view_combobox_t *)egui_malloc(s_core, sizeof(egui_view_combobox_t));
         if (combobox == NULL)
         {
             return NULL;
         }
         memset(combobox, 0, sizeof(*combobox));
-        egui_view_combobox_init(EGUI_VIEW_OF(combobox));
+        egui_view_combobox_init(EGUI_VIEW_OF(combobox), s_core);
         egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(combobox), showcase_combobox_selected);
         return EGUI_VIEW_OF(combobox);
     }
     case SHOWCASE_VIEW_TYPE_MINI_CALENDAR:
     {
-        egui_view_mini_calendar_t *calendar = (egui_view_mini_calendar_t *)egui_malloc(sizeof(egui_view_mini_calendar_t));
+        egui_view_mini_calendar_t *calendar = (egui_view_mini_calendar_t *)egui_malloc(s_core, sizeof(egui_view_mini_calendar_t));
         if (calendar == NULL)
         {
             return NULL;
         }
         memset(calendar, 0, sizeof(*calendar));
-        egui_view_mini_calendar_init(EGUI_VIEW_OF(calendar));
+        egui_view_mini_calendar_init(EGUI_VIEW_OF(calendar), s_core);
         egui_view_mini_calendar_set_on_date_selected_listener(EGUI_VIEW_OF(calendar), showcase_calendar_day_selected);
         return EGUI_VIEW_OF(calendar);
     }
     case SHOWCASE_VIEW_TYPE_BUTTON_MATRIX:
     {
-        egui_view_button_matrix_t *button_matrix = (egui_view_button_matrix_t *)egui_malloc(sizeof(egui_view_button_matrix_t));
+        egui_view_button_matrix_t *button_matrix = (egui_view_button_matrix_t *)egui_malloc(s_core, sizeof(egui_view_button_matrix_t));
         if (button_matrix == NULL)
         {
             return NULL;
         }
         memset(button_matrix, 0, sizeof(*button_matrix));
-        egui_view_button_matrix_init(EGUI_VIEW_OF(button_matrix));
+        egui_view_button_matrix_init(EGUI_VIEW_OF(button_matrix), s_core);
         egui_view_button_matrix_set_on_click(EGUI_VIEW_OF(button_matrix), showcase_button_matrix_click);
         return EGUI_VIEW_OF(button_matrix);
     }
     case SHOWCASE_VIEW_TYPE_TAB_BAR:
     {
-        egui_view_tab_bar_t *tab_bar = (egui_view_tab_bar_t *)egui_malloc(sizeof(egui_view_tab_bar_t));
+        egui_view_tab_bar_t *tab_bar = (egui_view_tab_bar_t *)egui_malloc(s_core, sizeof(egui_view_tab_bar_t));
         if (tab_bar == NULL)
         {
             return NULL;
         }
         memset(tab_bar, 0, sizeof(*tab_bar));
-        egui_view_tab_bar_init(EGUI_VIEW_OF(tab_bar));
+        egui_view_tab_bar_init(EGUI_VIEW_OF(tab_bar), s_core);
         egui_view_tab_bar_set_on_tab_changed_listener(EGUI_VIEW_OF(tab_bar), showcase_tab_bar_changed);
         return EGUI_VIEW_OF(tab_bar);
     }
     case SHOWCASE_VIEW_TYPE_LIST:
     {
-        egui_view_list_t *list = (egui_view_list_t *)egui_malloc(sizeof(egui_view_list_t));
+        egui_view_list_t *list = (egui_view_list_t *)egui_malloc(s_core, sizeof(egui_view_list_t));
         if (list == NULL)
         {
             return NULL;
         }
         memset(list, 0, sizeof(*list));
-        egui_view_list_init(EGUI_VIEW_OF(list));
+        egui_view_list_init(EGUI_VIEW_OF(list), s_core);
         egui_view_list_set_item_height(EGUI_VIEW_OF(list), 30);
         return EGUI_VIEW_OF(list);
     }
     case SHOWCASE_VIEW_TYPE_LAYER_CARD:
     {
-        egui_view_t *layer = (egui_view_t *)egui_malloc(sizeof(egui_view_t));
+        egui_view_t *layer = (egui_view_t *)egui_malloc(s_core, sizeof(egui_view_t));
         if (layer == NULL)
         {
             return NULL;
         }
         memset(layer, 0, sizeof(*layer));
-        egui_view_init(layer);
+        egui_view_init(layer, s_core);
         egui_view_set_clickable(layer, 1);
         egui_view_set_on_click_listener(layer, showcase_layer_card_click);
         return layer;
@@ -2420,10 +2548,10 @@ static void showcase_adapter_destroy_view(void *user_context, egui_view_t *view,
 
     if (view_type == SHOWCASE_VIEW_TYPE_TEXTINPUT)
     {
-        egui_timer_stop_timer(&((showcase_live_textinput_view_t *)view)->textinput.cursor_timer);
+        egui_view_stop_timer(view, &((showcase_live_textinput_view_t *)view)->textinput.cursor_timer);
     }
 
-    egui_free(view);
+    egui_free(s_core, view);
 }
 
 static void showcase_adapter_bind_view(void *user_context, egui_view_t *view, uint32_t index, uint32_t stable_id, const egui_virtual_stage_node_desc_t *desc)
@@ -2789,8 +2917,9 @@ EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_STATEFUL_BRIDGE_INIT_WITH_LIMIT(showcase_stag
                                                                    showcase_adapter_save_state, showcase_adapter_restore_state, showcase_adapter_draw_node,
                                                                    showcase_adapter_hit_test, showcase_adapter_should_keep_alive, &showcase_ctx);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
+    s_core = core;
     showcase_apply_default_state();
     showcase_init_nodes();
 
@@ -2798,9 +2927,15 @@ void test_init_ui(void)
     runtime_fail_reported = 0U;
 #endif
 
-    egui_view_canvas_panner_init(EGUI_VIEW_OF(&showcase_root));
+    egui_view_canvas_panner_init(EGUI_VIEW_OF(&showcase_root), core);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&showcase_root), SHOWCASE_CANVAS_WIDTH, SHOWCASE_CANVAS_HEIGHT);
+
+    egui_view_group_init(EGUI_VIEW_OF(&showcase_scratch_host), core);
+    egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch_host), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&showcase_scratch_host));
+    EGUI_VIEW_OF(&showcase_scratch_host)->api->calculate_layout(EGUI_VIEW_OF(&showcase_scratch_host));
+
 #if EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
     if (!EGUI_CONFIG_RECORDING_TEST)
     {
@@ -2808,7 +2943,7 @@ void test_init_ui(void)
     }
 #endif
 
-    EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&showcase_stage_view, &showcase_stage_bridge);
+    EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&showcase_stage_view, core, &showcase_stage_bridge);
     showcase_apply_stage_background();
     egui_view_group_add_child(EGUI_VIEW_OF(&showcase_root), EGUI_VIEW_OF(&showcase_stage_view));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&showcase_root));
@@ -2817,11 +2952,10 @@ void test_init_ui(void)
 #endif
 
 #if EGUI_SHOWCASE_PARITY_RECORDING
-    egui_timer_init_timer(&showcase_bootstrap_timer, NULL, showcase_bootstrap_cb);
-    egui_timer_start_timer(&showcase_bootstrap_timer, 1, 0);
+    showcase_bootstrap_parity_state();
 #endif
 
-    egui_view_keyboard_init(EGUI_VIEW_OF(&showcase_keyboard_view));
+    egui_view_keyboard_init(EGUI_VIEW_OF(&showcase_keyboard_view), core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_keyboard_view), 0, SHOWCASE_KEYBOARD_Y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_keyboard_view), EGUI_CONFIG_SCEEN_WIDTH, SHOWCASE_KEYBOARD_HEIGHT);
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&showcase_keyboard_view), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
@@ -2829,7 +2963,7 @@ void test_init_ui(void)
 
 #if !EGUI_SHOWCASE_PARITY_RECORDING
     egui_timer_init_timer(&showcase_anim_timer, NULL, showcase_anim_cb);
-    egui_timer_start_timer(&showcase_anim_timer, 100, 100);
+    egui_view_start_timer(EGUI_VIEW_OF(&showcase_root), &showcase_anim_timer, 100, 100);
 #endif
 
     EGUI_VIEW_VIRTUAL_STAGE_INVALIDATE(&showcase_stage_view);

@@ -81,3 +81,5 @@ tmp
 .tmp*
 docs
 /*.log
+.koala
+/docs/superpowers

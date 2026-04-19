@@ -55,6 +55,8 @@ extern "C" {
 #define EGUI_CONFIG_PFB_HEIGHT (EGUI_CONFIG_SCEEN_HEIGHT / 8)
 #endif
 
+#include "egui_config_multi_default.h"
+
 /**
  * Optional attribute suffix for the default PFB buffer declaration.
  * Example:

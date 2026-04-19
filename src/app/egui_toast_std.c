@@ -3,10 +3,13 @@
 #include <math.h>
 
 #include "egui_toast_std.h"
+#include "core/egui_core_internal.h"
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_toast_param_normal, EGUI_COLOR_BLACK, EGUI_ALPHA_50, 30);
 EGUI_BACKGROUND_PARAM_INIT(bg_toast_params, &bg_toast_param_normal, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_toast, &bg_toast_params);
+
+static void egui_toast_std_on_set_default(egui_toast_t *self);
 
 void egui_toast_std_on_show(egui_toast_t *self, const char *text)
 {
@@ -42,25 +45,57 @@ char *egui_toast_std_get_str_buf(egui_toast_t *self)
 }
 
 static const egui_toast_api_t EGUI_TOAST_API_TABLE_NAME(egui_toast_std_t) = {
+        .on_set_default = egui_toast_std_on_set_default,
         .on_show = egui_toast_std_on_show,         // changed
         .on_hide = egui_toast_std_on_hide,         // changed
         .get_str_buf = egui_toast_std_get_str_buf, // changed
 };
 
-void egui_toast_std_init(egui_toast_t *self)
+static void egui_toast_std_on_set_default(egui_toast_t *self)
 {
     EGUI_LOCAL_INIT(egui_toast_std_t);
+    egui_view_t *label = EGUI_VIEW_OF(&local->label);
+    egui_core_t *core = egui_toast_get_core(self);
+    egui_view_t *root_view;
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    root_view = EGUI_VIEW_OF(egui_core_get_root_view(core));
+
+    if (egui_view_get_core(label) == core && EGUI_VIEW_PARENT(label) == root_view)
+    {
+        return;
+    }
+
+    if (egui_view_get_core(label) != core)
+    {
+        return;
+    }
+
+    if (EGUI_VIEW_PARENT(label) != root_view)
+    {
+        egui_core_add_root_view(core, label);
+    }
+}
+
+void egui_toast_std_init(egui_toast_t *self, egui_core_t *core)
+{
+    EGUI_LOCAL_INIT(egui_toast_std_t);
+
     // call super init.
-    egui_toast_init(self);
+    egui_toast_init(self, core);
     // update api.
-    self->api = &EGUI_DIALOG_API_TABLE_NAME(egui_toast_std_t);
+    self->api = &EGUI_TOAST_API_TABLE_NAME(egui_toast_std_t);
 
     // init local data.
     egui_toast_set_name(self, "egui_toast_std");
 
     // Init all views
     // label
-    egui_view_label_init((egui_view_t *)&local->label);
+    egui_view_label_init((egui_view_t *)&local->label, core);
     egui_view_label_set_align_type((egui_view_t *)&local->label, EGUI_ALIGN_CENTER);
     egui_view_label_set_font((egui_view_t *)&local->label, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_font_color((egui_view_t *)&local->label, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -68,9 +103,8 @@ void egui_toast_std_init(egui_toast_t *self)
 
     egui_view_set_visible((egui_view_t *)&local->label, 0);
 
-    // Add To Root
-    egui_core_add_root_view((egui_view_t *)&local->label);
-
     // Set Background
     egui_view_set_background((egui_view_t *)&local->label, (egui_background_t *)&bg_toast);
+
+    egui_core_add_root_view(core, EGUI_VIEW_OF(&local->label));
 }

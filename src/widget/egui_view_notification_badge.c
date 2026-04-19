@@ -1,4 +1,5 @@
-#include "egui_view_notification_badge.h"
+﻿#include "egui_view_notification_badge.h"
+#include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "egui_view_icon_font.h"
 #include "egui_view_notification_badge_internal.h"
@@ -72,7 +73,7 @@ void egui_view_notification_badge_format_count_text(egui_view_notification_badge
     }
 }
 
-void egui_view_notification_badge_draw_background(const egui_region_t *region, egui_color_t badge_color, uint8_t use_circle)
+void egui_view_notification_badge_draw_background(egui_canvas_t *canvas, const egui_region_t *region, egui_color_t badge_color, uint8_t use_circle)
 {
     egui_dim_t w = region->size.width;
     egui_dim_t h = region->size.height;
@@ -98,10 +99,10 @@ void egui_view_notification_badge_draw_background(const egui_region_t *region, e
                     .center_y = 0,
                     .radius = radius - 1,
             };
-            egui_canvas_draw_circle_fill_gradient(center_x, center_y, radius - 1, &badge_grad);
+            egui_canvas_draw_circle_fill_gradient(canvas, center_x, center_y, radius - 1, &badge_grad);
         }
 #else
-        egui_canvas_draw_circle_fill_basic(center_x, center_y, radius - 1, badge_color, EGUI_ALPHA_100);
+        egui_canvas_draw_circle_fill_basic(canvas, center_x, center_y, radius - 1, badge_color, EGUI_ALPHA_100);
 #endif
         return;
     }
@@ -121,10 +122,10 @@ void egui_view_notification_badge_draw_background(const egui_region_t *region, e
                     .alpha = EGUI_ALPHA_100,
                     .stops = badge_stops,
             };
-            egui_canvas_draw_round_rectangle_fill_gradient(region->location.x, region->location.y, w, h, round_radius, &badge_grad);
+            egui_canvas_draw_round_rectangle_fill_gradient(canvas, region->location.x, region->location.y, w, h, round_radius, &badge_grad);
         }
 #else
-        egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, w, h, round_radius, badge_color, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(canvas, region->location.x, region->location.y, w, h, round_radius, badge_color, EGUI_ALPHA_100);
 #endif
     }
 }
@@ -224,6 +225,7 @@ void egui_view_notification_badge_set_icon_font(egui_view_t *self, const egui_fo
 void egui_view_notification_badge_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_notification_badge_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t region;
 
     egui_view_get_work_region(self, &region);
@@ -243,8 +245,8 @@ void egui_view_notification_badge_on_draw(egui_view_t *self)
             return;
         }
 
-        egui_view_notification_badge_draw_background(&region, local->badge_color, 1);
-        egui_canvas_draw_text_in_rect(icon_font, local->icon, &region, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+        egui_view_notification_badge_draw_background(canvas, &region, local->badge_color, 1);
+        egui_canvas_draw_text_in_rect(canvas, icon_font, local->icon, &region, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
         return;
     }
 
@@ -273,8 +275,8 @@ void egui_view_notification_badge_on_draw(egui_view_t *self)
         EGUI_UNUSED(text_height);
 
         use_circle = (uint8_t)(text_width + 4 <= region.size.height);
-        egui_view_notification_badge_draw_background(&region, local->badge_color, use_circle);
-        egui_canvas_draw_text_in_rect(font, local->text_buffer, &text_region, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+        egui_view_notification_badge_draw_background(canvas, &region, local->badge_color, use_circle);
+        egui_canvas_draw_text_in_rect(canvas, font, local->text_buffer, &text_region, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
     }
 }
 
@@ -295,11 +297,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_notification_badge_t) =
 #endif
 };
 
-void egui_view_notification_badge_init(egui_view_t *self)
+void egui_view_notification_badge_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_notification_badge_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_notification_badge_t);
 
@@ -328,8 +330,8 @@ void egui_view_notification_badge_apply_params(egui_view_t *self, const egui_vie
     egui_view_invalidate(self);
 }
 
-void egui_view_notification_badge_init_with_params(egui_view_t *self, const egui_view_notification_badge_params_t *params)
+void egui_view_notification_badge_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_notification_badge_params_t *params)
 {
-    egui_view_notification_badge_init(self);
+    egui_view_notification_badge_init(self, core);
     egui_view_notification_badge_apply_params(self, params);
 }

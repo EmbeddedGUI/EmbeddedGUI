@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 2 stopwatches
 static egui_view_stopwatch_t sw1;
@@ -24,18 +24,18 @@ EGUI_VIEW_LINEARLAYOUT_PARAMS_INIT(layout_params, 0, 0, 240, 320, EGUI_ALIGN_CEN
 EGUI_VIEW_STOPWATCH_PARAMS_INIT(sw1_params, 0, 0, 200, 40, "00:00.00", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
 EGUI_VIEW_STOPWATCH_PARAMS_INIT(sw2_params, 0, 0, 200, 40, "00:00", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_PRIMARY_DARK, EGUI_ALPHA_100);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init layout
-    egui_view_linearlayout_init_with_params(EGUI_VIEW_OF(&layout), &layout_params);
+    egui_view_linearlayout_init_with_params(EGUI_VIEW_OF(&layout), core, &layout_params);
 
     // Init SW 1: elapsed_ms=125340 (2:05.34), show_ms=1
-    egui_view_stopwatch_init_with_params(EGUI_VIEW_OF(&sw1), &sw1_params);
+    egui_view_stopwatch_init_with_params(EGUI_VIEW_OF(&sw1), core, &sw1_params);
     egui_view_stopwatch_set_show_ms(EGUI_VIEW_OF(&sw1), 1);
     egui_view_stopwatch_set_elapsed(EGUI_VIEW_OF(&sw1), 125340);
 
     // Init SW 2: elapsed_ms=3723000 (1:02:03), show_ms=0
-    egui_view_stopwatch_init_with_params(EGUI_VIEW_OF(&sw2), &sw2_params);
+    egui_view_stopwatch_init_with_params(EGUI_VIEW_OF(&sw2), core, &sw2_params);
     egui_view_stopwatch_set_show_ms(EGUI_VIEW_OF(&sw2), 0);
     egui_view_stopwatch_set_elapsed(EGUI_VIEW_OF(&sw2), 3723000);
 
@@ -58,7 +58,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&layout));
 
     // Center layout on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&layout), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

@@ -95,8 +95,9 @@ static void gt1151_del(egui_hal_touch_driver_t *self)
 }
 
 /* Driver: read */
-static int gt1151_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int gt1151_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     uint8_t status;
     uint8_t buf[GT1151_MAX_POINTS * 8]; /* 8 bytes per point */
     uint8_t num_points;

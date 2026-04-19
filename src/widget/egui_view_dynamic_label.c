@@ -33,11 +33,11 @@ void egui_view_dynamic_label_set_text(egui_view_t *self, const char *text)
     egui_view_invalidate(self);
 }
 
-void egui_view_dynamic_label_init(egui_view_t *self)
+void egui_view_dynamic_label_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_dynamic_label_t);
     // call super init.
-    egui_view_label_init(self);
+    egui_view_label_init(self, core);
     egui_view_label_set_text(self, local->text_buffer);
 
     // init local data.
@@ -45,8 +45,8 @@ void egui_view_dynamic_label_init(egui_view_t *self)
     egui_view_set_view_name(self, "egui_view_dynamic_label");
 }
 
-void egui_view_dynamic_label_init_with_params(egui_view_t *self, const egui_view_label_params_t *params)
+void egui_view_dynamic_label_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params)
 {
-    egui_view_dynamic_label_init(self);
+    egui_view_dynamic_label_init(self, core);
     egui_view_label_apply_params(self, params);
 }

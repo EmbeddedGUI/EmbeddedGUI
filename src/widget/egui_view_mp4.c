@@ -1,28 +1,35 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_mp4.h"
+#include "core/egui_core.h"
 #include "egui.h"
 
 static void egui_view_mp4_update_timer(egui_view_t *self)
 {
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
 
+    if (egui_view_get_core(self) == NULL)
+    {
+        return;
+    }
+
     if (local->is_playing && self->is_attached_to_window && local->frame_interval_ms > 0 && local->mp4_image_list != NULL && local->mp4_image_count > 0 &&
         local->mp4_image_index < local->mp4_image_count)
     {
-        egui_timer_stop_timer(&local->anim_timer);
-        egui_timer_start_timer(&local->anim_timer, 0, local->frame_interval_ms);
+        egui_view_stop_timer(self, &local->anim_timer);
+        egui_view_start_timer(self, &local->anim_timer, 0, local->frame_interval_ms);
     }
     else
     {
-        egui_timer_stop_timer(&local->anim_timer);
+        egui_view_stop_timer(self, &local->anim_timer);
     }
 }
 
 void egui_view_mp4_on_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
     egui_dim_t parent_width = self->region.size.width;
     egui_dim_t parent_height = self->region.size.height;
@@ -46,18 +53,19 @@ void egui_view_mp4_on_draw(egui_view_t *self)
 
     // EGUI_LOG_INF("on_draw, mp4_image_index=%d, image: %p\n", local->mp4_image_index, image);
 
-    egui_canvas_draw_image(image, x, y);
+    egui_canvas_draw_image(canvas, image, x, y);
 }
 
 static void anim_timer_callback(egui_timer_t *timer)
 {
     // EGUI_LOG_INF("anim_timer_callback\r\n");
     egui_view_mp4_t *local = timer->user_data;
+    egui_view_t *self = (egui_view_t *)local;
 
     if (local->mp4_image_index >= local->mp4_image_count - 1)
     {
         local->is_playing = 0;
-        egui_timer_stop_timer(timer);
+        egui_view_stop_timer(self, timer);
         if (local->callback)
         {
             local->callback(local, 1);
@@ -81,7 +89,7 @@ static void egui_view_mp4_on_detach_from_window(egui_view_t *self)
 {
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
 
-    egui_timer_stop_timer(&local->anim_timer);
+    egui_view_stop_timer(self, &local->anim_timer);
     egui_view_on_detach_from_window(self);
 }
 
@@ -147,11 +155,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_mp4_t) = {
 #endif
 };
 
-void egui_view_mp4_init(egui_view_t *self)
+void egui_view_mp4_init(egui_view_t *self, egui_core_t *core)
 {
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_mp4_t);
 
@@ -168,7 +176,10 @@ void egui_view_mp4_init(egui_view_t *self)
 
     local->anim_timer.callback = anim_timer_callback;
     local->anim_timer.user_data = self;
-    egui_timer_stop_timer(&local->anim_timer);
+    if (egui_view_get_core(self) != NULL)
+    {
+        egui_view_stop_timer(self, &local->anim_timer);
+    }
 }
 
 void egui_view_mp4_apply_params(egui_view_t *self, const egui_view_mp4_params_t *params)
@@ -178,8 +189,8 @@ void egui_view_mp4_apply_params(egui_view_t *self, const egui_view_mp4_params_t 
     egui_view_invalidate(self);
 }
 
-void egui_view_mp4_init_with_params(egui_view_t *self, const egui_view_mp4_params_t *params)
+void egui_view_mp4_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_mp4_params_t *params)
 {
-    egui_view_mp4_init(self);
+    egui_view_mp4_init(self, core);
     egui_view_mp4_apply_params(self, params);
 }

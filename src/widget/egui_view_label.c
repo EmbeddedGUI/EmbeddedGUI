@@ -1,13 +1,15 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_label.h"
+#include "core/egui_core.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 
 void egui_view_label_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_label_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     if (local->font == NULL || local->text == NULL)
     {
         return;
@@ -16,7 +18,7 @@ void egui_view_label_on_draw(egui_view_t *self)
     egui_region_t region;
     egui_view_get_work_region(self, &region);
 
-    egui_canvas_draw_text_in_rect_with_line_space(local->font, local->text, &region, local->align_type, local->line_space, local->color, local->alpha);
+    egui_canvas_draw_text_in_rect_with_line_space(canvas, local->font, local->text, &region, local->align_type, local->line_space, local->color, local->alpha);
 }
 
 void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font)
@@ -118,12 +120,12 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_label_t) = {
 #endif
 };
 
-void egui_view_label_init(egui_view_t *self)
+void egui_view_label_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_label_t);
 
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_label_t);
 
@@ -155,8 +157,8 @@ void egui_view_label_apply_params(egui_view_t *self, const egui_view_label_param
     egui_view_invalidate(self);
 }
 
-void egui_view_label_init_with_params(egui_view_t *self, const egui_view_label_params_t *params)
+void egui_view_label_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params)
 {
-    egui_view_label_init(self);
+    egui_view_label_init(self, core);
     egui_view_label_apply_params(self, params);
 }

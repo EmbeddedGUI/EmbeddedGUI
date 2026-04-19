@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_list_t list_1;
 
@@ -36,7 +36,7 @@ static void list_item_click_cb(egui_view_t *self, uint8_t index)
     EGUI_LOG_INF("List item %d clicked\n", index);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
@@ -44,7 +44,7 @@ void test_init_ui(void)
     last_clicked_index = -1;
 #endif
     // Init list
-    egui_view_list_init_with_params(EGUI_VIEW_OF(&list_1), &list_1_params);
+    egui_view_list_init_with_params(EGUI_VIEW_OF(&list_1), core, &list_1_params);
     egui_view_scroll_set_scrollbar_enabled(EGUI_VIEW_OF(&list_1), 1);
     egui_view_list_set_icon_font(EGUI_VIEW_OF(&list_1), EGUI_FONT_ICON_MS_20);
     egui_view_list_set_icon_color(EGUI_VIEW_OF(&list_1), EGUI_COLOR_WHITE);

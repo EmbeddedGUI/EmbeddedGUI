@@ -50,7 +50,7 @@ struct egui_view_group_params
 #define EGUI_VIEW_GROUP_PARAMS_INIT(_name, _x, _y, _w, _h) static const egui_view_group_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 void egui_view_group_apply_params(egui_view_t *self, const egui_view_group_params_t *params);
-void egui_view_group_init_with_params(egui_view_t *self, const egui_view_group_params_t *params);
+void egui_view_group_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_group_params_t *params);
 
 #define EGUI_VIEW_GROUP_ADD_CHILD_TREE(_group, _child_tree) egui_view_group_add_child_tree((_group), (_child_tree), EGUI_ARRAY_SIZE(_child_tree))
 
@@ -68,7 +68,7 @@ void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_hor
 
 void egui_view_group_set_disallow_process_touch_event(egui_view_t *self, int disallow);
 void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, int disallow);
-void egui_view_group_touch_state_exchange(egui_view_group_touch_state_snapshot_t *snapshot);
+void egui_view_group_touch_state_exchange(egui_core_t *core, egui_view_group_touch_state_snapshot_t *snapshot);
 int egui_view_group_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event);
 void egui_view_group_compute_scroll(egui_view_t *self);
 int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event);
@@ -78,8 +78,8 @@ void egui_view_group_on_detach_from_window(egui_view_t *self);
 void egui_view_group_draw(egui_view_t *self);
 void egui_view_group_request_layout(egui_view_t *self);
 void egui_view_group_calculate_layout(egui_view_t *self);
-void egui_view_group_init(egui_view_t *self);
-void egui_view_root_group_init(egui_view_t *self);
+void egui_view_group_init(egui_view_t *self, egui_core_t *core);
+void egui_view_root_group_init(egui_view_t *self, egui_core_t *core);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 int egui_view_group_dispatch_key_event(egui_view_t *self, egui_key_event_t *event);

@@ -45,14 +45,14 @@ struct egui_view_roller_params
             .region = {{(_x), (_y)}, {(_w), (_h)}}, .items = (_items), .item_count = (_count), .current_index = (_index)}
 
 void egui_view_roller_apply_params(egui_view_t *self, const egui_view_roller_params_t *params);
-void egui_view_roller_init_with_params(egui_view_t *self, const egui_view_roller_params_t *params);
+void egui_view_roller_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_roller_params_t *params);
 
 void egui_view_roller_set_on_selected_listener(egui_view_t *self, egui_view_on_roller_selected_listener_t listener);
 void egui_view_roller_set_items(egui_view_t *self, const char **items, uint8_t count);
 void egui_view_roller_set_current_index(egui_view_t *self, uint8_t index);
 uint8_t egui_view_roller_get_current_index(egui_view_t *self);
 void egui_view_roller_on_draw(egui_view_t *self);
-void egui_view_roller_init(egui_view_t *self);
+void egui_view_roller_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

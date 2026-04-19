@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 spinners: XS / S / M / L
 static egui_view_spinner_t spinner_xs;
@@ -23,22 +23,22 @@ EGUI_VIEW_SPINNER_PARAMS_INIT(spinner_m_params, 0, 0, 62, 62);
 // Size L (82x82)
 EGUI_VIEW_SPINNER_PARAMS_INIT(spinner_l_params, 0, 0, 82, 82);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init all spinners
-    egui_view_spinner_init_with_params(EGUI_VIEW_OF(&spinner_xs), &spinner_xs_params);
+    egui_view_spinner_init_with_params(EGUI_VIEW_OF(&spinner_xs), core, &spinner_xs_params);
     egui_view_spinner_start(EGUI_VIEW_OF(&spinner_xs));
 
-    egui_view_spinner_init_with_params(EGUI_VIEW_OF(&spinner_s), &spinner_s_params);
+    egui_view_spinner_init_with_params(EGUI_VIEW_OF(&spinner_s), core, &spinner_s_params);
     egui_view_spinner_start(EGUI_VIEW_OF(&spinner_s));
 
-    egui_view_spinner_init_with_params(EGUI_VIEW_OF(&spinner_m), &spinner_m_params);
+    egui_view_spinner_init_with_params(EGUI_VIEW_OF(&spinner_m), core, &spinner_m_params);
     egui_view_spinner_start(EGUI_VIEW_OF(&spinner_m));
 
-    egui_view_spinner_init_with_params(EGUI_VIEW_OF(&spinner_l), &spinner_l_params);
+    egui_view_spinner_init_with_params(EGUI_VIEW_OF(&spinner_l), core, &spinner_l_params);
     egui_view_spinner_start(EGUI_VIEW_OF(&spinner_l));
 
     // Set margins
@@ -60,7 +60,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

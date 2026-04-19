@@ -1,6 +1,7 @@
-#include <assert.h>
+﻿#include <assert.h>
 
 #include "egui_view_number_picker.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font_std.h"
@@ -147,6 +148,7 @@ void egui_view_number_picker_set_icon_font(egui_view_t *self, const egui_font_t 
 void egui_view_number_picker_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t top_rect;
     egui_region_t mid_rect;
@@ -168,25 +170,25 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
         egui_dim_t div1_y = mid_rect.location.y;
         egui_dim_t div2_y = bottom_rect.location.y;
 
-        egui_canvas_draw_line(top_rect.location.x + margin, div1_y, top_rect.location.x + w - margin, div1_y, 1, local->button_color, 60);
-        egui_canvas_draw_line(top_rect.location.x + margin, div2_y, top_rect.location.x + w - margin, div2_y, 1, local->button_color, 60);
+        egui_canvas_draw_line(canvas, top_rect.location.x + margin, div1_y, top_rect.location.x + w - margin, div1_y, 1, local->button_color, 60);
+        egui_canvas_draw_line(canvas, top_rect.location.x + margin, div2_y, top_rect.location.x + w - margin, div2_y, 1, local->button_color, 60);
     }
 
     // Top 1/3: up arrow icon
     {
         egui_view_number_picker_local_region_to_screen(self, &top_rect, &screen_rect);
-        if (egui_canvas_is_region_active(&screen_rect))
+        if (egui_canvas_is_region_active(canvas, &screen_rect))
         {
             const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
 
             if (self->is_pressed && local->pressed_zone == 1)
             {
-                egui_canvas_draw_fillrect(top_rect.location.x, top_rect.location.y, top_rect.size.width, top_rect.size.height, EGUI_COLOR_MAKE(255, 255, 255),
-                                          30);
+                egui_canvas_draw_fillrect(canvas, top_rect.location.x, top_rect.location.y, top_rect.size.width, top_rect.size.height,
+                                          EGUI_COLOR_MAKE(255, 255, 255), 30);
             }
             if (icon_font != NULL && local->icon_inc != NULL && local->icon_inc[0] != '\0')
             {
-                egui_canvas_draw_text_in_rect(icon_font, local->icon_inc, &top_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, local->icon_inc, &top_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
             }
         }
     }
@@ -194,28 +196,28 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
     // Middle 1/3: number text (between div1 and div2, using actual boundaries)
     {
         egui_view_number_picker_local_region_to_screen(self, &mid_rect, &screen_rect);
-        if (local->font != NULL && egui_canvas_is_region_active(&screen_rect))
+        if (local->font != NULL && egui_canvas_is_region_active(canvas, &screen_rect))
         {
             egui_sprintf_int(local->text_buf, sizeof(local->text_buf), local->value);
-            egui_canvas_draw_text_in_rect(local->font, local->text_buf, &mid_rect, EGUI_ALIGN_CENTER, local->text_color, local->alpha);
+            egui_canvas_draw_text_in_rect(canvas, local->font, local->text_buf, &mid_rect, EGUI_ALIGN_CENTER, local->text_color, local->alpha);
         }
     }
 
     // Bottom 1/3: down arrow icon
     {
         egui_view_number_picker_local_region_to_screen(self, &bottom_rect, &screen_rect);
-        if (egui_canvas_is_region_active(&screen_rect))
+        if (egui_canvas_is_region_active(canvas, &screen_rect))
         {
             const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
 
             if (self->is_pressed && local->pressed_zone == -1)
             {
-                egui_canvas_draw_fillrect(bottom_rect.location.x, bottom_rect.location.y, bottom_rect.size.width, bottom_rect.size.height,
+                egui_canvas_draw_fillrect(canvas, bottom_rect.location.x, bottom_rect.location.y, bottom_rect.size.width, bottom_rect.size.height,
                                           EGUI_COLOR_MAKE(255, 255, 255), 30);
             }
             if (icon_font != NULL && local->icon_dec != NULL && local->icon_dec[0] != '\0')
             {
-                egui_canvas_draw_text_in_rect(icon_font, local->icon_dec, &bottom_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, local->icon_dec, &bottom_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
             }
         }
     }
@@ -362,11 +364,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_number_picker_t) = {
 #endif
 };
 
-void egui_view_number_picker_init(egui_view_t *self)
+void egui_view_number_picker_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_number_picker_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_number_picker_t);
 
@@ -401,8 +403,8 @@ void egui_view_number_picker_apply_params(egui_view_t *self, const egui_view_num
     egui_view_invalidate(self);
 }
 
-void egui_view_number_picker_init_with_params(egui_view_t *self, const egui_view_number_picker_params_t *params)
+void egui_view_number_picker_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_number_picker_params_t *params)
 {
-    egui_view_number_picker_init(self);
+    egui_view_number_picker_init(self, core);
     egui_view_number_picker_apply_params(self, params);
 }

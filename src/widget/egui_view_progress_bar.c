@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_progress_bar.h"
+#include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
 #include "egui_view_linear_value_helper.h"
 #include "style/egui_theme.h"
@@ -101,6 +102,7 @@ void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process)
 void egui_view_progress_bar_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_progress_bar_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_linear_value_metrics_t metrics;
@@ -113,7 +115,8 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     }
 
     /* Query theme styles for 2 parts */
-    const egui_widget_style_desc_t *desc = egui_current_theme ? egui_current_theme->progress_bar : NULL;
+    const egui_theme_t *theme = egui_theme_get(egui_view_get_core(self));
+    const egui_widget_style_desc_t *desc = theme ? theme->progress_bar : NULL;
     egui_state_t state = egui_style_get_view_state(self);
     const egui_style_t *track_style = desc ? egui_style_get(desc, EGUI_PART_MAIN, state) : NULL;
     const egui_style_t *fill_style = desc ? egui_style_get(desc, EGUI_PART_INDICATOR, state) : NULL;
@@ -124,11 +127,11 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     // draw background (thin rounded track)
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        egui_canvas_draw_round_rectangle_fill(metrics.start_x, metrics.track_y, metrics.usable_width, metrics.track_height, metrics.track_radius, bk,
+        egui_canvas_draw_round_rectangle_fill(canvas, metrics.start_x, metrics.track_y, metrics.usable_width, metrics.track_height, metrics.track_radius, bk,
                                               EGUI_ALPHA_100);
     }
 #else
-    egui_canvas_draw_round_rectangle_fill(metrics.start_x, metrics.track_y, metrics.usable_width, metrics.track_height, metrics.track_radius, bk,
+    egui_canvas_draw_round_rectangle_fill(canvas, metrics.start_x, metrics.track_y, metrics.usable_width, metrics.track_height, metrics.track_radius, bk,
                                           EGUI_ALPHA_100);
 #endif
 
@@ -137,10 +140,10 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     if (progress_width > 0)
     {
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-        egui_canvas_draw_round_rectangle_fill(metrics.start_x, metrics.track_y, progress_width, metrics.track_height, metrics.track_radius, prog,
+        egui_canvas_draw_round_rectangle_fill(canvas, metrics.start_x, metrics.track_y, progress_width, metrics.track_height, metrics.track_radius, prog,
                                               EGUI_ALPHA_100);
 #else
-        egui_canvas_draw_round_rectangle_fill(metrics.start_x, metrics.track_y, progress_width, metrics.track_height, metrics.track_radius, prog,
+        egui_canvas_draw_round_rectangle_fill(canvas, metrics.start_x, metrics.track_y, progress_width, metrics.track_height, metrics.track_radius, prog,
                                               EGUI_ALPHA_100);
 #endif
     }
@@ -149,8 +152,8 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     {
         egui_dim_t knob_x = egui_view_linear_value_clamp_x(&metrics, metrics.start_x + progress_width);
 
-        egui_canvas_draw_circle_fill_basic(knob_x, metrics.center_y, metrics.knob_radius, local->control_color, EGUI_ALPHA_100);
-        egui_canvas_draw_circle_basic(knob_x, metrics.center_y, metrics.knob_radius, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
+        egui_canvas_draw_circle_fill_basic(canvas, knob_x, metrics.center_y, metrics.knob_radius, local->control_color, EGUI_ALPHA_100);
+        egui_canvas_draw_circle_basic(canvas, knob_x, metrics.center_y, metrics.knob_radius, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
     }
 }
 
@@ -171,12 +174,12 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_progress_bar_t) = {
 #endif
 };
 
-void egui_view_progress_bar_init(egui_view_t *self)
+void egui_view_progress_bar_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_progress_bar_t);
 
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_progress_bar_t);
 
@@ -204,8 +207,8 @@ void egui_view_progress_bar_apply_params(egui_view_t *self, const egui_view_prog
     egui_view_invalidate(self);
 }
 
-void egui_view_progress_bar_init_with_params(egui_view_t *self, const egui_view_progress_bar_params_t *params)
+void egui_view_progress_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_progress_bar_params_t *params)
 {
-    egui_view_progress_bar_init(self);
+    egui_view_progress_bar_init(self, core);
     egui_view_progress_bar_apply_params(self, params);
 }

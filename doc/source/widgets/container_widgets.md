@@ -18,7 +18,7 @@ Group 作为基础容器不单独展示，其能力通过子类容器体现。
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_group_init(self)` | 初始化 Group |
+| `egui_view_group_init(self, core)` | 初始化 Group |
 | `egui_view_group_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_group_add_child(self, child)` | 添加子控件 |
 | `egui_view_group_remove_child(self, child)` | 移除子控件 |
@@ -47,17 +47,17 @@ static egui_view_label_t label;
 
 EGUI_VIEW_GROUP_PARAMS_INIT(group_params, 0, 0, 200, 100);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_group_init_with_params(EGUI_VIEW_OF(&group), &group_params);
 
-    egui_view_label_init(EGUI_VIEW_OF(&label));
+    egui_view_label_init(EGUI_VIEW_OF(&label), core);
     egui_view_set_position(EGUI_VIEW_OF(&label), 10, 10);
     egui_view_set_size(EGUI_VIEW_OF(&label), 180, 30);
     egui_view_label_set_text(EGUI_VIEW_OF(&label), "Hello Group");
 
     egui_view_group_add_child(EGUI_VIEW_OF(&group), EGUI_VIEW_OF(&label));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&group));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&group));
 }
 ```
 
@@ -82,7 +82,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_card_init(self)` | 初始化 Card |
+| `egui_view_card_init(self, core)` | 初始化 Card |
 | `egui_view_card_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_card_set_corner_radius(self, radius)` | 设置圆角半径 |
 | `egui_view_card_set_border(self, width, color)` | 设置边框宽度和颜色 |
@@ -104,7 +104,7 @@ static egui_view_label_t title;
 
 EGUI_VIEW_CARD_PARAMS_INIT(card_params, 10, 10, 200, 80, 8);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_card_init_with_params(EGUI_VIEW_OF(&card), &card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&card),
@@ -112,13 +112,13 @@ void init_ui(void)
     egui_view_card_set_border(EGUI_VIEW_OF(&card), 1,
         EGUI_COLOR_MAKE(0x66, 0x66, 0x66));
 
-    egui_view_label_init(EGUI_VIEW_OF(&title));
+    egui_view_label_init(EGUI_VIEW_OF(&title), core);
     egui_view_set_position(EGUI_VIEW_OF(&title), 10, 10);
     egui_view_set_size(EGUI_VIEW_OF(&title), 180, 30);
     egui_view_label_set_text(EGUI_VIEW_OF(&title), "Card Title");
 
     egui_view_card_add_child(EGUI_VIEW_OF(&card), EGUI_VIEW_OF(&title));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&card));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&card));
 }
 ```
 
@@ -136,7 +136,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_linearlayout_init(self)` | 初始化 LinearLayout |
+| `egui_view_linearlayout_init(self, core)` | 初始化 LinearLayout |
 | `egui_view_linearlayout_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_linearlayout_set_orientation(self, is_horizontal)` | 设置排列方向(0=垂直, 1=水平) |
 | `egui_view_linearlayout_set_align_type(self, align_type)` | 设置对齐方式 |
@@ -178,23 +178,23 @@ static egui_view_button_t btn1, btn2, btn3;
 EGUI_VIEW_LINEARLAYOUT_PARAMS_INIT(layout_params, 0, 0, 200, 150,
     EGUI_ALIGN_HCENTER);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_linearlayout_init_with_params(
         EGUI_VIEW_OF(&layout), &layout_params);
 
     // 初始化三个按钮并添加到垂直布局
-    egui_view_button_init(EGUI_VIEW_OF(&btn1));
+    egui_view_button_init(EGUI_VIEW_OF(&btn1), core);
     egui_view_set_size(EGUI_VIEW_OF(&btn1), 160, 36);
     egui_view_label_set_text(EGUI_VIEW_OF(&btn1), "Button 1");
     egui_view_set_margin_all(EGUI_VIEW_OF(&btn1), 4);
 
-    egui_view_button_init(EGUI_VIEW_OF(&btn2));
+    egui_view_button_init(EGUI_VIEW_OF(&btn2), core);
     egui_view_set_size(EGUI_VIEW_OF(&btn2), 160, 36);
     egui_view_label_set_text(EGUI_VIEW_OF(&btn2), "Button 2");
     egui_view_set_margin_all(EGUI_VIEW_OF(&btn2), 4);
 
-    egui_view_button_init(EGUI_VIEW_OF(&btn3));
+    egui_view_button_init(EGUI_VIEW_OF(&btn3), core);
     egui_view_set_size(EGUI_VIEW_OF(&btn3), 160, 36);
     egui_view_label_set_text(EGUI_VIEW_OF(&btn3), "Button 3");
     egui_view_set_margin_all(EGUI_VIEW_OF(&btn3), 4);
@@ -203,7 +203,7 @@ void init_ui(void)
     egui_view_group_add_child(EGUI_VIEW_OF(&layout), EGUI_VIEW_OF(&btn2));
     egui_view_group_add_child(EGUI_VIEW_OF(&layout), EGUI_VIEW_OF(&btn3));
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&layout));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&layout));
 }
 ```
 
@@ -221,7 +221,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_gridlayout_init(self)` | 初始化 GridLayout |
+| `egui_view_gridlayout_init(self, core)` | 初始化 GridLayout |
 | `egui_view_gridlayout_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_gridlayout_set_col_count(self, col_count)` | 设置列数 |
 | `egui_view_gridlayout_set_align_type(self, align_type)` | 设置对齐方式 |
@@ -241,7 +241,7 @@ static egui_view_button_t btns[6];
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 200, 150, 3,
     EGUI_ALIGN_HCENTER);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_gridlayout_init_with_params(
         EGUI_VIEW_OF(&grid), &grid_params);
@@ -249,7 +249,7 @@ void init_ui(void)
     const char *labels[] = {"A", "B", "C", "D", "E", "F"};
     for (int i = 0; i < 6; i++)
     {
-        egui_view_button_init(EGUI_VIEW_OF(&btns[i]));
+        egui_view_button_init(EGUI_VIEW_OF(&btns[i]), core);
         egui_view_set_size(EGUI_VIEW_OF(&btns[i]), 56, 36);
         egui_view_label_set_text(EGUI_VIEW_OF(&btns[i]), labels[i]);
         egui_view_set_margin_all(EGUI_VIEW_OF(&btns[i]), 4);
@@ -257,6 +257,6 @@ void init_ui(void)
             EGUI_VIEW_OF(&grid), EGUI_VIEW_OF(&btns[i]));
     }
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&grid));
 }
 ```

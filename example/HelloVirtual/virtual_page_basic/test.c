@@ -7,7 +7,7 @@
 #include "core/egui_input_simulator.h"
 #endif
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define PAGE_BASIC_SECTION_COUNT          96U
 #define PAGE_BASIC_STABLE_BASE            2000U
@@ -155,6 +155,7 @@ static egui_view_card_t toolbar_card;
 static egui_view_button_t action_buttons[PAGE_BASIC_ACTION_COUNT];
 static egui_view_virtual_page_t page_view;
 static page_basic_context_t page_basic_ctx;
+static egui_core_t *s_core;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
@@ -487,7 +488,7 @@ static void page_basic_style_action_button(egui_view_button_t *button, uint8_t a
         break;
     }
 
-    egui_view_button_init(EGUI_VIEW_OF(button));
+    egui_view_button_init(EGUI_VIEW_OF(button), s_core);
     egui_view_set_size(EGUI_VIEW_OF(button), PAGE_BASIC_ACTION_W, 22);
     egui_view_set_background(EGUI_VIEW_OF(button), background);
     egui_view_label_set_font(EGUI_VIEW_OF(button), PAGE_BASIC_FONT_BODY);
@@ -500,7 +501,7 @@ static void page_basic_style_action_button(egui_view_button_t *button, uint8_t a
 static void page_basic_init_label(egui_view_label_t *label, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, const egui_font_t *font, uint8_t align,
                                   egui_color_t color)
 {
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), s_core);
     egui_view_set_position(EGUI_VIEW_OF(label), x, y);
     egui_view_set_size(EGUI_VIEW_OF(label), w, h);
     egui_view_label_set_font(EGUI_VIEW_OF(label), font);
@@ -687,17 +688,17 @@ static egui_view_t *page_basic_ds_create_section_view(void *context, uint16_t se
 
     if (section_type == PAGE_BASIC_SECTION_METRIC)
     {
-        page_basic_metric_view_t *view = (page_basic_metric_view_t *)egui_malloc(sizeof(page_basic_metric_view_t));
+        page_basic_metric_view_t *view = (page_basic_metric_view_t *)egui_malloc(s_core, sizeof(page_basic_metric_view_t));
         if (view == NULL)
         {
             return NULL;
         }
 
         memset(view, 0, sizeof(*view));
-        egui_view_group_init(EGUI_VIEW_OF(&view->root));
+        egui_view_group_init(EGUI_VIEW_OF(&view->root), s_core);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->root), page_basic_section_click_cb);
 
-        egui_view_card_init(EGUI_VIEW_OF(&view->card));
+        egui_view_card_init(EGUI_VIEW_OF(&view->card), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&view->card), 8, 4);
         egui_view_set_size(EGUI_VIEW_OF(&view->card), PAGE_BASIC_VIEW_W - 16, PAGE_BASIC_METRIC_H - 8);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->card), page_basic_section_click_cb);
@@ -706,13 +707,13 @@ static egui_view_t *page_basic_ds_create_section_view(void *context, uint16_t se
         page_basic_init_label(&view->title, 12, 10, 200, 14, PAGE_BASIC_FONT_TITLE, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x4A3A20));
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->title));
 
-        egui_view_card_init(EGUI_VIEW_OF(&view->left_panel));
+        egui_view_card_init(EGUI_VIEW_OF(&view->left_panel), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&view->left_panel), 12, 30);
         egui_view_set_size(EGUI_VIEW_OF(&view->left_panel), (PAGE_BASIC_VIEW_W - 44) / 2, 40);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->left_panel), page_basic_section_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->left_panel));
 
-        egui_view_card_init(EGUI_VIEW_OF(&view->right_panel));
+        egui_view_card_init(EGUI_VIEW_OF(&view->right_panel), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&view->right_panel), 18 + (PAGE_BASIC_VIEW_W - 44) / 2, 30);
         egui_view_set_size(EGUI_VIEW_OF(&view->right_panel), (PAGE_BASIC_VIEW_W - 44) / 2, 40);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->right_panel), page_basic_section_click_cb);
@@ -737,17 +738,17 @@ static egui_view_t *page_basic_ds_create_section_view(void *context, uint16_t se
 
     if (section_type == PAGE_BASIC_SECTION_CHECKLIST)
     {
-        page_basic_checklist_view_t *view = (page_basic_checklist_view_t *)egui_malloc(sizeof(page_basic_checklist_view_t));
+        page_basic_checklist_view_t *view = (page_basic_checklist_view_t *)egui_malloc(s_core, sizeof(page_basic_checklist_view_t));
         if (view == NULL)
         {
             return NULL;
         }
 
         memset(view, 0, sizeof(*view));
-        egui_view_group_init(EGUI_VIEW_OF(&view->root));
+        egui_view_group_init(EGUI_VIEW_OF(&view->root), s_core);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->root), page_basic_section_click_cb);
 
-        egui_view_card_init(EGUI_VIEW_OF(&view->card));
+        egui_view_card_init(EGUI_VIEW_OF(&view->card), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&view->card), 20, 4);
         egui_view_set_size(EGUI_VIEW_OF(&view->card), PAGE_BASIC_VIEW_W - 40, PAGE_BASIC_CHECKLIST_H - 8);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->card), page_basic_section_click_cb);
@@ -773,17 +774,17 @@ static egui_view_t *page_basic_ds_create_section_view(void *context, uint16_t se
     }
 
     {
-        page_basic_hero_view_t *view = (page_basic_hero_view_t *)egui_malloc(sizeof(page_basic_hero_view_t));
+        page_basic_hero_view_t *view = (page_basic_hero_view_t *)egui_malloc(s_core, sizeof(page_basic_hero_view_t));
         if (view == NULL)
         {
             return NULL;
         }
 
         memset(view, 0, sizeof(*view));
-        egui_view_group_init(EGUI_VIEW_OF(&view->root));
+        egui_view_group_init(EGUI_VIEW_OF(&view->root), s_core);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->root), page_basic_section_click_cb);
 
-        egui_view_card_init(EGUI_VIEW_OF(&view->card));
+        egui_view_card_init(EGUI_VIEW_OF(&view->card), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&view->card), 8, 4);
         egui_view_set_size(EGUI_VIEW_OF(&view->card), PAGE_BASIC_VIEW_W - 16, PAGE_BASIC_HERO_H - 8);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->card), page_basic_section_click_cb);
@@ -801,7 +802,7 @@ static egui_view_t *page_basic_ds_create_section_view(void *context, uint16_t se
                               EGUI_COLOR_HEX(0x526678));
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->body));
 
-        egui_view_progress_bar_init(EGUI_VIEW_OF(&view->progress));
+        egui_view_progress_bar_init(EGUI_VIEW_OF(&view->progress), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&view->progress), 12, 62);
         egui_view_set_size(EGUI_VIEW_OF(&view->progress), PAGE_BASIC_VIEW_W - 40, 8);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->progress));
@@ -814,7 +815,7 @@ static void page_basic_ds_destroy_section_view(void *context, egui_view_t *view,
 {
     EGUI_UNUSED(context);
     EGUI_UNUSED(section_type);
-    egui_free(view);
+    egui_free(s_core, view);
 }
 
 static void page_basic_ds_bind_section_view(void *context, egui_view_t *view, uint32_t index, uint32_t stable_id)
@@ -1067,7 +1068,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 }
 #endif
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     uint8_t i;
     egui_view_virtual_page_setup_t setup = {
@@ -1080,6 +1081,7 @@ void test_init_ui(void)
 
     memset(&page_basic_ctx, 0, sizeof(page_basic_ctx));
     page_basic_init_sections();
+    s_core = core;
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
@@ -1087,11 +1089,11 @@ void test_init_ui(void)
     recording_jump_verify_retry = 0U;
 #endif
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
+    egui_view_init(EGUI_VIEW_OF(&background_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&page_basic_screen_bg));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), &page_basic_toolbar_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &page_basic_toolbar_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&toolbar_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&toolbar_card), 1, EGUI_COLOR_HEX(0xD1DEE7));
 
@@ -1102,7 +1104,7 @@ void test_init_ui(void)
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[i]));
     }
 
-    egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&page_view), &setup);
+    egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&page_view), core, &setup);
     egui_view_set_background(EGUI_VIEW_OF(&page_view), EGUI_BG_OF(&page_basic_view_bg));
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&background_view));

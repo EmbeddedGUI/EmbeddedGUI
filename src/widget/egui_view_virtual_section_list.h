@@ -137,9 +137,9 @@ struct egui_view_virtual_section_list_data_source
     }
 
 void egui_view_virtual_section_list_apply_params(egui_view_t *self, const egui_view_virtual_section_list_params_t *params);
-void egui_view_virtual_section_list_init_with_params(egui_view_t *self, const egui_view_virtual_section_list_params_t *params);
+void egui_view_virtual_section_list_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_section_list_params_t *params);
 void egui_view_virtual_section_list_apply_setup(egui_view_t *self, const egui_view_virtual_section_list_setup_t *setup);
-void egui_view_virtual_section_list_init_with_setup(egui_view_t *self, const egui_view_virtual_section_list_setup_t *setup);
+void egui_view_virtual_section_list_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_section_list_setup_t *setup);
 
 void egui_view_virtual_section_list_set_data_source(egui_view_t *self, const egui_view_virtual_section_list_data_source_t *data_source,
                                                     void *data_source_context);
@@ -216,7 +216,7 @@ uint8_t egui_view_virtual_section_list_visit_visible_entries(egui_view_t *self, 
 egui_view_t *egui_view_virtual_section_list_find_first_visible_entry_view(egui_view_t *self, egui_view_virtual_section_list_visible_entry_matcher_t matcher,
                                                                           void *context, egui_view_virtual_section_list_entry_t *entry_out);
 
-void egui_view_virtual_section_list_init(egui_view_t *self);
+void egui_view_virtual_section_list_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

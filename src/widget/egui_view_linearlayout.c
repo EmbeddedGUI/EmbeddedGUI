@@ -59,11 +59,11 @@ void egui_view_linearlayout_layout_childs(egui_view_t *self)
     egui_view_group_layout_childs(self, local->is_orientation_horizontal, local->is_auto_width, local->is_auto_height, local->align_type);
 }
 
-void egui_view_linearlayout_init(egui_view_t *self)
+void egui_view_linearlayout_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_linearlayout_t);
     // call super init.
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
 
     // init local data.
     local->is_orientation_horizontal = 0;
@@ -86,8 +86,8 @@ void egui_view_linearlayout_apply_params(egui_view_t *self, const egui_view_line
     egui_view_invalidate(self);
 }
 
-void egui_view_linearlayout_init_with_params(egui_view_t *self, const egui_view_linearlayout_params_t *params)
+void egui_view_linearlayout_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_linearlayout_params_t *params)
 {
-    egui_view_linearlayout_init(self);
+    egui_view_linearlayout_init(self, core);
     egui_view_linearlayout_apply_params(self, params);
 }

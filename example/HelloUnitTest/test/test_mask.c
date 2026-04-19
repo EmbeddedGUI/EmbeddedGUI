@@ -6,6 +6,8 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 
+static egui_canvas_t test_mask_canvas;
+
 static const uint16_t block_mask_image_data[] = {
         0x0000, 0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888, 0x9999, 0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF,
 };
@@ -212,7 +214,7 @@ static void test_circle_corner_fixed_row_matches_general_lookup(void)
     for (size_t i = 0; i < sizeof(radii) / sizeof(radii[0]); i++)
     {
         egui_dim_t radius = radii[i];
-        const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
+        const egui_circle_info_t *info = egui_canvas_get_circle_item(&test_mask_canvas, radius);
         const egui_circle_item_t *items;
 
         if (radius > EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE || info == NULL)

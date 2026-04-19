@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // Horizontal scale (0-100)
 static egui_view_scale_t scale_h;
@@ -10,16 +10,16 @@ static egui_view_scale_t scale_v;
 EGUI_VIEW_SCALE_PARAMS_INIT(scale_h_params, 10, 10, 180, 40, 0, 100, 6);
 EGUI_VIEW_SCALE_PARAMS_INIT(scale_v_params, 195, 10, 50, 200, 0, 50, 6);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init horizontal scale
-    egui_view_scale_init_with_params(EGUI_VIEW_OF(&scale_h), &scale_h_params);
+    egui_view_scale_init_with_params(EGUI_VIEW_OF(&scale_h), core, &scale_h_params);
     egui_view_scale_set_font(EGUI_VIEW_OF(&scale_h), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_scale_set_value(EGUI_VIEW_OF(&scale_h), 60);
     egui_view_scale_show_indicator(EGUI_VIEW_OF(&scale_h), 1);
 
     // Init vertical scale
-    egui_view_scale_init_with_params(EGUI_VIEW_OF(&scale_v), &scale_v_params);
+    egui_view_scale_init_with_params(EGUI_VIEW_OF(&scale_v), core, &scale_v_params);
     egui_view_scale_set_font(EGUI_VIEW_OF(&scale_v), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_scale_set_orientation(EGUI_VIEW_OF(&scale_v), 0);
     egui_view_scale_set_value(EGUI_VIEW_OF(&scale_v), 30);

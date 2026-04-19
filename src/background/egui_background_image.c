@@ -7,14 +7,14 @@
 #include "core/egui_api.h"
 #include "core/egui_canvas.h"
 
-void egui_background_image_on_draw(egui_background_t *self, egui_region_t *region, const void *param)
+void egui_background_image_on_draw(egui_background_t *self, egui_canvas_t *canvas, egui_region_t *region, const void *param)
 {
     EGUI_LOCAL_INIT(egui_background_image_t);
     const egui_background_image_param_t *img_param = param;
 
     if (img_param->img != NULL)
     {
-        egui_canvas_draw_image_resize(img_param->img, 0, 0, region->size.width, region->size.height);
+        egui_canvas_draw_image_resize(canvas, img_param->img, 0, 0, region->size.width, region->size.height);
     }
 }
 

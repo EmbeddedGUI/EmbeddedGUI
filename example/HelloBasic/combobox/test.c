@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 comboboxes: XS / S / M / L
 static egui_view_combobox_t combo_xs;
@@ -60,15 +60,15 @@ static void get_dropdown_item_center(egui_view_t *view, uint8_t item_index, int 
 }
 #endif
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     runtime_fail_reported = 0;
 
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init all comboboxes
-    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_xs), &combo_xs_params);
+    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_xs), core, &combo_xs_params);
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combo_xs), on_combo_selected);
     egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&combo_xs), item_icons_xs);
     egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combo_xs), EGUI_FONT_ICON_MS_16);
@@ -76,7 +76,7 @@ void test_init_ui(void)
     egui_view_combobox_set_icon_text_gap(EGUI_VIEW_OF(&combo_xs), 4);
     egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&combo_xs), 3);
 
-    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_s), &combo_s_params);
+    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_s), core, &combo_s_params);
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combo_s), on_combo_selected);
     egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&combo_s), item_icons_s);
     egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combo_s), EGUI_FONT_ICON_MS_20);
@@ -84,7 +84,7 @@ void test_init_ui(void)
     egui_view_combobox_set_icon_text_gap(EGUI_VIEW_OF(&combo_s), 4);
     egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&combo_s), 3);
 
-    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_m), &combo_m_params);
+    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_m), core, &combo_m_params);
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combo_m), on_combo_selected);
     egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&combo_m), item_icons_m);
     egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combo_m), EGUI_FONT_ICON_MS_20);
@@ -92,7 +92,7 @@ void test_init_ui(void)
     egui_view_combobox_set_icon_text_gap(EGUI_VIEW_OF(&combo_m), 5);
     egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&combo_m), 3);
 
-    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_l), &combo_l_params);
+    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_l), core, &combo_l_params);
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combo_l), on_combo_selected);
     egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&combo_l), item_icons_l);
     egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combo_l), EGUI_FONT_ICON_MS_24);
@@ -119,7 +119,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

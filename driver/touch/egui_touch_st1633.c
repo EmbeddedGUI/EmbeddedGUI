@@ -83,8 +83,9 @@ static void st1633_del(egui_hal_touch_driver_t *self)
 }
 
 /* Driver: read */
-static int st1633_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int st1633_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     typedef struct __attribute__((packed)) st1633_xy_coord
     {
         uint8_t y_h : 3;

@@ -21,12 +21,11 @@ typedef struct egui_theme
     const egui_widget_style_desc_t *circular_progress_bar;
 } egui_theme_t;
 
-extern const egui_theme_t *egui_current_theme;
 extern const egui_theme_t egui_theme_light;
 extern const egui_theme_t egui_theme_dark;
 
-void egui_theme_set(const egui_theme_t *theme);
-const egui_theme_t *egui_theme_get(void);
+void egui_theme_set(egui_core_t *core, const egui_theme_t *theme);
+const egui_theme_t *egui_theme_get(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

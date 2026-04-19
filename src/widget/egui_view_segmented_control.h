@@ -53,7 +53,7 @@ struct egui_view_segmented_control_params
             .region = {{(_x), (_y)}, {(_w), (_h)}}, .segment_texts = (_texts), .segment_icons = NULL, .segment_count = (_count)}
 
 void egui_view_segmented_control_apply_params(egui_view_t *self, const egui_view_segmented_control_params_t *params);
-void egui_view_segmented_control_init_with_params(egui_view_t *self, const egui_view_segmented_control_params_t *params);
+void egui_view_segmented_control_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_segmented_control_params_t *params);
 
 void egui_view_segmented_control_set_segments(egui_view_t *self, const char **segment_texts, uint8_t segment_count);
 void egui_view_segmented_control_set_segment_icons(egui_view_t *self, const char **segment_icons);
@@ -74,7 +74,7 @@ void egui_view_segmented_control_set_icon_font(egui_view_t *self, const egui_fon
 void egui_view_segmented_control_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 
 void egui_view_segmented_control_on_draw(egui_view_t *self);
-void egui_view_segmented_control_init(egui_view_t *self);
+void egui_view_segmented_control_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

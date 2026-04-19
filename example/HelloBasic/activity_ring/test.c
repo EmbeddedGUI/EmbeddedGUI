@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #ifndef EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
 #define EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK 0
@@ -67,16 +67,16 @@ EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 240, 300, 2, EGUI_ALIGN_HCEN
 EGUI_VIEW_ACTIVITY_RING_PARAMS_INIT(ring_1_params, 0, 0, 116, 116);
 EGUI_VIEW_ACTIVITY_RING_PARAMS_INIT(ring_2_params, 0, 0, 96, 96);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
     dirty_anim_tick = 0;
 #endif
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init ring 1: 3 rings (default), values 75/50/30
-    egui_view_activity_ring_init_with_params(EGUI_VIEW_OF(&ring_1), &ring_1_params);
+    egui_view_activity_ring_init_with_params(EGUI_VIEW_OF(&ring_1), core, &ring_1_params);
     egui_view_activity_ring_set_stroke_width(EGUI_VIEW_OF(&ring_1), 12);
     egui_view_activity_ring_set_ring_gap(EGUI_VIEW_OF(&ring_1), 3);
     egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_1), 0, 75);
@@ -90,7 +90,7 @@ void test_init_ui(void)
     egui_view_activity_ring_set_ring_bg_color(EGUI_VIEW_OF(&ring_1), 2, EGUI_COLOR_MAKE(0x0E, 0x2F, 0x3E));
 
     // Init ring 2: 3 rings, values 90/60/20, no round cap
-    egui_view_activity_ring_init_with_params(EGUI_VIEW_OF(&ring_2), &ring_2_params);
+    egui_view_activity_ring_init_with_params(EGUI_VIEW_OF(&ring_2), core, &ring_2_params);
     egui_view_activity_ring_set_stroke_width(EGUI_VIEW_OF(&ring_2), 10);
     egui_view_activity_ring_set_ring_gap(EGUI_VIEW_OF(&ring_2), 3);
     egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_2), 0, 90);
@@ -119,11 +119,11 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 
 #if EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
     egui_timer_init_timer(&dirty_anim_timer, NULL, dirty_anim_timer_callback);
-    egui_timer_start_timer(&dirty_anim_timer, 80, 80);
+    egui_view_start_timer(EGUI_VIEW_OF(&grid), &dirty_anim_timer, 80, 80);
 #endif
 }
 

@@ -11,6 +11,7 @@
    view_system
    event_system
    layout_system
+   ../multi-display
    virtual_stage
    rendering_pipeline
    theme_system

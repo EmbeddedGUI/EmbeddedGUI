@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 
 #define TEST_GRID_VIEW_MAX_ITEMS 8
 #define TEST_GRID_VIEW_MAX_POOL  (EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS * EGUI_VIEW_VIRTUAL_GRID_MAX_COLUMNS)
@@ -31,6 +32,14 @@ struct test_grid_view_context
 
 static egui_view_grid_view_t test_grid_view;
 static test_grid_view_context_t test_context;
+
+static egui_core_t *test_grid_view_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static int find_holder_index(const egui_view_grid_view_holder_t *holder)
 {
@@ -113,6 +122,7 @@ static int32_t grid_view_measure_item_height(void *data_model_context, uint32_t 
 
 static egui_view_grid_view_holder_t *grid_view_create_holder(void *data_model_context, uint16_t view_type)
 {
+    egui_core_t *core = test_grid_view_get_core();
     test_grid_view_context_t *ctx = (test_grid_view_context_t *)data_model_context;
     test_grid_view_holder_t *holder;
 
@@ -126,8 +136,8 @@ static egui_view_grid_view_holder_t *grid_view_create_holder(void *data_model_co
     holder = &ctx->holders[ctx->created_count++];
     memset(holder, 0, sizeof(*holder));
 
-    egui_view_group_init(EGUI_VIEW_OF(&holder->root));
-    egui_view_label_init(EGUI_VIEW_OF(&holder->label));
+    egui_view_group_init(EGUI_VIEW_OF(&holder->root), core);
+    egui_view_label_init(EGUI_VIEW_OF(&holder->label), core);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&holder->label), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_group_add_child(EGUI_VIEW_OF(&holder->root), EGUI_VIEW_OF(&holder->label));
 
@@ -182,6 +192,7 @@ static const egui_view_grid_view_holder_ops_t test_holder_ops = {
 
 static void setup_grid_view(void)
 {
+    egui_core_t *core = test_grid_view_get_core();
     const egui_view_grid_view_params_t params = {
             .region = {{0, 0}, {100, 40}},
             .column_count = 3,
@@ -204,7 +215,7 @@ static void setup_grid_view(void)
     memset(&test_grid_view, 0, sizeof(test_grid_view));
     reset_grid_items();
 
-    egui_view_grid_view_init_with_setup(EGUI_VIEW_OF(&test_grid_view), &setup);
+    egui_view_grid_view_init_with_setup(EGUI_VIEW_OF(&test_grid_view), core, &setup);
     layout_grid_view(0, 0, 100, 40);
 }
 

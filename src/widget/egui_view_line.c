@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_line.h"
+#include "core/egui_core.h"
 
 void egui_view_line_set_points(egui_view_t *self, const egui_view_line_point_t *points, uint8_t count)
 {
@@ -47,6 +48,7 @@ void egui_view_line_set_use_round_cap(egui_view_t *self, uint8_t enable)
 void egui_view_line_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_line_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     if (local->points == NULL || local->point_count < 2)
     {
@@ -69,11 +71,11 @@ void egui_view_line_on_draw(egui_view_t *self)
 
         if (local->use_round_cap)
         {
-            egui_canvas_draw_line_round_cap_hq(x1, y1, x2, y2, local->line_width, local->line_color, EGUI_ALPHA_100);
+            egui_canvas_draw_line_round_cap_hq(canvas, x1, y1, x2, y2, local->line_width, local->line_color, EGUI_ALPHA_100);
         }
         else
         {
-            egui_canvas_draw_line(x1, y1, x2, y2, local->line_width, local->line_color, EGUI_ALPHA_100);
+            egui_canvas_draw_line(canvas, x1, y1, x2, y2, local->line_width, local->line_color, EGUI_ALPHA_100);
         }
     }
 }
@@ -95,11 +97,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_line_t) = {
 #endif
 };
 
-void egui_view_line_init(egui_view_t *self)
+void egui_view_line_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_line_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_line_t);
 
@@ -125,8 +127,8 @@ void egui_view_line_apply_params(egui_view_t *self, const egui_view_line_params_
     egui_view_invalidate(self);
 }
 
-void egui_view_line_init_with_params(egui_view_t *self, const egui_view_line_params_t *params)
+void egui_view_line_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_line_params_t *params)
 {
-    egui_view_line_init(self);
+    egui_view_line_init(self, core);
     egui_view_line_apply_params(self, params);
 }

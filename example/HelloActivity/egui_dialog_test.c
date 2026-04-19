@@ -1,8 +1,8 @@
-﻿#include "egui.h"
+#include "egui.h"
 #include <stdlib.h>
 #include <math.h>
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "egui_dialog_test.h"
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_dialog_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_100, 20);
@@ -13,10 +13,10 @@ extern int uicode_start_next_dialog(egui_dialog_t *current_dialog);
 static void button_1_click_cb(egui_view_t *self)
 {
     EGUI_LOG_INF("dialog button_1_click_cb\n");
-    egui_dialog_t *p_dialog = egui_core_dialog_get();
+    egui_dialog_t *p_dialog = egui_view_get_dialog(self);
     if (p_dialog)
     {
-        egui_core_dialog_finish(p_dialog);
+        egui_dialog_finish(p_dialog);
     }
 }
 
@@ -32,18 +32,20 @@ static void button_1_click_cb(egui_view_t *self)
 void egui_dialog_test_on_create(egui_dialog_t *self)
 {
     egui_dialog_test_t *local = (egui_dialog_test_t *)self;
+    egui_core_t *core;
     // Call super on_create
     egui_dialog_on_create(self);
+    core = egui_dialog_get_core(self);
 
     // Init all views
     // layout_1
-    egui_view_linearlayout_init((egui_view_t *)&local->layout_1);
+    egui_view_linearlayout_init((egui_view_t *)&local->layout_1, core);
     egui_view_set_position((egui_view_t *)&local->layout_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->layout_1, DIALOG_WIDTH, DIALOG_HEIGHT);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->layout_1, EGUI_ALIGN_CENTER);
 
     // label_1
-    egui_view_label_init((egui_view_t *)&local->label_1);
+    egui_view_label_init((egui_view_t *)&local->label_1, core);
     egui_view_set_position((egui_view_t *)&local->label_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->label_1, LABEL_WIDTH, LABEL_HEIGHT);
     egui_view_set_margin_all((egui_view_t *)&local->label_1, 5);
@@ -53,7 +55,7 @@ void egui_dialog_test_on_create(egui_dialog_t *self)
     egui_view_label_set_font_color((egui_view_t *)&local->label_1, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
 
     // button_1
-    egui_view_button_init((egui_view_t *)&local->button_1);
+    egui_view_button_init((egui_view_t *)&local->button_1, core);
     egui_view_set_position((egui_view_t *)&local->button_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->button_1, BUTTON_WIDTH, BUTTON_HEIGHT);
     egui_view_set_margin_all((egui_view_t *)&local->button_1, 5);
@@ -88,7 +90,7 @@ void egui_dialog_test_on_destroy(egui_dialog_t *self)
     egui_dialog_on_destroy(self);
 
 #if TEST_DIALOG_DYNAMIC_ALLOC
-    egui_api_free((void *)self);
+    egui_api_free(egui_dialog_get_core(self), (void *)self);
 #endif
 }
 
@@ -101,12 +103,12 @@ static const egui_dialog_api_t EGUI_DIALOG_API_TABLE_NAME(egui_dialog_test_t) = 
         .on_destroy = egui_dialog_test_on_destroy, // changed
 };
 
-void egui_dialog_test_init(egui_dialog_t *self)
+void egui_dialog_test_init(egui_dialog_t *self, egui_core_t *core)
 {
     egui_dialog_test_t *local = (egui_dialog_test_t *)self;
     EGUI_UNUSED(local);
     // call super init.
-    egui_dialog_init(self);
+    egui_dialog_init(self, core);
     // update api.
     self->api = &EGUI_DIALOG_API_TABLE_NAME(egui_dialog_test_t);
 

@@ -53,7 +53,7 @@ struct egui_view_label_params
                                                    .alpha = EGUI_ALPHA_100}
 
 void egui_view_label_apply_params(egui_view_t *self, const egui_view_label_params_t *params);
-void egui_view_label_init_with_params(egui_view_t *self, const egui_view_label_params_t *params);
+void egui_view_label_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params);
 
 void egui_view_label_on_draw(egui_view_t *self);
 void egui_view_label_set_line_space(egui_view_t *self, egui_dim_t line_space);
@@ -64,7 +64,7 @@ void egui_view_label_set_align_type(egui_view_t *self, uint8_t align_type);
 void egui_view_label_set_text(egui_view_t *self, const char *text);
 int egui_view_label_get_str_size(egui_view_t *self, const void *string, egui_dim_t *width, egui_dim_t *height);
 int egui_view_label_get_str_size_with_padding(egui_view_t *self, const void *string, egui_dim_t *width, egui_dim_t *height);
-void egui_view_label_init(egui_view_t *self);
+void egui_view_label_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

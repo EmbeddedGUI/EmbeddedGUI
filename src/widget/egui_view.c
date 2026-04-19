@@ -3,7 +3,9 @@
 
 #include "egui_view.h"
 #include "core/egui_core.h"
+#include "core/egui_core_internal.h"
 #include "core/egui_api.h"
+#include "style/egui_theme.h"
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
 #include "shadow/egui_shadow.h"
 #endif
@@ -91,15 +93,270 @@ void egui_view_invalidate_full(egui_view_t *self)
 
 void egui_view_invalidate(egui_view_t *self)
 {
+    egui_core_t *core;
+
     if (egui_view_is_visible(self))
     {
-        self->last_dirty_epoch = egui_core_get_dirty_epoch();
+        core = egui_view_get_core(self);
+        if (core != NULL)
+        {
+            self->last_dirty_epoch = egui_core_get_dirty_epoch(core);
+        }
         self->api->request_layout(self);
     }
 }
 
+egui_core_t *egui_view_get_core(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+
+    return self->core;
+}
+
+uint32_t egui_view_get_dirty_epoch(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    return (core != NULL) ? egui_core_get_dirty_epoch(core) : 0U;
+}
+
+void egui_view_update_region_dirty(egui_view_t *self, egui_region_t *region_dirty)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL || region_dirty == NULL)
+    {
+        return;
+    }
+
+    egui_core_update_region_dirty(core, region_dirty);
+}
+
+egui_canvas_t *egui_view_get_canvas(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    return (core != NULL) ? &core->canvas : NULL;
+}
+
+egui_view_t *egui_view_get_focused_view(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    return (core != NULL) ? egui_focus_manager_get_focused_view(core) : NULL;
+#else
+    EGUI_UNUSED(core);
+    return NULL;
+#endif
+}
+
+void egui_view_clear_focus(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (core != NULL)
+    {
+        egui_focus_manager_clear_focus(core);
+    }
+#else
+    EGUI_UNUSED(core);
+#endif
+}
+
+void egui_view_set_theme(egui_view_t *self, const egui_theme_t *theme)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL || theme == NULL)
+    {
+        return;
+    }
+
+    egui_theme_set(core, theme);
+}
+
+egui_activity_t *egui_view_get_activity(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL || self == NULL)
+    {
+        return NULL;
+    }
+
+    return egui_core_activity_get_by_view(core, self);
+}
+
+egui_dialog_t *egui_view_get_dialog(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return NULL;
+    }
+
+    return egui_core_dialog_get(core);
+}
+
+egui_toast_t *egui_view_get_toast(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return NULL;
+    }
+
+    return egui_core_toast_get(core);
+}
+
+void egui_view_show_toast_info_with_duration(egui_view_t *self, const char *text, uint16_t duration)
+{
+    egui_toast_t *toast = egui_view_get_toast(self);
+
+    if (toast == NULL)
+    {
+        return;
+    }
+
+    egui_toast_show_info_with_duration(toast, text, duration);
+}
+
+void egui_view_show_toast_info(egui_view_t *self, const char *text)
+{
+    egui_view_show_toast_info_with_duration(self, text, EGUI_CONFIG_PARAM_TOAST_DEFAULT_SHOW_TIME);
+}
+
+egui_float_t egui_view_get_velocity_x(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return 0;
+    }
+
+    return egui_input_get_velocity_x(core);
+}
+
+egui_float_t egui_view_get_velocity_y(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return 0;
+    }
+
+    return egui_input_get_velocity_y(core);
+}
+
+int egui_view_start_timer(egui_view_t *self, egui_timer_t *handle, uint32_t ms, uint32_t period)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return -1;
+    }
+
+    return egui_timer_start_timer(core, handle, ms, period);
+}
+
+void egui_view_stop_timer(egui_view_t *self, egui_timer_t *handle)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_timer_stop_timer(core, handle);
+}
+
+int egui_view_check_timer_start(egui_view_t *self, egui_timer_t *handle)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return 0;
+    }
+
+    return egui_timer_check_timer_start(core, handle);
+}
+
+void egui_view_add_to_root(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_add_root_view(core, self);
+}
+
+void egui_view_remove_from_user_root(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_remove_user_root_view(core, self);
+}
+
+void egui_view_layout_user_root(egui_view_t *self, uint8_t is_orientation_horizontal, uint8_t align_type)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_layout_childs_user_root_view(core, is_orientation_horizontal, align_type);
+}
+
+void egui_view_set_pfb_scan_direction(egui_view_t *self, uint8_t reverse_x, uint8_t reverse_y)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_set_pfb_scan_direction(core, reverse_x, reverse_y);
+}
+
+void egui_view_reset_pfb_scan_direction(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_reset_pfb_scan_direction(core);
+}
+
 void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_region)
 {
+    egui_core_t *core;
+
     if (dirty_region == NULL || !egui_view_is_visible(self))
     {
         return;
@@ -111,22 +368,28 @@ void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_r
 
     if (!egui_region_is_empty(&screen_region))
     {
-        self->last_dirty_epoch = egui_core_get_dirty_epoch();
+        core = egui_view_get_core(self);
+        if (core != NULL)
+        {
+            self->last_dirty_epoch = egui_core_get_dirty_epoch(core);
+        }
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
         egui_view_log_dirty_source("subregion", self, &screen_region);
 #endif
-        egui_core_update_region_dirty(&screen_region);
+        egui_view_update_region_dirty(self, &screen_region);
     }
 }
 
 uint8_t egui_view_has_pending_dirty(egui_view_t *self)
 {
-    if (self == NULL)
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (self == NULL || core == NULL)
     {
         return 0;
     }
 
-    return (self->last_dirty_epoch == egui_core_get_dirty_epoch()) ? 1U : 0U;
+    return (self->last_dirty_epoch == egui_core_get_dirty_epoch(core)) ? 1U : 0U;
 }
 
 void egui_view_invalidate_sub_region(egui_view_t *self, const egui_sub_region_table_t *table, uint16_t index)
@@ -153,7 +416,7 @@ void egui_view_draw_background(egui_view_t *self)
 {
     if (self->background)
     {
-        self->background->api->draw(self->background, self);
+        self->background->api->draw(self->background, egui_view_get_canvas(self), self);
     }
 }
 
@@ -198,7 +461,7 @@ void egui_view_get_raw_pos(egui_view_t *self, egui_location_t *location)
 void egui_view_layout(egui_view_t *self, egui_region_t *region)
 {
     // update dirty region
-    egui_core_update_region_dirty(&self->region_screen);
+    egui_view_update_region_dirty(self, &self->region_screen);
 
     // update region
     egui_region_copy(&self->region, region);
@@ -543,7 +806,7 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
                 // Clear focus when a non-focusable widget is touched
                 // (e.g. dismiss on-screen keyboard when tapping other controls).
                 // Skip if is_no_focus_clear is set (e.g. keyboard keys must not dismiss the keyboard).
-                egui_focus_manager_clear_focus();
+                egui_view_clear_focus(self);
             }
 #endif
             break;
@@ -604,7 +867,7 @@ void egui_view_dispatch_detach_from_window(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     if (self->is_focused)
     {
-        egui_focus_manager_clear_focus();
+        egui_view_clear_focus(self);
     }
 #endif
 
@@ -629,10 +892,11 @@ void egui_view_on_detach_from_window(egui_view_t *self)
 
 void egui_view_draw(egui_view_t *self)
 {
-    egui_alpha_t alpha = egui_canvas_get_alpha();
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
+    egui_alpha_t alpha = egui_canvas_get_alpha(canvas);
 
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
-    egui_activity_t *activity = egui_core_activity_get_by_view(self);
+    egui_activity_t *activity = egui_view_get_activity(self);
     if (activity)
     {
 #if EGUI_CONFIG_DEBUG_VIEW_ID
@@ -657,9 +921,9 @@ void egui_view_draw(egui_view_t *self)
     }
 
     // clear canvas mask
-    egui_canvas_clear_mask();
+    egui_canvas_clear_mask(canvas);
     // set canvase alpha
-    egui_canvas_mix_alpha(self->alpha);
+    egui_canvas_mix_alpha(canvas, self->alpha);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
     // draw shadow with expanded work region (shadow extends beyond view bounds)
@@ -667,18 +931,18 @@ void egui_view_draw(egui_view_t *self)
     {
         egui_region_t shadow_region;
         egui_shadow_get_region(self->shadow, &self->region_screen, &shadow_region);
-        egui_canvas_calc_work_region(&shadow_region);
-        if (!egui_region_is_empty(egui_canvas_get_base_view_work_region()))
+        egui_canvas_calc_work_region(canvas, &shadow_region);
+        if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
         {
-            egui_shadow_draw(self->shadow, &self->region_screen);
+            egui_shadow_draw(canvas, self->shadow, &self->region_screen);
         }
     }
 #endif
 
     // For fast drawing, we only draw the region that is intersected with the canvas.
-    egui_canvas_calc_work_region(&self->region_screen);
+    egui_canvas_calc_work_region(canvas, &self->region_screen);
 
-    if (!egui_region_is_empty(egui_canvas_get_base_view_work_region()))
+    if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
     {
         // draw background
         egui_view_draw_background(self);
@@ -687,7 +951,7 @@ void egui_view_draw(egui_view_t *self)
     }
 
     // restore canvas alpha
-    egui_canvas_set_alpha(alpha);
+    egui_canvas_set_alpha(canvas, alpha);
 }
 
 void egui_view_request_layout(egui_view_t *self)
@@ -735,7 +999,7 @@ void egui_view_calculate_layout(egui_view_t *self)
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
         egui_view_log_dirty_source("layout", self, p_raw_region);
 #endif
-        egui_core_update_region_dirty(p_raw_region);
+        egui_view_update_region_dirty(self, p_raw_region);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
         if (self->shadow != NULL)
         {
@@ -744,7 +1008,7 @@ void egui_view_calculate_layout(egui_view_t *self)
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
             egui_view_log_dirty_source("shadow", self, &shadow_region);
 #endif
-            egui_core_update_region_dirty(&shadow_region);
+            egui_view_update_region_dirty(self, &shadow_region);
         }
 #endif
     }
@@ -814,17 +1078,16 @@ int egui_view_get_focusable(egui_view_t *self)
 
 void egui_view_request_focus(egui_view_t *self)
 {
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
     if (self->is_focusable && self->is_enable && self->is_visible && !self->is_gone)
     {
-        egui_focus_manager_set_focus(self);
-    }
-}
-
-void egui_view_clear_focus(egui_view_t *self)
-{
-    if (self->is_focused)
-    {
-        egui_focus_manager_clear_focus();
+        egui_focus_manager_set_focus(core, self);
     }
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
@@ -878,10 +1141,14 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_t) = {
 #endif
 };
 
-void egui_view_init(egui_view_t *self)
+void egui_view_init(egui_view_t *self, egui_core_t *core)
 {
+    EGUI_ASSERT(core != NULL);
+
+    self->core = core;
+
 #if EGUI_CONFIG_DEBUG_VIEW_ID
-    self->id = egui_core_get_unique_id();
+    self->id = egui_core_get_unique_id(core);
 #endif
     self->parent = NULL; // set parent later
     self->node.next = NULL;

@@ -46,7 +46,7 @@ struct egui_view_number_picker_params
     static const egui_view_number_picker_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .value = (_val), .min_value = (_min), .max_value = (_max)}
 
 void egui_view_number_picker_apply_params(egui_view_t *self, const egui_view_number_picker_params_t *params);
-void egui_view_number_picker_init_with_params(egui_view_t *self, const egui_view_number_picker_params_t *params);
+void egui_view_number_picker_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_number_picker_params_t *params);
 
 void egui_view_number_picker_set_on_value_changed_listener(egui_view_t *self, egui_view_on_number_changed_listener_t listener);
 void egui_view_number_picker_set_value(egui_view_t *self, int16_t value);
@@ -56,7 +56,7 @@ void egui_view_number_picker_set_step(egui_view_t *self, int16_t step);
 void egui_view_number_picker_set_button_icons(egui_view_t *self, const char *icon_inc, const char *icon_dec);
 void egui_view_number_picker_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_number_picker_on_draw(egui_view_t *self);
-void egui_view_number_picker_init(egui_view_t *self);
+void egui_view_number_picker_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

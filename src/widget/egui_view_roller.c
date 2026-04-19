@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_roller.h"
+#include "core/egui_core.h"
 #include "core/egui_canvas_gradient.h"
 #include "widget/egui_view_group.h"
 #include "resource/egui_resource.h"
@@ -48,6 +49,7 @@ uint8_t egui_view_roller_get_current_index(egui_view_t *self)
 void egui_view_roller_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_roller_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     if (local->items == NULL || local->item_count == 0 || local->font == NULL)
     {
@@ -79,10 +81,10 @@ void egui_view_roller_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_rectangle_fill_gradient(region.location.x, highlight_y, region.size.width, item_height, &grad);
+        egui_canvas_draw_rectangle_fill_gradient(canvas, region.location.x, highlight_y, region.size.width, item_height, &grad);
     }
 #else
-    egui_canvas_draw_rectangle_fill(region.location.x, highlight_y, region.size.width, item_height, local->highlight_color, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(canvas, region.location.x, highlight_y, region.size.width, item_height, local->highlight_color, EGUI_ALPHA_100);
 #endif
 
     // Draw visible items
@@ -105,7 +107,7 @@ void egui_view_roller_on_draw(egui_view_t *self)
 
         egui_color_t color = (item_index == local->current_index) ? local->selected_text_color : local->text_color;
 
-        egui_canvas_draw_text_in_rect(local->font, local->items[item_index], &row_rect, EGUI_ALIGN_CENTER, color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, local->font, local->items[item_index], &row_rect, EGUI_ALIGN_CENTER, color, EGUI_ALPHA_100);
     }
 }
 
@@ -214,11 +216,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_roller_t) = {
 #endif
 };
 
-void egui_view_roller_init(egui_view_t *self)
+void egui_view_roller_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_roller_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_roller_t);
 
@@ -252,8 +254,8 @@ void egui_view_roller_apply_params(egui_view_t *self, const egui_view_roller_par
     egui_view_invalidate(self);
 }
 
-void egui_view_roller_init_with_params(egui_view_t *self, const egui_view_roller_params_t *params)
+void egui_view_roller_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_roller_params_t *params)
 {
-    egui_view_roller_init(self);
+    egui_view_roller_init(self, core);
     egui_view_roller_apply_params(self, params);
 }

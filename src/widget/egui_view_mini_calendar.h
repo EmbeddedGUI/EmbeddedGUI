@@ -49,7 +49,7 @@ struct egui_view_mini_calendar_params
     static const egui_view_mini_calendar_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .year = (_year), .month = (_month), .day = (_day)}
 
 void egui_view_mini_calendar_apply_params(egui_view_t *self, const egui_view_mini_calendar_params_t *params);
-void egui_view_mini_calendar_init_with_params(egui_view_t *self, const egui_view_mini_calendar_params_t *params);
+void egui_view_mini_calendar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_mini_calendar_params_t *params);
 
 void egui_view_mini_calendar_set_date(egui_view_t *self, uint16_t year, uint8_t month, uint8_t day);
 void egui_view_mini_calendar_set_today(egui_view_t *self, uint8_t day);
@@ -57,7 +57,7 @@ void egui_view_mini_calendar_set_first_day_of_week(egui_view_t *self, uint8_t da
 void egui_view_mini_calendar_set_weekday_labels(egui_view_t *self, const char *const *labels);
 void egui_view_mini_calendar_set_on_date_selected_listener(egui_view_t *self, egui_view_on_date_selected_listener_t listener);
 void egui_view_mini_calendar_on_draw(egui_view_t *self);
-void egui_view_mini_calendar_init(egui_view_t *self);
+void egui_view_mini_calendar_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

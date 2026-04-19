@@ -8,6 +8,13 @@
 #define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 1
 #endif
 
+static egui_core_t *s_qemu_core = NULL;
+
+static void qemu_assert_single_display_core(egui_core_t *core_ctx)
+{
+    EGUI_ASSERT(core_ctx == NULL || core_ctx->id == 0);
+}
+
 /**
  * QEMU ARM port: display with optional SPI timing simulation + semihosting I/O + SysTick timing.
  *
@@ -201,7 +208,8 @@ static void spi_sim_poll(void)
         if ((int32_t)(g_raw_tick_count - spi_sim_end_tick) >= 0)
         {
             spi_sim_busy = 0;
-            egui_pfb_notify_flush_complete();
+            EGUI_ASSERT(s_qemu_core != NULL);
+            egui_pfb_notify_flush_complete(s_qemu_core);
         }
     }
 #endif
@@ -211,8 +219,9 @@ static void spi_sim_poll(void)
  * Display driver
  * ============================================================================ */
 
-static void port_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
+static void port_display_draw_area(egui_core_t *core, int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
 {
+    qemu_assert_single_display_core(core);
     EGUI_UNUSED(x);
     EGUI_UNUSED(y);
     EGUI_UNUSED(w);
@@ -225,8 +234,9 @@ static void port_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, c
 }
 
 #if QEMU_SPI_SPEED_MHZ > 0
-static void port_display_wait_draw_complete(void)
+static void port_display_wait_draw_complete(egui_core_t *core)
 {
+    qemu_assert_single_display_core(core);
     while (spi_sim_busy)
         ;
 }
@@ -573,12 +583,15 @@ static int qemu_get_external_resource_handle(void)
     return s_qemu_resource_handle;
 }
 
-static void qemu_load_external_resource(void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
+static void qemu_load_external_resource(egui_core_t *core, void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
 {
     extern const uint32_t egui_ext_res_id_map[];
     uint32_t res_offset = egui_ext_res_id_map[res_id];
     uint32_t res_real_offset = res_offset + start_offset;
     int handle = qemu_get_external_resource_handle();
+
+    qemu_assert_single_display_core(core);
+
     if (handle < 0)
     {
         return;
@@ -607,7 +620,7 @@ static void qemu_load_external_resource(void *dest, uint32_t res_id, uint32_t st
 
 #endif /* EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER */
 
-static void qemu_vlog(const char *format, va_list args)
+void qemu_vlog(const char *format, va_list args)
 {
     char buffer[384];
 
@@ -997,8 +1010,11 @@ static egui_platform_t qemu_platform = {
  * Port initialization
  * ============================================================================ */
 
-void egui_port_init(void)
+void egui_port_init(egui_core_t *core)
 {
+    EGUI_ASSERT(core != NULL);
+    s_qemu_core = core;
+
 #if QEMU_SPI_SPEED_MHZ > 0
     /* Timing calibration: verify qemu_get_tick_us() accuracy */
     uint32_t cal_start = qemu_get_tick_us();
@@ -1012,6 +1028,10 @@ void egui_port_init(void)
     uint32_t cal_end = qemu_get_tick_us();
     qemu_log_printf("TIMING_CAL: loop=%luus delay10ms=%luus\n", (unsigned long)(cal_mid - cal_start), (unsigned long)(cal_end - cal_mid));
 #endif
-    egui_display_driver_register(&port_display_driver);
-    egui_platform_register(&qemu_platform);
+    egui_platform_register(core, &qemu_platform);
+}
+
+egui_display_driver_t *egui_port_get_display_driver(void)
+{
+    return &port_display_driver;
 }

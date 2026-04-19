@@ -1,4 +1,4 @@
-#include "egui_view_grid_view.h"
+﻿#include "egui_view_grid_view.h"
 
 #include <string.h>
 
@@ -83,7 +83,7 @@ static void egui_view_grid_view_destroy_holder_internal(egui_view_grid_view_t *l
         return;
     }
 
-    egui_free(holder);
+    egui_free(EGUI_VIEW_OF(local)->core, holder);
 }
 
 static uint32_t egui_view_grid_view_data_source_get_count(void *data_source_context)
@@ -198,7 +198,7 @@ static egui_view_t *egui_view_grid_view_data_source_create_item_view(void *data_
         return NULL;
     }
 
-    host = (egui_view_grid_view_item_host_t *)egui_malloc(sizeof(egui_view_grid_view_item_host_t));
+    host = (egui_view_grid_view_item_host_t *)egui_malloc(EGUI_VIEW_OF(local)->core, sizeof(egui_view_grid_view_item_host_t));
     if (host == NULL)
     {
         egui_view_grid_view_destroy_holder_internal(local, holder, view_type);
@@ -206,7 +206,7 @@ static egui_view_t *egui_view_grid_view_data_source_create_item_view(void *data_
     }
 
     egui_api_memset(host, 0, sizeof(*host));
-    egui_view_group_init(EGUI_VIEW_OF(&host->root));
+    egui_view_group_init(EGUI_VIEW_OF(&host->root), EGUI_VIEW_OF(local)->core);
     egui_view_set_view_name(EGUI_VIEW_OF(&host->root), "egui_view_grid_view_item");
 
     host->holder = holder;
@@ -236,7 +236,7 @@ static void egui_view_grid_view_data_source_destroy_item_view(void *data_source_
 
     egui_view_grid_view_destroy_holder_internal(local, host->holder, view_type);
     host->holder = NULL;
-    egui_free(host);
+    egui_free(EGUI_VIEW_OF(local)->core, host);
 }
 
 static void egui_view_grid_view_data_source_bind_item_view(void *data_source_context, egui_view_t *view, uint32_t index, uint32_t stable_id)
@@ -348,9 +348,9 @@ void egui_view_grid_view_apply_params(egui_view_t *self, const egui_view_grid_vi
     egui_view_virtual_grid_apply_params(self, params);
 }
 
-void egui_view_grid_view_init_with_params(egui_view_t *self, const egui_view_grid_view_params_t *params)
+void egui_view_grid_view_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_grid_view_params_t *params)
 {
-    egui_view_grid_view_init(self);
+    egui_view_grid_view_init(self, core);
     egui_view_grid_view_apply_params(self, params);
 }
 
@@ -370,9 +370,9 @@ void egui_view_grid_view_apply_setup(egui_view_t *self, const egui_view_grid_vie
     egui_view_grid_view_set_state_cache_limits(self, setup->state_cache_max_entries, setup->state_cache_max_bytes);
 }
 
-void egui_view_grid_view_init_with_setup(egui_view_t *self, const egui_view_grid_view_setup_t *setup)
+void egui_view_grid_view_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_grid_view_setup_t *setup)
 {
-    egui_view_grid_view_init(self);
+    egui_view_grid_view_init(self, core);
     egui_view_grid_view_apply_setup(self, setup);
 }
 
@@ -718,11 +718,11 @@ uint8_t egui_view_grid_view_resolve_holder_by_view(egui_view_t *self, egui_view_
     return holder != NULL;
 }
 
-void egui_view_grid_view_init(egui_view_t *self)
+void egui_view_grid_view_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_LOCAL_INIT(egui_view_grid_view_t);
 
-    egui_view_virtual_grid_init(self);
+    egui_view_virtual_grid_init(self, core);
     local->data_model = NULL;
     local->holder_ops = NULL;
     local->data_model_context = NULL;

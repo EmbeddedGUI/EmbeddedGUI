@@ -44,8 +44,8 @@ void egui_view_spangroup_set_align(egui_view_t *self, uint8_t align);
 void egui_view_spangroup_set_line_spacing(egui_view_t *self, uint8_t spacing);
 
 void egui_view_spangroup_apply_params(egui_view_t *self, const egui_view_spangroup_params_t *params);
-void egui_view_spangroup_init_with_params(egui_view_t *self, const egui_view_spangroup_params_t *params);
-void egui_view_spangroup_init(egui_view_t *self);
+void egui_view_spangroup_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_spangroup_params_t *params);
+void egui_view_spangroup_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 
 #define TEST_VIRTUAL_VIEWPORT_MAX_ITEMS        1280
 #define TEST_VIRTUAL_SECTION_LIST_MAX_SECTIONS 8
@@ -96,6 +97,14 @@ static test_virtual_section_list_context_t test_section_list_context;
 static test_virtual_grid_context_t test_grid_context;
 static test_virtual_tree_context_t test_tree_context;
 
+static egui_core_t *test_virtual_viewport_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static int find_pool_index(egui_view_t *view)
 {
     uint8_t i;
@@ -169,6 +178,7 @@ static int32_t adapter_measure_main_size(void *adapter_context, uint32_t index, 
 
 static egui_view_t *adapter_create_view(void *adapter_context, uint16_t view_type)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     test_virtual_viewport_context_t *ctx = (test_virtual_viewport_context_t *)adapter_context;
     egui_view_label_t *label;
 
@@ -180,7 +190,7 @@ static egui_view_t *adapter_create_view(void *adapter_context, uint16_t view_typ
     }
 
     label = &ctx->labels[ctx->created_count++];
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), core);
     egui_view_label_set_align_type(EGUI_VIEW_OF(label), EGUI_ALIGN_CENTER);
     return EGUI_VIEW_OF(label);
 }
@@ -413,6 +423,7 @@ static int32_t test_section_list_measure_item_height(void *data_source_context, 
 
 static egui_view_t *test_section_list_create_view(void *data_source_context, uint16_t view_type)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     test_virtual_section_list_context_t *ctx = (test_virtual_section_list_context_t *)data_source_context;
     egui_view_label_t *label;
 
@@ -424,7 +435,7 @@ static egui_view_t *test_section_list_create_view(void *data_source_context, uin
     }
 
     label = &ctx->labels[ctx->created_count++];
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), core);
     egui_view_label_set_align_type(EGUI_VIEW_OF(label), EGUI_ALIGN_CENTER);
     return EGUI_VIEW_OF(label);
 }
@@ -537,6 +548,7 @@ static int32_t test_grid_measure_item_height(void *data_source_context, uint32_t
 
 static egui_view_t *test_grid_create_item_view(void *data_source_context, uint16_t view_type)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     test_virtual_grid_context_t *ctx = (test_virtual_grid_context_t *)data_source_context;
     egui_view_label_t *label;
 
@@ -548,7 +560,7 @@ static egui_view_t *test_grid_create_item_view(void *data_source_context, uint16
     }
 
     label = &ctx->labels[ctx->created_count++];
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), core);
     egui_view_label_set_align_type(EGUI_VIEW_OF(label), EGUI_ALIGN_CENTER);
     return EGUI_VIEW_OF(label);
 }
@@ -671,6 +683,7 @@ static int32_t test_tree_measure_node_height(void *data_source_context, const eg
 
 static egui_view_t *test_tree_create_node_view(void *data_source_context, uint16_t view_type)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     test_virtual_tree_context_t *ctx = (test_virtual_tree_context_t *)data_source_context;
     egui_view_label_t *label;
 
@@ -682,7 +695,7 @@ static egui_view_t *test_tree_create_node_view(void *data_source_context, uint16
     }
 
     label = &ctx->labels[ctx->created_count++];
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), core);
     egui_view_label_set_align_type(EGUI_VIEW_OF(label), EGUI_ALIGN_CENTER);
     return EGUI_VIEW_OF(label);
 }
@@ -887,6 +900,7 @@ static void layout_strip(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_
 
 static void setup_viewport(uint32_t item_count, uint32_t keep_alive_id)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     const egui_view_virtual_viewport_params_t params = {
             .region = {{0, 0}, {100, 60}},
             .orientation = EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_VERTICAL,
@@ -913,12 +927,13 @@ static void setup_viewport(uint32_t item_count, uint32_t keep_alive_id)
         test_context.keep_alive_count = 1;
     }
 
-    egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&test_viewport), &setup);
+    egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&test_viewport), core, &setup);
     layout_viewport(0, 0, 100, 60);
 }
 
 static void setup_list_with_data_source_config(uint32_t item_count, const egui_view_virtual_list_data_source_t *data_source)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     const egui_view_virtual_list_params_t params = {
             .region = {{0, 0}, {100, 60}},
             .overscan_before = 1,
@@ -939,7 +954,7 @@ static void setup_list_with_data_source_config(uint32_t item_count, const egui_v
 
     reset_test_items(item_count, 20);
 
-    egui_view_virtual_list_init_with_setup(EGUI_VIEW_OF(&test_list), &setup);
+    egui_view_virtual_list_init_with_setup(EGUI_VIEW_OF(&test_list), core, &setup);
     layout_list(0, 0, 100, 60);
 }
 
@@ -967,6 +982,7 @@ static int find_list_slot_index_by_stable_id(uint32_t stable_id)
 
 static void setup_strip_with_data_source(void)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     const egui_view_virtual_strip_params_t params = {
             .region = {{0, 0}, {60, 36}},
             .overscan_before = 1,
@@ -999,7 +1015,7 @@ static void setup_strip_with_data_source(void)
     test_context.item_heights[4] = 20;
     test_context.item_heights[5] = 16;
 
-    egui_view_virtual_strip_init_with_setup(EGUI_VIEW_OF(&test_strip), &setup);
+    egui_view_virtual_strip_init_with_setup(EGUI_VIEW_OF(&test_strip), core, &setup);
     layout_strip(0, 0, 60, 36);
 }
 
@@ -1022,6 +1038,7 @@ static int find_strip_slot_index_by_stable_id(uint32_t stable_id)
 
 static void setup_page_with_data_source_config(uint32_t item_count, const egui_view_virtual_page_data_source_t *data_source)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     EGUI_REGION_DEFINE(region, 0, 0, 100, 60);
     const egui_view_virtual_page_params_t params = {
             .region = {{0, 0}, {100, 60}},
@@ -1043,7 +1060,7 @@ static void setup_page_with_data_source_config(uint32_t item_count, const egui_v
 
     reset_test_items(item_count, 20);
 
-    egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&test_page), &setup);
+    egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&test_page), core, &setup);
     egui_view_layout(EGUI_VIEW_OF(&test_page), &region);
     egui_region_copy(&EGUI_VIEW_OF(&test_page)->region_screen, &region);
     EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
@@ -1081,6 +1098,7 @@ static void layout_section_list(egui_dim_t x, egui_dim_t y, egui_dim_t width, eg
 
 static void setup_section_list_with_data_source(void)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     const egui_view_virtual_section_list_params_t params = {
             .region = {{0, 0}, {100, 60}},
             .overscan_before = 1,
@@ -1099,7 +1117,7 @@ static void setup_section_list_with_data_source(void)
     memset(&test_section_list, 0, sizeof(test_section_list));
     reset_test_section_list_items();
 
-    egui_view_virtual_section_list_init_with_setup(EGUI_VIEW_OF(&test_section_list), &setup);
+    egui_view_virtual_section_list_init_with_setup(EGUI_VIEW_OF(&test_section_list), core, &setup);
     layout_section_list(0, 0, 100, 60);
 }
 
@@ -1137,6 +1155,7 @@ static void reset_test_grid_items(void)
 
 static void setup_grid_with_data_source(void)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     const egui_view_virtual_grid_params_t params = {
             .region = {{0, 0}, {100, 40}},
             .column_count = 3,
@@ -1158,7 +1177,7 @@ static void setup_grid_with_data_source(void)
     memset(&test_grid, 0, sizeof(test_grid));
     reset_test_grid_items();
 
-    egui_view_virtual_grid_init_with_setup(EGUI_VIEW_OF(&test_grid), &setup);
+    egui_view_virtual_grid_init_with_setup(EGUI_VIEW_OF(&test_grid), core, &setup);
     layout_grid(0, 0, 100, 40);
 }
 
@@ -1197,6 +1216,7 @@ static void layout_tree(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t
 
 static void setup_tree_with_data_source(void)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     const egui_view_virtual_tree_params_t params = {
             .region = {{0, 0}, {100, 60}},
             .overscan_before = 1,
@@ -1215,7 +1235,7 @@ static void setup_tree_with_data_source(void)
     memset(&test_tree, 0, sizeof(test_tree));
     reset_test_tree_items();
 
-    egui_view_virtual_tree_init_with_setup(EGUI_VIEW_OF(&test_tree), &setup);
+    egui_view_virtual_tree_init_with_setup(EGUI_VIEW_OF(&test_tree), core, &setup);
     layout_tree(0, 0, 100, 60);
 }
 
@@ -1991,6 +2011,7 @@ static void test_virtual_viewport_duplicate_keepalive_slot_is_recycled(void)
 
 static void test_virtual_viewport_setup_and_lookup_helpers(void)
 {
+    egui_core_t *core = test_virtual_viewport_get_core();
     egui_view_virtual_viewport_entry_t entry;
     egui_view_virtual_viewport_setup_t setup;
     const egui_view_virtual_viewport_slot_t *slot;
@@ -2008,7 +2029,7 @@ static void test_virtual_viewport_setup_and_lookup_helpers(void)
     setup.state_cache_max_entries = 5;
     setup.state_cache_max_bytes = 20;
 
-    egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&test_viewport), &setup);
+    egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&test_viewport), core, &setup);
     layout_viewport(0, 0, 100, 60);
 
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_viewport_get_adapter(EGUI_VIEW_OF(&test_viewport)) == &test_adapter);

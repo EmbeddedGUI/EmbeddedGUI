@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_menu.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
@@ -187,6 +188,7 @@ void egui_view_menu_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 void egui_view_menu_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_menu_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -215,7 +217,7 @@ void egui_view_menu_on_draw(egui_view_t *self)
 
     // Fill full widget background first to prevent shadow inner-rect bleed-through
     // in rows below the last item when items don't span the full widget height.
-    egui_canvas_draw_rectangle_fill(x, y, w, region.size.height, local->item_color, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(canvas, x, y, w, region.size.height, local->item_color, EGUI_ALPHA_100);
 
     // Draw header background
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -231,17 +233,17 @@ void egui_view_menu_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_rectangle_fill_gradient(x, y, w, hdr_h, &grad);
+        egui_canvas_draw_rectangle_fill_gradient(canvas, x, y, w, hdr_h, &grad);
     }
 #else
-    egui_canvas_draw_rectangle_fill(x, y, w, hdr_h, local->header_color, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(canvas, x, y, w, hdr_h, local->header_color, EGUI_ALPHA_100);
 #endif
 
     // Draw back arrow if we have stack depth
     if (has_back_icon)
     {
         egui_region_t back_rect = {{x, y}, {hdr_h, hdr_h}};
-        egui_canvas_draw_text_in_rect(header_icon_font, egui_view_menu_get_back_icon(local), &back_rect, EGUI_ALIGN_CENTER, local->header_text_color,
+        egui_canvas_draw_text_in_rect(canvas, header_icon_font, egui_view_menu_get_back_icon(local), &back_rect, EGUI_ALIGN_CENTER, local->header_text_color,
                                       EGUI_ALPHA_100);
     }
 
@@ -253,7 +255,7 @@ void egui_view_menu_on_draw(egui_view_t *self)
             title_rect.location.x += hdr_h;
             title_rect.size.width -= hdr_h * 2;
         }
-        egui_canvas_draw_text_in_rect(font, page->title, &title_rect, EGUI_ALIGN_CENTER, local->header_text_color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, font, page->title, &title_rect, EGUI_ALIGN_CENTER, local->header_text_color, EGUI_ALPHA_100);
     }
 
     // Draw items
@@ -265,11 +267,11 @@ void egui_view_menu_on_draw(egui_view_t *self)
         // Highlight pressed item
         if (self->is_pressed && local->pressed_index == (int8_t)i)
         {
-            egui_canvas_draw_rectangle_fill(x, item_y, w, item_h, local->highlight_color, EGUI_ALPHA_100);
+            egui_canvas_draw_rectangle_fill(canvas, x, item_y, w, item_h, local->highlight_color, EGUI_ALPHA_100);
         }
         else
         {
-            egui_canvas_draw_rectangle_fill(x, item_y, w, item_h, local->item_color, EGUI_ALPHA_100);
+            egui_canvas_draw_rectangle_fill(canvas, x, item_y, w, item_h, local->item_color, EGUI_ALPHA_100);
         }
 
         // Draw item text left-aligned with padding
@@ -282,7 +284,7 @@ void egui_view_menu_on_draw(egui_view_t *self)
             if (item_icon_font != NULL && page->items[i].icon != NULL && page->items[i].icon[0] != '\0')
             {
                 egui_region_t icon_rect = {{x, item_y}, {item_h, item_h}};
-                egui_canvas_draw_text_in_rect(item_icon_font, page->items[i].icon, &icon_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+                egui_canvas_draw_text_in_rect(canvas, item_icon_font, page->items[i].icon, &icon_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
                 leading_width = item_h + local->icon_text_gap;
             }
 
@@ -297,21 +299,22 @@ void egui_view_menu_on_draw(egui_view_t *self)
                 text_width = 0;
             }
             egui_region_t text_rect = {{text_x, item_y}, {text_width, item_h}};
-            egui_canvas_draw_text_in_rect(font, page->items[i].text, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(canvas, font, page->items[i].text, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color,
+                                          EGUI_ALPHA_100);
         }
 
         // Draw trailing arrow icon for sub-menu items
         if (page->items[i].sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF && has_submenu_icon)
         {
             egui_region_t arrow_rect = {{x + w - item_h, item_y}, {item_h, item_h}};
-            egui_canvas_draw_text_in_rect(item_icon_font, egui_view_menu_get_submenu_icon(local), &arrow_rect, EGUI_ALIGN_CENTER, local->text_color,
+            egui_canvas_draw_text_in_rect(canvas, item_icon_font, egui_view_menu_get_submenu_icon(local), &arrow_rect, EGUI_ALIGN_CENTER, local->text_color,
                                           EGUI_ALPHA_100);
         }
 
         // Draw separator between items only (not after the last item)
         if (i < page->item_count - 1)
         {
-            egui_canvas_draw_rectangle_fill(x, item_y + item_h, w, 1, local->highlight_color, EGUI_ALPHA_100);
+            egui_canvas_draw_rectangle_fill(canvas, x, item_y + item_h, w, 1, local->highlight_color, EGUI_ALPHA_100);
         }
     }
 }
@@ -446,11 +449,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_menu_t) = {
 #endif
 };
 
-void egui_view_menu_init(egui_view_t *self)
+void egui_view_menu_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_menu_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_menu_t);
 
@@ -503,8 +506,8 @@ void egui_view_menu_apply_params(egui_view_t *self, const egui_view_menu_params_
     egui_view_invalidate(self);
 }
 
-void egui_view_menu_init_with_params(egui_view_t *self, const egui_view_menu_params_t *params)
+void egui_view_menu_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_menu_params_t *params)
 {
-    egui_view_menu_init(self);
+    egui_view_menu_init(self, core);
     egui_view_menu_apply_params(self, params);
 }

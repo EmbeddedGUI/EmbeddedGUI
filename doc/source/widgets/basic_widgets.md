@@ -16,7 +16,7 @@ View 作为基类不单独展示，其能力通过子控件体现。
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_init(self)` | 初始化 View |
+| `egui_view_init(self, core)` | 初始化 View |
 | `egui_view_set_position(self, x, y)` | 设置位置 |
 | `egui_view_set_size(self, width, height)` | 设置大小 |
 | `egui_view_set_visible(self, is_visible)` | 设置可见性 |
@@ -64,7 +64,7 @@ View 作为基类不单独展示，其能力通过子控件体现。
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_label_init(self)` | 初始化 Label |
+| `egui_view_label_init(self, core)` | 初始化 Label |
 | `egui_view_label_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_label_set_text(self, text)` | 设置文本内容 |
 | `egui_view_label_set_font(self, font)` | 设置字体 |
@@ -92,12 +92,12 @@ static egui_view_label_t label;
 EGUI_VIEW_LABEL_PARAMS_INIT(label_params, 0, 0, 200, 30,
     "Label S", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_label_init_with_params(EGUI_VIEW_OF(&label), &label_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&label), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_set_margin_all(EGUI_VIEW_OF(&label), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&label));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&label));
 }
 ```
 
@@ -115,7 +115,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_image_init(self)` | 初始化 Image |
+| `egui_view_image_init(self, core)` | 初始化 Image |
 | `egui_view_image_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_image_set_image(self, image)` | 设置图片资源 |
 | `egui_view_image_set_image_type(self, image_type)` | 设置显示模式 |
@@ -143,11 +143,11 @@ extern const egui_image_std_t egui_res_image_star_rgb565_8;
 EGUI_VIEW_IMAGE_PARAMS_INIT(image_params, 0, 0, 96, 96,
     (egui_image_t *)&egui_res_image_star_rgb565_8);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_image_init_with_params(EGUI_VIEW_OF(&image), &image_params);
     egui_view_image_set_image_type(EGUI_VIEW_OF(&image), EGUI_VIEW_IMAGE_TYPE_NORMAL);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&image));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&image));
 }
 ```
 
@@ -165,7 +165,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_button_init(self)` | 初始化 Button |
+| `egui_view_button_init(self, core)` | 初始化 Button |
 | `egui_view_button_init_with_params(self, params)` | 使用参数初始化 |
 
 Button 继承 Label 的全部 API，可直接使用 `egui_view_label_set_text()`、`egui_view_label_set_font()` 等函数。点击事件通过基类 `egui_view_set_on_click_listener()` 设置。
@@ -191,12 +191,12 @@ static void on_click(egui_view_t *self)
     EGUI_LOG_INF("Button clicked\n");
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_button_init_with_params(EGUI_VIEW_OF(&button), &button_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button), "Click Me");
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button), on_click);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&button));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&button));
 }
 ```
 
@@ -214,7 +214,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_image_button_init(self)` | 初始化 ImageButton |
+| `egui_view_image_button_init(self, core)` | 初始化 ImageButton |
 | `egui_view_image_button_init_with_params(self, params)` | 使用参数初始化 |
 
 ImageButton 继承 Image 的全部 API，可直接使用 `egui_view_image_set_image()`、`egui_view_image_set_image_type()` 等函数。
@@ -240,12 +240,12 @@ static void on_click(egui_view_t *self)
     EGUI_LOG_INF("Image Button Clicked\n");
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn), &imgbtn_params);
     egui_view_image_set_image_type(EGUI_VIEW_OF(&imgbtn), EGUI_VIEW_IMAGE_TYPE_RESIZE);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&imgbtn), on_click);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&imgbtn));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&imgbtn));
 }
 ```
 
@@ -263,7 +263,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_divider_init(self)` | 初始化 Divider |
+| `egui_view_divider_init(self, core)` | 初始化 Divider |
 | `egui_view_divider_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_divider_set_color(self, color)` | 设置分割线颜色 |
 
@@ -280,11 +280,11 @@ static egui_view_divider_t divider;
 
 EGUI_VIEW_DIVIDER_PARAMS_INIT(divider_params, 0, 0, 168, 3, EGUI_THEME_PRIMARY);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_divider_init_with_params(EGUI_VIEW_OF(&divider), &divider_params);
     egui_view_set_margin_all(EGUI_VIEW_OF(&divider), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&divider));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&divider));
 }
 ```
 
@@ -302,7 +302,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_line_init(self)` | 初始化 Line |
+| `egui_view_line_init(self, core)` | 初始化 Line |
 | `egui_view_line_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_line_set_points(self, points, count)` | 设置点数组 |
 | `egui_view_line_set_line_width(self, width)` | 设置线宽 |
@@ -326,11 +326,11 @@ static const egui_view_line_point_t zigzag_points[] = {
 
 EGUI_VIEW_LINE_PARAMS_INIT(line_params, 0, 0, 130, 50, 2, EGUI_THEME_PRIMARY);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_line_init_with_params(EGUI_VIEW_OF(&line), &line_params);
     egui_view_line_set_points(EGUI_VIEW_OF(&line), zigzag_points, 5);
     egui_view_line_set_use_round_cap(EGUI_VIEW_OF(&line), 1);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&line));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&line));
 }
 ```

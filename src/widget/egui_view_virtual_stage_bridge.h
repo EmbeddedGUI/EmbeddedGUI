@@ -1,6 +1,7 @@
 #ifndef _EGUI_VIEW_VIRTUAL_STAGE_BRIDGE_H_
 #define _EGUI_VIEW_VIRTUAL_STAGE_BRIDGE_H_
 
+#include "core/egui_core.h"
 #include "egui_view_virtual_stage.h"
 
 /* Set up for C function definitions, even when using C++ */
@@ -9,8 +10,6 @@ extern "C" {
 #endif
 
 typedef struct egui_view_virtual_stage_array_bridge egui_view_virtual_stage_array_bridge_t;
-
-void egui_core_add_user_root_view(egui_view_t *view);
 
 struct egui_view_virtual_stage_array_bridge
 {
@@ -163,9 +162,9 @@ static inline void egui_view_virtual_stage_apply_array_bridge(egui_view_t *self,
     egui_view_virtual_stage_apply_array_setup(self, &bridge->adapter, &bridge->setup);
 }
 
-static inline void egui_view_virtual_stage_init_with_array_bridge(egui_view_t *self, egui_view_virtual_stage_array_bridge_t *bridge)
+static inline void egui_view_virtual_stage_init_with_array_bridge(egui_view_t *self, egui_core_t *core, egui_view_virtual_stage_array_bridge_t *bridge)
 {
-    egui_view_virtual_stage_init_with_array_setup(self, &bridge->adapter, &bridge->setup);
+    egui_view_virtual_stage_init_with_array_setup(self, core, &bridge->adapter, &bridge->setup);
 }
 
 #define EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage) EGUI_VIEW_OF(_stage)
@@ -173,8 +172,8 @@ static inline void egui_view_virtual_stage_init_with_array_bridge(egui_view_t *s
 #define EGUI_VIEW_VIRTUAL_STAGE_APPLY_ARRAY_BRIDGE(_stage, _bridge)                                                                                            \
     egui_view_virtual_stage_apply_array_bridge(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_bridge))
 
-#define EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(_stage, _bridge)                                                                                             \
-    egui_view_virtual_stage_init_with_array_bridge(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_bridge))
+#define EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(_stage, _core, _bridge)                                                                                      \
+    egui_view_virtual_stage_init_with_array_bridge(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_core), (_bridge))
 
 #define EGUI_VIEW_VIRTUAL_STAGE_SET_BACKGROUND(_stage, _background) egui_view_set_background(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_background))
 
@@ -183,7 +182,7 @@ static inline void egui_view_virtual_stage_init_with_array_bridge(egui_view_t *s
 
 #define EGUI_VIEW_VIRTUAL_STAGE_SET_ON_CLICK(_stage, _listener) egui_view_set_on_click_listener(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_listener))
 
-#define EGUI_VIEW_VIRTUAL_STAGE_ADD_ROOT(_stage) egui_core_add_user_root_view(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage))
+#define EGUI_VIEW_VIRTUAL_STAGE_ADD_ROOT(_core, _stage) egui_core_add_user_root_view(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage))
 
 #define EGUI_VIEW_VIRTUAL_STAGE_INVALIDATE(_stage) egui_view_invalidate(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage))
 

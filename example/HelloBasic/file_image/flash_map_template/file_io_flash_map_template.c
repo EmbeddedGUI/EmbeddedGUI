@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "file_io_flash_map_template.h"
 #include "core/egui_common.h"
@@ -86,7 +86,7 @@ static void *file_image_flash_map_open(void *user_data, const char *path)
         return NULL;
     }
 
-    handle = (file_image_flash_map_handle_t *)egui_malloc(sizeof(*handle));
+    handle = (file_image_flash_map_handle_t *)egui_malloc(NULL, sizeof(*handle));
     if (handle == NULL)
     {
         return NULL;
@@ -171,7 +171,7 @@ static void file_image_flash_map_close(void *user_data, void *handle_ptr)
         return;
     }
 
-    egui_free(handle);
+    egui_free(NULL, handle);
 }
 
 void file_image_flash_map_io_init(egui_image_file_io_t *io, file_image_flash_map_context_t *ctx)
@@ -189,3 +189,4 @@ void file_image_flash_map_io_init(egui_image_file_io_t *io, file_image_flash_map
     io->tell = file_image_flash_map_tell;
     io->close = file_image_flash_map_close;
 }
+

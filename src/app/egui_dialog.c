@@ -3,7 +3,7 @@
 
 #include "egui_dialog.h"
 #include "widget/egui_view.h"
-#include "core/egui_core.h"
+#include "core/egui_core_internal.h"
 #include "core/egui_api.h"
 #include "background/egui_background_color.h"
 
@@ -38,15 +38,137 @@ void egui_dialog_set_name(egui_dialog_t *self, const char *name)
 #endif
 }
 
+egui_core_t *egui_dialog_get_core(egui_dialog_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+
+    return self->core;
+}
+
+egui_toast_t *egui_dialog_get_toast(egui_dialog_t *self)
+{
+    egui_core_t *core = egui_dialog_get_core(self);
+
+    if (core == NULL)
+    {
+        return NULL;
+    }
+
+    return egui_core_toast_get(core);
+}
+
+void egui_dialog_show_toast_info_with_duration(egui_dialog_t *self, const char *text, uint16_t duration)
+{
+    egui_toast_t *toast = egui_dialog_get_toast(self);
+
+    if (toast == NULL)
+    {
+        return;
+    }
+
+    egui_toast_show_info_with_duration(toast, text, duration);
+}
+
+void egui_dialog_show_toast_info(egui_dialog_t *self, const char *text)
+{
+    egui_dialog_show_toast_info_with_duration(self, text, EGUI_CONFIG_PARAM_TOAST_DEFAULT_SHOW_TIME);
+}
+
+int egui_dialog_start_timer(egui_dialog_t *self, egui_timer_t *handle, uint32_t ms, uint32_t period)
+{
+    egui_core_t *core = egui_dialog_get_core(self);
+
+    if (core == NULL)
+    {
+        return -1;
+    }
+
+    return egui_timer_start_timer(core, handle, ms, period);
+}
+
+void egui_dialog_stop_timer(egui_dialog_t *self, egui_timer_t *handle)
+{
+    egui_core_t *core = egui_dialog_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_timer_stop_timer(core, handle);
+}
+
+int egui_dialog_check_timer_start(egui_dialog_t *self, egui_timer_t *handle)
+{
+    egui_core_t *core = egui_dialog_get_core(self);
+
+    if (core == NULL)
+    {
+        return 0;
+    }
+
+    return egui_timer_check_timer_start(core, handle);
+}
+
+void egui_dialog_set_anim(egui_dialog_t *self, egui_animation_t *open_anim, egui_animation_t *close_anim)
+{
+    egui_core_t *core = egui_dialog_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_dialog_set_anim(core, open_anim, close_anim);
+}
+
+void egui_dialog_start(egui_dialog_t *self, egui_activity_t *activity)
+{
+    egui_core_t *core = egui_dialog_get_core(self);
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_dialog_start(core, activity, self);
+}
+
+int egui_dialog_check_in_process(egui_dialog_t *self)
+{
+    egui_core_t *core = egui_dialog_get_core(self);
+
+    if (core == NULL)
+    {
+        return 0;
+    }
+
+    return egui_core_dialog_check_in_process(core, self);
+}
+
+void egui_dialog_finish(egui_dialog_t *self)
+{
+    egui_core_t *core = egui_dialog_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_dialog_finish(core, self);
+}
+
 static void bg_click_cb(egui_view_t *self)
 {
     EGUI_LOG_DBG("bg_click_cb\n");
-    egui_dialog_t *p_dialog = egui_core_dialog_get();
+    egui_dialog_t *p_dialog = egui_view_get_dialog(self);
     if (p_dialog)
     {
         if (p_dialog->is_cancel_on_touch_outside)
         {
-            egui_core_dialog_finish(p_dialog);
+            egui_dialog_finish(p_dialog);
         }
     }
 }
@@ -62,10 +184,18 @@ void egui_dialog_on_create(egui_dialog_t *self)
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     EGUI_LOG_DBG("on_create, name: %s, last_state: %s\n", self->name, egui_dialog_state_str(self->state));
 #endif
+    egui_core_t *core;
+
     self->state = EGUI_DIALOG_STATE_CREATE;
     self->api->on_start(self);
 
     // start anim
+    core = egui_dialog_get_core(self);
+    if (core == NULL)
+    {
+        return;
+    }
+
     egui_core_add_user_root_view((egui_view_t *)&self->root_view);
 }
 
@@ -122,7 +252,14 @@ void egui_dialog_on_destroy(egui_dialog_t *self)
 #endif
     self->state = EGUI_DIALOG_STATE_DESTROY;
 
-    egui_core_remove_user_root_view((egui_view_t *)&self->root_view);
+    egui_core_t *core = egui_dialog_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_remove_user_root_view(core, (egui_view_t *)&self->root_view);
 }
 
 static const egui_dialog_api_t EGUI_DIALOG_API_TABLE_NAME(egui_dialog_t) = {
@@ -134,14 +271,18 @@ static const egui_dialog_api_t EGUI_DIALOG_API_TABLE_NAME(egui_dialog_t) = {
         .on_destroy = egui_dialog_on_destroy,
 };
 
-void egui_dialog_init(egui_dialog_t *self)
+void egui_dialog_init(egui_dialog_t *self, egui_core_t *core)
 {
+    EGUI_ASSERT(core != NULL);
+
     self->state = EGUI_DIALOG_STATE_NONE;
     self->is_need_finish = false;
     self->is_cancel_on_touch_outside = true;
+    self->core = core;
+    self->bind_activity = NULL;
 
     // root view group
-    egui_view_root_group_init((egui_view_t *)&self->root_view); // init view group
+    egui_view_root_group_init((egui_view_t *)&self->root_view, core); // init view group
     egui_view_set_position((egui_view_t *)&self->root_view, 0, 0);
     egui_view_set_size((egui_view_t *)&self->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
@@ -152,7 +293,7 @@ void egui_dialog_init(egui_dialog_t *self)
     egui_view_set_on_click_listener((egui_view_t *)&self->root_view, bg_click_cb);
 
     // user view group
-    egui_view_root_group_init((egui_view_t *)&self->user_root_view); // init view group
+    egui_view_root_group_init((egui_view_t *)&self->user_root_view, core); // init view group
     egui_view_set_position((egui_view_t *)&self->user_root_view, 0, 0);
     egui_view_set_size((egui_view_t *)&self->user_root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 

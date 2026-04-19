@@ -55,8 +55,8 @@ struct egui_platform_ops
     egui_base_t (*interrupt_disable)(void);
     void (*interrupt_enable)(egui_base_t level);
 
-    /** Load external resource (optional, can be NULL) */
-    void (*load_external_resource)(void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size);
+    /** Load external resource for a specific core (optional, can be NULL). */
+    void (*load_external_resource)(egui_core_t *core, void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size);
 
     /* ---- RTOS mutex (all optional, NULL = no mutex support) ---- */
 
@@ -75,14 +75,14 @@ struct egui_platform_ops
     /* ---- Timer callback ---- */
 
     /**
-     * Schedule a platform timer wakeup at absolute time (ms).
-     * When the time arrives, platform should call egui_timer_polling_work().
+     * Schedule a platform timer wakeup for a specific core at absolute time (ms).
+     * When the time arrives, platform should call egui_timer_polling_work(core).
      * NULL = timer wakeup not supported (core uses polling).
      */
-    void (*timer_start)(uint32_t expiry_time_ms);
+    void (*timer_start)(egui_core_t *core, uint32_t expiry_time_ms);
 
-    /** Cancel the scheduled timer wakeup. NULL = not supported. */
-    void (*timer_stop)(void);
+    /** Cancel the scheduled timer wakeup for a specific core. NULL = not supported. */
+    void (*timer_stop)(egui_core_t *core);
 
     /* ---- Misc ---- */
 
@@ -98,17 +98,9 @@ struct egui_platform
     const egui_platform_ops_t *ops;
 };
 
-extern egui_platform_t *g_egui_platform;
-
-__EGUI_STATIC_INLINE__ void egui_platform_register(egui_platform_t *platform)
-{
-    g_egui_platform = platform;
-}
-
-__EGUI_STATIC_INLINE__ egui_platform_t *egui_platform_get(void)
-{
-    return g_egui_platform;
-}
+void egui_platform_register(egui_core_t *core, egui_platform_t *platform);
+/* Returns the platform registered on the given core. core must not be NULL. */
+egui_platform_t *egui_platform_get(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

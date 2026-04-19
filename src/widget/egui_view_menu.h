@@ -82,9 +82,9 @@ void egui_view_menu_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_menu_set_navigation_icons(egui_view_t *self, const char *back_icon, const char *submenu_icon);
 void egui_view_menu_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_menu_on_draw(egui_view_t *self);
-void egui_view_menu_init(egui_view_t *self);
+void egui_view_menu_init(egui_view_t *self, egui_core_t *core);
 void egui_view_menu_apply_params(egui_view_t *self, const egui_view_menu_params_t *params);
-void egui_view_menu_init_with_params(egui_view_t *self, const egui_view_menu_params_t *params);
+void egui_view_menu_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_menu_params_t *params);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

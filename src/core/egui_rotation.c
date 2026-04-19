@@ -1,7 +1,5 @@
 #include "egui_rotation.h"
 
-#if EGUI_CONFIG_SOFTWARE_ROTATION
-
 /**
  * Rotate PFB 180 degrees in-place (simple buffer reverse).
  */
@@ -139,5 +137,3 @@ void egui_rotation_transform_touch(egui_display_rotation_t rotation, int16_t phy
         break;
     }
 }
-
-#endif /* EGUI_CONFIG_SOFTWARE_ROTATION */

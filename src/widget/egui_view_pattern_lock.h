@@ -56,7 +56,7 @@ struct egui_view_pattern_lock_params
     static const egui_view_pattern_lock_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .min_nodes = (_min_nodes), .touch_expand = (_touch_expand)}
 
 void egui_view_pattern_lock_apply_params(egui_view_t *self, const egui_view_pattern_lock_params_t *params);
-void egui_view_pattern_lock_init_with_params(egui_view_t *self, const egui_view_pattern_lock_params_t *params);
+void egui_view_pattern_lock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_pattern_lock_params_t *params);
 
 void egui_view_pattern_lock_set_min_nodes(egui_view_t *self, uint8_t min_nodes);
 uint8_t egui_view_pattern_lock_get_min_nodes(egui_view_t *self);
@@ -76,7 +76,7 @@ void egui_view_pattern_lock_set_line_color(egui_view_t *self, egui_color_t color
 void egui_view_pattern_lock_set_error_color(egui_view_t *self, egui_color_t color);
 
 void egui_view_pattern_lock_on_draw(egui_view_t *self);
-void egui_view_pattern_lock_init(egui_view_t *self);
+void egui_view_pattern_lock_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -131,10 +131,10 @@ static void mp4_callback(egui_view_mp4_t *view, int is_end)
 
 
 static egui_view_mp4_t view_mp4;
-void main(void)
+void mp4_view_create(egui_core_t *core)
 {
     // view_mp4
-    egui_view_mp4_init((egui_view_t *)&view_mp4);
+    egui_view_mp4_init((egui_view_t *)&view_mp4, core);
     egui_view_set_position((egui_view_t *)&view_mp4, 0, 0);
     egui_view_set_size((egui_view_t *)&view_mp4, 320, 240);
     view_mp4.mp4_image_list = mp4_arr_test;

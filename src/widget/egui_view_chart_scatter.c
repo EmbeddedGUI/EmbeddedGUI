@@ -1,8 +1,9 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_chart_scatter.h"
+#include "core/egui_core.h"
 #include "core/egui_canvas_gradient.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
@@ -104,9 +105,10 @@ static int egui_view_chart_scatter_get_visible_data_range(const egui_region_t *p
 
 static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_chart_scatter_t);
     egui_chart_axis_base_t *ab = &local->axis_base.ab;
-    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
     egui_dim_t work_x1;
     egui_dim_t work_y1;
     egui_dim_t work_x2;
@@ -202,9 +204,9 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
                 continue;
             }
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-            egui_canvas_draw_circle_fill_gradient(px, py, r, &grad);
+            egui_canvas_draw_circle_fill_gradient(canvas, px, py, r, &grad);
 #else
-            egui_canvas_draw_circle_fill(px, py, r, series->color, EGUI_ALPHA_100);
+            egui_canvas_draw_circle_fill(canvas, px, py, r, series->color, EGUI_ALPHA_100);
 #endif
         }
     }
@@ -239,11 +241,11 @@ const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_scatte
 
 // ============== Init / Params ==============
 
-void egui_view_chart_scatter_init(egui_view_t *self)
+void egui_view_chart_scatter_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_chart_scatter_t);
     // call super init (initializes axis base with defaults)
-    egui_view_chart_axis_init(self);
+    egui_view_chart_axis_init(self, core);
     // update api
     self->api = (const egui_view_api_t *)&EGUI_VIEW_API_TABLE_NAME(egui_view_chart_scatter_t);
 
@@ -260,9 +262,9 @@ void egui_view_chart_scatter_apply_params(egui_view_t *self, const egui_view_cha
     egui_view_invalidate(self);
 }
 
-void egui_view_chart_scatter_init_with_params(egui_view_t *self, const egui_view_chart_scatter_params_t *params)
+void egui_view_chart_scatter_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_scatter_params_t *params)
 {
-    egui_view_chart_scatter_init(self);
+    egui_view_chart_scatter_init(self, core);
     egui_view_chart_scatter_apply_params(self, params);
 }
 

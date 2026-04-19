@@ -16,14 +16,14 @@ ViewPage (全屏)
 
 | 文件 | 职责 |
 |------|------|
-| `uicode.c` | 主入口，ViewPage 初始化、页面切换回调、主题管理 |
-| `uicode.h` | 公共接口声明 |
+| `uicode_disp0.c` | 主入口，ViewPage 初始化、页面切换回调、主题管理 |
+| `uicode_disp0.h` | 公共接口声明 |
 | `uicode_smarthome.c` | Smart Home 页面 |
 | `uicode_music.c` | Music 页面 |
 | `uicode_dashboard.c` | Dashboard 页面 |
 | `uicode_watch.c` | Watch 页面 |
 
-## 主入口 (uicode.c)
+## 主入口 (uicode_disp0.c)
 
 ### ViewPage 初始化
 
@@ -31,7 +31,7 @@ ViewPage (全屏)
 static egui_view_viewpage_t viewpage;
 static egui_view_group_t page_smarthome, page_music, page_dashboard, page_watch;
 
-void uicode_create_ui(void)
+void uicode_disp0_init(egui_core_t *core)
 {
     // 初始化 ViewPage（全屏）
     egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), &viewpage_params);
@@ -54,7 +54,7 @@ void uicode_create_ui(void)
     egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage), EGUI_VIEW_OF(&page_smarthome));
     // ...
     egui_view_viewpage_layout_childs(EGUI_VIEW_OF(&viewpage));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&viewpage));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&viewpage));
 
     // 注册页面切换回调
     egui_view_viewpage_set_on_page_changed(EGUI_VIEW_OF(&viewpage), viewpage_on_page_changed);
@@ -271,8 +271,8 @@ HelloStyleDemo 使用的字体资源：
 
 ## 相关文件
 
-- `example/HelloStyleDemo/uicode.c` - 主入口
-- `example/HelloStyleDemo/uicode.h` - 公共接口
+- `example/HelloStyleDemo/uicode_disp0.c` - 主入口
+- `example/HelloStyleDemo/uicode_disp0.h` - 公共接口
 - `example/HelloStyleDemo/uicode_smarthome.c` - Smart Home 页面
 - `example/HelloStyleDemo/uicode_music.c` - Music 页面
 - `example/HelloStyleDemo/uicode_dashboard.c` - Dashboard 页面

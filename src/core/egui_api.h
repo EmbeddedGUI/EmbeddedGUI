@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "egui_common.h"
+#include "egui_typedef.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -87,26 +88,31 @@ __EGUI_STATIC_INLINE__ char egui_level_to_char(int level)
 
 extern egui_base_t egui_hw_interrupt_disable(void);
 extern void egui_hw_interrupt_enable(egui_base_t level);
+extern egui_base_t egui_hw_interrupt_disable_core(egui_core_t *core);
+extern void egui_hw_interrupt_enable_core(egui_core_t *core, egui_base_t level);
 
 #define __egui_disable_isr() egui_base_t _egui_isr_level = egui_hw_interrupt_disable()
 #define __egui_enable_isr()  egui_hw_interrupt_enable(_egui_isr_level)
 
 void egui_api_log(const char *format, ...);
 void egui_api_assert(const char *file, int line);
-void egui_api_free(void *ptr);
-void *egui_api_malloc(int size);
-int egui_api_get_mem_monitor(egui_mem_monitor_t *monitor);
+void egui_api_free(egui_core_t *core, void *ptr);
+void *egui_api_malloc(egui_core_t *core, int size);
+/* Returns allocator stats for the given core. core must not be NULL. */
+int egui_api_get_mem_monitor(egui_core_t *core, egui_mem_monitor_t *monitor);
 void egui_api_sprintf(char *str, const char *format, ...);
-void egui_api_draw_data(int16_t x, int16_t y, int16_t width, int16_t height, const egui_color_int_t *data);
-void egui_api_refresh_display(void);
-void egui_api_timer_start(uint32_t ms);
-void egui_api_timer_stop(void);
+void egui_api_draw_data(egui_core_t *core, int16_t x, int16_t y, int16_t width, int16_t height, const egui_color_int_t *data);
+void egui_api_refresh_display(egui_core_t *core);
+void egui_api_timer_start(egui_core_t *core, uint32_t ms);
+void egui_api_timer_stop(egui_core_t *core);
+uint32_t egui_api_timer_get_current_core(egui_core_t *core);
 uint32_t egui_api_timer_get_current(void);
+void egui_api_delay_core(egui_core_t *core, uint32_t ms);
 void egui_api_delay(uint32_t ms);
 void egui_api_pfb_clear(void *s, int n);
 void egui_api_memset(void *s, int c, int n);
 void egui_api_memcpy(void *dst, const void *src, int n);
-void egui_api_load_external_resource(void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size);
+void egui_api_load_external_resource(egui_canvas_t *canvas, void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

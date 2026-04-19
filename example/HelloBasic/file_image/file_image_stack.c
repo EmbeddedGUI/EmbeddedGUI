@@ -1,6 +1,6 @@
 #include "file_image_stack.h"
 
-static int file_image_stack_apply_default_io(file_image_stack_state_t *state, const file_image_stack_config_t *config)
+static int file_image_stack_apply_default_io(egui_core_t *core, file_image_stack_state_t *state, const file_image_stack_config_t *config)
 {
     int use_router;
     const egui_image_file_io_t *fallback_io;
@@ -18,7 +18,7 @@ static int file_image_stack_apply_default_io(file_image_stack_state_t *state, co
             return 0;
         }
 
-        egui_image_file_set_default_io(config->default_io);
+        egui_image_file_set_default_io(core, config->default_io);
         return 1;
     }
 
@@ -41,18 +41,18 @@ static int file_image_stack_apply_default_io(file_image_stack_state_t *state, co
     state->router_ctx.entry_count = config->mount_entry_count;
     state->router_ctx.fallback_io = fallback_io;
     file_image_mount_router_io_init(&state->router_io, &state->router_ctx);
-    egui_image_file_set_default_io(&state->router_io);
+    egui_image_file_set_default_io(core, &state->router_io);
     return 1;
 }
 
-int file_image_stack_apply(file_image_stack_state_t *state, const file_image_stack_config_t *config)
+int file_image_stack_apply(egui_core_t *core, file_image_stack_state_t *state, const file_image_stack_config_t *config)
 {
-    if (!file_image_stack_apply_default_io(state, config))
+    if (!file_image_stack_apply_default_io(core, state, config))
     {
         return 0;
     }
 
-    if (config != NULL && config->decoder_config != NULL && !file_image_decoder_registry_apply(config->decoder_config))
+    if (config != NULL && config->decoder_config != NULL && !file_image_decoder_registry_apply(core, config->decoder_config))
     {
         return 0;
     }

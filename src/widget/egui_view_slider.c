@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_slider.h"
+#include "core/egui_core.h"
 #include "egui_view_group.h"
 #include "egui_view_circle_dirty.h"
 #include "egui_view_linear_value_helper.h"
@@ -232,6 +233,7 @@ static void egui_view_slider_update_value_from_touch(egui_view_t *self, egui_dim
 void egui_view_slider_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t region;
     egui_view_linear_value_metrics_t metrics;
     egui_dim_t thumb_x;
@@ -255,7 +257,8 @@ void egui_view_slider_on_draw(egui_view_t *self)
     track_draw_width = metrics.usable_width;
 
     /* Query theme styles for 3 parts */
-    const egui_widget_style_desc_t *desc = egui_current_theme ? egui_current_theme->slider : NULL;
+    const egui_theme_t *theme = egui_theme_get(egui_view_get_core(self));
+    const egui_widget_style_desc_t *desc = theme ? theme->slider : NULL;
     egui_state_t state = egui_style_get_view_state(self);
 
     const egui_style_t *track_style = desc ? egui_style_get(desc, EGUI_PART_MAIN, state) : NULL;
@@ -269,11 +272,11 @@ void egui_view_slider_on_draw(egui_view_t *self)
     // Background (Grey)
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        egui_canvas_draw_round_rectangle_fill(track_draw_x, metrics.track_y, track_draw_width, metrics.track_height, metrics.track_radius, track_color,
+        egui_canvas_draw_round_rectangle_fill(canvas, track_draw_x, metrics.track_y, track_draw_width, metrics.track_height, metrics.track_radius, track_color,
                                               EGUI_ALPHA_100);
     }
 #else
-    egui_canvas_draw_round_rectangle_fill(track_draw_x, metrics.track_y, track_draw_width, metrics.track_height, metrics.track_radius, track_color,
+    egui_canvas_draw_round_rectangle_fill(canvas, track_draw_x, metrics.track_y, track_draw_width, metrics.track_height, metrics.track_radius, track_color,
                                           EGUI_ALPHA_100);
 #endif
 
@@ -282,10 +285,10 @@ void egui_view_slider_on_draw(egui_view_t *self)
     if (active_width > 0)
     {
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-        egui_canvas_draw_round_rectangle_fill(track_draw_x, metrics.track_y, active_width, metrics.track_height, metrics.track_radius, fill_color,
+        egui_canvas_draw_round_rectangle_fill(canvas, track_draw_x, metrics.track_y, active_width, metrics.track_height, metrics.track_radius, fill_color,
                                               EGUI_ALPHA_100);
 #else
-        egui_canvas_draw_round_rectangle_fill(track_draw_x, metrics.track_y, active_width, metrics.track_height, metrics.track_radius, fill_color,
+        egui_canvas_draw_round_rectangle_fill(canvas, track_draw_x, metrics.track_y, active_width, metrics.track_height, metrics.track_radius, fill_color,
                                               EGUI_ALPHA_100);
 #endif
     }
@@ -293,13 +296,13 @@ void egui_view_slider_on_draw(egui_view_t *self)
     // Draw thumb circle
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        egui_canvas_draw_circle_fill_hq(thumb_x, thumb_y, metrics.knob_radius, knob_color, EGUI_ALPHA_100);
+        egui_canvas_draw_circle_fill_hq(canvas, thumb_x, thumb_y, metrics.knob_radius, knob_color, EGUI_ALPHA_100);
         // Draw a subtle border around the knob for visibility on same-color backgrounds
-        egui_canvas_draw_circle(thumb_x, thumb_y, metrics.knob_radius, 1, EGUI_THEME_BORDER, 80);
+        egui_canvas_draw_circle(canvas, thumb_x, thumb_y, metrics.knob_radius, 1, EGUI_THEME_BORDER, 80);
     }
 #else
-    egui_canvas_draw_circle_fill_basic(thumb_x, thumb_y, metrics.knob_radius, knob_color, EGUI_ALPHA_100);
-    egui_canvas_draw_circle_basic(thumb_x, thumb_y, metrics.knob_radius, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
+    egui_canvas_draw_circle_fill_basic(canvas, thumb_x, thumb_y, metrics.knob_radius, knob_color, EGUI_ALPHA_100);
+    egui_canvas_draw_circle_basic(canvas, thumb_x, thumb_y, metrics.knob_radius, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
 #endif
 }
 
@@ -392,11 +395,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_slider_t) = {
 #endif
 };
 
-void egui_view_slider_init(egui_view_t *self)
+void egui_view_slider_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_slider_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_slider_t);
 
@@ -423,8 +426,8 @@ void egui_view_slider_apply_params(egui_view_t *self, const egui_view_slider_par
     egui_view_invalidate(self);
 }
 
-void egui_view_slider_init_with_params(egui_view_t *self, const egui_view_slider_params_t *params)
+void egui_view_slider_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_slider_params_t *params)
 {
-    egui_view_slider_init(self);
+    egui_view_slider_init(self, core);
     egui_view_slider_apply_params(self, params);
 }

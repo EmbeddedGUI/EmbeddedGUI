@@ -268,6 +268,7 @@ struct demo_virtual_node
 
 struct demo_virtual_stage_context
 {
+    egui_core_t *core;
     uint8_t pin_mixer_enabled;
     uint8_t pin_agv_enabled;
     uint8_t shift_a_enabled;

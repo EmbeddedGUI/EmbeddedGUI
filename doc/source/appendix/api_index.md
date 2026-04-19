@@ -10,102 +10,90 @@
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_init(config)` | 初始化 EGUI 框架 | egui_core.h |
-| `egui_polling_work()` | 主循环轮询（处理定时器、动画、输入、刷新） | egui_core.h |
-| `egui_polling_refresh_display()` | 轮询刷新显示 | egui_core.h |
-| `egui_check_need_refresh()` | 检查是否需要刷新屏幕 | egui_core.h |
-| `egui_screen_on()` | 开启屏幕（清屏、恢复核心和定时器） | egui_core.h |
-| `egui_screen_off()` | 关闭屏幕（暂停核心、停止定时器、关闭显示） | egui_core.h |
+| `egui_init(core, pfb)` | 使用主屏编译期配置初始化 core，本质上是 `egui_init_display()` 的便捷封装 | egui_core.h |
+| `egui_init_display(core, screen_w, screen_h, pfb_bufs, buf_count, pfb_w, pfb_h)` | 初始化底层显示 core | egui_core.h |
+| `egui_setup_display(core, setup)` | 按 `egui_display_setup_t` 完成显示初始化、注册与 UI 构建 | egui_core.h |
+| `egui_core_set_active(core)` | 设置当前 active core | egui_core.h |
+| `egui_core_get_active()` | 获取当前 active core | egui_core.h |
+| `egui_polling_work(core)` | 主循环轮询（处理定时器、动画、输入、刷新） | egui_core.h |
+| `egui_polling_refresh_display(core)` | 轮询刷新显示 | egui_core.h |
+| `egui_check_need_refresh(core)` | 检查是否需要刷新屏幕 | egui_core.h |
+| `egui_screen_on(core)` | 开启屏幕（清屏、恢复核心和定时器） | egui_core.h |
+| `egui_screen_off(core)` | 关闭屏幕（暂停核心、停止定时器、关闭显示） | egui_core.h |
 
 ### 电源与挂起
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_core_power_on()` | 核心上电 | egui_core.h |
-| `egui_core_power_off()` | 核心断电 | egui_core.h |
-| `egui_core_suspend()` | 挂起 GUI 刷新 | egui_core.h |
-| `egui_core_resume()` | 恢复 GUI 刷新 | egui_core.h |
-| `egui_core_is_suspended()` | 查询是否处于挂起状态 | egui_core.h |
+| `egui_core_power_on(core)` | 核心上电 | egui_core.h |
+| `egui_core_power_off(core)` | 核心断电 | egui_core.h |
+| `egui_core_suspend(core)` | 挂起 GUI 刷新 | egui_core.h |
+| `egui_core_resume(core)` | 恢复 GUI 刷新 | egui_core.h |
+| `egui_core_is_suspended(core)` | 查询是否处于挂起状态 | egui_core.h |
 
 ### 屏幕与 PFB 管理
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_core_set_screen_size(w, h)` | 设置屏幕尺寸 | egui_core.h |
-| `egui_core_set_pfb_buffer_ptr(pfb)` | 设置 PFB 缓冲区指针 | egui_core.h |
-| `egui_core_get_pfb_buffer_ptr()` | 获取 PFB 缓冲区指针 | egui_core.h |
-| `egui_core_pfb_set_buffer(pfb, w, h)` | 设置 PFB 缓冲区及尺寸 | egui_core.h |
-| `egui_pfb_add_buffer(buf)` | 添加额外 PFB 缓冲区到环形队列 | egui_core.h |
-| `egui_pfb_notify_flush_complete()` | 通知 DMA 刷新完成（可在 ISR 中调用） | egui_core.h |
-| `egui_pfb_bus_acquire()` | 获取 SPI 总线（非显示访问） | egui_core.h |
-| `egui_pfb_bus_release()` | 释放 SPI 总线 | egui_core.h |
+| `egui_core_set_screen_size(core, w, h)` | 设置屏幕尺寸 | egui_core.h |
+| `egui_core_get_pfb_buffer_ptr(core)` | 获取 PFB 缓冲区指针 | egui_core.h |
+| `egui_core_pfb_set_buffer(core, pfb, w, h)` | 设置 PFB 缓冲区及尺寸 | egui_core.h |
+| `egui_pfb_notify_flush_complete(core)` | 通知 DMA 刷新完成（可在 ISR 中调用） | egui_core.h |
+| `egui_pfb_bus_acquire(core)` | 获取 SPI 总线（非显示访问） | egui_core.h |
+| `egui_pfb_bus_release(core)` | 释放 SPI 总线 | egui_core.h |
 
 ### 脏区域管理
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_core_force_refresh()` | 强制全屏刷新 | egui_core.h |
-| `egui_core_update_region_dirty(region)` | 更新指定脏区域 | egui_core.h |
-| `egui_core_update_region_dirty_all()` | 标记全屏为脏区域 | egui_core.h |
-| `egui_core_clear_region_dirty()` | 清除所有脏区域 | egui_core.h |
-| `egui_core_check_region_dirty_intersect(region)` | 检查区域是否与脏区域相交 | egui_core.h |
-| `egui_core_get_region_dirty_arr()` | 获取脏区域数组 | egui_core.h |
-| `egui_core_clear_screen()` | 用 PFB 分块清屏（黑色填充） | egui_core.h |
+| `egui_core_force_refresh(core)` | 强制全屏刷新 | egui_core.h |
+| `egui_core_update_region_dirty(core, region)` | 更新指定脏区域 | egui_core.h |
+| `egui_core_update_region_dirty_all(core)` | 标记全屏为脏区域 | egui_core.h |
+| `egui_core_clear_region_dirty(core)` | 清除所有脏区域 | egui_core.h |
+| `egui_core_check_region_dirty_intersect(core, region)` | 检查区域是否与脏区域相交 | egui_core.h |
+| `egui_core_get_region_dirty_arr(core)` | 获取脏区域数组 | egui_core.h |
+| `egui_core_clear_screen(core)` | 用 PFB 分块清屏（黑色填充） | egui_core.h |
 
 ### 根视图管理
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_core_get_root_view()` | 获取系统根视图组 | egui_core.h |
-| `egui_core_add_root_view(view)` | 添加视图到系统根视图组 | egui_core.h |
-| `egui_core_get_user_root_view()` | 获取用户根视图组 | egui_core.h |
-| `egui_core_add_user_root_view(view)` | 添加视图到用户根视图组 | egui_core.h |
-| `egui_core_remove_user_root_view(view)` | 从用户根视图组移除视图 | egui_core.h |
-| `egui_core_layout_childs_user_root_view(h, align)` | 布局用户根视图组的子视图 | egui_core.h |
-| `egui_core_get_unique_id()` | 获取唯一 ID | egui_core.h |
+| `egui_core_get_root_view(core)` | 获取系统根视图组 | egui_core.h |
+| `egui_core_get_user_root_view(core)` | 获取用户根视图组 | egui_core.h |
+| `egui_core_add_user_root_view(core, view)` | 添加视图到用户根视图组 | egui_core.h |
+| `egui_core_get_unique_id(core)` | 获取唯一 ID | egui_core.h |
 
 ### 输入处理
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_core_process_input_motion(event)` | 处理触摸/运动输入事件 | egui_core.h |
-| `egui_core_process_input_key(event)` | 处理按键输入事件（需启用 KEY 支持） | egui_core.h |
+| `egui_core_process_input_motion(core, event)` | 处理触摸/运动输入事件 | egui_core.h |
+| `egui_core_process_input_key(core, event)` | 处理按键输入事件（需启用 KEY 支持） | egui_core.h |
 
-### Activity 管理
-
-| 函数 | 说明 | 头文件 |
-|------|------|--------|
-| `egui_core_activity_get_current()` | 获取当前 Activity | egui_core.h |
-| `egui_core_activity_start(self, prev)` | 启动 Activity（指定前一个） | egui_core.h |
-| `egui_core_activity_start_with_current(self)` | 启动 Activity（以当前为前一个） | egui_core.h |
-| `egui_core_activity_finish(self)` | 结束 Activity | egui_core.h |
-| `egui_core_activity_force_finish_all()` | 强制结束所有 Activity | egui_core.h |
-| `egui_core_activity_force_finish_to_activity(act)` | 强制结束到指定 Activity | egui_core.h |
-| `egui_core_activity_check_in_process(act)` | 检查 Activity 是否在处理中 | egui_core.h |
-| `egui_core_activity_append(act)` | 追加 Activity 到列表 | egui_core.h |
-| `egui_core_activity_remove(act)` | 从列表移除 Activity | egui_core.h |
-| `egui_core_activity_set_start_anim(open, close)` | 设置 Activity 启动动画 | egui_core.h |
-| `egui_core_activity_set_finish_anim(open, close)` | 设置 Activity 结束动画 | egui_core.h |
-| `egui_core_activity_get_by_view(view)` | 通过视图查找所属 Activity | egui_core.h |
-
-### Dialog 管理
+### App 对象管理
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_core_dialog_get()` | 获取当前 Dialog | egui_core.h |
-| `egui_core_dialog_start(activity, dialog)` | 在指定 Activity 上启动 Dialog | egui_core.h |
-| `egui_core_dialog_start_with_current(dialog)` | 在当前 Activity 上启动 Dialog | egui_core.h |
-| `egui_core_dialog_check_in_process(dialog)` | 检查 Dialog 是否在处理中 | egui_core.h |
-| `egui_core_dialog_finish(dialog)` | 结束 Dialog | egui_core.h |
-| `egui_core_dialog_set_anim(open, close)` | 设置 Dialog 动画 | egui_core.h |
-
-### Toast 管理
-
-| 函数 | 说明 | 头文件 |
-|------|------|--------|
-| `egui_core_toast_get()` | 获取当前 Toast | egui_core.h |
-| `egui_core_toast_set(toast)` | 设置 Toast 实例 | egui_core.h |
-| `egui_core_toast_show_info(text)` | 显示信息提示 | egui_core.h |
+| `egui_activity_start(self, prev)` | 启动 Activity（指定前一个） | egui_activity.h |
+| `egui_activity_start_with_current(self)` | 启动 Activity（以当前为前一个） | egui_activity.h |
+| `egui_activity_finish(self)` | 结束 Activity | egui_activity.h |
+| `egui_activity_check_in_process(self)` | 检查 Activity 是否在处理中 | egui_activity.h |
+| `egui_activity_set_start_anim(self, open, close)` | 设置当前 Activity 的启动动画 | egui_activity.h |
+| `egui_activity_set_finish_anim(self, open, close)` | 设置当前 Activity 的结束动画 | egui_activity.h |
+| `egui_view_get_activity(view)` | 通过视图查找所属 Activity | egui_view.h |
+| `egui_dialog_start(self, activity)` | 在指定 Activity 上启动 Dialog | egui_dialog.h |
+| `egui_dialog_start_with_current(self)` | 在当前 Activity 上启动 Dialog | egui_dialog.h |
+| `egui_dialog_finish(self)` | 结束 Dialog | egui_dialog.h |
+| `egui_dialog_check_in_process(self)` | 检查 Dialog 是否在处理中 | egui_dialog.h |
+| `egui_dialog_set_anim(self, open, close)` | 设置 Dialog 动画 | egui_dialog.h |
+| `egui_view_get_dialog(view)` | 通过视图查找所属 Dialog | egui_view.h |
+| `egui_toast_set_as_default(self)` | 将 Toast 注册为当前默认实例 | egui_toast.h |
+| `egui_toast_clear_as_default(self)` | 清理默认 Toast | egui_toast.h |
+| `egui_toast_show_info(self, text)` | 通过指定 Toast 实例显示提示 | egui_toast.h |
+| `egui_view_show_toast_info(view, text)` | 通过 view 所属 core 显示提示 | egui_view.h |
+| `egui_page_base_show_toast_info(page, text)` | 通过 page 所属 core 显示提示 | egui_page_base.h |
+| `egui_activity_show_toast_info(activity, text)` | 通过 activity 所属 core 显示提示 | egui_activity.h |
+| `egui_dialog_show_toast_info(dialog, text)` | 通过 dialog 所属 core 显示提示 | egui_dialog.h |
 
 ---
 
@@ -117,7 +105,7 @@
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_view_init(self)` | 初始化视图 | egui_view.h |
+| `egui_view_init(self, core)` | 初始化视图 | egui_view.h |
 | `egui_view_draw(self)` | 绘制视图 | egui_view.h |
 | `egui_view_on_draw(self)` | 视图绘制回调 | egui_view.h |
 | `egui_view_on_attach_to_window(self)` | 视图附加到窗口回调 | egui_view.h |
@@ -159,6 +147,15 @@
 | `egui_view_set_parent(self, parent)` | 设置父视图 | egui_view.h |
 | `egui_view_get_raw_pos(self, location)` | 获取原始位置 | egui_view.h |
 | `egui_view_get_work_region(self, region)` | 获取工作区域 | egui_view.h |
+
+### Core 绑定与根视图
+
+| 函数 | 说明 | 头文件 |
+|------|------|--------|
+| `egui_view_get_core(self)` | 获取视图所属 core | egui_view.h |
+| `egui_view_add_to_root(self)` | 添加到系统根视图组 | egui_view.h |
+| `egui_view_remove_from_user_root(self)` | 从用户根视图组移除 | egui_view.h |
+| `egui_view_layout_user_root(self, h, align)` | 布局用户根视图组中的子视图 | egui_view.h |
 
 ### 滚动
 
@@ -214,7 +211,7 @@
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_view_group_init(self)` | 初始化视图组 | egui_view_group.h |
+| `egui_view_group_init(self, core)` | 初始化视图组 | egui_view_group.h |
 | `egui_view_group_init_with_params(self, params)` | 使用参数初始化视图组 | egui_view_group.h |
 | `egui_view_group_apply_params(self, params)` | 应用参数到视图组 | egui_view_group.h |
 
@@ -304,13 +301,6 @@
 | `egui_animation_notify_end(self)` | 通知动画结束 | egui_animation.h |
 | `egui_animation_notify_repeat(self)` | 通知动画重复 | egui_animation.h |
 
-### 核心动画管理（通过 egui_core）
-
-| 函数 | 说明 | 头文件 |
-|------|------|--------|
-| `egui_core_animation_append(anim)` | 将动画添加到全局动画列表 | egui_core.h |
-| `egui_core_animation_remove(anim)` | 从全局动画列表移除动画 | egui_core.h |
-
 ---
 
 ## Timer API
@@ -338,7 +328,7 @@
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_canvas_init(pfb, region)` | 初始化画布 | egui_canvas.h |
+| `egui_canvas_init(self, core, pfb, region)` | 初始化画布 | egui_canvas.h |
 | `egui_canvas_set_alpha(alpha)` | 设置全局透明度 | egui_canvas.h |
 | `egui_canvas_get_alpha()` | 获取全局透明度 | egui_canvas.h |
 | `egui_canvas_mix_alpha(alpha)` | 混合透明度 | egui_canvas.h |
@@ -426,7 +416,7 @@ Activity 生命周期管理，类 Android 的页面管理模式。
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `egui_activity_init(self)` | 初始化 Activity | egui_activity.h |
+| `egui_activity_init(self, core)` | 初始化 Activity | egui_activity.h |
 | `egui_activity_set_layout(self, layout)` | 设置 Activity 布局区域 | egui_activity.h |
 | `egui_activity_add_view(self, view)` | 向 Activity 添加视图 | egui_activity.h |
 | `egui_activity_set_name(self, name)` | 设置 Activity 名称（调试用） | egui_activity.h |

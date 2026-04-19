@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_button.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "font/egui_font.h"
 #include "egui_view.h" // Fixed include path
@@ -25,7 +26,8 @@ static const egui_font_t *egui_view_button_get_text_font(const egui_view_button_
     return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
 
-static void egui_view_button_draw_content(egui_view_button_t *local, const egui_region_t *region, egui_color_t text_color, egui_alpha_t text_alpha)
+static void egui_view_button_draw_content(egui_canvas_t *canvas, egui_view_button_t *local, const egui_region_t *region, egui_color_t text_color,
+                                          egui_alpha_t text_alpha)
 {
     egui_view_label_t *label = &local->base;
     const egui_font_t *text_font = egui_view_button_get_text_font(local);
@@ -42,7 +44,7 @@ static void egui_view_button_draw_content(egui_view_button_t *local, const egui_
     {
         if (text_font != NULL)
         {
-            egui_canvas_draw_text_in_rect_with_line_space(text_font, text, &draw_region, label->align_type, label->line_space, text_color, text_alpha);
+            egui_canvas_draw_text_in_rect_with_line_space(canvas, text_font, text, &draw_region, label->align_type, label->line_space, text_color, text_alpha);
         }
         return;
     }
@@ -52,7 +54,7 @@ static void egui_view_button_draw_content(egui_view_button_t *local, const egui_
         const egui_font_t *icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, EGUI_MIN(region->size.width, region->size.height), 20, 26);
         if (icon_font != NULL)
         {
-            egui_canvas_draw_text_in_rect(icon_font, icon, &draw_region, label->align_type, text_color, text_alpha);
+            egui_canvas_draw_text_in_rect(canvas, icon_font, icon, &draw_region, label->align_type, text_color, text_alpha);
         }
         return;
     }
@@ -73,7 +75,8 @@ static void egui_view_button_draw_content(egui_view_button_t *local, const egui_
         {
             if (text_font != NULL)
             {
-                egui_canvas_draw_text_in_rect_with_line_space(text_font, text, &draw_region, label->align_type, label->line_space, text_color, text_alpha);
+                egui_canvas_draw_text_in_rect_with_line_space(canvas, text_font, text, &draw_region, label->align_type, label->line_space, text_color,
+                                                              text_alpha);
             }
             return;
         }
@@ -136,16 +139,17 @@ static void egui_view_button_draw_content(egui_view_button_t *local, const egui_
         text_region.size.width = region->location.x + region->size.width - text_region.location.x;
         text_region.size.height = region->size.height;
 
-        egui_canvas_draw_text_in_rect(icon_font, icon, &icon_region, EGUI_ALIGN_CENTER, text_color, text_alpha);
+        egui_canvas_draw_text_in_rect(canvas, icon_font, icon, &icon_region, EGUI_ALIGN_CENTER, text_color, text_alpha);
         if (text_region.size.width > 0 && text_width > 0 && text_font != NULL)
         {
-            egui_canvas_draw_text_in_rect(text_font, text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, text_alpha);
+            egui_canvas_draw_text_in_rect(canvas, text_font, text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, text_alpha);
         }
     }
 }
 
 static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *local, egui_color_t *text_color, egui_alpha_t *text_alpha)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_view_label_t *label = &local->base;
 
     // Only draw default background if no custom background is set.
@@ -154,6 +158,7 @@ static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *l
     if (self->background == NULL)
     {
         egui_region_t region;
+        const egui_theme_t *theme;
         egui_view_get_work_region(self, &region);
 
         egui_dim_t radius = EGUI_THEME_RADIUS_MD;
@@ -161,7 +166,8 @@ static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *l
             radius = region.size.height / 2;
 
         /* Try theme style first */
-        const egui_widget_style_desc_t *desc = egui_current_theme ? egui_current_theme->button : NULL;
+        theme = egui_theme_get(egui_view_get_core(self));
+        const egui_widget_style_desc_t *desc = theme ? theme->button : NULL;
         const egui_style_t *style = desc ? egui_style_get_current(desc, EGUI_PART_MAIN, self) : NULL;
 
         if (style)
@@ -189,14 +195,15 @@ static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *l
                     .alpha = alpha,
                     .stops = btn_stops,
             };
-            egui_canvas_draw_round_rectangle_fill_gradient(region.location.x, region.location.y, region.size.width, region.size.height, radius, &btn_grad);
+            egui_canvas_draw_round_rectangle_fill_gradient(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius,
+                                                           &btn_grad);
 
             if ((style->flags & EGUI_STYLE_PROP_SHADOW) && style->shadow)
             {
                 egui_view_set_shadow(self, style->shadow);
             }
 #else
-            egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, radius, bg, alpha);
+            egui_canvas_draw_round_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, bg, alpha);
 #endif
 
             /* Update text color from style */
@@ -242,7 +249,8 @@ static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *l
                     .alpha = EGUI_ALPHA_100,
                     .stops = btn_stops,
             };
-            egui_canvas_draw_round_rectangle_fill_gradient(region.location.x, region.location.y, region.size.width, region.size.height, radius, &btn_grad);
+            egui_canvas_draw_round_rectangle_fill_gradient(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius,
+                                                           &btn_grad);
 #else
             egui_color_t color_bg;
             if (egui_view_get_enable(self))
@@ -261,7 +269,7 @@ static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *l
                 color_bg = EGUI_THEME_DISABLED;
             }
 
-            egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, radius, color_bg,
+            egui_canvas_draw_round_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, color_bg,
                                                   EGUI_ALPHA_100);
 #endif
         }
@@ -271,6 +279,7 @@ static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *l
 void egui_view_button_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_button_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_view_label_t *label = &local->base;
     egui_color_t text_color = label->color;
     egui_alpha_t text_alpha = label->alpha;
@@ -278,7 +287,7 @@ void egui_view_button_on_draw(egui_view_t *self)
 
     egui_view_button_draw_frame(self, local, &text_color, &text_alpha);
     egui_view_get_work_region(self, &text_region);
-    egui_view_button_draw_content(local, &text_region, text_color, text_alpha);
+    egui_view_button_draw_content(canvas, local, &text_region, text_color, text_alpha);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_t) = {
@@ -298,10 +307,10 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_t) = {
 #endif
 };
 
-void egui_view_button_init(egui_view_t *self)
+void egui_view_button_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_button_t);
-    egui_view_label_init(self);
+    egui_view_label_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_button_t);
 
     local->icon = NULL;
@@ -311,7 +320,8 @@ void egui_view_button_init(egui_view_t *self)
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        const egui_widget_style_desc_t *desc = egui_current_theme ? egui_current_theme->button : NULL;
+        const egui_theme_t *theme = egui_theme_get(egui_view_get_core(self));
+        const egui_widget_style_desc_t *desc = theme ? theme->button : NULL;
         const egui_style_t *style = desc ? egui_style_get(desc, EGUI_PART_MAIN, EGUI_STATE_NORMAL) : NULL;
         if (style && (style->flags & EGUI_STYLE_PROP_SHADOW) && style->shadow)
         {
@@ -342,9 +352,9 @@ void egui_view_button_apply_params(egui_view_t *self, const egui_view_label_para
     egui_view_label_apply_params(self, params);
 }
 
-void egui_view_button_init_with_params(egui_view_t *self, const egui_view_label_params_t *params)
+void egui_view_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params)
 {
-    egui_view_button_init(self);
+    egui_view_button_init(self, core);
     egui_view_button_apply_params(self, params);
 }
 

@@ -1,19 +1,32 @@
 #include "egui_theme.h"
 #include "core/egui_core.h"
 
-const egui_theme_t *egui_current_theme = EGUI_CONFIG_THEME_DEFAULT;
-
-void egui_theme_set(const egui_theme_t *theme)
+void egui_theme_set(egui_core_t *core, const egui_theme_t *theme)
 {
-    if (theme == egui_current_theme)
+    if (core == NULL)
     {
         return;
     }
-    egui_current_theme = theme;
-    egui_core_force_refresh();
+
+    if (theme == NULL)
+    {
+        theme = EGUI_CONFIG_THEME_DEFAULT;
+    }
+    if (theme == core->asset.theme_current)
+    {
+        return;
+    }
+
+    core->asset.theme_current = theme;
+    egui_core_force_refresh(core);
 }
 
-const egui_theme_t *egui_theme_get(void)
+const egui_theme_t *egui_theme_get(egui_core_t *core)
 {
-    return egui_current_theme;
+    if (core == NULL || core->asset.theme_current == NULL)
+    {
+        return EGUI_CONFIG_THEME_DEFAULT;
+    }
+
+    return core->asset.theme_current;
 }

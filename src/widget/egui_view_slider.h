@@ -37,13 +37,13 @@ struct egui_view_slider_params
     static const egui_view_slider_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .value = (_val)}
 
 void egui_view_slider_apply_params(egui_view_t *self, const egui_view_slider_params_t *params);
-void egui_view_slider_init_with_params(egui_view_t *self, const egui_view_slider_params_t *params);
+void egui_view_slider_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_slider_params_t *params);
 
 void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view_on_value_changed_listener_t listener);
 void egui_view_slider_set_value(egui_view_t *self, uint8_t value);
 uint8_t egui_view_slider_get_value(egui_view_t *self);
 void egui_view_slider_on_draw(egui_view_t *self);
-void egui_view_slider_init(egui_view_t *self);
+void egui_view_slider_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

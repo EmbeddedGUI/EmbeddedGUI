@@ -1,4 +1,5 @@
-#include "egui_view_stepper.h"
+﻿#include "egui_view_stepper.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
@@ -88,6 +89,7 @@ void egui_view_stepper_set_icon_font(egui_view_t *self, const egui_font_t *font)
 
 static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_stepper_t);
     egui_view_page_indicator_t *indicator = &local->indicator;
     egui_region_t region;
@@ -160,7 +162,7 @@ static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
                 continue;
             }
 
-            egui_canvas_draw_round_rectangle_fill(left, center_y - connector_thickness / 2, width, connector_thickness, connector_thickness / 2,
+            egui_canvas_draw_round_rectangle_fill(canvas, left, center_y - connector_thickness / 2, width, connector_thickness, connector_thickness / 2,
                                                   connector_color, indicator->alpha);
         }
     }
@@ -187,10 +189,10 @@ static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
                         .center_y = 0,
                         .radius = node_radius,
                 };
-                egui_canvas_draw_circle_fill_gradient(cx, center_y, node_radius, &badge_grad);
+                egui_canvas_draw_circle_fill_gradient(canvas, cx, center_y, node_radius, &badge_grad);
             }
 #else
-            egui_canvas_draw_circle_fill_basic(cx, center_y, node_radius, active_color, indicator->alpha);
+            egui_canvas_draw_circle_fill_basic(canvas, cx, center_y, node_radius, active_color, indicator->alpha);
 #endif
             if (EGUI_VIEW_ICON_TEXT_VALID(local->completed_icon))
             {
@@ -204,26 +206,26 @@ static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
                         {cx - node_radius, center_y - node_radius},
                         {node_radius * 2, node_radius * 2},
                 };
-                egui_canvas_draw_text_in_rect(icon_font, local->completed_icon, &icon_region, EGUI_ALIGN_CENTER, EGUI_COLOR_WHITE, indicator->alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, local->completed_icon, &icon_region, EGUI_ALIGN_CENTER, EGUI_COLOR_WHITE, indicator->alpha);
             }
         }
         else if (i == indicator->current_index)
         {
             egui_dim_t inner_radius = EGUI_MAX(node_radius / 3, 2);
-            egui_canvas_draw_circle_basic(cx, center_y, node_radius, 2, active_color, indicator->alpha);
+            egui_canvas_draw_circle_basic(canvas, cx, center_y, node_radius, 2, active_color, indicator->alpha);
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-            egui_canvas_draw_circle_fill_hq(cx, center_y, inner_radius, active_color, indicator->alpha);
+            egui_canvas_draw_circle_fill_hq(canvas, cx, center_y, inner_radius, active_color, indicator->alpha);
 #else
-            egui_canvas_draw_circle_fill_basic(cx, center_y, inner_radius, active_color, indicator->alpha);
+            egui_canvas_draw_circle_fill_basic(canvas, cx, center_y, inner_radius, active_color, indicator->alpha);
 #endif
         }
         else
         {
             egui_dim_t pending_radius = EGUI_MAX(node_radius / 3, 2);
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-            egui_canvas_draw_circle_fill_hq(cx, center_y, pending_radius, inactive_color, indicator->alpha);
+            egui_canvas_draw_circle_fill_hq(canvas, cx, center_y, pending_radius, inactive_color, indicator->alpha);
 #else
-            egui_canvas_draw_circle_fill_basic(cx, center_y, pending_radius, inactive_color, indicator->alpha);
+            egui_canvas_draw_circle_fill_basic(canvas, cx, center_y, pending_radius, inactive_color, indicator->alpha);
 #endif
         }
     }
@@ -259,10 +261,10 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_stepper_t) = {
 #endif
 };
 
-void egui_view_stepper_init(egui_view_t *self)
+void egui_view_stepper_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_LOCAL_INIT(egui_view_stepper_t);
-    egui_view_page_indicator_init(self);
+    egui_view_page_indicator_init(self, core);
     local->mark_style = EGUI_VIEW_STEPPER_MARK_STYLE_DOT;
     local->completed_icon = EGUI_ICON_MS_DONE;
     local->icon_font = NULL;
@@ -289,8 +291,8 @@ void egui_view_stepper_apply_params(egui_view_t *self, const egui_view_stepper_p
     egui_view_page_indicator_apply_params(self, &indicator_params);
 }
 
-void egui_view_stepper_init_with_params(egui_view_t *self, const egui_view_stepper_params_t *params)
+void egui_view_stepper_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_stepper_params_t *params)
 {
-    egui_view_stepper_init(self);
+    egui_view_stepper_init(self, core);
     egui_view_stepper_apply_params(self, params);
 }

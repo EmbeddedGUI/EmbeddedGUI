@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_scroll.h"
+#include "core/egui_core.h"
 #include "font/egui_font.h"
 #include "core/egui_input.h"
 
@@ -115,7 +116,7 @@ void egui_view_scroll_fling(egui_view_t *self, egui_float_t velocity_y)
         if (bottom_limit > 0)
         {
             // EGUI_LOG_DBG("egui_view_scroll_fling up limit: %d\n", bottom_limit);
-            egui_scroller_start_filing(&local->scroller, bottom_limit, velocity_y);
+            egui_scroller_start_filing(&local->scroller, egui_view_get_core(self), bottom_limit, velocity_y);
             return;
         }
     }
@@ -127,7 +128,7 @@ void egui_view_scroll_fling(egui_view_t *self, egui_float_t velocity_y)
         if (real_top < 0)
         {
             // EGUI_LOG_DBG("egui_view_scroll_fling down limit: %d\n", real_top);
-            egui_scroller_start_filing(&local->scroller, real_top, velocity_y);
+            egui_scroller_start_filing(&local->scroller, egui_view_get_core(self), real_top, velocity_y);
             return;
         }
     }
@@ -154,7 +155,7 @@ void egui_view_scroll_compute_scroll(egui_view_t *self)
     egui_view_group_compute_scroll(self);
 
     // compute container scroll.
-    int offset = egui_scroller_compute_scroll_offset(&local->scroller);
+    int offset = egui_scroller_compute_scroll_offset(&local->scroller, egui_view_get_core(self));
     if (offset)
     {
         // EGUI_LOG_DBG("egui_view_scroll_compute_scroll offset: %d\n", offset);
@@ -375,7 +376,7 @@ int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *even
         if (local->is_begin_dragged)
         {
             // egui_scroller_start_scroll(&local->scroller, 100, 1000);
-            egui_view_scroll_fling(self, egui_input_get_velocity_y());
+            egui_view_scroll_fling(self, egui_view_get_velocity_y(self));
         }
         break;
     default:
@@ -400,17 +401,18 @@ void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
 
 void egui_view_scroll_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_scroll_t);
 
     // Set canvas extra clip to this scroll view's screen region so that scrolled
     // children (items above/below the viewport) are properly clipped and not drawn
     // outside the scroll area.
-    egui_canvas_set_extra_clip(&self->region_screen);
+    egui_canvas_set_extra_clip(canvas, &self->region_screen);
 
     // Draw the view group normally (self + children)
     egui_view_group_draw(self);
 
-    egui_canvas_clear_extra_clip();
+    egui_canvas_clear_extra_clip(canvas);
 
     if (!local->is_scrollbar_enabled || !self->is_visible || self->is_gone)
     {
@@ -470,22 +472,22 @@ void egui_view_scroll_draw(egui_view_t *self)
     }
 
     // Re-establish canvas work region for scrollbar drawing
-    egui_alpha_t alpha = egui_canvas_get_alpha();
-    egui_canvas_clear_mask();
-    egui_canvas_mix_alpha(self->alpha);
-    egui_canvas_calc_work_region(&self->region_screen);
+    egui_alpha_t alpha = egui_canvas_get_alpha(canvas);
+    egui_canvas_clear_mask(canvas);
+    egui_canvas_mix_alpha(canvas, self->alpha);
+    egui_canvas_calc_work_region(canvas, &self->region_screen);
 
-    if (!egui_region_is_empty(egui_canvas_get_base_view_work_region()))
+    if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
     {
         // Draw scrollbar on right side
         egui_dim_t bar_x = self->region.size.width - EGUI_THEME_SCROLLBAR_THICKNESS - margin;
         egui_dim_t bar_y = margin + thumb_y;
 
-        egui_canvas_draw_round_rectangle_fill(bar_x, bar_y, EGUI_THEME_SCROLLBAR_THICKNESS, thumb_length, EGUI_THEME_SCROLLBAR_RADIUS,
+        egui_canvas_draw_round_rectangle_fill(canvas, bar_x, bar_y, EGUI_THEME_SCROLLBAR_THICKNESS, thumb_length, EGUI_THEME_SCROLLBAR_RADIUS,
                                               EGUI_THEME_SCROLLBAR_COLOR, EGUI_THEME_SCROLLBAR_ALPHA);
     }
 
-    egui_canvas_set_alpha(alpha);
+    egui_canvas_set_alpha(canvas, alpha);
 }
 #else
 void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
@@ -522,11 +524,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_scroll_t) = {
 #endif
 };
 
-void egui_view_scroll_init(egui_view_t *self)
+void egui_view_scroll_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_scroll_t);
     // call super init.
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
 
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_scroll_t);
@@ -536,7 +538,7 @@ void egui_view_scroll_init(egui_view_t *self)
     local->last_motion_y = 0;
     local->is_begin_dragged = 0;
 
-    egui_view_linearlayout_init((egui_view_t *)&local->container);
+    egui_view_linearlayout_init((egui_view_t *)&local->container, core);
     egui_view_set_position((egui_view_t *)&local->container, 0, 0);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->container, 0);
     egui_view_linearlayout_set_auto_width((egui_view_t *)&local->container, 1);
@@ -544,7 +546,7 @@ void egui_view_scroll_init(egui_view_t *self)
     egui_view_linearlayout_set_orientation((egui_view_t *)&local->container, 0);
     egui_view_group_add_child(self, (egui_view_t *)&local->container);
 
-    egui_scroller_init(&local->scroller);
+    egui_scroller_init(&local->scroller, core);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
     local->is_scrollbar_enabled = 0;
@@ -561,8 +563,8 @@ void egui_view_scroll_apply_params(egui_view_t *self, const egui_view_scroll_par
     egui_view_invalidate(self);
 }
 
-void egui_view_scroll_init_with_params(egui_view_t *self, const egui_view_scroll_params_t *params)
+void egui_view_scroll_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_scroll_params_t *params)
 {
-    egui_view_scroll_init(self);
+    egui_view_scroll_init(self, core);
     egui_view_scroll_apply_params(self, params);
 }

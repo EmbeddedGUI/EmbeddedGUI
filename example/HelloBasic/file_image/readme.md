@@ -65,12 +65,15 @@ flowchart TB
 static egui_image_file_t photo;
 static egui_view_image_t image_view;
 
-egui_image_file_init(&photo);
-egui_image_file_set_path(&photo, "sd:album/cat.jpg");
-egui_image_file_reload(&photo);
+void setup_photo_view(egui_core_t *core)
+{
+    egui_image_file_init(&photo);
+    egui_image_file_set_path(&photo, "sd:album/cat.jpg");
+    egui_image_file_reload(&photo);
 
-egui_view_image_init(EGUI_VIEW_OF(&image_view));
-egui_view_image_set_image(EGUI_VIEW_OF(&image_view), (egui_image_t *)&photo);
+    egui_view_image_init(EGUI_VIEW_OF(&image_view), core);
+    egui_view_image_set_image(EGUI_VIEW_OF(&image_view), (egui_image_t *)&photo);
+}
 ```
 
 ## 2. 总体结构

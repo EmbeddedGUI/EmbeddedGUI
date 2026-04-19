@@ -1,4 +1,4 @@
-#include "egui_view_virtual_grid.h"
+﻿#include "egui_view_virtual_grid.h"
 
 #include <string.h>
 
@@ -491,11 +491,11 @@ static void egui_view_virtual_grid_row_release_cell_view(egui_view_virtual_grid_
     egui_view_virtual_grid_row_reset_binding(cell);
 }
 
-static void egui_view_virtual_grid_row_view_init(egui_view_virtual_grid_row_view_t *row_view)
+static void egui_view_virtual_grid_row_view_init(egui_view_virtual_grid_row_view_t *row_view, egui_core_t *core)
 {
     uint8_t i;
 
-    egui_view_group_init(EGUI_VIEW_OF(&row_view->root));
+    egui_view_group_init(EGUI_VIEW_OF(&row_view->root), core);
     row_view->row_index = EGUI_VIEW_VIRTUAL_GRID_INVALID_INDEX;
     row_view->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
     row_view->bound_count = 0;
@@ -517,19 +517,19 @@ static egui_view_virtual_grid_row_view_t *egui_view_virtual_grid_row_view_from_v
 
 static egui_view_t *egui_view_virtual_grid_row_create_view(void *adapter_context, uint16_t view_type)
 {
+    egui_view_virtual_grid_t *local = egui_view_virtual_grid_from_row_context(adapter_context);
     egui_view_virtual_grid_row_view_t *row_view;
 
-    EGUI_UNUSED(adapter_context);
     EGUI_UNUSED(view_type);
 
-    row_view = (egui_view_virtual_grid_row_view_t *)egui_malloc(sizeof(egui_view_virtual_grid_row_view_t));
+    row_view = (egui_view_virtual_grid_row_view_t *)egui_malloc(EGUI_VIEW_OF(local)->core, sizeof(egui_view_virtual_grid_row_view_t));
     if (row_view == NULL)
     {
         return NULL;
     }
 
     egui_api_memset(row_view, 0, sizeof(*row_view));
-    egui_view_virtual_grid_row_view_init(row_view);
+    egui_view_virtual_grid_row_view_init(row_view, EGUI_VIEW_OF(local)->core);
     return EGUI_VIEW_OF(&row_view->root);
 }
 
@@ -551,7 +551,7 @@ static void egui_view_virtual_grid_row_destroy_view(void *adapter_context, egui_
         egui_view_virtual_grid_row_release_cell_view(local, row_view, &row_view->cells[i]);
     }
 
-    egui_free(row_view);
+    egui_free(EGUI_VIEW_OF(local)->core, row_view);
 }
 
 static void egui_view_virtual_grid_row_bind_view(void *adapter_context, egui_view_t *view, uint32_t row_index, uint32_t stable_id)
@@ -901,9 +901,9 @@ void egui_view_virtual_grid_apply_params(egui_view_t *self, const egui_view_virt
     egui_view_virtual_list_apply_params(self, &list_params);
 }
 
-void egui_view_virtual_grid_init_with_params(egui_view_t *self, const egui_view_virtual_grid_params_t *params)
+void egui_view_virtual_grid_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_grid_params_t *params)
 {
-    egui_view_virtual_grid_init(self);
+    egui_view_virtual_grid_init(self, core);
     egui_view_virtual_grid_apply_params(self, params);
 }
 
@@ -923,9 +923,9 @@ void egui_view_virtual_grid_apply_setup(egui_view_t *self, const egui_view_virtu
     egui_view_virtual_grid_set_state_cache_limits(self, setup->state_cache_max_entries, setup->state_cache_max_bytes);
 }
 
-void egui_view_virtual_grid_init_with_setup(egui_view_t *self, const egui_view_virtual_grid_setup_t *setup)
+void egui_view_virtual_grid_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_grid_setup_t *setup)
 {
-    egui_view_virtual_grid_init(self);
+    egui_view_virtual_grid_init(self, core);
     egui_view_virtual_grid_apply_setup(self, setup);
 }
 
@@ -1569,11 +1569,11 @@ void egui_view_virtual_grid_notify_item_resized_by_stable_id(egui_view_t *self, 
     egui_view_virtual_grid_notify_item_resized(self, (uint32_t)index);
 }
 
-void egui_view_virtual_grid_init(egui_view_t *self)
+void egui_view_virtual_grid_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_grid_t);
 
-    egui_view_virtual_list_init(self);
+    egui_view_virtual_list_init(self, core);
     local->data_source = NULL;
     local->data_source_context = NULL;
     egui_api_memset(&local->row_data_source, 0, sizeof(local->row_data_source));

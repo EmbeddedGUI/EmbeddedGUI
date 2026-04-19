@@ -65,7 +65,7 @@ struct egui_view_lyric_scroller_params
                                                             .pause_duration_ms = 400}
 
 void egui_view_lyric_scroller_apply_params(egui_view_t *self, const egui_view_lyric_scroller_params_t *params);
-void egui_view_lyric_scroller_init_with_params(egui_view_t *self, const egui_view_lyric_scroller_params_t *params);
+void egui_view_lyric_scroller_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_lyric_scroller_params_t *params);
 
 void egui_view_lyric_scroller_set_text(egui_view_t *self, const char *text);
 void egui_view_lyric_scroller_set_font(egui_view_t *self, const egui_font_t *font);
@@ -76,7 +76,7 @@ void egui_view_lyric_scroller_set_pause_duration_ms(egui_view_t *self, uint16_t 
 void egui_view_lyric_scroller_restart(egui_view_t *self);
 void egui_view_lyric_scroller_start(egui_view_t *self);
 void egui_view_lyric_scroller_stop(egui_view_t *self);
-void egui_view_lyric_scroller_init(egui_view_t *self);
+void egui_view_lyric_scroller_init(egui_view_t *self, egui_core_t *core);
 
 #ifdef __cplusplus
 }

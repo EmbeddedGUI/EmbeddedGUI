@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "decoder_stb.h"
 #include "core/egui_common.h"
@@ -101,13 +101,13 @@ static void file_image_stb_close(void *decoder_ctx)
     }
     if (ctx->pixels != NULL)
     {
-        egui_free(ctx->pixels);
+        egui_free(NULL, ctx->pixels);
     }
     if (ctx->alpha != NULL)
     {
-        egui_free(ctx->alpha);
+        egui_free(NULL, ctx->alpha);
     }
-    egui_free(ctx);
+    egui_free(NULL, ctx);
 }
 
 static int file_image_stb_open(const egui_image_file_io_t *io, void *file_handle, const char *path, void **decoder_ctx, egui_image_file_open_result_t *out_info)
@@ -133,19 +133,19 @@ static int file_image_stb_open(const egui_image_file_io_t *io, void *file_handle
         return 0;
     }
 
-    file_buf = (uint8_t *)egui_malloc(file_size);
+    file_buf = (uint8_t *)egui_malloc(NULL, file_size);
     if (file_buf == NULL)
     {
         return 0;
     }
     if (io->read(io->user_data, file_handle, file_buf, (uint32_t)file_size) != file_size)
     {
-        egui_free(file_buf);
+        egui_free(NULL, file_buf);
         return 0;
     }
 
     rgba = stbi_load_from_memory(file_buf, file_size, &width, &height, &channels, 4);
-    egui_free(file_buf);
+    egui_free(NULL, file_buf);
     if (rgba == NULL || width <= 0 || height <= 0 || width > 0xFFFF || height > 0xFFFF)
     {
         if (rgba != NULL)
@@ -165,7 +165,7 @@ static int file_image_stb_open(const egui_image_file_io_t *io, void *file_handle
         }
     }
 
-    ctx = (file_image_stb_ctx_t *)egui_malloc(sizeof(*ctx));
+    ctx = (file_image_stb_ctx_t *)egui_malloc(NULL, sizeof(*ctx));
     if (ctx == NULL)
     {
         stbi_image_free(rgba);
@@ -174,7 +174,7 @@ static int file_image_stb_open(const egui_image_file_io_t *io, void *file_handle
     memset(ctx, 0, sizeof(*ctx));
     ctx->width = (uint16_t)width;
     ctx->height = (uint16_t)height;
-    ctx->pixels = (uint16_t *)egui_malloc(pixel_count * (int)sizeof(uint16_t));
+    ctx->pixels = (uint16_t *)egui_malloc(NULL, pixel_count * (int)sizeof(uint16_t));
     if (ctx->pixels == NULL)
     {
         file_image_stb_close(ctx);
@@ -183,7 +183,7 @@ static int file_image_stb_open(const egui_image_file_io_t *io, void *file_handle
     }
     if (has_alpha)
     {
-        ctx->alpha = (uint8_t *)egui_malloc(pixel_count);
+        ctx->alpha = (uint8_t *)egui_malloc(NULL, pixel_count);
         if (ctx->alpha == NULL)
         {
             file_image_stb_close(ctx);

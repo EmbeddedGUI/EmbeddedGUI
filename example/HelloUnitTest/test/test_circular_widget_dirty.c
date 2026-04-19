@@ -2,6 +2,7 @@
 
 #include "egui.h"
 #include "background/egui_background_color.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_circular_widget_dirty.h"
 
@@ -17,6 +18,14 @@ EGUI_BACKGROUND_PARAM_INIT(s_pressed_bg_params, &s_pressed_bg_normal_param, &s_p
 static egui_background_color_t s_pressed_background;
 static uint8_t s_pressed_background_ready;
 
+static egui_core_t *test_circular_widget_dirty_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static int32_t region_area(const egui_region_t *region)
 {
     return (int32_t)region->size.width * region->size.height;
@@ -24,7 +33,7 @@ static int32_t region_area(const egui_region_t *region)
 
 static void collect_dirty_union(egui_region_t *out_region, uint8_t *out_count)
 {
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(test_circular_widget_dirty_get_core());
     uint8_t count = 0;
     uint8_t i;
 
@@ -75,9 +84,11 @@ static uint8_t region_contains_point(const egui_region_t *region, egui_dim_t x, 
 
 static void setup_circular_progress_bar(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     egui_region_t region;
 
-    egui_view_circular_progress_bar_init(EGUI_VIEW_OF(&test_progress_bar));
+    egui_view_circular_progress_bar_init(EGUI_VIEW_OF(&test_progress_bar), core);
+    EGUI_VIEW_OF(&test_progress_bar)->core = core;
     egui_view_set_size(EGUI_VIEW_OF(&test_progress_bar), 120, 120);
     egui_view_circular_progress_bar_set_stroke_width(EGUI_VIEW_OF(&test_progress_bar), 12);
 
@@ -88,9 +99,11 @@ static void setup_circular_progress_bar(void)
 
 static void setup_gauge(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     egui_region_t region;
 
-    egui_view_gauge_init(EGUI_VIEW_OF(&test_gauge));
+    egui_view_gauge_init(EGUI_VIEW_OF(&test_gauge), core);
+    EGUI_VIEW_OF(&test_gauge)->core = core;
     egui_view_set_size(EGUI_VIEW_OF(&test_gauge), 120, 120);
 
     egui_region_init(&region, 10, 20, 120, 120);
@@ -100,9 +113,11 @@ static void setup_gauge(void)
 
 static void setup_arc_slider(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     egui_region_t region;
 
-    egui_view_arc_slider_init(EGUI_VIEW_OF(&test_arc_slider));
+    egui_view_arc_slider_init(EGUI_VIEW_OF(&test_arc_slider), core);
+    EGUI_VIEW_OF(&test_arc_slider)->core = core;
     egui_view_set_size(EGUI_VIEW_OF(&test_arc_slider), 120, 120);
 
     egui_region_init(&region, 10, 20, 120, 120);
@@ -112,9 +127,11 @@ static void setup_arc_slider(void)
 
 static void setup_analog_clock(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     egui_region_t region;
 
-    egui_view_analog_clock_init(EGUI_VIEW_OF(&test_clock));
+    egui_view_analog_clock_init(EGUI_VIEW_OF(&test_clock), core);
+    EGUI_VIEW_OF(&test_clock)->core = core;
     egui_view_set_size(EGUI_VIEW_OF(&test_clock), 120, 120);
 
     egui_region_init(&region, 10, 20, 120, 120);
@@ -124,9 +141,11 @@ static void setup_analog_clock(void)
 
 static void setup_spinner(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     egui_region_t region;
 
-    egui_view_spinner_init(EGUI_VIEW_OF(&test_spinner));
+    egui_view_spinner_init(EGUI_VIEW_OF(&test_spinner), core);
+    EGUI_VIEW_OF(&test_spinner)->core = core;
     egui_view_set_size(EGUI_VIEW_OF(&test_spinner), 120, 120);
 
     egui_region_init(&region, 10, 20, 120, 120);
@@ -162,7 +181,7 @@ static void get_arc_slider_thumb_center(egui_dim_t *x, egui_dim_t *y)
 
 static void assert_partial_dirty_region(const egui_view_t *view)
 {
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(test_circular_widget_dirty_get_core());
     int32_t dirty_area = region_area(&arr[0]);
     int32_t full_area = region_area(&view->region_screen);
 
@@ -174,7 +193,7 @@ static void assert_partial_dirty_region(const egui_view_t *view)
 
 static void assert_full_dirty_region(const egui_view_t *view)
 {
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(test_circular_widget_dirty_get_core());
 
     EGUI_TEST_ASSERT_REGION_EQUAL(&view->region_screen, &arr[0]);
     EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
@@ -193,8 +212,9 @@ static void attach_pressed_background(egui_view_t *view)
 
 static void test_circular_progress_bar_process_change_uses_partial_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     egui_region_t dirty_union;
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
     egui_dim_t center_x;
     egui_dim_t center_y;
     int32_t full_area;
@@ -203,7 +223,7 @@ static void test_circular_progress_bar_process_change_uses_partial_dirty_region(
     setup_circular_progress_bar();
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 75);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 80);
 
     collect_dirty_union(&dirty_union, &dirty_count);
@@ -221,10 +241,11 @@ static void test_circular_progress_bar_process_change_uses_partial_dirty_region(
 
 static void test_circular_progress_bar_repeated_process_change_same_frame_falls_back_to_full_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     setup_circular_progress_bar();
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 75);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 80);
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 25);
 
@@ -233,8 +254,9 @@ static void test_circular_progress_bar_repeated_process_change_same_frame_falls_
 
 static void test_gauge_value_change_uses_partial_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     egui_region_t dirty_union;
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
     egui_dim_t probe_x;
     egui_dim_t probe_y;
     int32_t full_area;
@@ -243,7 +265,7 @@ static void test_gauge_value_change_uses_partial_dirty_region(void)
     setup_gauge();
     egui_view_gauge_set_value(EGUI_VIEW_OF(&test_gauge), 35);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_view_gauge_set_value(EGUI_VIEW_OF(&test_gauge), 60);
 
     collect_dirty_union(&dirty_union, &dirty_count);
@@ -261,10 +283,11 @@ static void test_gauge_value_change_uses_partial_dirty_region(void)
 
 static void test_gauge_repeated_value_change_same_frame_falls_back_to_full_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     setup_gauge();
     egui_view_gauge_set_value(EGUI_VIEW_OF(&test_gauge), 35);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_view_gauge_set_value(EGUI_VIEW_OF(&test_gauge), 60);
     egui_view_gauge_set_value(EGUI_VIEW_OF(&test_gauge), 20);
 
@@ -273,10 +296,11 @@ static void test_gauge_repeated_value_change_same_frame_falls_back_to_full_dirty
 
 static void test_arc_slider_value_change_uses_partial_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     setup_arc_slider();
     egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 40);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 55);
 
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_arc_slider));
@@ -284,10 +308,11 @@ static void test_arc_slider_value_change_uses_partial_dirty_region(void)
 
 static void test_arc_slider_repeated_value_change_same_frame_falls_back_to_full_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     setup_arc_slider();
     egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 40);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 55);
     egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 15);
 
@@ -297,7 +322,8 @@ static void test_arc_slider_repeated_value_change_same_frame_falls_back_to_full_
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void test_arc_slider_touch_down_same_value_skips_dirty_region(void)
 {
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_core_t *core = test_circular_widget_dirty_get_core();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
     egui_dim_t touch_x;
     egui_dim_t touch_y;
 
@@ -305,7 +331,7 @@ static void test_arc_slider_touch_down_same_value_skips_dirty_region(void)
     egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 50);
     get_arc_slider_thumb_center(&touch_x, &touch_y);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     send_arc_slider_touch(EGUI_MOTION_EVENT_ACTION_DOWN, touch_x, touch_y);
 
     EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[0]));
@@ -314,7 +340,8 @@ static void test_arc_slider_touch_down_same_value_skips_dirty_region(void)
 
 static void test_arc_slider_touch_up_same_value_skips_dirty_region(void)
 {
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_core_t *core = test_circular_widget_dirty_get_core();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
     egui_dim_t touch_x;
     egui_dim_t touch_y;
 
@@ -323,7 +350,7 @@ static void test_arc_slider_touch_up_same_value_skips_dirty_region(void)
     get_arc_slider_thumb_center(&touch_x, &touch_y);
     send_arc_slider_touch(EGUI_MOTION_EVENT_ACTION_DOWN, touch_x, touch_y);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     send_arc_slider_touch(EGUI_MOTION_EVENT_ACTION_UP, touch_x, touch_y);
 
     EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[0]));
@@ -332,6 +359,7 @@ static void test_arc_slider_touch_up_same_value_skips_dirty_region(void)
 
 static void test_arc_slider_touch_down_with_pressed_background_uses_full_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     egui_dim_t touch_x;
     egui_dim_t touch_y;
 
@@ -340,7 +368,7 @@ static void test_arc_slider_touch_down_with_pressed_background_uses_full_dirty_r
     egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 50);
     get_arc_slider_thumb_center(&touch_x, &touch_y);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     send_arc_slider_touch(EGUI_MOTION_EVENT_ACTION_DOWN, touch_x, touch_y);
 
     assert_full_dirty_region(EGUI_VIEW_OF(&test_arc_slider));
@@ -349,10 +377,11 @@ static void test_arc_slider_touch_down_with_pressed_background_uses_full_dirty_r
 
 static void test_analog_clock_second_tick_uses_partial_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     setup_analog_clock();
     egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 0);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 1);
 
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_clock));
@@ -360,10 +389,11 @@ static void test_analog_clock_second_tick_uses_partial_dirty_region(void)
 
 static void test_analog_clock_repeated_time_change_same_frame_falls_back_to_full_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     setup_analog_clock();
     egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 0);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 1);
     egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 2);
 
@@ -372,13 +402,14 @@ static void test_analog_clock_repeated_time_change_same_frame_falls_back_to_full
 
 static void test_analog_clock_hidden_second_change_skips_dirty_region(void)
 {
-    egui_region_t *arr = egui_core_get_region_dirty_arr();
+    egui_core_t *core = test_circular_widget_dirty_get_core();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     setup_analog_clock();
     egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 0);
     egui_view_analog_clock_show_second(EGUI_VIEW_OF(&test_clock), 0);
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 1);
 
     EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[0]));
@@ -387,9 +418,10 @@ static void test_analog_clock_hidden_second_change_skips_dirty_region(void)
 
 static void test_spinner_rotation_step_uses_partial_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     setup_spinner();
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     test_spinner.spin_timer.callback(&test_spinner.spin_timer);
 
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_spinner));
@@ -397,9 +429,10 @@ static void test_spinner_rotation_step_uses_partial_dirty_region(void)
 
 static void test_spinner_repeated_rotation_same_frame_falls_back_to_full_dirty_region(void)
 {
+    egui_core_t *core = test_circular_widget_dirty_get_core();
     setup_spinner();
 
-    egui_core_clear_region_dirty();
+    egui_core_clear_region_dirty(core);
     test_spinner.spin_timer.callback(&test_spinner.spin_timer);
     test_spinner.spin_timer.callback(&test_spinner.spin_timer);
 

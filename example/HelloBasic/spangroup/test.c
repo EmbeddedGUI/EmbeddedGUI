@@ -1,14 +1,14 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_spangroup_t spangroup;
 
 EGUI_VIEW_SPANGROUP_PARAMS_INIT(spangroup_params, 10, 10, 220, 140);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
-    egui_view_spangroup_init_with_params(EGUI_VIEW_OF(&spangroup), &spangroup_params);
+    egui_view_spangroup_init_with_params(EGUI_VIEW_OF(&spangroup), core, &spangroup_params);
     egui_view_spangroup_set_line_spacing(EGUI_VIEW_OF(&spangroup), 6);
 
     egui_view_spangroup_add_span(EGUI_VIEW_OF(&spangroup), "EmbeddedGUI ", (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT);

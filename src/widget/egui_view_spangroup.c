@@ -1,14 +1,16 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_spangroup.h"
+#include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 
 static void egui_view_spangroup_on_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_spangroup_t);
 
     if (local->span_count == 0)
@@ -55,7 +57,7 @@ static void egui_view_spangroup_on_draw(egui_view_t *self)
         draw_rect.size.width = text_w;
         draw_rect.size.height = text_h;
 
-        egui_canvas_draw_text_in_rect(font, span->text, &draw_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, span->color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, font, span->text, &draw_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, span->color, EGUI_ALPHA_100);
 
         cursor_x += text_w;
     }
@@ -129,12 +131,12 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_spangroup_t) = {
 #endif
 };
 
-void egui_view_spangroup_init(egui_view_t *self)
+void egui_view_spangroup_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_spangroup_t);
 
     // Call super init
-    egui_view_init(self);
+    egui_view_init(self, core);
 
     // Update API table
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_spangroup_t);
@@ -155,8 +157,8 @@ void egui_view_spangroup_apply_params(egui_view_t *self, const egui_view_spangro
     egui_view_invalidate(self);
 }
 
-void egui_view_spangroup_init_with_params(egui_view_t *self, const egui_view_spangroup_params_t *params)
+void egui_view_spangroup_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_spangroup_params_t *params)
 {
-    egui_view_spangroup_init(self);
+    egui_view_spangroup_init(self, core);
     egui_view_spangroup_apply_params(self, params);
 }

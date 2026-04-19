@@ -1,17 +1,17 @@
 #include "egui.h"
 #include <string.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "demo_virtual_stage_internal.h"
 
 static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t view_type)
 {
-    EGUI_UNUSED(adapter_context);
+    demo_virtual_stage_context_t *ctx = (demo_virtual_stage_context_t *)adapter_context;
 
     switch (view_type)
     {
     case DEMO_VIEW_TYPE_BUTTON:
     {
-        demo_virtual_button_view_t *button_view = (demo_virtual_button_view_t *)egui_malloc(sizeof(demo_virtual_button_view_t));
+        demo_virtual_button_view_t *button_view = (demo_virtual_button_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_button_view_t));
         if (button_view == NULL)
         {
             return NULL;
@@ -19,7 +19,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(button_view, 0, sizeof(*button_view));
         button_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_button_init(EGUI_VIEW_OF(&button_view->button));
+        egui_view_button_init(EGUI_VIEW_OF(&button_view->button), ctx->core);
         egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_view->button), demo_button_click_cb);
         egui_view_label_set_align_type(EGUI_VIEW_OF(&button_view->button), EGUI_ALIGN_CENTER);
         egui_view_set_padding(EGUI_VIEW_OF(&button_view->button), 4, 4, 4, 4);
@@ -28,7 +28,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_TEXTINPUT:
     {
-        demo_virtual_textinput_view_t *textinput_view = (demo_virtual_textinput_view_t *)egui_malloc(sizeof(demo_virtual_textinput_view_t));
+        demo_virtual_textinput_view_t *textinput_view = (demo_virtual_textinput_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_textinput_view_t));
         if (textinput_view == NULL)
         {
             return NULL;
@@ -36,7 +36,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(textinput_view, 0, sizeof(*textinput_view));
         textinput_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_textinput_init(EGUI_VIEW_OF(&textinput_view->textinput));
+        egui_view_textinput_init(EGUI_VIEW_OF(&textinput_view->textinput), ctx->core);
         egui_view_textinput_set_font(EGUI_VIEW_OF(&textinput_view->textinput), DEMO_FONT_BODY);
         egui_view_textinput_set_text_color(EGUI_VIEW_OF(&textinput_view->textinput), DEMO_COLOR_TEXT_PRIMARY, EGUI_ALPHA_100);
         egui_view_textinput_set_placeholder_color(EGUI_VIEW_OF(&textinput_view->textinput), DEMO_COLOR_TEXT_MUTED, EGUI_ALPHA_100);
@@ -49,7 +49,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_SWITCH:
     {
-        demo_virtual_switch_view_t *switch_view = (demo_virtual_switch_view_t *)egui_malloc(sizeof(demo_virtual_switch_view_t));
+        demo_virtual_switch_view_t *switch_view = (demo_virtual_switch_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_switch_view_t));
         if (switch_view == NULL)
         {
             return NULL;
@@ -57,7 +57,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(switch_view, 0, sizeof(*switch_view));
         switch_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_switch_init(EGUI_VIEW_OF(&switch_view->switch_view));
+        egui_view_switch_init(EGUI_VIEW_OF(&switch_view->switch_view), ctx->core);
         egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(&switch_view->switch_view), demo_switch_changed);
         egui_view_switch_set_state_icons(EGUI_VIEW_OF(&switch_view->switch_view), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CROSS);
         egui_view_switch_set_icon_font(EGUI_VIEW_OF(&switch_view->switch_view), EGUI_FONT_ICON_MS_16);
@@ -65,7 +65,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_CHECKBOX:
     {
-        demo_virtual_checkbox_view_t *checkbox_view = (demo_virtual_checkbox_view_t *)egui_malloc(sizeof(demo_virtual_checkbox_view_t));
+        demo_virtual_checkbox_view_t *checkbox_view = (demo_virtual_checkbox_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_checkbox_view_t));
         if (checkbox_view == NULL)
         {
             return NULL;
@@ -73,7 +73,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(checkbox_view, 0, sizeof(*checkbox_view));
         checkbox_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_checkbox_init(EGUI_VIEW_OF(&checkbox_view->checkbox));
+        egui_view_checkbox_init(EGUI_VIEW_OF(&checkbox_view->checkbox), ctx->core);
         egui_view_checkbox_set_on_checked_listener(EGUI_VIEW_OF(&checkbox_view->checkbox), demo_checkbox_changed);
         egui_view_checkbox_set_font(EGUI_VIEW_OF(&checkbox_view->checkbox), DEMO_FONT_CAP);
         egui_view_checkbox_set_text_color(EGUI_VIEW_OF(&checkbox_view->checkbox), DEMO_COLOR_TEXT_PRIMARY);
@@ -82,7 +82,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_RADIO:
     {
-        demo_virtual_radio_view_t *radio_view = (demo_virtual_radio_view_t *)egui_malloc(sizeof(demo_virtual_radio_view_t));
+        demo_virtual_radio_view_t *radio_view = (demo_virtual_radio_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_radio_view_t));
         if (radio_view == NULL)
         {
             return NULL;
@@ -90,7 +90,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(radio_view, 0, sizeof(*radio_view));
         radio_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_radio_button_init(EGUI_VIEW_OF(&radio_view->radio));
+        egui_view_radio_button_init(EGUI_VIEW_OF(&radio_view->radio), ctx->core);
         egui_view_radio_button_set_font(EGUI_VIEW_OF(&radio_view->radio), DEMO_FONT_CAP);
         egui_view_radio_button_set_text_color(EGUI_VIEW_OF(&radio_view->radio), DEMO_COLOR_TEXT_PRIMARY);
         egui_view_radio_button_set_icon_text_gap(EGUI_VIEW_OF(&radio_view->radio), 4);
@@ -99,7 +99,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_SLIDER:
     {
-        demo_virtual_slider_view_t *slider_view = (demo_virtual_slider_view_t *)egui_malloc(sizeof(demo_virtual_slider_view_t));
+        demo_virtual_slider_view_t *slider_view = (demo_virtual_slider_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_slider_view_t));
         if (slider_view == NULL)
         {
             return NULL;
@@ -107,13 +107,13 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(slider_view, 0, sizeof(*slider_view));
         slider_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_slider_init(EGUI_VIEW_OF(&slider_view->slider));
+        egui_view_slider_init(EGUI_VIEW_OF(&slider_view->slider), ctx->core);
         egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&slider_view->slider), demo_slider_changed);
         return EGUI_VIEW_OF(&slider_view->slider);
     }
     case DEMO_VIEW_TYPE_TOGGLE:
     {
-        demo_virtual_toggle_view_t *toggle_view = (demo_virtual_toggle_view_t *)egui_malloc(sizeof(demo_virtual_toggle_view_t));
+        demo_virtual_toggle_view_t *toggle_view = (demo_virtual_toggle_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_toggle_view_t));
         if (toggle_view == NULL)
         {
             return NULL;
@@ -121,7 +121,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(toggle_view, 0, sizeof(*toggle_view));
         toggle_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_toggle_button_init(EGUI_VIEW_OF(&toggle_view->toggle));
+        egui_view_toggle_button_init(EGUI_VIEW_OF(&toggle_view->toggle), ctx->core);
         egui_view_toggle_button_set_on_toggled_listener(EGUI_VIEW_OF(&toggle_view->toggle), demo_toggle_changed);
         egui_view_toggle_button_set_icon_font(EGUI_VIEW_OF(&toggle_view->toggle), EGUI_FONT_ICON_MS_16);
         egui_view_toggle_button_set_icon_text_gap(EGUI_VIEW_OF(&toggle_view->toggle), 4);
@@ -130,7 +130,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_NUMBER_PICKER:
     {
-        demo_virtual_picker_view_t *picker_view = (demo_virtual_picker_view_t *)egui_malloc(sizeof(demo_virtual_picker_view_t));
+        demo_virtual_picker_view_t *picker_view = (demo_virtual_picker_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_picker_view_t));
         if (picker_view == NULL)
         {
             return NULL;
@@ -138,7 +138,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(picker_view, 0, sizeof(*picker_view));
         picker_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_number_picker_init(EGUI_VIEW_OF(&picker_view->picker));
+        egui_view_number_picker_init(EGUI_VIEW_OF(&picker_view->picker), ctx->core);
         egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker_view->picker), demo_picker_changed);
         egui_view_number_picker_set_button_icons(EGUI_VIEW_OF(&picker_view->picker), EGUI_ICON_MS_ADD, EGUI_ICON_MS_REMOVE);
         egui_view_number_picker_set_icon_font(EGUI_VIEW_OF(&picker_view->picker), EGUI_FONT_ICON_MS_16);
@@ -149,7 +149,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_COMBOBOX:
     {
-        demo_virtual_combobox_view_t *combobox_view = (demo_virtual_combobox_view_t *)egui_malloc(sizeof(demo_virtual_combobox_view_t));
+        demo_virtual_combobox_view_t *combobox_view = (demo_virtual_combobox_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_combobox_view_t));
         if (combobox_view == NULL)
         {
             return NULL;
@@ -157,7 +157,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(combobox_view, 0, sizeof(*combobox_view));
         combobox_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_combobox_init(EGUI_VIEW_OF(&combobox_view->combobox));
+        egui_view_combobox_init(EGUI_VIEW_OF(&combobox_view->combobox), ctx->core);
         egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combobox_view->combobox), demo_combobox_selected);
         egui_view_combobox_set_font(EGUI_VIEW_OF(&combobox_view->combobox), DEMO_FONT_CAP);
         egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combobox_view->combobox), EGUI_FONT_ICON_MS_16);
@@ -168,7 +168,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_ROLLER:
     {
-        demo_virtual_roller_view_t *roller_view = (demo_virtual_roller_view_t *)egui_malloc(sizeof(demo_virtual_roller_view_t));
+        demo_virtual_roller_view_t *roller_view = (demo_virtual_roller_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_roller_view_t));
         if (roller_view == NULL)
         {
             return NULL;
@@ -176,7 +176,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(roller_view, 0, sizeof(*roller_view));
         roller_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_roller_init(EGUI_VIEW_OF(&roller_view->roller));
+        egui_view_roller_init(EGUI_VIEW_OF(&roller_view->roller), ctx->core);
         egui_view_roller_set_on_selected_listener(EGUI_VIEW_OF(&roller_view->roller), demo_roller_selected);
         roller_view->roller.font = DEMO_FONT_CAP;
         roller_view->roller.text_color = DEMO_COLOR_TEXT_SECONDARY;
@@ -186,7 +186,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_SEGMENTED:
     {
-        demo_virtual_segmented_view_t *segmented_view = (demo_virtual_segmented_view_t *)egui_malloc(sizeof(demo_virtual_segmented_view_t));
+        demo_virtual_segmented_view_t *segmented_view = (demo_virtual_segmented_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_segmented_view_t));
         if (segmented_view == NULL)
         {
             return NULL;
@@ -194,7 +194,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(segmented_view, 0, sizeof(*segmented_view));
         segmented_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_segmented_control_init(EGUI_VIEW_OF(&segmented_view->segmented));
+        egui_view_segmented_control_init(EGUI_VIEW_OF(&segmented_view->segmented), ctx->core);
         egui_view_segmented_control_set_on_segment_changed_listener(EGUI_VIEW_OF(&segmented_view->segmented), demo_segment_changed);
         egui_view_segmented_control_set_font(EGUI_VIEW_OF(&segmented_view->segmented), DEMO_FONT_CAP);
         egui_view_segmented_control_set_corner_radius(EGUI_VIEW_OF(&segmented_view->segmented), 8);
@@ -204,7 +204,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
     }
     case DEMO_VIEW_TYPE_BUTTON_MATRIX:
     {
-        demo_virtual_button_matrix_view_t *matrix_view = (demo_virtual_button_matrix_view_t *)egui_malloc(sizeof(demo_virtual_button_matrix_view_t));
+        demo_virtual_button_matrix_view_t *matrix_view = (demo_virtual_button_matrix_view_t *)egui_malloc(ctx->core, sizeof(demo_virtual_button_matrix_view_t));
         if (matrix_view == NULL)
         {
             return NULL;
@@ -212,7 +212,7 @@ static egui_view_t *demo_adapter_create_view(void *adapter_context, uint16_t vie
 
         memset(matrix_view, 0, sizeof(*matrix_view));
         matrix_view->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-        egui_view_button_matrix_init(EGUI_VIEW_OF(&matrix_view->matrix));
+        egui_view_button_matrix_init(EGUI_VIEW_OF(&matrix_view->matrix), ctx->core);
         egui_view_button_matrix_set_on_click(EGUI_VIEW_OF(&matrix_view->matrix), demo_button_matrix_clicked);
         egui_view_button_matrix_set_selection_enabled(EGUI_VIEW_OF(&matrix_view->matrix), 1);
         egui_view_button_matrix_set_font(EGUI_VIEW_OF(&matrix_view->matrix), DEMO_FONT_CAP);
@@ -232,11 +232,11 @@ static void demo_adapter_destroy_view(void *adapter_context, egui_view_t *view, 
     if (view_type == DEMO_VIEW_TYPE_TEXTINPUT)
     {
         demo_virtual_textinput_view_t *textinput_view = (demo_virtual_textinput_view_t *)view;
-        egui_timer_stop_timer(&textinput_view->textinput.cursor_timer);
+        egui_view_stop_timer(view, &textinput_view->textinput.cursor_timer);
     }
 
     ctx->destroy_count++;
-    egui_free(view);
+    egui_free(ctx->core, view);
 }
 
 static void demo_adapter_bind_view(void *adapter_context, egui_view_t *view, uint32_t index, uint32_t stable_id, const egui_virtual_stage_node_desc_t *desc)

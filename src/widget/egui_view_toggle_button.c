@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_toggle_button.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
@@ -21,7 +22,7 @@ static const egui_font_t *egui_view_toggle_button_get_text_font(const egui_view_
     return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
 
-static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *local, const egui_region_t *region, egui_color_t text_color)
+static void egui_view_toggle_button_draw_content(egui_canvas_t *canvas, egui_view_toggle_button_t *local, const egui_region_t *region, egui_color_t text_color)
 {
     const char *icon = local->icon;
     const char *text = local->text;
@@ -37,7 +38,7 @@ static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *loca
     {
         if (text_font != NULL)
         {
-            egui_canvas_draw_text_in_rect(text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(canvas, text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
         }
         return;
     }
@@ -47,7 +48,7 @@ static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *loca
         const egui_font_t *icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, EGUI_MIN(region->size.width, region->size.height), 20, 26);
         if (icon_font != NULL)
         {
-            egui_canvas_draw_text_in_rect(icon_font, icon, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(canvas, icon_font, icon, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
         }
         return;
     }
@@ -68,7 +69,7 @@ static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *loca
         {
             if (text_font != NULL)
             {
-                egui_canvas_draw_text_in_rect(text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+                egui_canvas_draw_text_in_rect(canvas, text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
             }
             return;
         }
@@ -119,16 +120,17 @@ static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *loca
         text_region.size.width = region->location.x + region->size.width - text_region.location.x;
         text_region.size.height = region->size.height;
 
-        egui_canvas_draw_text_in_rect(icon_font, icon, &icon_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, icon_font, icon, &icon_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
         if (text_region.size.width > 0 && text_width > 0 && text_font != NULL)
         {
-            egui_canvas_draw_text_in_rect(text_font, text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(canvas, text_font, text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, EGUI_ALPHA_100);
         }
     }
 }
 
 static egui_color_t egui_view_toggle_button_draw_frame(egui_view_t *self, egui_view_toggle_button_t *local, egui_region_t *region)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_color_t bg_color;
 
     egui_view_get_work_region(self, region);
@@ -153,18 +155,18 @@ static egui_color_t egui_view_toggle_button_draw_frame(egui_view_t *self, egui_v
                 .alpha = EGUI_ALPHA_100,
                 .stops = tb_stops,
         };
-        egui_canvas_draw_round_rectangle_fill_gradient(region->location.x, region->location.y, region->size.width, region->size.height, local->corner_radius,
-                                                       &tb_grad);
+        egui_canvas_draw_round_rectangle_fill_gradient(canvas, region->location.x, region->location.y, region->size.width, region->size.height,
+                                                       local->corner_radius, &tb_grad);
     }
 #else
-    egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, local->corner_radius, bg_color,
-                                          EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle_fill(canvas, region->location.x, region->location.y, region->size.width, region->size.height, local->corner_radius,
+                                          bg_color, EGUI_ALPHA_100);
 #endif
 
     // Draw pressed overlay
     if (self->is_pressed)
     {
-        egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, local->corner_radius,
+        egui_canvas_draw_round_rectangle_fill(canvas, region->location.x, region->location.y, region->size.width, region->size.height, local->corner_radius,
                                               EGUI_THEME_PRESS_OVERLAY, EGUI_THEME_PRESS_OVERLAY_ALPHA);
     }
 
@@ -274,10 +276,11 @@ void egui_view_toggle_button_set_text_color(egui_view_t *self, egui_color_t colo
 void egui_view_toggle_button_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t region;
     egui_color_t text_color = egui_view_toggle_button_draw_frame(self, local, &region);
 
-    egui_view_toggle_button_draw_content(local, &region, text_color);
+    egui_view_toggle_button_draw_content(canvas, local, &region, text_color);
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -350,11 +353,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t) = {
 #endif
 };
 
-void egui_view_toggle_button_init(egui_view_t *self)
+void egui_view_toggle_button_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_toggle_button_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t);
 
     // init local data.
@@ -385,8 +388,8 @@ void egui_view_toggle_button_apply_params(egui_view_t *self, const egui_view_tog
     egui_view_invalidate(self);
 }
 
-void egui_view_toggle_button_init_with_params(egui_view_t *self, const egui_view_toggle_button_params_t *params)
+void egui_view_toggle_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_toggle_button_params_t *params)
 {
-    egui_view_toggle_button_init(self);
+    egui_view_toggle_button_init(self, core);
     egui_view_toggle_button_apply_params(self, params);
 }

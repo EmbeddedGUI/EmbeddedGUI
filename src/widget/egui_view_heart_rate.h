@@ -40,14 +40,14 @@ struct egui_view_heart_rate_params
     static const egui_view_heart_rate_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .bpm = (_bpm)}
 
 void egui_view_heart_rate_apply_params(egui_view_t *self, const egui_view_heart_rate_params_t *params);
-void egui_view_heart_rate_init_with_params(egui_view_t *self, const egui_view_heart_rate_params_t *params);
+void egui_view_heart_rate_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_heart_rate_params_t *params);
 
 void egui_view_heart_rate_set_bpm(egui_view_t *self, uint8_t bpm);
 void egui_view_heart_rate_set_animate(egui_view_t *self, uint8_t enable);
 void egui_view_heart_rate_set_heart_color(egui_view_t *self, egui_color_t color);
 void egui_view_heart_rate_set_pulse_phase(egui_view_t *self, uint8_t phase);
 void egui_view_heart_rate_on_draw(egui_view_t *self);
-void egui_view_heart_rate_init(egui_view_t *self);
+void egui_view_heart_rate_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

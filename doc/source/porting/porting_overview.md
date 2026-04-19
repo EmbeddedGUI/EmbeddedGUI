@@ -123,7 +123,7 @@ typedef struct egui_platform_ops {
 | `interrupt_disable/enable` | 建议 | 保护共享数据 |
 | `memset_fast/memcpy_fast` | 可选 | 启用 `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1` 时，可接 DMA 或平台优化例程 |
 | `malloc/free` | 可选 | 启用 `EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC=1` 时，提供定制动态内存分配 |
-| `mutex_*` | 可选 | RTOS 线程安全 |
+| `mutex_*` | 可选 | RTOS 线程安全基础能力 |
 
 ## 可选接口
 
@@ -162,6 +162,13 @@ typedef struct egui_platform_ops {
 
 在 RTOS 环境下，实现 `mutex_*` 系列函数保护 GUI 数据结构的线程安全。
 
+但要注意，`mutex_*` 只是“能做同步”的基础能力，不等于可以在任意线程里直接修改任意 `core` 的 UI。若平台要跟进多屏或 per-core 线程模型，建议同步遵守下面的边界：
+
+- 每个 display/core 只由所属 GUI 线程或所属轮询上下文直接调用 `egui_polling_work(core)`
+- UI 树、动画、定时器、dirty region 只在所属线程内直接修改
+- 外部线程改 UI 时，优先通过任务队列、回调投递或等价的 `post_core_task` 入口切回目标 core
+- 退出流程先停线程，再释放 display driver、window / panel 和 platform 资源，避免把 shutdown 竞态留到最后
+
 ## 主循环模板
 
 ### 裸机环境
@@ -174,31 +181,21 @@ void main(void)
     // 1. 硬件初始化
     system_hw_init();
 
-    // 2. 注册驱动
+    // 2. 准备平台单例
     egui_port_init();
 
-    // 3. 初始化 GUI 框架
-    egui_init_config_t init_config = {
-        .pfb        = egui_pfb,
-        .pfb_backup = NULL,
-    };
-    egui_init(&init_config);
+    // 3. 初始化 GUI 框架并创建 UI
+    egui_setup_display(&core, &setup);
 
-    // 4. 创建 UI
-    uicode_create_ui();
-
-    // 5. 开屏
-    egui_screen_on();
-
-    // 6. 主循环
+    // 4. 主循环
     while (1)
     {
-        egui_polling_work();
+        egui_polling_work(&core);
     }
 }
 ```
 
-调用顺序：`egui_port_init()` -> `egui_init()` -> `uicode_create_ui()` -> `egui_screen_on()` -> 循环 `egui_polling_work()`
+调用顺序：`egui_port_init()` -> `egui_setup_display(&core, &setup)` -> 循环 `egui_polling_work(&core)`
 
 ### RTOS 环境
 
@@ -206,14 +203,11 @@ void main(void)
 void gui_task(void *arg)
 {
     egui_port_init();
-    egui_init_config_t init_config = { .pfb = egui_pfb, .pfb_backup = NULL };
-    egui_init(&init_config);
-    uicode_create_ui();
-    egui_screen_on();
+    egui_setup_display(&core, &setup);
 
     while (1)
     {
-        egui_polling_work();
+        egui_polling_work(&core);
         os_delay(1);  // 让出 CPU
     }
 }

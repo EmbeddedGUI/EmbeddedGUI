@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 progress bars: XS / S / M / L
 static egui_view_progress_bar_t progress_xs;
@@ -23,16 +23,16 @@ EGUI_VIEW_PROGRESS_BAR_PARAMS_INIT(progress_m_params, 0, 0, 180, 20, 75);
 // Size L (200x20)
 EGUI_VIEW_PROGRESS_BAR_PARAMS_INIT(progress_l_params, 0, 0, 180, 24, 100);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init all views
-    egui_view_progress_bar_init_with_params(EGUI_VIEW_OF(&progress_xs), &progress_xs_params);
-    egui_view_progress_bar_init_with_params(EGUI_VIEW_OF(&progress_s), &progress_s_params);
-    egui_view_progress_bar_init_with_params(EGUI_VIEW_OF(&progress_m), &progress_m_params);
-    egui_view_progress_bar_init_with_params(EGUI_VIEW_OF(&progress_l), &progress_l_params);
+    egui_view_progress_bar_init_with_params(EGUI_VIEW_OF(&progress_xs), core, &progress_xs_params);
+    egui_view_progress_bar_init_with_params(EGUI_VIEW_OF(&progress_s), core, &progress_s_params);
+    egui_view_progress_bar_init_with_params(EGUI_VIEW_OF(&progress_m), core, &progress_m_params);
+    egui_view_progress_bar_init_with_params(EGUI_VIEW_OF(&progress_l), core, &progress_l_params);
 
     // Set margins
     egui_view_set_margin_all(EGUI_VIEW_OF(&progress_xs), 6);
@@ -53,7 +53,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

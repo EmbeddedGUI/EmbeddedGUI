@@ -43,7 +43,7 @@ struct egui_view_test
     egui_view_test_block_t blocks[2];
 };
 
-void egui_view_test_init(egui_view_t *self);
+void egui_view_test_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

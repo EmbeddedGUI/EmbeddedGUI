@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "decoder_jpeg_vendor_template.h"
 #include "core/egui_common.h"
@@ -125,9 +125,9 @@ static void file_image_vendor_jpeg_close(void *decoder_ctx)
     file_image_vendor_jpeg_release(ctx);
     if (ctx->band_pixels != NULL)
     {
-        egui_free(ctx->band_pixels);
+        egui_free(NULL, ctx->band_pixels);
     }
-    egui_free(ctx);
+    egui_free(NULL, ctx);
 }
 
 static int file_image_vendor_jpeg_open(const egui_image_file_io_t *io, void *file_handle, const char *path, void **decoder_ctx,
@@ -144,7 +144,7 @@ static int file_image_vendor_jpeg_open(const egui_image_file_io_t *io, void *fil
         return 0;
     }
 
-    ctx = (file_image_vendor_jpeg_ctx_t *)egui_malloc(sizeof(*ctx));
+    ctx = (file_image_vendor_jpeg_ctx_t *)egui_malloc(NULL, sizeof(*ctx));
     if (ctx == NULL)
     {
         return 0;
@@ -177,7 +177,7 @@ static int file_image_vendor_jpeg_open(const egui_image_file_io_t *io, void *fil
     }
 
     band_pixel_count = (uint32_t)width * band_height;
-    ctx->band_pixels = (uint16_t *)egui_malloc((int)(band_pixel_count * sizeof(uint16_t)));
+    ctx->band_pixels = (uint16_t *)egui_malloc(NULL, (int)(band_pixel_count * sizeof(uint16_t)));
     if (ctx->band_pixels == NULL)
     {
         file_image_vendor_jpeg_close(ctx);
@@ -253,3 +253,4 @@ const egui_image_file_decoder_t g_file_image_jpeg_vendor_template_decoder = {
         .read_row = file_image_vendor_jpeg_read_row,
         .close = file_image_vendor_jpeg_close,
 };
+

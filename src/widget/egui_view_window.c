@@ -1,8 +1,9 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_window.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
@@ -157,6 +158,7 @@ void egui_view_window_set_on_close(egui_view_t *self, egui_view_window_close_cb_
 void egui_view_window_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -175,10 +177,10 @@ void egui_view_window_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_rectangle_fill_gradient(region.location.x, region.location.y, region.size.width, local->header_height, &grad);
+        egui_canvas_draw_rectangle_fill_gradient(canvas, region.location.x, region.location.y, region.size.width, local->header_height, &grad);
     }
 #else
-    egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, local->header_height, local->header_color, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, local->header_height, local->header_color, EGUI_ALPHA_100);
 #endif
 
     if (egui_view_get_pressed(EGUI_VIEW_OF(&local->close_label)))
@@ -191,14 +193,14 @@ void egui_view_window_on_draw(egui_view_t *self)
 
         if (hotspot_w > 0 && hotspot_h > 0)
         {
-            egui_canvas_draw_round_rectangle_fill(close_view->region.location.x + inset, close_view->region.location.y + inset, hotspot_w, hotspot_h, hotspot_r,
-                                                  EGUI_COLOR_WHITE, 36);
+            egui_canvas_draw_round_rectangle_fill(canvas, close_view->region.location.x + inset, close_view->region.location.y + inset, hotspot_w, hotspot_h,
+                                                  hotspot_r, EGUI_COLOR_WHITE, 36);
         }
     }
 
     // Draw content background
-    egui_canvas_draw_rectangle_fill(region.location.x, region.location.y + local->header_height, region.size.width, region.size.height - local->header_height,
-                                    local->content_bg_color, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(canvas, region.location.x, region.location.y + local->header_height, region.size.width,
+                                    region.size.height - local->header_height, local->content_bg_color, EGUI_ALPHA_100);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_window_t) = {
@@ -218,11 +220,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_window_t) = {
 #endif
 };
 
-void egui_view_window_init(egui_view_t *self)
+void egui_view_window_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_window_t);
     // call super init.
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
 
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_window_t);
@@ -236,13 +238,13 @@ void egui_view_window_init(egui_view_t *self)
     local->on_close = NULL;
 
     // Init title label
-    egui_view_label_init(EGUI_VIEW_OF(&local->title_label));
+    egui_view_label_init(EGUI_VIEW_OF(&local->title_label), core);
     egui_view_label_set_font(EGUI_VIEW_OF(&local->title_label), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&local->title_label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&local->title_label), EGUI_ALIGN_CENTER);
 
     // Init close icon label
-    egui_view_label_init(EGUI_VIEW_OF(&local->close_label));
+    egui_view_label_init(EGUI_VIEW_OF(&local->close_label), core);
     egui_view_label_set_text(EGUI_VIEW_OF(&local->close_label), local->close_icon);
     egui_view_label_set_font(EGUI_VIEW_OF(&local->close_label), egui_view_window_get_close_icon_font(local));
     egui_view_label_set_font_color(EGUI_VIEW_OF(&local->close_label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -250,7 +252,7 @@ void egui_view_window_init(egui_view_t *self)
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&local->close_label), egui_view_window_on_close_click);
 
     // Init content group
-    egui_view_group_init(EGUI_VIEW_OF(&local->content));
+    egui_view_group_init(EGUI_VIEW_OF(&local->content), core);
 
     // Add title and content as children of the window
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->title_label));
@@ -290,8 +292,8 @@ void egui_view_window_apply_params(egui_view_t *self, const egui_view_window_par
     egui_view_invalidate(self);
 }
 
-void egui_view_window_init_with_params(egui_view_t *self, const egui_view_window_params_t *params)
+void egui_view_window_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_window_params_t *params)
 {
-    egui_view_window_init(self);
+    egui_view_window_init(self, core);
     egui_view_window_apply_params(self, params);
 }

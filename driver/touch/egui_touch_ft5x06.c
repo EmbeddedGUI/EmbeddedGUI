@@ -104,8 +104,9 @@ static void ft5x06_del(egui_hal_touch_driver_t *self)
 }
 
 /* Driver: read */
-static int ft5x06_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int ft5x06_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     uint8_t buf[FT5X06_MAX_POINTS * FT5X06_POINT_SIZE];
     uint8_t num_points;
 

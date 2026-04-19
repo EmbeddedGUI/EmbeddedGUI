@@ -53,7 +53,7 @@ struct egui_view_checkbox_params
     static const egui_view_checkbox_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .is_checked = (_checked), .text = (_text)}
 
 void egui_view_checkbox_apply_params(egui_view_t *self, const egui_view_checkbox_params_t *params);
-void egui_view_checkbox_init_with_params(egui_view_t *self, const egui_view_checkbox_params_t *params);
+void egui_view_checkbox_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_checkbox_params_t *params);
 
 void egui_view_checkbox_set_on_checked_listener(egui_view_t *self, egui_view_on_checked_listener_t listener);
 void egui_view_checkbox_set_checked(egui_view_t *self, uint8_t is_checked);
@@ -65,7 +65,7 @@ void egui_view_checkbox_set_mark_icon(egui_view_t *self, const char *icon);
 void egui_view_checkbox_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_checkbox_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_checkbox_on_draw(egui_view_t *self);
-void egui_view_checkbox_init(egui_view_t *self);
+void egui_view_checkbox_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

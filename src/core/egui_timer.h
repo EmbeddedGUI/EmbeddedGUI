@@ -2,6 +2,7 @@
 #define _EGUI_TIMER_H_
 
 #include "stdint.h"
+#include "egui_typedef.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -23,14 +24,14 @@ struct egui_timer
     void *user_data;
 };
 
-void egui_timer_force_refresh_timer(void);
-void egui_timer_polling_work(void);
-int egui_timer_start_timer(egui_timer_t *handle, uint32_t ms, uint32_t period);
-void egui_timer_stop_timer(egui_timer_t *handle);
-int egui_timer_check_timer_start(egui_timer_t *handle);
+void egui_timer_force_refresh_timer(egui_core_t *core);
+void egui_timer_polling_work(egui_core_t *core);
+int egui_timer_start_timer(egui_core_t *core, egui_timer_t *handle, uint32_t ms, uint32_t period);
+void egui_timer_stop_timer(egui_core_t *core, egui_timer_t *handle);
+int egui_timer_check_timer_start(egui_core_t *core, egui_timer_t *handle);
 uint32_t egui_timer_get_current_time(void);
 void egui_timer_init_timer(egui_timer_t *handle, void *user_data, egui_timer_callback_func callback);
-void egui_timer_init(void);
+void egui_timer_init(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

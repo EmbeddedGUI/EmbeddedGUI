@@ -93,12 +93,12 @@ void egui_memcpy(void *dest, const void *src, uint32_t n)
     egui_api_memcpy(dest, src, (int)n);
 }
 
-void *egui_malloc(int size)
+void *egui_malloc(egui_core_t *core, int size)
 {
-    return egui_api_malloc(size);
+    return egui_api_malloc(core, size);
 }
 
-void egui_free(void *ptr)
+void egui_free(egui_core_t *core, void *ptr)
 {
-    egui_api_free(ptr);
+    egui_api_free(core, ptr);
 }

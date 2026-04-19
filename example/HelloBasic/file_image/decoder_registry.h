@@ -1,6 +1,7 @@
 #ifndef _FILE_IMAGE_DECODER_REGISTRY_H_
 #define _FILE_IMAGE_DECODER_REGISTRY_H_
 
+#include "core/egui_core.h"
 #include "image/egui_image_file.h"
 
 typedef struct file_image_decoder_registry_config
@@ -13,6 +14,6 @@ typedef struct file_image_decoder_registry_config
     uint8_t clear_first;
 } file_image_decoder_registry_config_t;
 
-int file_image_decoder_registry_apply(const file_image_decoder_registry_config_t *config);
+int file_image_decoder_registry_apply(egui_core_t *core, const file_image_decoder_registry_config_t *config);
 
 #endif /* _FILE_IMAGE_DECODER_REGISTRY_H_ */

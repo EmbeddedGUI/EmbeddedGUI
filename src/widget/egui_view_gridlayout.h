@@ -30,12 +30,12 @@ struct egui_view_gridlayout_params
     static const egui_view_gridlayout_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .col_count = (_cols), .align_type = (_align)}
 
 void egui_view_gridlayout_apply_params(egui_view_t *self, const egui_view_gridlayout_params_t *params);
-void egui_view_gridlayout_init_with_params(egui_view_t *self, const egui_view_gridlayout_params_t *params);
+void egui_view_gridlayout_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_gridlayout_params_t *params);
 
 void egui_view_gridlayout_set_col_count(egui_view_t *self, uint8_t col_count);
 void egui_view_gridlayout_set_align_type(egui_view_t *self, uint8_t align_type);
 void egui_view_gridlayout_layout_childs(egui_view_t *self);
-void egui_view_gridlayout_init(egui_view_t *self);
+void egui_view_gridlayout_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

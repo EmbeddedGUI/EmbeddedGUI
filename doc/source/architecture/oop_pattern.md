@@ -396,7 +396,7 @@ void my_custom_view_init(egui_view_t *self)
     EGUI_INIT_LOCAL(my_custom_view_t);
 
     // 调用基类 init
-    egui_view_init(self);
+    egui_view_init(self, core);
 
     // 覆盖虚函数表
     self->api = &my_custom_view_api_table;
@@ -417,7 +417,7 @@ void setup_ui(void)
     my_custom_view_init(EGUI_VIEW_OF(&my_view));
     egui_view_set_position(EGUI_VIEW_OF(&my_view), 10, 10);
     egui_view_set_size(EGUI_VIEW_OF(&my_view), 100, 50);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&my_view));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&my_view));
 }
 ```
 

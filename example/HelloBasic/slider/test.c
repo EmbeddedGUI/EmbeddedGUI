@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 sliders: XS / S / M / L
 static egui_view_slider_t slider_xs;
@@ -33,26 +33,26 @@ static void slider_value_changed_cb(egui_view_t *self, uint8_t value)
     EGUI_LOG_INF("Slider value: %d\n", value);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
 
     // Init all views
-    egui_view_slider_init_with_params(EGUI_VIEW_OF(&slider_xs), &slider_xs_params);
+    egui_view_slider_init_with_params(EGUI_VIEW_OF(&slider_xs), core, &slider_xs_params);
     egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&slider_xs), slider_value_changed_cb);
 
-    egui_view_slider_init_with_params(EGUI_VIEW_OF(&slider_s), &slider_s_params);
+    egui_view_slider_init_with_params(EGUI_VIEW_OF(&slider_s), core, &slider_s_params);
     egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&slider_s), slider_value_changed_cb);
 
-    egui_view_slider_init_with_params(EGUI_VIEW_OF(&slider_m), &slider_m_params);
+    egui_view_slider_init_with_params(EGUI_VIEW_OF(&slider_m), core, &slider_m_params);
     egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&slider_m), slider_value_changed_cb);
 
-    egui_view_slider_init_with_params(EGUI_VIEW_OF(&slider_l), &slider_l_params);
+    egui_view_slider_init_with_params(EGUI_VIEW_OF(&slider_l), core, &slider_l_params);
     egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&slider_l), slider_value_changed_cb);
 
     // Set margins
@@ -74,7 +74,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

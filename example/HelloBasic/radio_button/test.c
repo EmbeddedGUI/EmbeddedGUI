@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_radio_button_t radio_home;
 static egui_view_radio_button_t radio_alerts;
@@ -37,38 +37,38 @@ static void radio_changed_cb(egui_view_t *self, int index)
     EGUI_LOG_INF("Radio selected index: %d\n", index);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     egui_view_radio_group_init(&radio_group);
     egui_view_radio_group_set_on_changed_listener(&radio_group, radio_changed_cb);
 
-    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_home), &radio_home_params);
+    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_home), core, &radio_home_params);
     egui_view_radio_button_set_mark_style(EGUI_VIEW_OF(&radio_home), EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON);
     egui_view_radio_button_set_mark_icon(EGUI_VIEW_OF(&radio_home), EGUI_ICON_MS_HOME);
     egui_view_radio_button_set_icon_font(EGUI_VIEW_OF(&radio_home), EGUI_FONT_ICON_MS_20);
     egui_view_radio_button_set_icon_text_gap(EGUI_VIEW_OF(&radio_home), 10);
     egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_home));
 
-    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_alerts), &radio_alerts_params);
+    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_alerts), core, &radio_alerts_params);
     egui_view_radio_button_set_mark_style(EGUI_VIEW_OF(&radio_alerts), EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON);
     egui_view_radio_button_set_mark_icon(EGUI_VIEW_OF(&radio_alerts), EGUI_ICON_MS_NOTIFICATIONS);
     egui_view_radio_button_set_icon_font(EGUI_VIEW_OF(&radio_alerts), EGUI_FONT_ICON_MS_24);
     egui_view_radio_button_set_icon_text_gap(EGUI_VIEW_OF(&radio_alerts), 10);
     egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_alerts));
 
-    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_privacy), &radio_privacy_params);
+    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_privacy), core, &radio_privacy_params);
     egui_view_radio_button_set_mark_style(EGUI_VIEW_OF(&radio_privacy), EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON);
     egui_view_radio_button_set_mark_icon(EGUI_VIEW_OF(&radio_privacy), EGUI_ICON_MS_VISIBILITY);
     egui_view_radio_button_set_icon_font(EGUI_VIEW_OF(&radio_privacy), EGUI_FONT_ICON_MS_24);
     egui_view_radio_button_set_icon_text_gap(EGUI_VIEW_OF(&radio_privacy), 10);
     egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_privacy));
 
-    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_settings), &radio_settings_params);
+    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_settings), core, &radio_settings_params);
     egui_view_radio_button_set_mark_style(EGUI_VIEW_OF(&radio_settings), EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON);
     egui_view_radio_button_set_mark_icon(EGUI_VIEW_OF(&radio_settings), EGUI_ICON_MS_SETTINGS);
     egui_view_radio_button_set_icon_font(EGUI_VIEW_OF(&radio_settings), EGUI_FONT_ICON_MS_24);
@@ -87,7 +87,7 @@ void test_init_ui(void)
 
     egui_view_gridlayout_layout_childs(EGUI_VIEW_OF(&grid));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

@@ -167,9 +167,9 @@ struct egui_view_virtual_viewport_setup
     }
 
 void egui_view_virtual_viewport_apply_params(egui_view_t *self, const egui_view_virtual_viewport_params_t *params);
-void egui_view_virtual_viewport_init_with_params(egui_view_t *self, const egui_view_virtual_viewport_params_t *params);
+void egui_view_virtual_viewport_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_viewport_params_t *params);
 void egui_view_virtual_viewport_apply_setup(egui_view_t *self, const egui_view_virtual_viewport_setup_t *setup);
-void egui_view_virtual_viewport_init_with_setup(egui_view_t *self, const egui_view_virtual_viewport_setup_t *setup);
+void egui_view_virtual_viewport_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_viewport_setup_t *setup);
 
 void egui_view_virtual_viewport_set_adapter(egui_view_t *self, const egui_view_virtual_viewport_adapter_t *adapter, void *adapter_context);
 const egui_view_virtual_viewport_adapter_t *egui_view_virtual_viewport_get_adapter(egui_view_t *self);
@@ -241,7 +241,7 @@ egui_view_t *egui_view_virtual_viewport_find_first_visible_item_view(egui_view_t
 uint8_t egui_view_virtual_viewport_is_slot_center_visible(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot);
 uint8_t egui_view_virtual_viewport_is_slot_fully_visible(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot, int32_t inset);
 
-void egui_view_virtual_viewport_init(egui_view_t *self);
+void egui_view_virtual_viewport_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

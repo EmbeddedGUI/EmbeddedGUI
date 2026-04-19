@@ -1,6 +1,7 @@
 #ifndef _FILE_IMAGE_STACK_H_
 #define _FILE_IMAGE_STACK_H_
 
+#include "core/egui_core.h"
 #include "decoder_registry.h"
 #include "mount_router_template/file_io_mount_router_template.h"
 
@@ -20,6 +21,6 @@ typedef struct file_image_stack_config
 } file_image_stack_config_t;
 
 /* state must outlive the file image usage because default io keeps pointers into it. */
-int file_image_stack_apply(file_image_stack_state_t *state, const file_image_stack_config_t *config);
+int file_image_stack_apply(egui_core_t *core, file_image_stack_state_t *state, const file_image_stack_config_t *config);
 
 #endif /* _FILE_IMAGE_STACK_H_ */

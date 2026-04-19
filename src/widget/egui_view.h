@@ -4,6 +4,7 @@
 #include "core/egui_region.h"
 #include "utils/egui_dlist.h"
 #include "core/egui_canvas.h"
+#include "core/egui_timer.h"
 #include "core/egui_motion_event.h"
 #include "background/egui_background.h"
 
@@ -17,6 +18,7 @@ extern "C" {
 #endif
 
 typedef struct egui_view_api egui_view_api_t;
+typedef struct egui_theme egui_theme_t;
 
 typedef int (*egui_view_on_touch_listener_t)(egui_view_t *self, egui_motion_event_t *event);
 typedef void (*egui_view_on_click_listener_t)(egui_view_t *self);
@@ -128,6 +130,8 @@ struct egui_view
     const char *name; // name of the view
 #endif
 
+    egui_core_t *core; // owning core instance, set during init
+
     const egui_view_api_t *api; // api of the view
 };
 
@@ -135,6 +139,28 @@ void egui_view_invalidate(egui_view_t *self);
 void egui_view_invalidate_full(egui_view_t *self);
 void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_region);
 uint8_t egui_view_has_pending_dirty(egui_view_t *self);
+egui_core_t *egui_view_get_core(egui_view_t *self);
+uint32_t egui_view_get_dirty_epoch(egui_view_t *self);
+void egui_view_update_region_dirty(egui_view_t *self, egui_region_t *region_dirty);
+egui_canvas_t *egui_view_get_canvas(egui_view_t *self);
+egui_view_t *egui_view_get_focused_view(egui_view_t *self);
+void egui_view_clear_focus(egui_view_t *self);
+void egui_view_set_theme(egui_view_t *self, const egui_theme_t *theme);
+egui_activity_t *egui_view_get_activity(egui_view_t *self);
+egui_dialog_t *egui_view_get_dialog(egui_view_t *self);
+egui_toast_t *egui_view_get_toast(egui_view_t *self);
+void egui_view_show_toast_info_with_duration(egui_view_t *self, const char *text, uint16_t duration);
+void egui_view_show_toast_info(egui_view_t *self, const char *text);
+egui_float_t egui_view_get_velocity_x(egui_view_t *self);
+egui_float_t egui_view_get_velocity_y(egui_view_t *self);
+int egui_view_start_timer(egui_view_t *self, egui_timer_t *handle, uint32_t ms, uint32_t period);
+void egui_view_stop_timer(egui_view_t *self, egui_timer_t *handle);
+int egui_view_check_timer_start(egui_view_t *self, egui_timer_t *handle);
+void egui_view_add_to_root(egui_view_t *self);
+void egui_view_remove_from_user_root(egui_view_t *self);
+void egui_view_layout_user_root(egui_view_t *self, uint8_t is_orientation_horizontal, uint8_t align_type);
+void egui_view_set_pfb_scan_direction(egui_view_t *self, uint8_t reverse_x, uint8_t reverse_y);
+void egui_view_reset_pfb_scan_direction(egui_view_t *self);
 
 typedef struct egui_sub_region
 {
@@ -206,7 +232,7 @@ void egui_view_draw(egui_view_t *self);
 void egui_view_request_layout(egui_view_t *self);
 void egui_view_compute_scroll(egui_view_t *self);
 void egui_view_calculate_layout(egui_view_t *self);
-void egui_view_init(egui_view_t *self);
+void egui_view_init(egui_view_t *self, egui_core_t *core);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 int egui_view_dispatch_key_event(egui_view_t *self, egui_key_event_t *event);
@@ -218,7 +244,6 @@ void egui_view_override_api_on_key(egui_view_t *self, egui_view_api_t *api, egui
 void egui_view_set_focusable(egui_view_t *self, int is_focusable);
 int egui_view_get_focusable(egui_view_t *self);
 void egui_view_request_focus(egui_view_t *self);
-void egui_view_clear_focus(egui_view_t *self);
 void egui_view_override_api_on_focus_changed(egui_view_t *self, egui_view_api_t *api, egui_view_on_focus_change_listener_t listener);
 #endif
 

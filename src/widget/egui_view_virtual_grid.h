@@ -120,9 +120,9 @@ struct egui_view_virtual_grid_data_source
     }
 
 void egui_view_virtual_grid_apply_params(egui_view_t *self, const egui_view_virtual_grid_params_t *params);
-void egui_view_virtual_grid_init_with_params(egui_view_t *self, const egui_view_virtual_grid_params_t *params);
+void egui_view_virtual_grid_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_grid_params_t *params);
 void egui_view_virtual_grid_apply_setup(egui_view_t *self, const egui_view_virtual_grid_setup_t *setup);
-void egui_view_virtual_grid_init_with_setup(egui_view_t *self, const egui_view_virtual_grid_setup_t *setup);
+void egui_view_virtual_grid_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_grid_setup_t *setup);
 
 void egui_view_virtual_grid_set_data_source(egui_view_t *self, const egui_view_virtual_grid_data_source_t *data_source, void *data_source_context);
 const egui_view_virtual_grid_data_source_t *egui_view_virtual_grid_get_data_source(egui_view_t *self);
@@ -198,7 +198,7 @@ void egui_view_virtual_grid_notify_item_moved(egui_view_t *self, uint32_t from_i
 void egui_view_virtual_grid_notify_item_resized(egui_view_t *self, uint32_t index);
 void egui_view_virtual_grid_notify_item_resized_by_stable_id(egui_view_t *self, uint32_t stable_id);
 
-void egui_view_virtual_grid_init(egui_view_t *self);
+void egui_view_virtual_grid_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

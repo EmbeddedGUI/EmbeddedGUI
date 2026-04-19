@@ -4,15 +4,21 @@ EmbeddedGUI 的配置系统基于 C 预处理器宏，通过 `app_egui_config.h`
 
 ## 配置机制
 
-配置的加载顺序：
+配置入口是 `src/core/egui_config.h`，当前加载顺序如下：
 
 ```
-app_egui_config.h  (应用自定义，优先级最高)
-    -> egui_config_default.h  (框架默认值)
-        -> egui_config.h  (最终合并，PC 端强制 32 位色深)
+egui_config.h
+    -> app_egui_config.h
+    -> egui_config_default.h
+        -> egui_config_multi_default.h
+    -> egui_config_canvas_default.h
+    -> egui_config_fast_path_default.h
+    -> egui_config_widget_default.h
+    -> egui_config_theme_default.h
+    -> egui_config_debug_default.h
 ```
 
-所有配置项都使用 `#ifndef` 保护，应用只需在 `app_egui_config.h` 中定义需要修改的项即可。
+这些默认头都使用 `#ifndef` 保护，因此应用只需在 `app_egui_config.h` 中定义需要覆盖的宏即可。
 
 ## 屏幕参数
 
@@ -28,6 +34,45 @@ app_egui_config.h  (应用自定义，优先级最高)
 ```
 
 注意：PC 模拟器会强制将色深设为 32 位，嵌入式平台通常使用 16 位 RGB565。
+
+## 多屏配置
+
+多屏相关默认值不再全部放在 `egui_config_default.h` 中，而是拆分为：
+
+- `src/core/egui_config_default.h`：主屏基础默认值
+- `src/core/egui_config_multi_default.h`：多屏默认值
+
+多屏默认头当前提供：
+
+```c
+#define EGUI_CONFIG_MAX_DISPLAY_COUNT 1
+
+#define EGUI_CONFIG_SCEEN_1_WIDTH  EGUI_CONFIG_SCEEN_WIDTH
+#define EGUI_CONFIG_SCEEN_1_HEIGHT EGUI_CONFIG_SCEEN_HEIGHT
+#define EGUI_CONFIG_PFB_1_WIDTH    EGUI_CONFIG_PFB_WIDTH
+#define EGUI_CONFIG_PFB_1_HEIGHT   EGUI_CONFIG_PFB_HEIGHT
+
+#define EGUI_CONFIG_SCEEN_2_WIDTH  EGUI_CONFIG_SCEEN_WIDTH
+#define EGUI_CONFIG_SCEEN_2_HEIGHT EGUI_CONFIG_SCEEN_HEIGHT
+#define EGUI_CONFIG_PFB_2_WIDTH    EGUI_CONFIG_PFB_WIDTH
+#define EGUI_CONFIG_PFB_2_HEIGHT   EGUI_CONFIG_PFB_HEIGHT
+```
+
+注意：
+
+- display 0 直接使用 `EGUI_CONFIG_SCEEN_WIDTH`、`EGUI_CONFIG_SCEEN_HEIGHT`、`EGUI_CONFIG_PFB_WIDTH`、`EGUI_CONFIG_PFB_HEIGHT`
+- 当前没有 `EGUI_CONFIG_SCEEN_0_*` 或 `EGUI_CONFIG_PFB_0_*`
+- 多屏应用可在 `app_egui_config.h` 中覆写 `EGUI_CONFIG_MAX_DISPLAY_COUNT`、`EGUI_CONFIG_SCEEN_1_*`、`EGUI_CONFIG_PFB_1_*`
+
+例如 `HelloMultiDisplayHetero` 当前这样定义副屏 1：
+
+```c
+#define EGUI_CONFIG_MAX_DISPLAY_COUNT 2
+#define EGUI_CONFIG_SCEEN_1_WIDTH  128
+#define EGUI_CONFIG_SCEEN_1_HEIGHT 64
+#define EGUI_CONFIG_PFB_1_WIDTH    16
+#define EGUI_CONFIG_PFB_1_HEIGHT   8
+```
 
 ## 颜色选项
 
@@ -294,5 +339,6 @@ PFB 内存：480 * 34 * 2 * 3 = 97920 字节（约 96KB）
 ## 相关文件
 
 - `src/core/egui_config.h` - 配置入口
-- `src/core/egui_config_default.h` - 所有默认配置项
+- `src/core/egui_config_default.h` - 主屏基础默认配置
+- `src/core/egui_config_multi_default.h` - 多屏默认配置
 - `example/*/app_egui_config.h` - 各示例的配置文件

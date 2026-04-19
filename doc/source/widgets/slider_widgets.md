@@ -16,7 +16,7 @@
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_slider_init(self)` | 初始化 Slider |
+| `egui_view_slider_init(self, core)` | 初始化 Slider |
 | `egui_view_slider_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_slider_set_value(self, value)` | 设置当前值(0-100) |
 | `egui_view_slider_get_value(self)` | 获取当前值 |
@@ -46,12 +46,12 @@ static void on_value_changed(egui_view_t *self, uint8_t value)
     EGUI_LOG_INF("Slider value: %d\n", value);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_slider_init_with_params(EGUI_VIEW_OF(&slider), &slider_params);
     egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&slider), on_value_changed);
     egui_view_set_margin_all(EGUI_VIEW_OF(&slider), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&slider));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&slider));
 }
 ```
 
@@ -69,7 +69,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_arc_slider_init(self)` | 初始化 ArcSlider |
+| `egui_view_arc_slider_init(self, core)` | 初始化 ArcSlider |
 | `egui_view_arc_slider_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_arc_slider_set_value(self, value)` | 设置当前值(0-100) |
 | `egui_view_arc_slider_get_value(self)` | 获取当前值 |
@@ -99,12 +99,12 @@ static void on_value_changed(egui_view_t *self, uint8_t value)
     EGUI_LOG_INF("Arc slider value: %d\n", value);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_arc_slider_init_with_params(EGUI_VIEW_OF(&arc), &arc_params);
     egui_view_arc_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&arc), on_value_changed);
     egui_view_set_margin_all(EGUI_VIEW_OF(&arc), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&arc));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&arc));
 }
 ```
 
@@ -122,7 +122,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_roller_init(self)` | 初始化 Roller |
+| `egui_view_roller_init(self, core)` | 初始化 Roller |
 | `egui_view_roller_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_roller_set_items(self, items, count)` | 设置选项列表 |
 | `egui_view_roller_set_current_index(self, index)` | 设置当前选中索引 |
@@ -154,12 +154,12 @@ static void on_selected(egui_view_t *self, uint8_t index)
     EGUI_LOG_INF("Roller selected: %s (index=%d)\n", weekdays[index], index);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller), &roller_params);
     egui_view_roller_set_on_selected_listener(EGUI_VIEW_OF(&roller), on_selected);
     egui_view_set_margin_all(EGUI_VIEW_OF(&roller), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&roller));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&roller));
 }
 ```
 
@@ -177,7 +177,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_number_picker_init(self)` | 初始化 NumberPicker |
+| `egui_view_number_picker_init(self, core)` | 初始化 NumberPicker |
 | `egui_view_number_picker_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_number_picker_set_value(self, value)` | 设置当前值 |
 | `egui_view_number_picker_get_value(self)` | 获取当前值 |
@@ -209,12 +209,12 @@ static void on_value_changed(egui_view_t *self, int16_t value)
     EGUI_LOG_INF("NumberPicker value: %d\n", value);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker), &picker_params);
     egui_view_number_picker_set_step(EGUI_VIEW_OF(&picker), 5);
     egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker), on_value_changed);
     egui_view_set_margin_all(EGUI_VIEW_OF(&picker), 6);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&picker));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&picker));
 }
 ```

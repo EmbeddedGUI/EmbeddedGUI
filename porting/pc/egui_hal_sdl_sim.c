@@ -36,7 +36,7 @@ static void sdl_lcd_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
         return;
     }
 
-    VT_Fill_Multiple_Colors(x, y, x + w - 1, y + h - 1, (egui_color_int_t *)data);
+    VT_Fill_Multiple_Colors_Core(self->bridge_core, x, y, x + w - 1, y + h - 1, (egui_color_int_t *)data);
 }
 
 static void sdl_lcd_set_power(egui_hal_lcd_driver_t *self, uint8_t on)
@@ -86,7 +86,7 @@ static void sdl_touch_del(egui_hal_touch_driver_t *self)
     memset(self, 0, sizeof(egui_hal_touch_driver_t));
 }
 
-static int sdl_touch_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int sdl_touch_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
     uint8_t pressed = 0;
     int16_t x = 0;
@@ -95,7 +95,7 @@ static int sdl_touch_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *
     EGUI_UNUSED(self);
 
     memset(data, 0, sizeof(*data));
-    sdl_port_touch_read(&pressed, &x, &y);
+    sdl_port_touch_read(core, &pressed, &x, &y);
 
     if (!pressed)
     {

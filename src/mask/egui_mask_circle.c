@@ -57,7 +57,17 @@ __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
     {
         local->radius = 0;
     }
-    local->info = egui_canvas_get_circle_item(local->radius);
+    /* Basic-range lookup only; spec circle info is canvas-specific and not
+       available inside the mask layer, so we index the global array directly. */
+    if (local->radius < EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE)
+    {
+        const egui_circle_info_t *info = &egui_res_circle_info_arr[local->radius];
+        local->info = (info->radius == (uint16_t)local->radius) ? info : NULL;
+    }
+    else
+    {
+        local->info = NULL;
+    }
     local->point_cached_y = -32768;
     local->point_cached_row_index = 0;
     local->point_cached_row_valid = 0;
@@ -319,8 +329,9 @@ int egui_mask_circle_prepare_row(egui_mask_circle_t *local, egui_dim_t y, egui_d
     return 1;
 }
 
-void egui_mask_circle_release_frame_cache(void)
+void egui_mask_circle_release_frame_cache(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
 }
 
 static void egui_mask_circle_blend_solid_row(egui_color_int_t *dst, egui_dim_t count, egui_color_t color, egui_alpha_t alpha)
@@ -665,8 +676,9 @@ int egui_mask_circle_prepare_row(egui_mask_circle_t *local, egui_dim_t y, egui_d
     return 0;
 }
 
-void egui_mask_circle_release_frame_cache(void)
+void egui_mask_circle_release_frame_cache(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
 }
 
 #endif

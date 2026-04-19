@@ -11,6 +11,7 @@ typedef struct egui_animation egui_animation_t;
 typedef struct egui_interpolator egui_interpolator_t;
 
 typedef struct egui_activity egui_activity_t;
+typedef struct egui_page_base egui_page_base_t;
 
 typedef struct egui_dialog egui_dialog_t;
 
@@ -46,6 +47,8 @@ typedef struct egui_focus_manager egui_focus_manager_t;
 
 typedef struct egui_display_driver egui_display_driver_t;
 typedef struct egui_display_driver_ops egui_display_driver_ops_t;
+typedef struct egui_touch_driver egui_touch_driver_t;
+typedef struct egui_touch_driver_ops egui_touch_driver_ops_t;
 typedef struct egui_platform egui_platform_t;
 typedef struct egui_platform_ops egui_platform_ops_t;
 typedef struct egui_pfb_manager egui_pfb_manager_t;

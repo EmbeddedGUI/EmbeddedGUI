@@ -27,14 +27,20 @@
  * ============================================================ */
 
 static egui_hal_lcd_driver_t s_lcd_driver;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static egui_hal_touch_driver_t s_touch_driver;
+#endif
 
 /* Panel IO handles */
 static egui_panel_io_spi_t s_lcd_io;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static egui_panel_io_i2c_t s_touch_io;
+#endif
 
 /* FT6336 I2C address (0x38 << 1 = 0x70) */
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 #define FT6336_I2C_ADDR 0x70
+#endif
 
 /* ============================================================
  * Platform driver
@@ -125,14 +131,15 @@ static egui_platform_t mcu_platform = {
  * Board-specific display callbacks (patched after registration)
  * ============================================================ */
 
-static void port_display_set_brightness(uint8_t level)
+static void port_display_set_brightness(egui_core_t *core, uint8_t level)
 {
+    EGUI_UNUSED(core);
     egui_hal_stm32g0_set_backlight_level(level);
 }
 
-static void port_display_set_rotation(egui_display_rotation_t rotation)
+static void port_display_set_rotation(egui_core_t *core, egui_display_rotation_t rotation)
 {
-    egui_hal_lcd_driver_t *lcd = egui_hal_lcd_get();
+    egui_hal_lcd_driver_t *lcd = egui_hal_lcd_get(core);
     if (!lcd)
     {
         return;
@@ -188,10 +195,12 @@ static egui_display_driver_t mcu_display_driver = {
  * Port initialization
  * ============================================================ */
 
-void egui_port_init(void)
+void egui_port_init(egui_core_t *core)
 {
+    EGUI_ASSERT(core != NULL);
+
     /* Register platform */
-    egui_platform_register(&mcu_platform);
+    egui_platform_register(core, &mcu_platform);
 
     /* Create LCD SPI IO handle */
     egui_panel_io_spi_init(&s_lcd_io, egui_hal_stm32g0_get_lcd_spi_ops(), egui_hal_stm32g0_lcd_set_dc, NULL); /* CS is hardware-controlled */
@@ -210,14 +219,24 @@ void egui_port_init(void)
     };
     egui_hal_lcd_register(&mcu_display_driver, &s_lcd_driver, &lcd_config);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     /* Create Touch I2C IO handle */
     egui_panel_io_i2c_init(&s_touch_io, egui_hal_stm32g0_get_touch_i2c_ops(), FT6336_I2C_ADDR);
 
     /* Initialize Touch driver with Panel IO handle */
     egui_touch_ft6336_init(&s_touch_driver, &s_touch_io.base, egui_hal_stm32g0_touch_set_rst, NULL, /* set_int - not needed for FT6336 */
                            egui_hal_stm32g0_touch_get_int);
+#endif
+}
 
-    /* Register touch with Core (handles reset, init, touch driver creation) */
+egui_display_driver_t *egui_port_get_display_driver(void)
+{
+    return &mcu_display_driver;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+void egui_port_register_touch_driver(egui_core_t *core)
+{
     egui_hal_touch_config_t touch_config = {
             .width = EGUI_CONFIG_SCEEN_WIDTH,
             .height = EGUI_CONFIG_SCEEN_HEIGHT,
@@ -225,5 +244,7 @@ void egui_port_init(void)
             .mirror_x = 0,
             .mirror_y = 0,
     };
-    egui_hal_touch_register(&s_touch_driver, &touch_config);
+
+    egui_hal_touch_register(core, &s_touch_driver, &touch_config);
 }
+#endif

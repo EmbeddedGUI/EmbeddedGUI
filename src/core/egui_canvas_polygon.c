@@ -1,4 +1,4 @@
-#include "egui_canvas.h"
+﻿#include "egui_canvas.h"
 
 /**
  * @brief Polygon and polyline drawing with scanline fill and SDF anti-aliasing.
@@ -6,7 +6,7 @@
  * Fill uses scanline + edge table with even-odd rule.
  * Anti-aliasing uses signed-distance-field (SDF) perpendicular to each edge,
  * matching the triangle fill approach for smooth edges at all angles.
- * Outline/polyline delegates to egui_canvas_draw_line() for each edge.
+ * Outline/polyline delegates to egui_canvas_draw_line(canvas, ) for each edge.
  * Maximum vertex count limited to EGUI_CANVAS_POLYGON_MAX_VERTICES.
  */
 
@@ -99,7 +99,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t polygon_edge_alpha(int32_t cross, int32_t si
     }
 
     // Linear ramp: alpha = (d_q8 + 192) * 255 / 384
-    // Approximated as (d_q8 + 192) * 170 >> 8 (170/256 ≈ 255/384)
+    // Approximated as (d_q8 + 192) * 170 >> 8 (170/256 锟?255/384)
     int32_t alpha_val = ((d_q8 + 192) * 170 + 128) >> 8;
     if (alpha_val < 0)
     {
@@ -129,8 +129,8 @@ __EGUI_STATIC_INLINE__ void polygon_blend_direct(egui_color_t *dst, egui_color_t
     }
 }
 
-__EGUI_STATIC_INLINE__ void polygon_fill_direct_span(egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
-                                                     egui_alpha_t alpha)
+__EGUI_STATIC_INLINE__ void polygon_fill_direct_span(egui_canvas_t *self, egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t x_start, egui_dim_t x_end,
+                                                     egui_color_t color, egui_alpha_t alpha)
 {
     egui_color_int_t *dst;
     uint32_t count;
@@ -160,9 +160,8 @@ __EGUI_STATIC_INLINE__ void polygon_fill_direct_span(egui_color_t *dst_row, egui
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_polygon_fill(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_color_t color, egui_alpha_t alpha)
 {
-    egui_canvas_t *self = &canvas_data;
 
     if (count < 3 || count > EGUI_CANVAS_POLYGON_MAX_VERTICES)
     {
@@ -398,7 +397,7 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
                             egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                             if (mix > 0)
                             {
-                                egui_canvas_draw_point(px, y, color, mix);
+                                egui_canvas_draw_point(self, px, y, color, mix);
                             }
                         }
                     }
@@ -411,11 +410,11 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
             {
                 if (use_direct_pfb)
                 {
-                    polygon_fill_direct_span(dst_row, pfb_ofs_x, interior_left, interior_right, color, eff_alpha);
+                    polygon_fill_direct_span(self, dst_row, pfb_ofs_x, interior_left, interior_right, color, eff_alpha);
                 }
                 else
                 {
-                    egui_canvas_draw_hline(interior_left, y, interior_right - interior_left + 1, color, alpha);
+                    egui_canvas_draw_hline(self, interior_left, y, interior_right - interior_left + 1, color, alpha);
                 }
             }
 
@@ -441,7 +440,7 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
                         egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                         if (mix > 0)
                         {
-                            egui_canvas_draw_point(px, y, color, mix);
+                            egui_canvas_draw_point(self, px, y, color, mix);
                         }
                     }
                 }
@@ -469,7 +468,7 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
                         egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                         if (mix > 0)
                         {
-                            egui_canvas_draw_point(px, y, color, mix);
+                            egui_canvas_draw_point(self, px, y, color, mix);
                         }
                     }
                 }
@@ -488,7 +487,7 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-void egui_canvas_draw_polygon(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_polygon(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
     if (count < 2 || count > EGUI_CANVAS_POLYGON_MAX_VERTICES)
     {
@@ -498,7 +497,7 @@ void egui_canvas_draw_polygon(const egui_dim_t *points, uint8_t count, egui_dim_
     for (uint8_t i = 0; i < count; i++)
     {
         uint8_t j = (i + 1) % count;
-        egui_canvas_draw_line_segment(points[i * 2], points[i * 2 + 1], points[j * 2], points[j * 2 + 1], stroke_width, color, alpha);
+        egui_canvas_draw_line_segment(self, points[i * 2], points[i * 2 + 1], points[j * 2], points[j * 2 + 1], stroke_width, color, alpha);
     }
 }
 
@@ -510,7 +509,7 @@ void egui_canvas_draw_polygon(const egui_dim_t *points, uint8_t count, egui_dim_
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-void egui_canvas_draw_polyline(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_polyline(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
     if (count < 2 || count > EGUI_CANVAS_POLYGON_MAX_VERTICES)
     {
@@ -519,7 +518,7 @@ void egui_canvas_draw_polyline(const egui_dim_t *points, uint8_t count, egui_dim
 
     for (uint8_t i = 0; i + 1 < count; i++)
     {
-        egui_canvas_draw_line_segment(points[i * 2], points[i * 2 + 1], points[(i + 1) * 2], points[(i + 1) * 2 + 1], stroke_width, color, alpha);
+        egui_canvas_draw_line_segment(self, points[i * 2], points[i * 2 + 1], points[(i + 1) * 2], points[(i + 1) * 2 + 1], stroke_width, color, alpha);
     }
 
     // Bridge tiny AA pinholes at internal joints with minimal fill
@@ -530,11 +529,11 @@ void egui_canvas_draw_polyline(const egui_dim_t *points, uint8_t count, egui_dim
         {
             egui_dim_t x = points[i * 2];
             egui_dim_t y = points[i * 2 + 1];
-            egui_canvas_draw_point(x, y, color, alpha);
-            egui_canvas_draw_point(x - 1, y, color, alpha);
-            egui_canvas_draw_point(x + 1, y, color, alpha);
-            egui_canvas_draw_point(x, y - 1, color, alpha);
-            egui_canvas_draw_point(x, y + 1, color, alpha);
+            egui_canvas_draw_point(self, x, y, color, alpha);
+            egui_canvas_draw_point(self, x - 1, y, color, alpha);
+            egui_canvas_draw_point(self, x + 1, y, color, alpha);
+            egui_canvas_draw_point(self, x, y - 1, color, alpha);
+            egui_canvas_draw_point(self, x, y + 1, color, alpha);
         }
     }
 }

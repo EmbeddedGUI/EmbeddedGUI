@@ -1,5 +1,16 @@
 # Page 开发模式
 
+## 当前实现更新
+
+`HelloEasyPage` 中的 Toast 也需要在初始化时直接传入 `core`：
+
+```c
+egui_toast_std_init((egui_toast_t *)&toast, core);
+egui_toast_set_as_default((egui_toast_t *)&toast);
+```
+
+后续 `egui_page_base_show_toast_info(...)` 会直接使用 Page 自身已经绑定好的 `core`。
+
 Page 是 EmbeddedGUI 提供的轻量级多页面管理方案。相比 Activity 的完整生命周期和栈管理，Page 模式更简单直接，特别适合 RAM 资源紧张的嵌入式场景。
 
 ## Page 生命周期
@@ -84,6 +95,8 @@ static egui_page_base_t *current_page = NULL;
 
 void uicode_switch_page(int page_index)
 {
+    egui_core_t *core = egui_toast_get_core((egui_toast_t *)&toast);
+
     // 1. 关闭当前 Page
     if (current_page)
     {
@@ -94,11 +107,11 @@ void uicode_switch_page(int page_index)
     switch (page_index)
     {
     case 0:
-        egui_page_0_init((egui_page_base_t *)&g_page_array.page_0);
+        egui_page_0_init((egui_page_base_t *)&g_page_array.page_0, core);
         current_page = (egui_page_base_t *)&g_page_array.page_0;
         break;
     case 1:
-        egui_page_1_init((egui_page_base_t *)&g_page_array.page_1);
+        egui_page_1_init((egui_page_base_t *)&g_page_array.page_1, core);
         current_page = (egui_page_base_t *)&g_page_array.page_1;
         break;
     // ...
@@ -117,7 +130,7 @@ int uicode_start_next_page(void)
     int page_index = index + 1;
     if (page_index >= UICODE_MAX_PAGE_NUM)
     {
-        egui_core_toast_show_info("No more next page");
+        egui_page_base_show_toast_info(current_page, "No more next page");
         return -1;
     }
     uicode_switch_page(page_index);
@@ -129,7 +142,7 @@ int uicode_start_prev_page(void)
     int page_index = index - 1;
     if (page_index < 0)
     {
-        egui_core_toast_show_info("No more previous page");
+        egui_page_base_show_toast_info(current_page, "No more previous page");
         return -1;
     }
     uicode_switch_page(page_index);
@@ -175,23 +188,18 @@ void egui_port_hanlde_key_event(int key, int event)
 
 ## HelloEasyPage 完整流程
 
-`example/HelloEasyPage/uicode.c` 展示了 Page 模式的完整用法：
+`example/HelloEasyPage/uicode_disp0.c` 展示了 Page 模式的完整用法：
 
 ```c
-void uicode_init_ui(void)
+void uicode_disp0_init(egui_core_t *core)
 {
+    // 初始化 Toast
+    egui_toast_std_init((egui_toast_t *)&toast, core);
+    egui_toast_set_as_default((egui_toast_t *)&toast);
+
     // 启动第一个 Page
     index = 0;
     uicode_switch_page(0);
-
-    // 初始化 Toast
-    egui_toast_std_init((egui_toast_t *)&toast);
-    egui_core_toast_set((egui_toast_t *)&toast);
-}
-
-void uicode_create_ui(void)
-{
-    uicode_init_ui();
 }
 ```
 

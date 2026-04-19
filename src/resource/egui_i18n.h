@@ -11,8 +11,8 @@
  *
  * Usage:
  *   1) Include the generated "egui_strings.h" in your app.
- *   2) At startup, optionally call egui_i18n_set_locale() to choose a locale.
- *   3) Use egui_i18n_get(string_id) to retrieve the localized string.
+ *   2) At startup, optionally call egui_i18n_set_locale(core, ...) to choose a locale.
+ *   3) Use egui_i18n_get(core, string_id) to retrieve the localized string.
  *
  * The generated code provides:
  *   - An enum of string IDs (EGUI_STR_xxx)
@@ -26,6 +26,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct egui_core egui_core_t;
 
 /**
  * @brief A locale string table: array of C strings indexed by string_id.
@@ -42,33 +44,37 @@ typedef struct egui_i18n_locale
  *
  * Typically called once at startup from the generated egui_strings init code.
  *
+ * @param core          Core instance that owns the i18n state.
  * @param locales       Array of locale table pointers.
  * @param locale_count  Number of locales in the array.
  */
-void egui_i18n_init(const egui_i18n_locale_t *locales, uint16_t locale_count);
+void egui_i18n_init(egui_core_t *core, const egui_i18n_locale_t *locales, uint16_t locale_count);
 
 /**
  * @brief Set the active locale by index.
  *
+ * @param core          Core instance that owns the i18n state.
  * @param locale_index  Index into the locales array (0 = default).
  */
-void egui_i18n_set_locale(uint16_t locale_index);
+void egui_i18n_set_locale(egui_core_t *core, uint16_t locale_index);
 
 /**
  * @brief Set the active locale by locale code string.
  *
  * Searches for a matching locale code. If not found, falls back to index 0.
  *
+ * @param core          Core instance that owns the i18n state.
  * @param locale_code   Locale identifier string (e.g., "zh", "ja").
  */
-void egui_i18n_set_locale_by_code(const char *locale_code);
+void egui_i18n_set_locale_by_code(egui_core_t *core, const char *locale_code);
 
 /**
  * @brief Get the current locale index.
  *
+ * @param core          Core instance that owns the i18n state.
  * @return Current locale index.
  */
-uint16_t egui_i18n_get_locale(void);
+uint16_t egui_i18n_get_locale(egui_core_t *core);
 
 /**
  * @brief Get a localized string by its ID.
@@ -76,25 +82,28 @@ uint16_t egui_i18n_get_locale(void);
  * If the string is not available in the current locale, falls back to the
  * default locale (index 0). If still not found, returns an empty string.
  *
+ * @param core          Core instance that owns the i18n state.
  * @param string_id     The string resource ID (from generated enum).
  * @return Pointer to the localized string (never NULL).
  */
-const char *egui_i18n_get(uint16_t string_id);
+const char *egui_i18n_get(egui_core_t *core, uint16_t string_id);
 
 /**
  * @brief Get the number of registered locales.
  *
+ * @param core          Core instance that owns the i18n state.
  * @return Number of locales.
  */
-uint16_t egui_i18n_get_locale_count(void);
+uint16_t egui_i18n_get_locale_count(egui_core_t *core);
 
 /**
  * @brief Get the locale code for a given locale index.
  *
+ * @param core          Core instance that owns the i18n state.
  * @param locale_index  Index into the locales array.
  * @return Locale code string, or "" if index is out of range.
  */
-const char *egui_i18n_get_locale_code(uint16_t locale_index);
+const char *egui_i18n_get_locale_code(egui_core_t *core, uint16_t locale_index);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -1,4 +1,5 @@
-#include "egui_view_pattern_lock.h"
+﻿#include "egui_view_pattern_lock.h"
+#include "core/egui_core.h"
 
 #define EGUI_VIEW_PATTERN_LOCK_NODE_NONE 0xFF
 
@@ -322,6 +323,7 @@ void egui_view_pattern_lock_set_error_color(egui_view_t *self, egui_color_t colo
 void egui_view_pattern_lock_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_view_pattern_lock_layout_t layout;
     if (!egui_view_pattern_lock_build_layout(self, &layout))
     {
@@ -346,9 +348,9 @@ void egui_view_pattern_lock_on_draw(egui_view_t *self)
         error_color = egui_rgb_mix(error_color, EGUI_THEME_DISABLED, EGUI_ALPHA_60);
     }
 
-    egui_canvas_draw_round_rectangle_fill(layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
+    egui_canvas_draw_round_rectangle_fill(canvas, layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
                                           EGUI_THEME_RADIUS_MD, bg_color, local->alpha);
-    egui_canvas_draw_round_rectangle(layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
+    egui_canvas_draw_round_rectangle(canvas, layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
                                      EGUI_THEME_RADIUS_MD, 1, border_color, local->alpha);
 
     if (local->node_count > 1)
@@ -360,7 +362,7 @@ void egui_view_pattern_lock_on_draw(egui_view_t *self)
             egui_dim_t x1, y1, x2, y2;
             egui_view_pattern_lock_get_node_center(&layout, local->nodes[i - 1], &x1, &y1);
             egui_view_pattern_lock_get_node_center(&layout, local->nodes[i], &x2, &y2);
-            egui_canvas_draw_line(x1, y1, x2, y2, path_width, local->show_error ? error_color : line_color, local->alpha);
+            egui_canvas_draw_line(canvas, x1, y1, x2, y2, path_width, local->show_error ? error_color : line_color, local->alpha);
         }
     }
 
@@ -370,7 +372,7 @@ void egui_view_pattern_lock_on_draw(egui_view_t *self)
         egui_color_t tail_color = local->show_error ? error_color : line_color;
         egui_dim_t x1, y1;
         egui_view_pattern_lock_get_node_center(&layout, local->nodes[local->node_count - 1], &x1, &y1);
-        egui_canvas_draw_line(x1, y1, local->cursor_x, local->cursor_y, tail_width, tail_color, local->alpha);
+        egui_canvas_draw_line(canvas, x1, y1, local->cursor_x, local->cursor_y, tail_width, tail_color, local->alpha);
     }
 
     uint8_t first_node = EGUI_VIEW_PATTERN_LOCK_NODE_NONE;
@@ -389,28 +391,28 @@ void egui_view_pattern_lock_on_draw(egui_view_t *self)
         if (local->selected[i])
         {
             egui_color_t fill = local->show_error ? error_color : active_color;
-            egui_canvas_draw_circle_fill(cx, cy, layout.node_radius, fill, local->alpha);
-            egui_canvas_draw_circle(cx, cy, layout.node_radius, 2, border_color, local->alpha);
+            egui_canvas_draw_circle_fill(canvas, cx, cy, layout.node_radius, fill, local->alpha);
+            egui_canvas_draw_circle(canvas, cx, cy, layout.node_radius, 2, border_color, local->alpha);
             if (i == first_node)
             {
                 egui_dim_t marker_radius = layout.node_radius > 5 ? (layout.node_radius / 2) : 2;
-                egui_canvas_draw_circle_fill(cx, cy, marker_radius, EGUI_COLOR_WHITE, local->alpha);
-                egui_canvas_draw_circle(cx, cy, marker_radius, 1, fill, local->alpha);
+                egui_canvas_draw_circle_fill(canvas, cx, cy, marker_radius, EGUI_COLOR_WHITE, local->alpha);
+                egui_canvas_draw_circle(canvas, cx, cy, marker_radius, 1, fill, local->alpha);
             }
             else if (i == last_node)
             {
                 egui_color_t marker_bg = egui_rgb_mix(bg_color, EGUI_COLOR_WHITE, 18);
                 egui_dim_t marker_radius = layout.node_radius > 6 ? (layout.node_radius / 2 - 1) : 2;
-                egui_canvas_draw_circle_fill(cx, cy, marker_radius, marker_bg, local->alpha);
-                egui_canvas_draw_circle(cx, cy, marker_radius, 1, EGUI_COLOR_WHITE, local->alpha);
+                egui_canvas_draw_circle_fill(canvas, cx, cy, marker_radius, marker_bg, local->alpha);
+                egui_canvas_draw_circle(canvas, cx, cy, marker_radius, 1, EGUI_COLOR_WHITE, local->alpha);
             }
         }
         else
         {
             egui_color_t inner = egui_rgb_mix(bg_color, EGUI_COLOR_WHITE, 40);
             egui_dim_t inner_radius = layout.node_radius > 2 ? (layout.node_radius - 2) : layout.node_radius;
-            egui_canvas_draw_circle_fill(cx, cy, inner_radius, inner, local->alpha);
-            egui_canvas_draw_circle(cx, cy, layout.node_radius, 2, node_color, local->alpha);
+            egui_canvas_draw_circle_fill(canvas, cx, cy, inner_radius, inner, local->alpha);
+            egui_canvas_draw_circle(canvas, cx, cy, layout.node_radius, 2, node_color, local->alpha);
         }
     }
 }
@@ -526,10 +528,10 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_pattern_lock_t) = {
 #endif
 };
 
-void egui_view_pattern_lock_init(egui_view_t *self)
+void egui_view_pattern_lock_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_pattern_lock_t);
-    egui_view_init(self);
+    egui_view_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_pattern_lock_t);
 
     local->min_nodes = 4;
@@ -561,9 +563,9 @@ void egui_view_pattern_lock_apply_params(egui_view_t *self, const egui_view_patt
     egui_view_invalidate(self);
 }
 
-void egui_view_pattern_lock_init_with_params(egui_view_t *self, const egui_view_pattern_lock_params_t *params)
+void egui_view_pattern_lock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_pattern_lock_params_t *params)
 {
-    egui_view_pattern_lock_init(self);
+    egui_view_pattern_lock_init(self, core);
     if (params == NULL)
     {
         return;

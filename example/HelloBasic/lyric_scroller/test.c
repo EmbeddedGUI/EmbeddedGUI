@@ -1,6 +1,6 @@
 #include "egui.h"
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_label_t title_label;
 static egui_view_label_t hint_label;
@@ -46,33 +46,33 @@ static void lyric_dynamic_swap_callback(egui_timer_t *timer)
     egui_view_lyric_scroller_set_text(EGUI_VIEW_OF(&lyric_dynamic), s_dynamic_lines[s_dynamic_line_index]);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&title_label), &title_label_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&title_label), core, &title_label_params);
     egui_view_set_background(EGUI_VIEW_OF(&title_label), EGUI_BG_OF(&bg_title));
 
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&hint_label), &hint_label_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&hint_label), core, &hint_label_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&hint_label), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
 
-    egui_view_lyric_scroller_init_with_params(EGUI_VIEW_OF(&lyric_static), &lyric_static_params);
+    egui_view_lyric_scroller_init_with_params(EGUI_VIEW_OF(&lyric_static), core, &lyric_static_params);
     egui_view_set_padding(EGUI_VIEW_OF(&lyric_static), 8, 8, 0, 0);
     egui_view_set_background(EGUI_VIEW_OF(&lyric_static), EGUI_BG_OF(&bg_scroller_1));
     egui_view_lyric_scroller_set_interval_ms(EGUI_VIEW_OF(&lyric_static), 50);
     egui_view_lyric_scroller_set_pause_duration_ms(EGUI_VIEW_OF(&lyric_static), 360);
 
-    egui_view_lyric_scroller_init_with_params(EGUI_VIEW_OF(&lyric_dynamic), &lyric_dynamic_params);
+    egui_view_lyric_scroller_init_with_params(EGUI_VIEW_OF(&lyric_dynamic), core, &lyric_dynamic_params);
     egui_view_set_padding(EGUI_VIEW_OF(&lyric_dynamic), 8, 8, 0, 0);
     egui_view_set_background(EGUI_VIEW_OF(&lyric_dynamic), EGUI_BG_OF(&bg_scroller_2));
     egui_view_lyric_scroller_set_interval_ms(EGUI_VIEW_OF(&lyric_dynamic), 50);
     egui_view_lyric_scroller_set_pause_duration_ms(EGUI_VIEW_OF(&lyric_dynamic), 280);
 
-    egui_timer_init_timer(&lyric_swap_timer, NULL, lyric_dynamic_swap_callback);
-    egui_timer_start_timer(&lyric_swap_timer, 1800, 1800);
-
     egui_core_add_user_root_view(EGUI_VIEW_OF(&title_label));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&hint_label));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&lyric_static));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&lyric_dynamic));
+
+    egui_timer_init_timer(&lyric_swap_timer, NULL, lyric_dynamic_swap_callback);
+    egui_view_start_timer(EGUI_VIEW_OF(&lyric_dynamic), &lyric_swap_timer, 1800, 1800);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

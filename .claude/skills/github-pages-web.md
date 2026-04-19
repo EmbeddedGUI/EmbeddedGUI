@@ -54,7 +54,7 @@ web/
 ### 步骤 1：创建示例应用
 ```
 example/MyNewApp/
-├── main.c / uicode.c / uicode.h
+├── main.c / uicode_disp0.c / uicode_disp0.h
 ├── build.mk
 ├── app_egui_config.h
 └── readme.md              # 会自动发布为文档面板内容

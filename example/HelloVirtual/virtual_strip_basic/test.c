@@ -7,7 +7,7 @@
 #include "core/egui_input_simulator.h"
 #endif
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define STRIP_BASIC_ITEM_COUNT             96U
 #define STRIP_BASIC_STABLE_BASE            3000U
@@ -110,6 +110,7 @@ static egui_view_card_t toolbar_card;
 static egui_view_button_t action_buttons[STRIP_BASIC_ACTION_COUNT];
 static egui_view_virtual_strip_t strip_view;
 static strip_basic_context_t strip_basic_ctx;
+static egui_core_t *s_core;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
@@ -470,7 +471,7 @@ static void strip_basic_style_action_button(egui_view_button_t *button, uint8_t 
         break;
     }
 
-    egui_view_button_init(EGUI_VIEW_OF(button));
+    egui_view_button_init(EGUI_VIEW_OF(button), s_core);
     egui_view_set_size(EGUI_VIEW_OF(button), STRIP_BASIC_ACTION_W, 22);
     egui_view_set_background(EGUI_VIEW_OF(button), background);
     egui_view_label_set_font(EGUI_VIEW_OF(button), STRIP_BASIC_FONT_BODY);
@@ -483,7 +484,7 @@ static void strip_basic_style_action_button(egui_view_button_t *button, uint8_t 
 static void strip_basic_init_label(egui_view_label_t *label, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const egui_font_t *font,
                                    uint8_t align, egui_color_t color)
 {
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), s_core);
     egui_view_set_position(EGUI_VIEW_OF(label), x, y);
     egui_view_set_size(EGUI_VIEW_OF(label), width, height);
     egui_view_label_set_font(EGUI_VIEW_OF(label), font);
@@ -521,7 +522,7 @@ static int32_t strip_basic_ds_measure_item_width(void *context, uint32_t index, 
 
 static egui_view_t *strip_basic_ds_create_item_view(void *context, uint16_t view_type)
 {
-    strip_basic_view_t *view = (strip_basic_view_t *)egui_malloc(sizeof(strip_basic_view_t));
+    strip_basic_view_t *view = (strip_basic_view_t *)egui_malloc(s_core, sizeof(strip_basic_view_t));
 
     EGUI_UNUSED(context);
     EGUI_UNUSED(view_type);
@@ -532,10 +533,10 @@ static egui_view_t *strip_basic_ds_create_item_view(void *context, uint16_t view
     }
 
     memset(view, 0, sizeof(*view));
-    egui_view_group_init(EGUI_VIEW_OF(&view->root));
+    egui_view_group_init(EGUI_VIEW_OF(&view->root), s_core);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->root), strip_basic_item_click_cb);
 
-    egui_view_card_init(EGUI_VIEW_OF(&view->card));
+    egui_view_card_init(EGUI_VIEW_OF(&view->card), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&view->card), STRIP_BASIC_CARD_INSET, 0);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->card), strip_basic_item_click_cb);
     egui_view_group_add_child(EGUI_VIEW_OF(&view->root), EGUI_VIEW_OF(&view->card));
@@ -549,7 +550,7 @@ static egui_view_t *strip_basic_ds_create_item_view(void *context, uint16_t view
     strip_basic_init_label(&view->meta, 10, 40, 96, 12, STRIP_BASIC_FONT_BODY, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x5A6F82));
     egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->meta));
 
-    egui_view_progress_bar_init(EGUI_VIEW_OF(&view->progress));
+    egui_view_progress_bar_init(EGUI_VIEW_OF(&view->progress), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&view->progress), 10, 74);
     egui_view_set_size(EGUI_VIEW_OF(&view->progress), 92, 6);
     view->progress.is_show_control = 0;
@@ -564,7 +565,7 @@ static void strip_basic_ds_destroy_item_view(void *context, egui_view_t *view, u
 {
     EGUI_UNUSED(context);
     EGUI_UNUSED(view_type);
-    egui_free(view);
+    egui_free(s_core, view);
 }
 
 static void strip_basic_ds_bind_item_view(void *context, egui_view_t *view, uint32_t index, uint32_t stable_id)
@@ -960,7 +961,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 }
 #endif
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     uint8_t i;
     egui_view_virtual_strip_setup_t setup = {
@@ -973,6 +974,7 @@ void test_init_ui(void)
 
     memset(&strip_basic_ctx, 0, sizeof(strip_basic_ctx));
     strip_basic_init_items();
+    s_core = core;
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
@@ -985,11 +987,11 @@ void test_init_ui(void)
     recording_reset_verify_retry = 0U;
 #endif
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
+    egui_view_init(EGUI_VIEW_OF(&background_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&strip_basic_screen_bg));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), &strip_basic_toolbar_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &strip_basic_toolbar_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&toolbar_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&toolbar_card), 1, EGUI_COLOR_HEX(0xD1DEE7));
 
@@ -1000,7 +1002,7 @@ void test_init_ui(void)
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[i]));
     }
 
-    egui_view_virtual_strip_init_with_setup(EGUI_VIEW_OF(&strip_view), &setup);
+    egui_view_virtual_strip_init_with_setup(EGUI_VIEW_OF(&strip_view), core, &setup);
     egui_view_set_background(EGUI_VIEW_OF(&strip_view), EGUI_BG_OF(&strip_basic_view_bg));
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&background_view));

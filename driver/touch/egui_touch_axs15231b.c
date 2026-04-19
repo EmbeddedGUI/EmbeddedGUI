@@ -95,8 +95,9 @@ static void axs15231b_del(egui_hal_touch_driver_t *self)
     memset(self, 0, sizeof(egui_hal_touch_driver_t));
 }
 
-static int axs15231b_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int axs15231b_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     uint8_t buf[AXS15231B_READ_LEN];
     uint8_t num_points;
 

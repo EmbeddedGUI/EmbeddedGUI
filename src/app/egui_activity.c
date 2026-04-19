@@ -3,7 +3,7 @@
 
 #include "egui_activity.h"
 #include "widget/egui_view.h"
-#include "core/egui_core.h"
+#include "core/egui_core_internal.h"
 #include "core/egui_api.h"
 #include "background/egui_background_color.h"
 
@@ -38,17 +38,159 @@ void egui_activity_set_name(egui_activity_t *self, const char *name)
 #endif
 }
 
+egui_core_t *egui_activity_get_core(egui_activity_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+
+    return self->core;
+}
+
+egui_toast_t *egui_activity_get_toast(egui_activity_t *self)
+{
+    egui_core_t *core = egui_activity_get_core(self);
+
+    if (core == NULL)
+    {
+        return NULL;
+    }
+
+    return egui_core_toast_get(core);
+}
+
+void egui_activity_show_toast_info_with_duration(egui_activity_t *self, const char *text, uint16_t duration)
+{
+    egui_toast_t *toast = egui_activity_get_toast(self);
+
+    if (toast == NULL)
+    {
+        return;
+    }
+
+    egui_toast_show_info_with_duration(toast, text, duration);
+}
+
+void egui_activity_show_toast_info(egui_activity_t *self, const char *text)
+{
+    egui_activity_show_toast_info_with_duration(self, text, EGUI_CONFIG_PARAM_TOAST_DEFAULT_SHOW_TIME);
+}
+
+int egui_activity_start_timer(egui_activity_t *self, egui_timer_t *handle, uint32_t ms, uint32_t period)
+{
+    egui_core_t *core = egui_activity_get_core(self);
+
+    if (core == NULL)
+    {
+        return -1;
+    }
+
+    return egui_timer_start_timer(core, handle, ms, period);
+}
+
+void egui_activity_stop_timer(egui_activity_t *self, egui_timer_t *handle)
+{
+    egui_core_t *core = egui_activity_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_timer_stop_timer(core, handle);
+}
+
+int egui_activity_check_timer_start(egui_activity_t *self, egui_timer_t *handle)
+{
+    egui_core_t *core = egui_activity_get_core(self);
+
+    if (core == NULL)
+    {
+        return 0;
+    }
+
+    return egui_timer_check_timer_start(core, handle);
+}
+
+void egui_activity_set_start_anim(egui_activity_t *self, egui_animation_t *open_anim, egui_animation_t *close_anim)
+{
+    egui_core_t *core = egui_activity_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_activity_set_start_anim(core, open_anim, close_anim);
+}
+
+void egui_activity_set_finish_anim(egui_activity_t *self, egui_animation_t *open_anim, egui_animation_t *close_anim)
+{
+    egui_core_t *core = egui_activity_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_activity_set_finish_anim(core, open_anim, close_anim);
+}
+
+void egui_activity_start(egui_activity_t *self, egui_activity_t *prev_activity)
+{
+    egui_core_t *core = egui_activity_get_core(self);
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_activity_start(core, self, prev_activity);
+}
+
+void egui_activity_finish(egui_activity_t *self)
+{
+    egui_core_t *core = egui_activity_get_core(self);
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_activity_finish(core, self);
+}
+
+int egui_activity_check_in_process(egui_activity_t *self)
+{
+    egui_core_t *core = egui_activity_get_core(self);
+
+    if (core == NULL)
+    {
+        return 0;
+    }
+
+    return egui_core_activity_check_in_process(core, self);
+}
+
 void egui_activity_on_create(egui_activity_t *self)
 {
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     EGUI_LOG_DBG("on_create, name: %s, last_state: %s\n", self->name, egui_activity_state_str(self->state));
 #endif
+    egui_core_t *core;
+
     self->state = EGUI_ACTIVITY_STATE_CREATE;
     self->api->on_start(self);
 
     // start anim
+    core = egui_activity_get_core(self);
+    if (core == NULL)
+    {
+        return;
+    }
+
     egui_core_add_user_root_view((egui_view_t *)&self->root_view);
-    egui_core_activity_append(self);
+    egui_core_activity_append(core, self);
 }
 
 void egui_activity_on_start(egui_activity_t *self)
@@ -102,10 +244,18 @@ void egui_activity_on_destroy(egui_activity_t *self)
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     EGUI_LOG_DBG("on_destroy, name: %s, last_state: %s\n", self->name, egui_activity_state_str(self->state));
 #endif
+    egui_core_t *core;
+
     self->state = EGUI_ACTIVITY_STATE_DESTROY;
 
-    egui_core_remove_user_root_view((egui_view_t *)&self->root_view);
-    egui_core_activity_remove(self);
+    core = egui_activity_get_core(self);
+    if (core == NULL)
+    {
+        return;
+    }
+
+    egui_core_remove_user_root_view(core, (egui_view_t *)&self->root_view);
+    egui_core_activity_remove(core, self);
 }
 
 static const egui_activity_api_t EGUI_ACTIVITY_API_TABLE_NAME(egui_activity_t) = {
@@ -117,13 +267,16 @@ static const egui_activity_api_t EGUI_ACTIVITY_API_TABLE_NAME(egui_activity_t) =
         .on_destroy = egui_activity_on_destroy,
 };
 
-void egui_activity_init(egui_activity_t *self)
+void egui_activity_init(egui_activity_t *self, egui_core_t *core)
 {
+    EGUI_ASSERT(core != NULL);
+
     self->state = EGUI_ACTIVITY_STATE_NONE;
     self->is_need_finish = false;
+    self->core = core;
 
     egui_dlist_init(&self->node);
-    egui_view_root_group_init((egui_view_t *)&self->root_view); // init view group
+    egui_view_root_group_init((egui_view_t *)&self->root_view, core); // init view group
     egui_view_set_position((egui_view_t *)&self->root_view, 0, 0);
     egui_view_set_size((egui_view_t *)&self->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 

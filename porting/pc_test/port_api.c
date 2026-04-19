@@ -260,8 +260,10 @@ void egui_port_get_alloc_stats(egui_port_alloc_stats_t *out_stats)
 // Port initialization
 // ============================================================================
 
-void egui_port_init(void)
+void egui_port_init(egui_core_t *core)
 {
+    EGUI_ASSERT(core != NULL);
+
     egui_hal_lcd_config_t lcd_config = {
             .width = EGUI_CONFIG_SCEEN_WIDTH,
             .height = EGUI_CONFIG_SCEEN_HEIGHT,
@@ -278,5 +280,10 @@ void egui_port_init(void)
     test_lcd_setup(&s_test_lcd_driver);
     egui_hal_lcd_register(&port_display_driver, &s_test_lcd_driver, &lcd_config);
 
-    egui_platform_register(&test_platform);
+    egui_platform_register(core, &test_platform);
+}
+
+egui_display_driver_t *egui_port_get_display_driver(void)
+{
+    return &port_display_driver;
 }

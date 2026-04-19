@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // views in root
 static egui_view_button_t button_1;
@@ -45,7 +45,7 @@ static void button_click_cb(egui_view_t *self)
     EGUI_LOG_INF("Clicked\n");
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
@@ -54,7 +54,7 @@ void test_init_ui(void)
 
     // Init all views
     // button_1
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), &button_1_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), core, &button_1_params);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_1), button_click_cb);
 
     // bg_button
@@ -65,7 +65,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&button_1));
 
     // Layout childrens of root view
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&button_1), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

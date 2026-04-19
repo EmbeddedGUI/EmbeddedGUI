@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // TileView
 static egui_view_tileview_t tileview_1;
@@ -38,16 +38,16 @@ EGUI_VIEW_LABEL_PARAMS_INIT(tile_label_10_params, 0, 0, TILE_WIDTH, TILE_HEIGHT,
 EGUI_VIEW_LABEL_PARAMS_INIT(tile_label_01_params, 0, 0, TILE_WIDTH, TILE_HEIGHT, "Tile 0,1", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
 EGUI_VIEW_LABEL_PARAMS_INIT(tile_label_11_params, 0, 0, TILE_WIDTH, TILE_HEIGHT, "Tile 1,1", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init tileview
-    egui_view_tileview_init_with_params(EGUI_VIEW_OF(&tileview_1), &tileview_1_params);
+    egui_view_tileview_init_with_params(EGUI_VIEW_OF(&tileview_1), core, &tileview_1_params);
 
     // Init tile labels
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&tile_label_00), &tile_label_00_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&tile_label_10), &tile_label_10_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&tile_label_01), &tile_label_01_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&tile_label_11), &tile_label_11_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&tile_label_00), core, &tile_label_00_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&tile_label_10), core, &tile_label_10_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&tile_label_01), core, &tile_label_01_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&tile_label_11), core, &tile_label_11_params);
 
     // Set backgrounds
     egui_view_set_background(EGUI_VIEW_OF(&tile_label_00), EGUI_BG_OF(&bg_00));

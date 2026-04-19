@@ -43,7 +43,7 @@ struct egui_view_table_params
     static const egui_view_table_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .row_count = (_row_count), .col_count = (_col_count)}
 
 void egui_view_table_apply_params(egui_view_t *self, const egui_view_table_params_t *params);
-void egui_view_table_init_with_params(egui_view_t *self, const egui_view_table_params_t *params);
+void egui_view_table_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_table_params_t *params);
 
 void egui_view_table_set_cell(egui_view_t *self, uint8_t row, uint8_t col, const char *text);
 void egui_view_table_set_size(egui_view_t *self, uint8_t rows, uint8_t cols);
@@ -53,7 +53,7 @@ void egui_view_table_set_show_grid(egui_view_t *self, uint8_t show);
 void egui_view_table_set_header_bg_color(egui_view_t *self, egui_color_t color);
 void egui_view_table_set_grid_color(egui_view_t *self, egui_color_t color);
 void egui_view_table_on_draw(egui_view_t *self);
-void egui_view_table_init(egui_view_t *self);
+void egui_view_table_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 #include "egui_panel_io.h"
+#include "core/egui_typedef.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,7 +84,7 @@ struct egui_hal_touch_driver
     void (*del)(egui_hal_touch_driver_t *self); /**< Pull RST low + clear struct */
 
     /* Read touch data */
-    int (*read)(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data);
+    int (*read)(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data);
 
     /* IO and GPIO */
     egui_panel_io_handle_t io;      /**< Unified IO handle for register read/write */
@@ -103,10 +104,11 @@ struct egui_hal_touch_driver
  * Extracts first touch point for single-point events.
  * Checks INT pin (if available) to skip reads when no interrupt pending.
  *
+ * @param core    Core instance that owns this touch route
  * @param touch   HAL touch driver instance (factory_init already called)
  * @param config  Touch configuration
  */
-void egui_hal_touch_register(egui_hal_touch_driver_t *touch, const egui_hal_touch_config_t *config);
+void egui_hal_touch_register(egui_core_t *core, egui_hal_touch_driver_t *touch, const egui_hal_touch_config_t *config);
 
 #ifdef __cplusplus
 }

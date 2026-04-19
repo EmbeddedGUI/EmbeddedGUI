@@ -1,4 +1,5 @@
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_linearlayout.h"
 
@@ -7,9 +8,17 @@ static egui_view_t test_child1;
 static egui_view_t test_child2;
 static egui_view_t test_child3;
 
+static egui_core_t *test_linearlayout_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static void test_ll_init_defaults(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), test_linearlayout_get_core());
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_orientation_horizontal(EGUI_VIEW_OF(&test_layout)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_auto_width(EGUI_VIEW_OF(&test_layout)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_auto_height(EGUI_VIEW_OF(&test_layout)));
@@ -17,7 +26,7 @@ static void test_ll_init_defaults(void)
 
 static void test_ll_set_orientation(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), test_linearlayout_get_core());
 
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&test_layout), 1);
     EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_linearlayout_is_orientation_horizontal(EGUI_VIEW_OF(&test_layout)));
@@ -28,16 +37,18 @@ static void test_ll_set_orientation(void)
 
 static void test_ll_vertical_layout(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_core_t *core = test_linearlayout_get_core();
+
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_layout), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_layout), 100, 300);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&test_layout), EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP);
 
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, core);
     egui_view_set_size(&test_child1, 50, 30);
-    egui_view_init(&test_child2);
+    egui_view_init(&test_child2, core);
     egui_view_set_size(&test_child2, 50, 40);
-    egui_view_init(&test_child3);
+    egui_view_init(&test_child3, core);
     egui_view_set_size(&test_child3, 50, 50);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_layout), &test_child1);
@@ -57,17 +68,19 @@ static void test_ll_vertical_layout(void)
 
 static void test_ll_horizontal_layout(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_core_t *core = test_linearlayout_get_core();
+
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_layout), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_layout), 300, 100);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&test_layout), 1);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&test_layout), EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP);
 
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, core);
     egui_view_set_size(&test_child1, 30, 50);
-    egui_view_init(&test_child2);
+    egui_view_init(&test_child2, core);
     egui_view_set_size(&test_child2, 40, 50);
-    egui_view_init(&test_child3);
+    egui_view_init(&test_child3, core);
     egui_view_set_size(&test_child3, 50, 50);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_layout), &test_child1);
@@ -87,12 +100,14 @@ static void test_ll_horizontal_layout(void)
 
 static void test_ll_center_align(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_core_t *core = test_linearlayout_get_core();
+
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_layout), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_layout), 100, 300);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&test_layout), EGUI_ALIGN_CENTER);
 
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, core);
     egui_view_set_size(&test_child1, 50, 30);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_layout), &test_child1);
@@ -109,15 +124,17 @@ static void test_ll_center_align(void)
 
 static void test_ll_vertical_with_margin(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_core_t *core = test_linearlayout_get_core();
+
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_layout), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_layout), 100, 300);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&test_layout), EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP);
 
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, core);
     egui_view_set_size(&test_child1, 50, 30);
     egui_view_set_margin(&test_child1, 5, 5, 10, 10);
-    egui_view_init(&test_child2);
+    egui_view_init(&test_child2, core);
     egui_view_set_size(&test_child2, 50, 40);
     egui_view_set_margin(&test_child2, 5, 5, 5, 5);
 
@@ -138,13 +155,15 @@ static void test_ll_vertical_with_margin(void)
 
 static void test_ll_center_with_padding(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_core_t *core = test_linearlayout_get_core();
+
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_layout), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_layout), 120, 300);
     egui_view_set_padding(EGUI_VIEW_OF(&test_layout), 10, 10, 0, 0);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&test_layout), EGUI_ALIGN_CENTER);
 
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, core);
     egui_view_set_size(&test_child1, 50, 30);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_layout), &test_child1);
@@ -160,13 +179,15 @@ static void test_ll_center_with_padding(void)
 
 static void test_ll_vertical_center_with_padding(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_core_t *core = test_linearlayout_get_core();
+
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_layout), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_layout), 100, 200);
     egui_view_set_padding(EGUI_VIEW_OF(&test_layout), 0, 0, 20, 20);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&test_layout), EGUI_ALIGN_CENTER);
 
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, core);
     egui_view_set_size(&test_child1, 50, 40);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_layout), &test_child1);
@@ -185,17 +206,19 @@ static void test_ll_vertical_center_with_padding(void)
 
 static void test_ll_gone_child_skipped(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_core_t *core = test_linearlayout_get_core();
+
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_layout), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_layout), 100, 300);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&test_layout), EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP);
 
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, core);
     egui_view_set_size(&test_child1, 50, 30);
-    egui_view_init(&test_child2);
+    egui_view_init(&test_child2, core);
     egui_view_set_size(&test_child2, 50, 40);
     egui_view_set_gone(&test_child2, 1);
-    egui_view_init(&test_child3);
+    egui_view_init(&test_child3, core);
     egui_view_set_size(&test_child3, 50, 50);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_layout), &test_child1);
@@ -213,7 +236,9 @@ static void test_ll_gone_child_skipped(void)
 
 static void test_ll_auto_size_with_padding(void)
 {
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout));
+    egui_core_t *core = test_linearlayout_get_core();
+
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_layout), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_layout), 200, 200);
     egui_view_set_padding(EGUI_VIEW_OF(&test_layout), 10, 10, 5, 5);
@@ -221,9 +246,9 @@ static void test_ll_auto_size_with_padding(void)
     egui_view_linearlayout_set_auto_height(EGUI_VIEW_OF(&test_layout), 1);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&test_layout), EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP);
 
-    egui_view_init(&test_child1);
+    egui_view_init(&test_child1, core);
     egui_view_set_size(&test_child1, 60, 30);
-    egui_view_init(&test_child2);
+    egui_view_init(&test_child2, core);
     egui_view_set_size(&test_child2, 80, 40);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_layout), &test_child1);

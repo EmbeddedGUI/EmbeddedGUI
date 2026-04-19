@@ -1,4 +1,4 @@
-#include "egui_canvas.h"
+﻿#include "egui_canvas.h"
 
 /**
  * @brief Ellipse drawing with midpoint algorithm and anti-aliasing.
@@ -66,7 +66,7 @@ static uint64_t ellipse_isqrt64(uint64_t n)
 }
 
 /**
- * @brief Alpha-max-beta-min approximation for sqrt(a² + b²).
+ * @brief Alpha-max-beta-min approximation for sqrt(a虏 + b虏).
  *
  * Max error ~6.8%, sufficient for anti-aliasing coverage computation.
  * Replaces the expensive 64-bit integer square root (ellipse_isqrt64)
@@ -214,7 +214,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t ellipse_get_edge_alpha(egui_dim_t px, egui_d
  *
  * Avoids the expensive 64-bit division per pixel by using a reciprocal
  * pre-computed once per scanline: inv_grad_q24 = (128 << 24) / grad_half_ref.
- * dist_q8 = (f_val * inv_grad_q24) >> 24  鈮? f_val * 128 / grad_half_ref.
+ * dist_q8 = (f_val * inv_grad_q24) >> 24  锟? f_val * 128 / grad_half_ref.
  */
 __EGUI_STATIC_INLINE__ egui_alpha_t ellipse_get_edge_alpha_from_f_val(int64_t f_val, int64_t inv_grad_q24);
 __EGUI_STATIC_INLINE__ egui_alpha_t ellipse_get_edge_alpha_fast(egui_dim_t px, egui_dim_t py, int32_t rx_sq, int32_t ry_sq, int64_t rxry_sq,
@@ -389,8 +389,8 @@ static void ellipse_prepare_scanline_info(egui_dim_t abs_dy, int32_t rx_sq, int3
     }
 }
 
-__EGUI_STATIC_INLINE__ void ellipse_draw_direct_span(egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
-                                                     egui_alpha_t alpha)
+__EGUI_STATIC_INLINE__ void ellipse_draw_direct_span(egui_canvas_t *self, egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t x_start, egui_dim_t x_end,
+                                                     egui_color_t color, egui_alpha_t alpha)
 {
     egui_color_int_t *dst;
     uint32_t count;
@@ -593,7 +593,7 @@ static void ellipse_draw_outline_scanline(const ellipse_outline_draw_ctx_t *ctx,
             egui_alpha_t mix = ctx->apply_draw_alpha ? egui_color_alpha_mix(ctx->alpha, band_cov) : band_cov;
             if (mix > 0)
             {
-                egui_canvas_draw_point(ctx->center_x + dx, abs_y, color, mix);
+                egui_canvas_draw_point(self, ctx->center_x + dx, abs_y, color, mix);
             }
         }
     }
@@ -623,7 +623,7 @@ static void ellipse_draw_outline_scanline(const ellipse_outline_draw_ctx_t *ctx,
             egui_alpha_t mix = ctx->apply_draw_alpha ? egui_color_alpha_mix(ctx->alpha, band_cov) : band_cov;
             if (mix > 0)
             {
-                egui_canvas_draw_point(ctx->center_x + dx, abs_y, color, mix);
+                egui_canvas_draw_point(self, ctx->center_x + dx, abs_y, color, mix);
             }
         }
     }
@@ -638,9 +638,9 @@ static void ellipse_draw_outline_scanline(const ellipse_outline_draw_ctx_t *ctx,
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_ellipse_fill(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
-    egui_canvas_t *self = &canvas_data;
 
     if (radius_x <= 0 || radius_y <= 0)
     {
@@ -648,7 +648,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
     }
     if (radius_x == radius_y)
     {
-        egui_canvas_draw_circle_fill(center_x, center_y, radius_x, color, alpha);
+        egui_canvas_draw_circle_fill(self, center_x, center_y, radius_x, color, alpha);
         return;
     }
 
@@ -722,7 +722,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
 
             if (row_info.dx_inner > 0 && inner_left <= inner_right)
             {
-                ellipse_draw_direct_span(dst_row, pfb_ofs_x, center_x + inner_left, center_x + inner_right, color, eff_alpha);
+                ellipse_draw_direct_span(self, dst_row, pfb_ofs_x, center_x + inner_left, center_x + inner_right, color, eff_alpha);
             }
 
             if (scan_left <= left_edge_end)
@@ -791,7 +791,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
             // Draw interior span with fillrect (no AA needed)
             if (row_info.dx_inner > 0 && inner_left <= inner_right)
             {
-                egui_canvas_draw_fillrect(center_x + inner_left, abs_y, inner_right - inner_left + 1, 1, color, alpha);
+                egui_canvas_draw_fillrect(self, center_x + inner_left, abs_y, inner_right - inner_left + 1, 1, color, alpha);
             }
 
             // Left edge pixels
@@ -808,7 +808,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
                         egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                         if (mix > 0)
                         {
-                            egui_canvas_draw_point(center_x + dx, abs_y, color, mix);
+                            egui_canvas_draw_point(self, center_x + dx, abs_y, color, mix);
                         }
                     }
 
@@ -830,7 +830,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
                         egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                         if (mix > 0)
                         {
-                            egui_canvas_draw_point(center_x + dx, abs_y, color, mix);
+                            egui_canvas_draw_point(self, center_x + dx, abs_y, color, mix);
                         }
                     }
 
@@ -851,10 +851,9 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_dim_t stroke_width, egui_color_t color,
-                              egui_alpha_t alpha)
+void egui_canvas_draw_ellipse(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_dim_t stroke_width,
+                              egui_color_t color, egui_alpha_t alpha)
 {
-    egui_canvas_t *self = &canvas_data;
 
     if (radius_x <= 0 || radius_y <= 0)
     {
@@ -862,14 +861,14 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
     }
     if (radius_x == radius_y)
     {
-        egui_canvas_draw_circle(center_x, center_y, radius_x, stroke_width, color, alpha);
+        egui_canvas_draw_circle(self, center_x, center_y, radius_x, stroke_width, color, alpha);
         return;
     }
 
     // If stroke_width >= min radius, draw filled ellipse
     if (stroke_width >= radius_x || stroke_width >= radius_y)
     {
-        egui_canvas_draw_ellipse_fill(center_x, center_y, radius_x, radius_y, color, alpha);
+        egui_canvas_draw_ellipse_fill(self, center_x, center_y, radius_x, radius_y, color, alpha);
         return;
     }
 

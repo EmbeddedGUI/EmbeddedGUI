@@ -90,10 +90,15 @@ static void main_loop_iteration(void)
 int main(int argc, const char *argv[])
 {
     VT_init();
+    egui_init(&core, egui_pfb);
     egui_port_init();
-    egui_init(&init_config);
-    uicode_create_ui();
-    egui_screen_on();
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    egui_port_register_touch_driver(&core);
+#endif
+    egui_platform_register(&core, egui_port_get_platform());
+    egui_display_driver_register(&core, egui_port_get_display_driver());
+    uicode_disp0_init(&core);
+    egui_screen_on(&core);
 
     // 0 = requestAnimationFrame (~60fps), 1 = simulate infinite loop
     emscripten_set_main_loop(main_loop_iteration, 0, 1);

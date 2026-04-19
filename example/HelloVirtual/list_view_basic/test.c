@@ -7,7 +7,7 @@
 #include "core/egui_input_simulator.h"
 #endif
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define LIST_VIEW_BASIC_ITEM_COUNT 24U
 #define LIST_VIEW_BASIC_MODE_COUNT 3U
@@ -58,6 +58,7 @@ static const char *list_view_basic_mode_items[LIST_VIEW_BASIC_MODE_COUNT] = {"Au
 static egui_view_t background_view;
 static egui_view_list_view_t list_view;
 static list_view_basic_context_t list_view_basic_ctx;
+static egui_core_t *s_core;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
@@ -103,7 +104,7 @@ static void list_view_basic_init_items(void)
 static void list_view_basic_init_label(egui_view_label_t *label, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const egui_font_t *font,
                                        uint8_t align, egui_color_t color)
 {
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), s_core);
     egui_view_set_position(EGUI_VIEW_OF(label), x, y);
     egui_view_set_size(EGUI_VIEW_OF(label), width, height);
     egui_view_label_set_font(EGUI_VIEW_OF(label), font);
@@ -161,23 +162,23 @@ static egui_view_list_view_holder_t *list_view_basic_create_holder(void *data_mo
     EGUI_UNUSED(data_model_context);
     EGUI_UNUSED(view_type);
 
-    holder = (list_view_basic_holder_t *)egui_malloc(sizeof(list_view_basic_holder_t));
+    holder = (list_view_basic_holder_t *)egui_malloc(s_core, sizeof(list_view_basic_holder_t));
     if (holder == NULL)
     {
         return NULL;
     }
 
     memset(holder, 0, sizeof(*holder));
-    egui_view_group_init(EGUI_VIEW_OF(&holder->root));
+    egui_view_group_init(EGUI_VIEW_OF(&holder->root), s_core);
 
-    egui_view_card_init(EGUI_VIEW_OF(&holder->card));
+    egui_view_card_init(EGUI_VIEW_OF(&holder->card), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&holder->card), 4, 4);
     egui_view_group_add_child(EGUI_VIEW_OF(&holder->root), EGUI_VIEW_OF(&holder->card));
 
     list_view_basic_init_label(&holder->title, 12, 10, 140, 14, LIST_VIEW_BASIC_FONT_TITLE, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x23384A));
     egui_view_card_add_child(EGUI_VIEW_OF(&holder->card), EGUI_VIEW_OF(&holder->title));
 
-    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&holder->mode_combo), &list_view_basic_combo_params);
+    egui_view_combobox_init_with_params(EGUI_VIEW_OF(&holder->mode_combo), s_core, &list_view_basic_combo_params);
     egui_view_combobox_set_font(EGUI_VIEW_OF(&holder->mode_combo), LIST_VIEW_BASIC_FONT_BODY);
     egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&holder->mode_combo), EGUI_FONT_ICON_MS_20);
     egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&holder->mode_combo), 2);
@@ -185,7 +186,7 @@ static egui_view_list_view_holder_t *list_view_basic_create_holder(void *data_mo
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&holder->mode_combo), list_view_basic_combo_selected_cb);
     egui_view_card_add_child(EGUI_VIEW_OF(&holder->card), EGUI_VIEW_OF(&holder->mode_combo));
 
-    egui_view_switch_init_with_params(EGUI_VIEW_OF(&holder->enabled_switch), &list_view_basic_switch_params);
+    egui_view_switch_init_with_params(EGUI_VIEW_OF(&holder->enabled_switch), s_core, &list_view_basic_switch_params);
     egui_view_switch_set_state_icons(EGUI_VIEW_OF(&holder->enabled_switch), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CLOSE);
     egui_view_switch_set_icon_font(EGUI_VIEW_OF(&holder->enabled_switch), EGUI_FONT_ICON_MS_20);
     egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(&holder->enabled_switch), list_view_basic_switch_checked_cb);
@@ -202,7 +203,7 @@ static void list_view_basic_destroy_holder(void *data_model_context, egui_view_l
 {
     EGUI_UNUSED(data_model_context);
     EGUI_UNUSED(view_type);
-    egui_free(holder);
+    egui_free(s_core, holder);
 }
 
 static void list_view_basic_bind_holder(void *data_model_context, egui_view_list_view_holder_t *holder, uint32_t index, uint32_t stable_id)
@@ -464,8 +465,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 }
 #endif
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
+    s_core = core;
+
     const egui_view_list_view_setup_t setup = {
             .params = &list_view_basic_params,
             .data_model = &list_view_basic_data_model,
@@ -481,11 +484,11 @@ void test_init_ui(void)
     runtime_fail_reported = 0U;
 #endif
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
+    egui_view_init(EGUI_VIEW_OF(&background_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&list_view_basic_screen_bg));
 
-    egui_view_list_view_init_with_setup(EGUI_VIEW_OF(&list_view), &setup);
+    egui_view_list_view_init_with_setup(EGUI_VIEW_OF(&list_view), core, &setup);
     egui_view_set_background(EGUI_VIEW_OF(&list_view), EGUI_BG_OF(&list_view_basic_list_bg));
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&background_view));

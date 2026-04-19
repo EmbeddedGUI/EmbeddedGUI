@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 checkboxes: XS / S / M / L
 static egui_view_checkbox_t checkbox_xs;
@@ -44,37 +44,37 @@ static void checkbox_checked_cb(egui_view_t *self, int is_checked)
     EGUI_LOG_INF("Checkbox checked: %d\n", is_checked);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init all views
-    egui_view_checkbox_init_with_params(EGUI_VIEW_OF(&checkbox_xs), &checkbox_xs_params);
+    egui_view_checkbox_init_with_params(EGUI_VIEW_OF(&checkbox_xs), core, &checkbox_xs_params);
     egui_view_checkbox_set_on_checked_listener(EGUI_VIEW_OF(&checkbox_xs), checkbox_checked_cb);
     egui_view_checkbox_set_mark_style(EGUI_VIEW_OF(&checkbox_xs), EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON);
     egui_view_checkbox_set_mark_icon(EGUI_VIEW_OF(&checkbox_xs), EGUI_ICON_MS_DONE);
     egui_view_checkbox_set_icon_font(EGUI_VIEW_OF(&checkbox_xs), EGUI_FONT_ICON_MS_24);
     egui_view_checkbox_set_icon_text_gap(EGUI_VIEW_OF(&checkbox_xs), 10);
 
-    egui_view_checkbox_init_with_params(EGUI_VIEW_OF(&checkbox_s), &checkbox_s_params);
+    egui_view_checkbox_init_with_params(EGUI_VIEW_OF(&checkbox_s), core, &checkbox_s_params);
     egui_view_checkbox_set_on_checked_listener(EGUI_VIEW_OF(&checkbox_s), checkbox_checked_cb);
     egui_view_checkbox_set_mark_style(EGUI_VIEW_OF(&checkbox_s), EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON);
     egui_view_checkbox_set_mark_icon(EGUI_VIEW_OF(&checkbox_s), EGUI_ICON_MS_SYNC);
     egui_view_checkbox_set_icon_font(EGUI_VIEW_OF(&checkbox_s), EGUI_FONT_ICON_MS_24);
     egui_view_checkbox_set_icon_text_gap(EGUI_VIEW_OF(&checkbox_s), 10);
 
-    egui_view_checkbox_init_with_params(EGUI_VIEW_OF(&checkbox_m), &checkbox_m_params);
+    egui_view_checkbox_init_with_params(EGUI_VIEW_OF(&checkbox_m), core, &checkbox_m_params);
     egui_view_checkbox_set_on_checked_listener(EGUI_VIEW_OF(&checkbox_m), checkbox_checked_cb);
     egui_view_checkbox_set_mark_style(EGUI_VIEW_OF(&checkbox_m), EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON);
     egui_view_checkbox_set_mark_icon(EGUI_VIEW_OF(&checkbox_m), EGUI_ICON_MS_HEART);
     egui_view_checkbox_set_icon_font(EGUI_VIEW_OF(&checkbox_m), EGUI_FONT_ICON_MS_24);
     egui_view_checkbox_set_icon_text_gap(EGUI_VIEW_OF(&checkbox_m), 10);
 
-    egui_view_checkbox_init_with_params(EGUI_VIEW_OF(&checkbox_l), &checkbox_l_params);
+    egui_view_checkbox_init_with_params(EGUI_VIEW_OF(&checkbox_l), core, &checkbox_l_params);
     egui_view_checkbox_set_on_checked_listener(EGUI_VIEW_OF(&checkbox_l), checkbox_checked_cb);
     egui_view_checkbox_set_mark_style(EGUI_VIEW_OF(&checkbox_l), EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON);
     egui_view_checkbox_set_mark_icon(EGUI_VIEW_OF(&checkbox_l), EGUI_ICON_MS_VISIBILITY_OFF);
@@ -100,7 +100,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

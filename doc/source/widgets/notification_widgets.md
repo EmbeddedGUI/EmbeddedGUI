@@ -16,7 +16,7 @@
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_notification_badge_init(self)` | 初始化徽章 |
+| `egui_view_notification_badge_init(self, core)` | 初始化徽章 |
 | `egui_view_notification_badge_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_notification_badge_set_count(self, count)` | 设置计数 |
 | `egui_view_notification_badge_get_count(self)` | 获取计数 |
@@ -47,13 +47,13 @@ static egui_view_notification_badge_t badge;
 
 EGUI_VIEW_NOTIFICATION_BADGE_PARAMS_INIT(badge_params, 50, 5, 20, 20, 3);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_notification_badge_init_with_params(
         EGUI_VIEW_OF(&badge), &badge_params);
     egui_view_notification_badge_set_max_display(
         EGUI_VIEW_OF(&badge), 99);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&badge));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&badge));
 }
 
 void add_notification(void)
@@ -90,7 +90,7 @@ void clear_notifications(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_window_init(self)` | 初始化窗口 |
+| `egui_view_window_init(self, core)` | 初始化窗口 |
 | `egui_view_window_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_window_set_title(self, title)` | 设置标题文字 |
 | `egui_view_window_set_header_height(self, height)` | 设置标题栏高度 |
@@ -126,19 +126,19 @@ static void on_close(egui_view_t *self)
     egui_view_set_visible(self, 0);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_window_init_with_params(EGUI_VIEW_OF(&win), &win_params);
     egui_view_window_set_on_close(EGUI_VIEW_OF(&win), on_close);
 
-    egui_view_label_init(EGUI_VIEW_OF(&content_label));
+    egui_view_label_init(EGUI_VIEW_OF(&content_label), core);
     egui_view_set_position(EGUI_VIEW_OF(&content_label), 10, 10);
     egui_view_set_size(EGUI_VIEW_OF(&content_label), 180, 20);
     egui_view_label_set_text(EGUI_VIEW_OF(&content_label), "Window Content");
     egui_view_window_add_content(EGUI_VIEW_OF(&win),
         EGUI_VIEW_OF(&content_label));
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&win));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&win));
 }
 ```
 

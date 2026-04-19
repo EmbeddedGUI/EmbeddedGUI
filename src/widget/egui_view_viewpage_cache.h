@@ -55,7 +55,7 @@ struct egui_view_viewpage_cache_params
     static const egui_view_viewpage_cache_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 void egui_view_viewpage_cache_apply_params(egui_view_t *self, const egui_view_viewpage_cache_params_t *params);
-void egui_view_viewpage_cache_init_with_params(egui_view_t *self, const egui_view_viewpage_cache_params_t *params);
+void egui_view_viewpage_cache_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_viewpage_cache_params_t *params);
 
 void egui_view_viewpage_cache_set_child_total_cnt(egui_view_t *self, int cnt);
 
@@ -77,7 +77,7 @@ void egui_view_viewpage_cache_compute_scroll(egui_view_t *self);
 void egui_view_viewpage_cache_check_begin_dragged(egui_view_t *self, egui_dim_t delta);
 int egui_view_viewpage_cache_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event);
 int egui_view_viewpage_cache_on_touch_event(egui_view_t *self, egui_motion_event_t *event);
-void egui_view_viewpage_cache_init(egui_view_t *self);
+void egui_view_viewpage_cache_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

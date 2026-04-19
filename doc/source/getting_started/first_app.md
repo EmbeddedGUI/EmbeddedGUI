@@ -15,13 +15,13 @@ make run
 
 ## 完整源代码
 
-以下是 `example/HelloSimple/uicode.c` 的完整代码:
+以下是 `example/HelloSimple/uicode_disp0.c` 的完整代码:
 
 ```c
 #include "egui.h"
 #include <stdlib.h>
 #include <math.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // views in root
 static egui_view_label_t label_1;
@@ -58,12 +58,12 @@ static void button_click_cb(egui_view_t *self)
     cnt++;
 }
 
-void uicode_init_ui(void)
+void uicode_disp0_init(egui_core_t *core)
 {
     // Init all views
-    egui_view_linearlayout_init_with_params(EGUI_VIEW_OF(&layout_1), &layout_1_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), &label_1_params);
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), &button_1_params);
+    egui_view_linearlayout_init_with_params(EGUI_VIEW_OF(&layout_1), core, &layout_1_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), core, &label_1_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), core, &button_1_params);
 
     egui_view_label_set_text(EGUI_VIEW_OF(&button_1), button_str);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_1), button_click_cb);
@@ -78,11 +78,6 @@ void uicode_init_ui(void)
     // Add To Root
     egui_core_add_user_root_view(EGUI_VIEW_OF(&layout_1));
 }
-
-void uicode_create_ui(void)
-{
-    uicode_init_ui();
-}
 ```
 
 ## 逐段解析
@@ -91,7 +86,7 @@ void uicode_create_ui(void)
 
 ```c
 #include "egui.h"
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_label_t label_1;
 static egui_view_button_t button_1;
@@ -154,12 +149,12 @@ static void button_click_cb(egui_view_t *self)
 ### 4. 视图树构建
 
 ```c
-void uicode_init_ui(void)
+void uicode_disp0_init(egui_core_t *core)
 {
     // 初始化控件
-    egui_view_linearlayout_init_with_params(EGUI_VIEW_OF(&layout_1), &layout_1_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), &label_1_params);
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), &button_1_params);
+    egui_view_linearlayout_init_with_params(EGUI_VIEW_OF(&layout_1), core, &layout_1_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), core, &label_1_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), core, &button_1_params);
 
     // 设置按钮文本和点击回调
     egui_view_label_set_text(EGUI_VIEW_OF(&button_1), button_str);
@@ -183,20 +178,13 @@ void uicode_init_ui(void)
 2. **配置**: 设置文本、回调等运行时属性
 3. **组装**: 用 `egui_view_group_add_child()` 将子控件添加到容器
 4. **布局**: 调用 `egui_view_linearlayout_layout_childs()` 让容器自动计算子控件的排列位置
-5. **注册**: 用 `egui_core_add_user_root_view()` 将根视图注册到 EGUI 核心
+5. **注册**: 用 `egui_core_add_user_root_view(...)` 将根视图注册到 EGUI 核心
 
 `EGUI_VIEW_OF()` 宏将具体控件指针向上转换为基类 `egui_view_t *` 指针，类似于面向对象语言中的向上转型。
 
 ### 5. 入口函数
 
-```c
-void uicode_create_ui(void)
-{
-    uicode_init_ui();
-}
-```
-
-`uicode_create_ui()` 是 EGUI 框架约定的 UI 入口函数，由框架在初始化完成后自动调用。所有的 UI 构建工作都在这个函数 (或其调用的子函数) 中完成。
+`uicode_disp0_init(egui_core_t *core)` 是当前 display 0 的标准 UI 入口函数。porting 层在完成 core 初始化和驱动注册后，会通过 `egui_display_setup_t.uicode_init` 或等价流程调用它。本例将全部 UI 构建逻辑直接放在该函数中；如果后续界面变复杂，也可以再拆分为文件内私有辅助函数。
 
 ## 关键概念总结
 

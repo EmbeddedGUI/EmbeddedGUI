@@ -28,6 +28,7 @@ APP_SUB_ROOTS = {
 }
 SUB_APP_FAMILY_APPS = tuple(APP_SUB_ROOTS.keys())
 FULL_CHECK_SKIP_APPS = {"HelloUnitTest"}
+MULTI_DISPLAY_APPS = ("HelloMultiDisplay", "HelloMultiDisplayHetero")
 COMPILE_OUTPUT_ROOT = Path("output") / "cc"
 
 def get_example_list():
@@ -197,6 +198,8 @@ def build_standard_app_list(app_sets):
 def build_compile_cases(scope, app_sets, ports, sub_app_sets):
     if scope == "standard":
         selected_apps = build_standard_app_list(app_sets)
+    elif scope == "multi-display":
+        selected_apps = [app for app in MULTI_DISPLAY_APPS if app in app_sets and app not in FULL_CHECK_SKIP_APPS]
     elif scope == "basic":
         selected_apps = ["HelloBasic"]
     elif scope == "virtual":
@@ -405,6 +408,11 @@ def parse_args():
             "Examples:\n"
             "  python scripts/code_compile_check.py --full-check\n"
             "  python scripts/code_compile_check.py --full-check --cmake\n"
+            "  python scripts/code_compile_check.py --app HelloMultiDisplay\n"
+            "  python scripts/code_compile_check.py --scope multi-display --case-jobs 2\n"
+            "  python scripts/code_compile_check.py --scope multi-display --case-jobs 2 --queue-capacity-probe 1\n"
+            "  python scripts/code_compile_check.py --scope multi-display --case-jobs 2 --queue-stress-probe 8\n"
+            "  python scripts/code_compile_check.py --scope multi-display --case-jobs 2 --queue-post-retry-probe 0\n"
             "  python scripts/code_compile_check.py --scope basic --shard-count 3 --shard-index 1 --actions --bits64\n"
             "  python scripts/code_compile_check.py --unit-tests-only --bits64\n"
         ),
@@ -415,9 +423,14 @@ def parse_args():
                         help="Compile all tracked standard examples plus HelloBasic/HelloVirtual/HelloSizeAnalysis sub-apps.")
 
     parser.add_argument("--scope",
-                        choices=["standard", "basic", "virtual", "size-analysis"],
+                        choices=["standard", "multi-display", "basic", "virtual", "size-analysis"],
                         default=None,
                         help="Compile only one case family, useful for CI sharding.")
+
+    parser.add_argument("--app",
+                        type=str,
+                        default=None,
+                        help="Compile one specific app only.")
 
     parser.add_argument("--actions",
                         action="store_true",
@@ -478,6 +491,36 @@ def parse_args():
                         type=int,
                         default=1,
                         help="1-based shard index used with --shard-count.")
+
+    parser.add_argument("--user-cflags",
+                        type=str,
+                        default="",
+                        help="Append raw USER_CFLAGS to compile builds (for config override / A-B probe).")
+
+    parser.add_argument("--queue-capacity-probe",
+                        type=int,
+                        default=0,
+                        help="Convenience wrapper for -DEGUI_PORT_PC_CORE_TASK_QUEUE_CAPACITY=N (0=disabled).")
+
+    parser.add_argument("--queue-stress-probe",
+                        type=int,
+                        default=0,
+                        help="Convenience wrapper for -DEGUI_MULTI_DISPLAY_CORE_TASK_STRESS_BURST_COUNT=N (0=disabled).")
+
+    parser.add_argument("--queue-post-retry-probe",
+                        type=int,
+                        default=-1,
+                        help="Convenience wrapper for -DEGUI_PORT_PC_CORE_TASK_POST_RETRY_COUNT=N (-1=disabled, 0=disable retries).")
+
+    parser.add_argument("--queue-post-retry-delay-probe",
+                        type=int,
+                        default=-1,
+                        help="Convenience wrapper for -DEGUI_PORT_PC_CORE_TASK_POST_RETRY_DELAY_MS=N (-1=disabled, 0=no delay).")
+
+    parser.add_argument("--queue-stress-post-gap-probe",
+                        type=int,
+                        default=-1,
+                        help="Convenience wrapper for -DEGUI_MULTI_DISPLAY_CORE_TASK_STRESS_POST_GAP_MS=N (-1=disabled, 0=no gap).")
 
     return parser.parse_args()
 
@@ -654,11 +697,19 @@ if __name__ == '__main__':
         print("Error: --full-check cannot be combined with --scope")
         sys.exit(1)
 
+    if args.full_check and args.app is not None:
+        print("Error: --full-check cannot be combined with --app")
+        sys.exit(1)
+
     if args.custom_widgets and args.scope is not None:
         print("Error: --custom-widgets cannot be combined with --scope")
         sys.exit(1)
 
-    if args.unit_tests_only and (args.full_check or args.custom_widgets or args.scope is not None):
+    if args.custom_widgets and args.app is not None:
+        print("Error: --custom-widgets cannot be combined with --app")
+        sys.exit(1)
+
+    if args.unit_tests_only and (args.full_check or args.custom_widgets or args.scope is not None or args.app is not None):
         print("Error: --unit-tests-only cannot be combined with compile scopes")
         sys.exit(1)
 
@@ -678,6 +729,14 @@ if __name__ == '__main__':
         print("Error: --shard-index must be 1 when --shard-count is 1")
         sys.exit(1)
 
+    if args.app is not None and args.shard_count != 1:
+        print("Error: --shard-count cannot be combined with --app")
+        sys.exit(1)
+
+    if args.app is not None and args.shard_index != 1:
+        print("Error: --shard-index cannot be combined with --app")
+        sys.exit(1)
+
     actions = args.actions
     if actions:
         port_sets = ['pc']
@@ -694,15 +753,45 @@ if __name__ == '__main__':
         print("Error: %s" % exc)
         sys.exit(1)
 
+    if args.queue_capacity_probe < 0:
+        print("Error: --queue-capacity-probe must be >= 0")
+        sys.exit(1)
+    if args.queue_stress_probe < 0:
+        print("Error: --queue-stress-probe must be >= 0")
+        sys.exit(1)
+    if args.queue_post_retry_probe < -1:
+        print("Error: --queue-post-retry-probe must be >= -1")
+        sys.exit(1)
+    if args.queue_post_retry_delay_probe < -1:
+        print("Error: --queue-post-retry-delay-probe must be >= -1")
+        sys.exit(1)
+    if args.queue_stress_post_gap_probe < -1:
+        print("Error: --queue-stress-post-gap-probe must be >= -1")
+        sys.exit(1)
+
     # Select build system
     if args.cmake:
         build_system = 'cmake'
 
     #params = ' V=1'
     params = ''
+    user_cflags = normalize_user_cflags(args.user_cflags)
+
+    if args.queue_capacity_probe > 0:
+        user_cflags = normalize_user_cflags("%s -DEGUI_PORT_PC_CORE_TASK_QUEUE_CAPACITY=%d" % (user_cflags, args.queue_capacity_probe))
+    if args.queue_stress_probe > 0:
+        user_cflags = normalize_user_cflags("%s -DEGUI_MULTI_DISPLAY_CORE_TASK_STRESS_BURST_COUNT=%d" % (user_cflags, args.queue_stress_probe))
+    if args.queue_post_retry_probe >= 0:
+        user_cflags = normalize_user_cflags("%s -DEGUI_PORT_PC_CORE_TASK_POST_RETRY_COUNT=%d" % (user_cflags, args.queue_post_retry_probe))
+    if args.queue_post_retry_delay_probe >= 0:
+        user_cflags = normalize_user_cflags("%s -DEGUI_PORT_PC_CORE_TASK_POST_RETRY_DELAY_MS=%d" % (user_cflags, args.queue_post_retry_delay_probe))
+    if args.queue_stress_post_gap_probe >= 0:
+        user_cflags = normalize_user_cflags("%s -DEGUI_MULTI_DISPLAY_CORE_TASK_STRESS_POST_GAP_MS=%d" % (user_cflags, args.queue_stress_post_gap_probe))
 
     if args.bits64:
         params += ' BITS=64'
+    if user_cflags:
+        params += ' USER_CFLAGS="%s"' % user_cflags
 
     app_sets = get_example_list()
     sub_app_sets = build_sub_app_sets()
@@ -740,7 +829,7 @@ if __name__ == '__main__':
             sys.exit(res)
 
         full_cases = build_compile_cases("full", app_sets, port_sets, sub_app_sets)
-        run_compile_cases_parallel(full_cases, params, bits64=args.bits64, case_jobs=args.case_jobs)
+        run_compile_cases_parallel(full_cases, params, bits64=args.bits64, user_cflags=user_cflags, case_jobs=args.case_jobs)
 
         if not args.skip_icon_font_check:
             res = run_example_icon_font_check()
@@ -770,11 +859,26 @@ if __name__ == '__main__':
             args.shard_count,
             len(scope_cases),
         ))
-        run_compile_cases_parallel(scope_cases, params, bits64=args.bits64, case_jobs=args.case_jobs)
+        run_compile_cases_parallel(scope_cases, params, bits64=args.bits64, user_cflags=user_cflags, case_jobs=args.case_jobs)
 
         elapsed = time.time() - start_time
         print("=================================================================================")
         print("Scope compile passed! Time: %.1fs" % elapsed)
+        print("=================================================================================")
+        sys.exit(0)
+
+    if args.app is not None:
+        if args.app not in app_sets:
+            print("Error: unknown app: %s" % args.app)
+            sys.exit(1)
+
+        app_cases = build_compile_cases_for_apps([args.app], port_sets, sub_app_sets)
+        print("Selected app=%s cases=%d" % (args.app, len(app_cases)))
+        run_compile_cases_parallel(app_cases, params, bits64=args.bits64, user_cflags=user_cflags, case_jobs=args.case_jobs)
+
+        elapsed = time.time() - start_time
+        print("=================================================================================")
+        print("App compile passed! Time: %.1fs" % elapsed)
         print("=================================================================================")
         sys.exit(0)
 

@@ -100,15 +100,14 @@ static egui_alpha_t egui_shadow_get_alpha(egui_dim_t distance, egui_dim_t width,
 // Draw one corner zone with sub-pixel precision.
 // bx0..bx1, by0..by1: iteration bounds (pre-clipped to PFB work region).
 // cx, cy: arc center coordinates.
-__attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t bx1, egui_dim_t by1, egui_dim_t cx,
-                                                                    egui_dim_t cy, egui_dim_t R, egui_dim_t W, egui_color_t color, egui_alpha_t opa,
-                                                                    egui_alpha_t center_opa)
+__attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_canvas_t *canvas, egui_dim_t bx0, egui_dim_t by0, egui_dim_t bx1, egui_dim_t by1,
+                                                                    egui_dim_t cx, egui_dim_t cy, egui_dim_t R, egui_dim_t W, egui_color_t color,
+                                                                    egui_alpha_t opa, egui_alpha_t center_opa)
 {
     uint32_t W_scaled = (uint32_t)W << EGUI_SHADOW_DIST_SHIFT;
     uint32_t lut_range = EGUI_SHADOW_LUT_SIZE - 1 - EGUI_SHADOW_LUT_INNER_OFFSET;
 
     // Get canvas info for direct PFB write optimization
-    egui_canvas_t *canvas = egui_canvas_get_canvas();
 
     // Fast path: direct PFB write when no mask is present (typical for shadow)
     if (canvas->mask == NULL)
@@ -482,7 +481,7 @@ __attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_dim_t b
 
                 if (alpha > 0)
                 {
-                    egui_canvas_draw_point_limit(px, py, color, alpha);
+                    egui_canvas_draw_point_limit(canvas, px, py, color, alpha);
                 }
             }
         }
@@ -557,14 +556,14 @@ __attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_dim_t b
 
                 if (d_sq <= R_scaled_sq)
                 {
-                    egui_canvas_draw_point_limit(px, py, color, center_opa);
+                    egui_canvas_draw_point_limit(canvas, px, py, color, center_opa);
                 }
                 else if (d_sq < RW_scaled_sq)
                 {
                     egui_alpha_t alpha = fb_dsq_alpha_lut[(d_sq - R_scaled_sq) >> fb_dsq_shift];
                     if (alpha > 0)
                     {
-                        egui_canvas_draw_point_limit(px, py, color, alpha);
+                        egui_canvas_draw_point_limit(canvas, px, py, color, alpha);
                     }
                 }
 
@@ -587,13 +586,13 @@ __attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_dim_t b
                     uint32_t d_sq = rsdx2 + sdy2;
                     if (d_sq <= R_scaled_sq)
                     {
-                        egui_canvas_draw_point_limit(px, py, color, center_opa);
+                        egui_canvas_draw_point_limit(canvas, px, py, color, center_opa);
                     }
                     else if (d_sq < RW_scaled_sq)
                     {
                         egui_alpha_t alp = fb_dsq_alpha_lut[(d_sq - R_scaled_sq) >> fb_dsq_shift];
                         if (alp > 0)
-                            egui_canvas_draw_point_limit(px, py, color, alp);
+                            egui_canvas_draw_point_limit(canvas, px, py, color, alp);
                     }
                     rsdx2 = (uint32_t)((int32_t)rsdx2 + r_delta);
                     r_delta += r_delta_step;
@@ -611,13 +610,13 @@ __attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_dim_t b
                     uint32_t d_sq = lsdx2 + sdy2;
                     if (d_sq <= R_scaled_sq)
                     {
-                        egui_canvas_draw_point_limit(px, py, color, center_opa);
+                        egui_canvas_draw_point_limit(canvas, px, py, color, center_opa);
                     }
                     else if (d_sq < RW_scaled_sq)
                     {
                         egui_alpha_t alp = fb_dsq_alpha_lut[(d_sq - R_scaled_sq) >> fb_dsq_shift];
                         if (alp > 0)
-                            egui_canvas_draw_point_limit(px, py, color, alp);
+                            egui_canvas_draw_point_limit(canvas, px, py, color, alp);
                     }
                     lsdx2 = (uint32_t)((int32_t)lsdx2 + l_delta);
                     l_delta += l_delta_step;
@@ -627,7 +626,7 @@ __attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_dim_t b
     }
 }
 
-void egui_shadow_draw(const egui_shadow_t *shadow, egui_region_t *view_region)
+void egui_shadow_draw(egui_canvas_t *canvas, const egui_shadow_t *shadow, egui_region_t *view_region)
 {
     if (shadow->width == 0 && shadow->spread == 0)
     {
@@ -670,15 +669,15 @@ void egui_shadow_draw(const egui_shadow_t *shadow, egui_region_t *view_region)
     // ========================
     if (R == 0)
     {
-        egui_canvas_draw_rectangle_fill(inner_x, inner_y, inner_w, inner_h, color, center_opa);
+        egui_canvas_draw_rectangle_fill(canvas, inner_x, inner_y, inner_w, inner_h, color, center_opa);
     }
     else
     {
         // Draw three rectangles excluding corner squares.
         // Corner squares are handled by the corner zone loop below.
-        egui_canvas_draw_rectangle_fill(inner_x + R, inner_y, inner_w - 2 * R, inner_h, color, center_opa);
-        egui_canvas_draw_rectangle_fill(inner_x, inner_y + R, R, inner_h - 2 * R, color, center_opa);
-        egui_canvas_draw_rectangle_fill(inner_x + inner_w - R, inner_y + R, R, inner_h - 2 * R, color, center_opa);
+        egui_canvas_draw_rectangle_fill(canvas, inner_x + R, inner_y, inner_w - 2 * R, inner_h, color, center_opa);
+        egui_canvas_draw_rectangle_fill(canvas, inner_x, inner_y + R, R, inner_h - 2 * R, color, center_opa);
+        egui_canvas_draw_rectangle_fill(canvas, inner_x + inner_w - R, inner_y + R, R, inner_h - 2 * R, color, center_opa);
     }
 
     if (W == 0)
@@ -698,7 +697,6 @@ void egui_shadow_draw(const egui_shadow_t *shadow, egui_region_t *view_region)
     egui_dim_t shadow_h = inner_h + 2 * W;
 
     // Work region for clipping corner iterations
-    egui_canvas_t *canvas = egui_canvas_get_canvas();
     EGUI_REGION_DEFINE(shadow_full, 0, 0, shadow_w, shadow_h);
     egui_region_t work;
     egui_region_intersect(&shadow_full, &canvas->base_view_work_region, &work);
@@ -728,16 +726,16 @@ void egui_shadow_draw(const egui_shadow_t *shadow, egui_region_t *view_region)
             if (edge_h_len > 0)
             {
                 // Top edge row
-                egui_canvas_draw_rectangle_fill(arc_x0, inner_y - d, edge_h_len, 1, color, alpha);
+                egui_canvas_draw_rectangle_fill(canvas, arc_x0, inner_y - d, edge_h_len, 1, color, alpha);
                 // Bottom edge row
-                egui_canvas_draw_rectangle_fill(arc_x0, inner_y + inner_h + d - 1, edge_h_len, 1, color, alpha);
+                egui_canvas_draw_rectangle_fill(canvas, arc_x0, inner_y + inner_h + d - 1, edge_h_len, 1, color, alpha);
             }
             if (edge_v_len > 0)
             {
                 // Left edge column
-                egui_canvas_draw_rectangle_fill(inner_x - d, arc_y0, 1, edge_v_len, color, alpha);
+                egui_canvas_draw_rectangle_fill(canvas, inner_x - d, arc_y0, 1, edge_v_len, color, alpha);
                 // Right edge column
-                egui_canvas_draw_rectangle_fill(inner_x + inner_w + d - 1, arc_y0, 1, edge_v_len, color, alpha);
+                egui_canvas_draw_rectangle_fill(canvas, inner_x + inner_w + d - 1, arc_y0, 1, edge_v_len, color, alpha);
             }
         }
     }
@@ -776,7 +774,7 @@ void egui_shadow_draw(const egui_shadow_t *shadow, egui_region_t *view_region)
 
         if (bx0 < bx1 && by0 < by1)
         {
-            egui_shadow_draw_corner(bx0, by0, bx1, by1, cx, cy, R, W, color, opa, center_opa);
+            egui_shadow_draw_corner(canvas, bx0, by0, bx1, by1, cx, cy, R, W, color, opa, center_opa);
         }
     }
 }

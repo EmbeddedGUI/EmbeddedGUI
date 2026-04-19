@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_spinner.h"
+#include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -92,16 +93,21 @@ static void egui_view_spinner_update_timer(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
 
+    if (egui_view_get_core(self) == NULL)
+    {
+        return;
+    }
+
     if (local->is_spinning && self->is_attached_to_window)
     {
-        if (!egui_timer_check_timer_start(&local->spin_timer))
+        if (!egui_view_check_timer_start(self, &local->spin_timer))
         {
-            egui_timer_start_timer(&local->spin_timer, 50, 50);
+            egui_view_start_timer(self, &local->spin_timer, 50, 50);
         }
     }
     else
     {
-        egui_timer_stop_timer(&local->spin_timer);
+        egui_view_stop_timer(self, &local->spin_timer);
     }
 }
 
@@ -115,7 +121,7 @@ static void egui_view_spinner_on_detach_from_window(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
 
-    egui_timer_stop_timer(&local->spin_timer);
+    egui_view_stop_timer(self, &local->spin_timer);
     egui_view_on_detach_from_window(self);
 }
 
@@ -149,6 +155,7 @@ void egui_view_spinner_set_color(egui_view_t *self, egui_color_t color)
 void egui_view_spinner_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -180,10 +187,10 @@ void egui_view_spinner_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, radius - local->stroke_width, start, end, &grad);
+        egui_canvas_draw_arc_ring_fill_gradient(canvas, center_x, center_y, radius, radius - local->stroke_width, start, end, &grad);
     }
 #else
-    egui_canvas_draw_arc(center_x, center_y, radius, start, end, local->stroke_width, local->color, EGUI_ALPHA_100);
+    egui_canvas_draw_arc(canvas, center_x, center_y, radius, start, end, local->stroke_width, local->color, EGUI_ALPHA_100);
 #endif
 }
 
@@ -204,11 +211,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_spinner_t) = {
 #endif
 };
 
-void egui_view_spinner_init(egui_view_t *self)
+void egui_view_spinner_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_spinner_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_spinner_t);
 
@@ -230,8 +237,8 @@ void egui_view_spinner_apply_params(egui_view_t *self, const egui_view_spinner_p
     egui_view_invalidate(self);
 }
 
-void egui_view_spinner_init_with_params(egui_view_t *self, const egui_view_spinner_params_t *params)
+void egui_view_spinner_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_spinner_params_t *params)
 {
-    egui_view_spinner_init(self);
+    egui_view_spinner_init(self, core);
     egui_view_spinner_apply_params(self, params);
 }

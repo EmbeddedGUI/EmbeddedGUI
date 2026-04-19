@@ -34,7 +34,7 @@ struct egui_background_gradient
     egui_background_t base;
 };
 
-void egui_background_gradient_on_draw(egui_background_t *self, egui_region_t *region, const void *param);
+void egui_background_gradient_on_draw(egui_background_t *self, egui_canvas_t *canvas, egui_region_t *region, const void *param);
 void egui_background_gradient_init(egui_background_t *self);
 void egui_background_gradient_init_with_params(egui_background_t *self, const egui_background_params_t *params);
 

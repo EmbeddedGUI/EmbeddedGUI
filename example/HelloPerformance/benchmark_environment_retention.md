@@ -13,7 +13,7 @@
 ## 依据来源
 
 - `example/HelloPerformance/app_egui_config.h`
-- `example/HelloPerformance/uicode.c`
+- `example/HelloPerformance/uicode_disp0.c`
 - `example/HelloPerformance/egui_view_test_performance.c`
 - `scripts/perf_analysis/code_perf_check.py`
 - `src/core/egui_core.c`
@@ -44,13 +44,13 @@
 ### `EGUI_CONFIG_SCEEN_WIDTH`
 
 - 当前库默认宽度本来就是 `240`，与 HelloPerformance 原 app override 相同。
-- `uicode.c` 和 `egui_view_test_performance.c` 继续通过 `EGUI_CONFIG_SCEEN_WIDTH` 使用同一套 `240px` 几何；去掉 app 侧重复定义不会改变编译后的 benchmark harness。
+- `uicode_disp0.c` 和 `egui_view_test_performance.c` 继续通过 `EGUI_CONFIG_SCEEN_WIDTH` 使用同一套 `240px` 几何；去掉 app 侧重复定义不会改变编译后的 benchmark harness。
 - 之前真正阻止删除的是 `scripts/perf_analysis/code_perf_check.py`：旧逻辑要求 `app_egui_config.h` 同时显式写出宽高，否则会整体回退成 `240x320`。本轮已改成宽高分别回默认值，因此删除宽度 override 后，perf harness 仍会被正确识别为 `240x240`。
 - 处理结论：删除 app override，直接继承库默认 `240`。
 
 ### `EGUI_CONFIG_SCEEN_HEIGHT`
 
-- `uicode.c` 直接用它设置 benchmark root view 高度。
+- `uicode_disp0.c` 直接用它设置 benchmark root view 高度。
 - `egui_view_test_performance.c` 的全文字、整屏图片、mask、gradient、circle 等场景都按 `SCEEN_HEIGHT` 推导几何。
 - 当前 app 仍需显式固定 `240`，用来把 clean perf 报告中的 `TEXT_ROTATE_BUFFERED 11.498ms`、`EXTERN_IMAGE_ROTATE_565_8 18.990ms`、`MASK_RECT_FILL_CIRCLE_DOUBLE 1.656ms` 等结果锚定到同一套 `240x240` square harness。把 `HEIGHT` 回退到默认 `320` 会直接改变 benchmark 本身，而不是只减少一项 small-RAM 宏。
 - 处理结论：保留，作为 benchmark 几何锚点。
@@ -73,7 +73,7 @@
 ### `EGUI_CONFIG_DEBUG_LOG_LEVEL`
 
 - `scripts/perf_analysis/code_perf_check.py` 只认 `PERF_RESULT:` / `PERF_SKIP:` / `PERF_COMPLETE` 结构化输出。
-- `uicode.c` 通过 `EGUI_LOG_INF` 发出这些标记；`egui_api.h` 在 log level 小于 `INF` 时会把 `EGUI_LOG_INF` 编译为空宏。
+- `uicode_disp0.c` 通过 `EGUI_LOG_INF` 发出这些标记；`egui_api.h` 在 log level 小于 `INF` 时会把 `EGUI_LOG_INF` 编译为空宏。
 - 默认 `EGUI_CONFIG_DEBUG_LOG_LEVEL` 是 `EGUI_LOG_IMPL_LEVEL_NONE`。如果直接回默认，clean perf 报告就失去采样输出入口。
 - 这不是 small static-RAM switch，而是 benchmark report harness 的 I/O 契约。
 - 处理结论：保留 `EGUI_LOG_IMPL_LEVEL_INF`。

@@ -36,7 +36,7 @@ struct egui_view_stepper_params
     static const egui_view_stepper_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .total_steps = (_total), .current_step = (_current)}
 
 void egui_view_stepper_apply_params(egui_view_t *self, const egui_view_stepper_params_t *params);
-void egui_view_stepper_init_with_params(egui_view_t *self, const egui_view_stepper_params_t *params);
+void egui_view_stepper_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_stepper_params_t *params);
 
 void egui_view_stepper_set_total_steps(egui_view_t *self, uint8_t total_steps);
 uint8_t egui_view_stepper_get_total_steps(egui_view_t *self);
@@ -45,7 +45,7 @@ uint8_t egui_view_stepper_get_current_step(egui_view_t *self);
 void egui_view_stepper_set_mark_style(egui_view_t *self, egui_view_stepper_mark_style_t style);
 void egui_view_stepper_set_completed_icon(egui_view_t *self, const char *icon);
 void egui_view_stepper_set_icon_font(egui_view_t *self, const egui_font_t *font);
-void egui_view_stepper_init(egui_view_t *self);
+void egui_view_stepper_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

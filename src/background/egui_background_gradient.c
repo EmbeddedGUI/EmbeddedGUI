@@ -5,7 +5,7 @@
 #include "core/egui_api.h"
 #include "core/egui_canvas.h"
 
-void egui_background_gradient_on_draw(egui_background_t *self, egui_region_t *region, const void *param)
+void egui_background_gradient_on_draw(egui_background_t *self, egui_canvas_t *canvas, egui_region_t *region, const void *param)
 {
     EGUI_LOCAL_INIT(egui_background_gradient_t);
     const egui_background_gradient_param_t *grad_param = param;
@@ -25,7 +25,7 @@ void egui_background_gradient_on_draw(egui_background_t *self, egui_region_t *re
             .alpha = grad_param->alpha,
             .stops = stops,
     };
-    egui_canvas_draw_rectangle_fill_gradient(0, 0, w, h, &gradient);
+    egui_canvas_draw_rectangle_fill_gradient(canvas, 0, 0, w, h, &gradient);
 }
 
 const egui_background_api_t egui_background_gradient_t_api_table = {

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define SECTION_DEMO_MAX_SECTIONS          28U
 #define SECTION_DEMO_INITIAL_SECTIONS      24U
@@ -195,6 +195,7 @@ static egui_view_label_t header_hint;
 static egui_view_button_t action_buttons[SECTION_DEMO_ACTION_COUNT];
 static egui_view_virtual_section_list_t section_list_view;
 static section_demo_context_t section_demo_ctx;
+static egui_core_t *s_core;
 
 EGUI_VIEW_CARD_PARAMS_INIT(section_demo_header_card_params, SECTION_DEMO_MARGIN_X, SECTION_DEMO_TOP_Y, SECTION_DEMO_HEADER_W, SECTION_DEMO_HEADER_H, 14);
 EGUI_VIEW_CARD_PARAMS_INIT(section_demo_toolbar_card_params, SECTION_DEMO_MARGIN_X, SECTION_DEMO_TOOLBAR_Y, SECTION_DEMO_HEADER_W, SECTION_DEMO_TOOLBAR_H, 12);
@@ -571,7 +572,7 @@ static void section_demo_capture_item_state(section_demo_item_view_t *item_view,
 
     if (anim->start_time != (uint32_t)-1 && anim->duration > 0)
     {
-        uint32_t elapsed_ms = egui_api_timer_get_current() - anim->start_time;
+        uint32_t elapsed_ms = egui_api_timer_get_current_core(s_core) - anim->start_time;
 
         if (elapsed_ms >= anim->duration)
         {
@@ -604,7 +605,7 @@ static void section_demo_restore_item_state(section_demo_item_view_t *item_view,
     anim->is_ended = 0;
     anim->is_cycle_flip = state->pulse_cycle_flip ? 1U : 0U;
     anim->repeated = (int8_t)state->pulse_repeated;
-    anim->start_time = egui_api_timer_get_current() - state->pulse_elapsed_ms;
+    anim->start_time = egui_api_timer_get_current_core(s_core) - state->pulse_elapsed_ms;
 }
 
 static uint32_t section_demo_count_state(const section_demo_section_t *section, uint8_t state)
@@ -830,12 +831,12 @@ static egui_view_t *section_demo_create_header_view(void *data_source_context, u
     header_view->section_index = SECTION_DEMO_INVALID_INDEX;
     header_view->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
 
-    egui_view_group_init(EGUI_VIEW_OF(&header_view->root));
-    egui_view_card_init(EGUI_VIEW_OF(&header_view->card));
-    egui_view_card_init(EGUI_VIEW_OF(&header_view->accent));
-    egui_view_label_init(EGUI_VIEW_OF(&header_view->title));
-    egui_view_label_init(EGUI_VIEW_OF(&header_view->meta));
-    egui_view_label_init(EGUI_VIEW_OF(&header_view->hint));
+    egui_view_group_init(EGUI_VIEW_OF(&header_view->root), s_core);
+    egui_view_card_init(EGUI_VIEW_OF(&header_view->card), s_core);
+    egui_view_card_init(EGUI_VIEW_OF(&header_view->accent), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&header_view->title), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&header_view->meta), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&header_view->hint), s_core);
 
     egui_view_label_set_font(EGUI_VIEW_OF(&header_view->title), SECTION_DEMO_FONT_HEADER_TITLE);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_view->meta), SECTION_DEMO_FONT_CAP);
@@ -874,15 +875,15 @@ static egui_view_t *section_demo_create_item_view(void *data_source_context, uin
     item_view->item_index = SECTION_DEMO_INVALID_INDEX;
     item_view->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
 
-    egui_view_group_init(EGUI_VIEW_OF(&item_view->root));
-    egui_view_card_init(EGUI_VIEW_OF(&item_view->card));
-    egui_view_card_init(EGUI_VIEW_OF(&item_view->accent));
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->title));
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->body));
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->meta));
-    egui_view_label_init(EGUI_VIEW_OF(&item_view->badge));
-    egui_view_progress_bar_init(EGUI_VIEW_OF(&item_view->progress));
-    egui_view_init(EGUI_VIEW_OF(&item_view->pulse));
+    egui_view_group_init(EGUI_VIEW_OF(&item_view->root), s_core);
+    egui_view_card_init(EGUI_VIEW_OF(&item_view->card), s_core);
+    egui_view_card_init(EGUI_VIEW_OF(&item_view->accent), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->title), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->body), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->meta), s_core);
+    egui_view_label_init(EGUI_VIEW_OF(&item_view->badge), s_core);
+    egui_view_progress_bar_init(EGUI_VIEW_OF(&item_view->progress), s_core);
+    egui_view_init(EGUI_VIEW_OF(&item_view->pulse), s_core);
 
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->title), SECTION_DEMO_FONT_ITEM_TITLE);
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->body), SECTION_DEMO_FONT_BODY);
@@ -1671,7 +1672,7 @@ static void section_demo_action_click_cb(egui_view_t *self)
 
 static void section_demo_init_action_button(egui_view_button_t *button, egui_dim_t x, const char *text)
 {
-    egui_view_button_init(EGUI_VIEW_OF(button));
+    egui_view_button_init(EGUI_VIEW_OF(button), s_core);
     egui_view_set_position(EGUI_VIEW_OF(button), x, 6);
     egui_view_set_size(EGUI_VIEW_OF(button), SECTION_DEMO_BUTTON_W, SECTION_DEMO_BUTTON_H);
     egui_view_label_set_text(EGUI_VIEW_OF(button), text);
@@ -1681,25 +1682,26 @@ static void section_demo_init_action_button(egui_view_button_t *button, egui_dim
     egui_view_set_on_click_listener(EGUI_VIEW_OF(button), section_demo_action_click_cb);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     uint8_t i;
     egui_dim_t button_x = 10;
 
     section_demo_reset_model();
+    s_core = core;
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
+    egui_view_init(EGUI_VIEW_OF(&background_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&section_demo_screen_bg));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), &section_demo_header_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &section_demo_header_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&header_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&header_card), 1, EGUI_COLOR_HEX(0xD7E1EA));
     egui_view_set_shadow(EGUI_VIEW_OF(&header_card), &section_demo_card_shadow);
 
-    egui_view_label_init(EGUI_VIEW_OF(&header_title));
-    egui_view_label_init(EGUI_VIEW_OF(&header_detail));
-    egui_view_label_init(EGUI_VIEW_OF(&header_hint));
+    egui_view_label_init(EGUI_VIEW_OF(&header_title), core);
+    egui_view_label_init(EGUI_VIEW_OF(&header_detail), core);
+    egui_view_label_init(EGUI_VIEW_OF(&header_hint), core);
     egui_view_set_position(EGUI_VIEW_OF(&header_title), 12, 10);
     egui_view_set_size(EGUI_VIEW_OF(&header_title), SECTION_DEMO_HEADER_W - 24, 16);
     egui_view_set_position(EGUI_VIEW_OF(&header_detail), 12, 28);
@@ -1719,7 +1721,7 @@ void test_init_ui(void)
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_detail));
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_hint));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), &section_demo_toolbar_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &section_demo_toolbar_card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&toolbar_card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&toolbar_card), 1, EGUI_COLOR_HEX(0xD7E1EA));
 
@@ -1743,7 +1745,7 @@ void test_init_ui(void)
                 .state_cache_max_bytes = SECTION_DEMO_STATE_CACHE_COUNT * (uint32_t)sizeof(section_demo_item_state_t),
         };
 
-        egui_view_virtual_section_list_init_with_setup(EGUI_VIEW_OF(&section_list_view), &section_view_setup);
+        egui_view_virtual_section_list_init_with_setup(EGUI_VIEW_OF(&section_list_view), core, &section_view_setup);
     }
     egui_view_set_background(EGUI_VIEW_OF(&section_list_view), EGUI_BG_OF(&section_demo_list_bg));
     egui_view_set_shadow(EGUI_VIEW_OF(&section_list_view), &section_demo_card_shadow);

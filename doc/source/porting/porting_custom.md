@@ -223,19 +223,28 @@ static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT]
 
 void port_main(void)
 {
-    egui_port_init();
+    egui_core_t core;
+    egui_color_int_t *pfb_bufs[1] = { egui_pfb };
+    egui_display_setup_t setup;
 
-    egui_init_config_t init_config = {
-        .pfb        = egui_pfb,
-        .pfb_backup = NULL,
-    };
-    egui_init(&init_config);
-    uicode_create_ui();
-    egui_screen_on();
+    egui_port_init();
+    setup.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
+    setup.screen_height = EGUI_CONFIG_SCEEN_HEIGHT;
+    setup.pfb_width = EGUI_CONFIG_PFB_WIDTH;
+    setup.pfb_height = EGUI_CONFIG_PFB_HEIGHT;
+    setup.pfb_buffers = pfb_bufs;
+    setup.pfb_buffer_count = 1;
+    setup.display_driver = &my_display;
+    setup.platform = &my_platform;
+    setup.touch_register = NULL;
+    setup.uicode_init = uicode_disp0_init;
+    setup.display_id = 0;
+
+    egui_setup_display(&core, &setup);
 
     while (1)
     {
-        egui_polling_work();
+        egui_polling_work(&core);
     }
 }
 ```
@@ -278,7 +287,7 @@ EmbeddedGUI 提供三个独立的平台扩展宏，控制是否通过 `egui_plat
 
 ### 检查点 1：纯色填充
 
-验证 `draw_area` 基本工作。在 `uicode_create_ui` 中不创建任何控件，框架会用背景色（黑色）清屏。
+验证 `draw_area` 基本工作。在 `uicode_disp0_init` 中不创建任何控件，框架会用背景色（黑色）清屏。
 
 预期结果：屏幕显示纯黑色。
 
@@ -295,13 +304,13 @@ EmbeddedGUI 提供三个独立的平台扩展宏，控制是否通过 `egui_plat
 ```c
 static egui_view_t test_view;
 
-void uicode_create_ui(void)
+void uicode_disp0_init(egui_core_t *core)
 {
-    egui_view_init(EGUI_VIEW_OF(&test_view));
+    egui_view_init(EGUI_VIEW_OF(&test_view), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_view), 50, 50);
     egui_view_set_size(EGUI_VIEW_OF(&test_view), 100, 100);
     egui_view_set_bg_color(EGUI_VIEW_OF(&test_view), EGUI_COLOR_RED, EGUI_ALPHA_100);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&test_view));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&test_view));
 }
 ```
 
@@ -321,9 +330,9 @@ static egui_view_label_t label;
 EGUI_VIEW_LABEL_PARAMS_INIT(label_params, 10, 10, 200, 30,
     "Hello EGUI!", NULL, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 
-void uicode_create_ui(void)
+void uicode_disp0_init(egui_core_t *core)
 {
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label), &label_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label), core, &label_params);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&label));
 }
 ```
@@ -346,13 +355,13 @@ void on_button_click(egui_view_t *self)
     EGUI_LOG_INF("Button clicked!\n");
 }
 
-void uicode_create_ui(void)
+void uicode_disp0_init(egui_core_t *core)
 {
-    egui_view_button_init(EGUI_VIEW_OF(&button));
+    egui_view_button_init(EGUI_VIEW_OF(&button), core);
     egui_view_set_position(EGUI_VIEW_OF(&button), 50, 50);
     egui_view_set_size(EGUI_VIEW_OF(&button), 120, 40);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button), on_button_click);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&button));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&button));
 }
 ```
 

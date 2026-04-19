@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // Labels to show rotation state
 static egui_view_label_t label_title;
@@ -51,16 +51,23 @@ EGUI_VIEW_BUTTON_PARAMS_INIT(btn_rotate_params, 0, 0, 100, 36, NULL, EGUI_CONFIG
 
 static void apply_rotation(int index)
 {
+    egui_core_t *core = egui_view_get_core(EGUI_VIEW_OF(&grid));
+
+    if (core == NULL)
+    {
+        return;
+    }
+
     rotation_index = index % 4;
-    egui_display_set_rotation(rotations[rotation_index]);
+    egui_display_set_rotation(core, rotations[rotation_index]);
 
     // Update angle label text
     snprintf(angle_text, sizeof(angle_text), "%s", rotation_names[rotation_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&label_angle), angle_text);
 
     // Reposition views based on current logical screen size
-    int16_t sw = egui_display_get_width();
-    int16_t sh = egui_display_get_height();
+    int16_t sw = egui_display_get_width(core);
+    int16_t sh = egui_display_get_height(core);
 
     // Corner labels
     egui_view_set_position(EGUI_VIEW_OF(&label_top_left), 2, 2);
@@ -79,17 +86,17 @@ static void btn_rotate_click_cb(egui_view_t *self)
     apply_rotation(rotation_index + 1);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid container
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init center labels
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title), &label_title_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title), core, &label_title_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&label_title), EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
     egui_view_set_margin_all(EGUI_VIEW_OF(&label_title), 6);
 
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_angle), &label_angle_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_angle), core, &label_angle_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&label_angle), EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
     egui_view_set_margin_all(EGUI_VIEW_OF(&label_angle), 6);
 
@@ -101,14 +108,14 @@ void test_init_ui(void)
     egui_view_gridlayout_layout_childs(EGUI_VIEW_OF(&grid));
 
     // Init corner labels
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_top_left), &label_tl_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_top_left), core, &label_tl_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&label_top_left), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
 
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_bottom_right), &label_br_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_bottom_right), core, &label_br_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&label_bottom_right), EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER);
 
     // Init rotate button at bottom-left
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&btn_rotate), &btn_rotate_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&btn_rotate), core, &btn_rotate_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&btn_rotate), "Rotate");
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&btn_rotate), btn_rotate_click_cb);
 

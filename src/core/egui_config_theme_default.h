@@ -9,7 +9,7 @@ extern "C" {
 
 /**
  * Theme options.
- * Default theme pointer used to initialize egui_current_theme.
+ * Default theme pointer used to initialize each core theme state.
  * Set to 0 to keep theme support on-demand only.
  * Example:
  * (&egui_theme_light) or (&egui_theme_dark)

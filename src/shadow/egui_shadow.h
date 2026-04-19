@@ -35,7 +35,7 @@ struct egui_shadow
 
 #define EGUI_SHADOW_LUT_SIZE 64
 
-void egui_shadow_draw(const egui_shadow_t *shadow, egui_region_t *view_region);
+void egui_shadow_draw(egui_canvas_t *canvas, const egui_shadow_t *shadow, egui_region_t *view_region);
 void egui_shadow_get_region(const egui_shadow_t *shadow, egui_region_t *view_region, egui_region_t *shadow_region);
 
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW

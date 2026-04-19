@@ -19,7 +19,7 @@ struct egui_dialog_test
 };
 
 void egui_dialog_test_set_index(egui_dialog_t *self, int index);
-void egui_dialog_test_init(egui_dialog_t *self);
+void egui_dialog_test_init(egui_dialog_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

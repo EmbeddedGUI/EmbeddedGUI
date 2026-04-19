@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_menu.h"
 
@@ -11,6 +12,14 @@ static egui_view_menu_t test_menu;
 static uint8_t g_click_count;
 static uint8_t g_last_page_index;
 static uint8_t g_last_item_index;
+
+static egui_core_t *test_menu_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static const egui_view_menu_item_t g_root_items[] = {
         {"Settings", 1, NULL},
@@ -36,7 +45,7 @@ static void on_item_click(egui_view_t *self, uint8_t page_index, uint8_t item_in
 
 static void setup_menu(void)
 {
-    egui_view_menu_init(EGUI_VIEW_OF(&test_menu));
+    egui_view_menu_init(EGUI_VIEW_OF(&test_menu), test_menu_get_core());
     egui_view_set_size(EGUI_VIEW_OF(&test_menu), 180, 150);
     egui_view_menu_set_pages(EGUI_VIEW_OF(&test_menu), g_pages, 2);
     egui_view_menu_set_header_height(EGUI_VIEW_OF(&test_menu), 30);

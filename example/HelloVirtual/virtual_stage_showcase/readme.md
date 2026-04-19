@@ -145,7 +145,7 @@ heap 主要来自三类来源：
 ## 关键文件
 
 - `example/HelloVirtual/virtual_stage_showcase/test.c`
-- `example/HelloShowcase/uicode.c`
+- `example/HelloShowcase/uicode_disp0.c`
 - `src/widget/egui_view_virtual_stage.h`
 - `src/widget/egui_view_virtual_stage.c`
 

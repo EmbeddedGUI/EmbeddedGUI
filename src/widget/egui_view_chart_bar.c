@@ -1,8 +1,9 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_chart_bar.h"
+#include "core/egui_core.h"
 #include "core/egui_canvas_gradient.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
@@ -21,9 +22,10 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_bar_map_y_fast(int16_t data_y,
 
 static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_chart_bar_t);
     egui_chart_axis_base_t *ab = &local->axis_base.ab;
-    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
     egui_dim_t work_x1;
     egui_dim_t work_y1;
     egui_dim_t work_x2;
@@ -173,9 +175,9 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
             }
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-            egui_canvas_draw_rectangle_fill_gradient(bar_x, bar_top, bar_width, bar_h, &grad);
+            egui_canvas_draw_rectangle_fill_gradient(canvas, bar_x, bar_top, bar_width, bar_h, &grad);
 #else
-            egui_canvas_draw_rectangle_fill(bar_x, bar_top, bar_width, bar_h, series->color, EGUI_ALPHA_100);
+            egui_canvas_draw_rectangle_fill(canvas, bar_x, bar_top, bar_width, bar_h, series->color, EGUI_ALPHA_100);
 #endif
         }
     }
@@ -210,10 +212,10 @@ const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_bar_t)
 
 // ============== Init / Params ==============
 
-void egui_view_chart_bar_init(egui_view_t *self)
+void egui_view_chart_bar_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_chart_bar_t);
-    egui_view_chart_axis_init(self);
+    egui_view_chart_axis_init(self, core);
     self->api = (const egui_view_api_t *)&EGUI_VIEW_API_TABLE_NAME(egui_view_chart_bar_t);
 
     // bar chart defaults
@@ -230,9 +232,9 @@ void egui_view_chart_bar_apply_params(egui_view_t *self, const egui_view_chart_b
     egui_view_set_size(self, params->region.size.width, params->region.size.height);
 }
 
-void egui_view_chart_bar_init_with_params(egui_view_t *self, const egui_view_chart_bar_params_t *params)
+void egui_view_chart_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_bar_params_t *params)
 {
-    egui_view_chart_bar_init(self);
+    egui_view_chart_bar_init(self, core);
     egui_view_chart_bar_apply_params(self, params);
 }
 

@@ -33,8 +33,8 @@ struct egui_image_qoi
 };
 
 void egui_image_qoi_init(egui_image_t *self, const void *res);
-void egui_image_qoi_release_frame_cache(void);
-void egui_image_qoi_release_checkpoints(void);
+void egui_image_qoi_release_frame_cache(egui_core_t *core);
+void egui_image_qoi_release_checkpoints(egui_core_t *core);
 
 #endif /* EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE */
 

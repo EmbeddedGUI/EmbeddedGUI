@@ -44,7 +44,7 @@ struct egui_view_notification_badge_params
     static const egui_view_notification_badge_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .count = (_count)}
 
 void egui_view_notification_badge_apply_params(egui_view_t *self, const egui_view_notification_badge_params_t *params);
-void egui_view_notification_badge_init_with_params(egui_view_t *self, const egui_view_notification_badge_params_t *params);
+void egui_view_notification_badge_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_notification_badge_params_t *params);
 
 void egui_view_notification_badge_set_count(egui_view_t *self, uint16_t count);
 uint16_t egui_view_notification_badge_get_count(egui_view_t *self);
@@ -56,7 +56,7 @@ void egui_view_notification_badge_set_content_style(egui_view_t *self, egui_view
 void egui_view_notification_badge_set_icon(egui_view_t *self, const char *icon);
 void egui_view_notification_badge_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_notification_badge_on_draw(egui_view_t *self);
-void egui_view_notification_badge_init(egui_view_t *self);
+void egui_view_notification_badge_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

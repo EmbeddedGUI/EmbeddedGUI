@@ -45,7 +45,7 @@ struct egui_view_page_indicator_params
     static const egui_view_page_indicator_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .total_count = (_total), .current_index = (_current)}
 
 void egui_view_page_indicator_apply_params(egui_view_t *self, const egui_view_page_indicator_params_t *params);
-void egui_view_page_indicator_init_with_params(egui_view_t *self, const egui_view_page_indicator_params_t *params);
+void egui_view_page_indicator_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_page_indicator_params_t *params);
 
 void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_count);
 void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t current_index);
@@ -53,7 +53,7 @@ void egui_view_page_indicator_set_mark_style(egui_view_t *self, egui_view_page_i
 void egui_view_page_indicator_set_icons(egui_view_t *self, const char *const *icons);
 void egui_view_page_indicator_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_page_indicator_on_draw(egui_view_t *self);
-void egui_view_page_indicator_init(egui_view_t *self);
+void egui_view_page_indicator_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

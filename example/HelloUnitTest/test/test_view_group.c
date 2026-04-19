@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_view_group.h"
 
@@ -18,6 +19,14 @@ static int g_child1_touch_down_count;
 static int g_child1_touch_move_count;
 static int g_child1_touch_up_count;
 #endif
+
+static egui_core_t *test_view_group_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void test_view_group_child1_click_cb(egui_view_t *self)
@@ -56,12 +65,14 @@ static int test_view_group_child1_touch_cb(egui_view_t *self, egui_motion_event_
 
 static void test_view_group_setup_touch_children(void)
 {
+    egui_core_t *core = test_view_group_get_core();
     egui_region_t root_region = {{0, 0}, {220, 80}};
 
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
-    egui_view_init(&test_child3);
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
+    egui_view_init(&test_child3, core);
 
     egui_view_layout(EGUI_VIEW_OF(&test_group), &root_region);
     egui_view_set_position(&test_child1, 10, 10);
@@ -108,7 +119,7 @@ static void test_view_group_lifecycle_detach_cb(egui_view_t *self)
 
 static void test_view_group_init_lifecycle_view(egui_view_t *view)
 {
-    egui_view_init(view);
+    egui_view_init(view, test_view_group_get_core());
     egui_view_copy_api(view, &test_lifecycle_api);
     test_lifecycle_api.on_attach_to_window = test_view_group_lifecycle_attach_cb;
     test_lifecycle_api.on_detach_from_window = test_view_group_lifecycle_detach_cb;
@@ -116,15 +127,19 @@ static void test_view_group_init_lifecycle_view(egui_view_t *view)
 
 static void test_vg_init_defaults(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
+    egui_core_t *core = test_view_group_get_core();
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_group_get_child_count(EGUI_VIEW_OF(&test_group)));
     EGUI_TEST_ASSERT_NULL(egui_view_group_get_first_child(EGUI_VIEW_OF(&test_group)));
 }
 
 static void test_vg_add_child(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
+    egui_core_t *core = test_view_group_get_core();
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
+    egui_view_init(&test_child1, core);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
     EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_group_get_child_count(EGUI_VIEW_OF(&test_group)));
@@ -133,10 +148,12 @@ static void test_vg_add_child(void)
 
 static void test_vg_add_multiple(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
-    egui_view_init(&test_child3);
+    egui_core_t *core = test_view_group_get_core();
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
+    egui_view_init(&test_child3, core);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child2);
@@ -147,8 +164,10 @@ static void test_vg_add_multiple(void)
 
 static void test_vg_parent_link(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
+    egui_core_t *core = test_view_group_get_core();
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
+    egui_view_init(&test_child1, core);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
     EGUI_TEST_ASSERT_TRUE(test_child1.parent == &test_group);
@@ -156,9 +175,11 @@ static void test_vg_parent_link(void)
 
 static void test_vg_remove_child(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
+    egui_core_t *core = test_view_group_get_core();
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child2);
@@ -170,10 +191,12 @@ static void test_vg_remove_child(void)
 
 static void test_vg_clear_childs(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_init(&test_child1);
-    egui_view_init(&test_child2);
-    egui_view_init(&test_child3);
+    egui_core_t *core = test_view_group_get_core();
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
+    egui_view_init(&test_child1, core);
+    egui_view_init(&test_child2, core);
+    egui_view_init(&test_child3, core);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
     egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child2);
@@ -186,7 +209,9 @@ static void test_vg_clear_childs(void)
 
 static void test_vg_child_added_after_parent_attach_gets_lifecycle_callbacks(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
+    egui_core_t *core = test_view_group_get_core();
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
     test_view_group_init_lifecycle_view(&test_child1);
     g_lifecycle_attach_count = 0;
     g_lifecycle_detach_count = 0;
@@ -205,7 +230,9 @@ static void test_vg_child_added_after_parent_attach_gets_lifecycle_callbacks(voi
 
 static void test_vg_parent_attach_propagates_to_existing_children(void)
 {
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
+    egui_core_t *core = test_view_group_get_core();
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
     test_view_group_init_lifecycle_view(&test_child1);
     g_lifecycle_attach_count = 0;
     g_lifecycle_detach_count = 0;
@@ -225,10 +252,12 @@ static void test_vg_parent_attach_propagates_to_existing_children(void)
 
 static void test_vg_attached_parent_propagates_lifecycle_to_inserted_subtree(void)
 {
+    egui_core_t *core = test_view_group_get_core();
     egui_view_group_t nested_group;
 
-    egui_view_group_init(EGUI_VIEW_OF(&test_group));
-    egui_view_group_init(EGUI_VIEW_OF(&nested_group));
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    EGUI_VIEW_OF(&test_group)->core = core;
+    egui_view_group_init(EGUI_VIEW_OF(&nested_group), core);
     test_view_group_init_lifecycle_view(&test_child1);
     g_lifecycle_attach_count = 0;
     g_lifecycle_detach_count = 0;

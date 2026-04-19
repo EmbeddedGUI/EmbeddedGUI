@@ -254,7 +254,7 @@ make all APP=HelloStyleDemo && make run
 UI Designer 桌面端和设计稿转换链路已经迁移到独立仓库 `EmbeddedGUI_Designer` 维护。
 
 ```
-Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
+Figma / HTML / JSX ──→ XML ──→ C 源文件 (`uicode_disp0.c` / `uicode_disp0.h`)
 ```
 
 - **当前仓库定位**：保留 SDK、运行时、资源生成、示例和文档

@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #if EGUI_PORT != EGUI_PORT_TYPE_QEMU
 #include <stdio.h>
@@ -154,7 +154,7 @@ static void *file_image_port_open_one(const char *full_path)
         return NULL;
     }
 
-    handle = (file_image_port_qemu_handle_t *)egui_malloc(sizeof(*handle));
+    handle = (file_image_port_qemu_handle_t *)egui_malloc(NULL, sizeof(*handle));
     if (handle == NULL)
     {
         file_image_port_qemu_close_raw(semi_handle);
@@ -317,7 +317,7 @@ static void file_image_port_close(void *user_data, void *handle_ptr)
     }
 
     file_image_port_qemu_close_raw(handle->semihosting_handle);
-    egui_free(handle);
+    egui_free(NULL, handle);
 }
 
 #else

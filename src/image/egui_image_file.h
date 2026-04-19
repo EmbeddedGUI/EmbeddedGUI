@@ -10,6 +10,8 @@ extern "C" {
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
 
+typedef struct egui_core egui_core_t;
+
 #define EGUI_IMAGE_FILE_SEEK_SET 0
 #define EGUI_IMAGE_FILE_SEEK_CUR 1
 #define EGUI_IMAGE_FILE_SEEK_END 2
@@ -63,6 +65,7 @@ struct egui_image_file
 {
     egui_image_t base;
 
+    egui_core_t *core;
     char *path;
     const egui_image_file_io_t *io;
     const egui_image_file_io_t *active_io;
@@ -78,46 +81,22 @@ struct egui_image_file
     uint16_t cached_row;
     uint16_t resize_width;
     uint16_t resize_height;
-    uint16_t stream_band_row_start;
-    uint16_t stream_band_row_end;
-    uint16_t stream_band_target_row_start;
-    uint16_t stream_band_target_row_end;
-    uint16_t stream_band_col_start;
-    uint16_t stream_band_col_end;
-    uint16_t resize_column_row_start;
-    uint16_t resize_column_row_end;
-    uint16_t resize_column_src_col;
-    uint16_t resize_column_capacity;
-    uint16_t resize_row_src_y;
-    uint16_t resize_row_dest_width;
-    uint16_t resize_row_capacity;
 
     uint8_t has_alpha;
     uint8_t status;
     uint8_t row_cache_valid;
     uint8_t resize_enabled;
-    uint8_t keep_file_open;
-    uint8_t stream_band_valid;
-    uint8_t stream_band_mode;
-    uint8_t resize_column_valid;
-    uint8_t resize_row_valid;
 
     uint16_t *row_pixels;
     uint8_t *row_alpha;
-    uint16_t *stream_band_pixels;
-    uint8_t *stream_band_alpha;
-    uint16_t *resize_column_pixels;
-    uint8_t *resize_column_alpha;
-    uint16_t *resize_row_pixels;
-    uint32_t stream_band_pixel_capacity;
 };
 
-void egui_image_file_init(egui_image_file_t *self);
+void egui_image_file_init(egui_image_file_t *self, egui_core_t *core);
 void egui_image_file_deinit(egui_image_file_t *self);
 
-void egui_image_file_set_default_io(const egui_image_file_io_t *io);
-int egui_image_file_register_decoder(const egui_image_file_decoder_t *decoder);
-void egui_image_file_clear_decoders(void);
+void egui_image_file_set_default_io(egui_core_t *core, const egui_image_file_io_t *io);
+int egui_image_file_register_decoder(egui_core_t *core, const egui_image_file_decoder_t *decoder);
+void egui_image_file_clear_decoders(egui_core_t *core);
 
 int egui_image_file_set_path(egui_image_file_t *self, const char *path);
 void egui_image_file_set_io(egui_image_file_t *self, const egui_image_file_io_t *io);

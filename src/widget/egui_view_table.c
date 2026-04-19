@@ -1,8 +1,9 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_table.h"
+#include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
@@ -73,6 +74,7 @@ void egui_view_table_set_grid_color(egui_view_t *self, egui_color_t color)
 void egui_view_table_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     if (local->row_count == 0 || local->col_count == 0)
     {
@@ -102,7 +104,7 @@ void egui_view_table_on_draw(egui_view_t *self)
         // Header background
         if (r < local->header_rows)
         {
-            egui_canvas_draw_rectangle_fill(x, cell_y, w, rh, local->header_bg_color, EGUI_ALPHA_100);
+            egui_canvas_draw_rectangle_fill(canvas, x, cell_y, w, rh, local->header_bg_color, EGUI_ALPHA_100);
         }
 
         // Draw cells
@@ -114,7 +116,7 @@ void egui_view_table_on_draw(egui_view_t *self)
             {
                 egui_region_t cell_rect = {{cell_x + text_pad, cell_y}, {col_w - text_pad, rh}};
                 egui_color_t color = (r < local->header_rows) ? local->header_text_color : local->cell_text_color;
-                egui_canvas_draw_text_in_rect(font, text, &cell_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, color, EGUI_ALPHA_100);
+                egui_canvas_draw_text_in_rect(canvas, font, text, &cell_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, color, EGUI_ALPHA_100);
             }
         }
     }
@@ -130,13 +132,13 @@ void egui_view_table_on_draw(egui_view_t *self)
             {
                 ly = y + local->row_count * rh - 1;
             }
-            egui_canvas_draw_line(x, ly, x + w - 1, ly, 1, local->grid_color, EGUI_ALPHA_100);
+            egui_canvas_draw_line(canvas, x, ly, x + w - 1, ly, 1, local->grid_color, EGUI_ALPHA_100);
         }
         // Vertical lines
         for (c = 0; c <= local->col_count; c++)
         {
             egui_dim_t lx = (c == local->col_count) ? (x + w - 1) : (x + c * col_w);
-            egui_canvas_draw_line(lx, y, lx, y + local->row_count * rh - 1, 1, local->grid_color, EGUI_ALPHA_100);
+            egui_canvas_draw_line(canvas, lx, y, lx, y + local->row_count * rh - 1, 1, local->grid_color, EGUI_ALPHA_100);
         }
     }
 }
@@ -158,11 +160,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_table_t) = {
 #endif
 };
 
-void egui_view_table_init(egui_view_t *self)
+void egui_view_table_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_table_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_table_t);
 
@@ -200,8 +202,8 @@ void egui_view_table_apply_params(egui_view_t *self, const egui_view_table_param
     egui_view_invalidate(self);
 }
 
-void egui_view_table_init_with_params(egui_view_t *self, const egui_view_table_params_t *params)
+void egui_view_table_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_table_params_t *params)
 {
-    egui_view_table_init(self);
+    egui_view_table_init(self, core);
     egui_view_table_apply_params(self, params);
 }

@@ -29,7 +29,7 @@ DEFAULT_INDEX_PATH = PERF_OUTPUT_DIR / "perf_scenes_index.json"
 
 SCENE_PATTERN = re.compile(r"PERF_SCENE:(\w+)")
 FRAME_PATTERN = re.compile(r"PERF_FRAME:(frame_\d+\.png):(\w+)")
-REQUIRED_CFLAGS = "-DEGUI_CONFIG_RECORDING_TEST=1"
+REQUIRED_CFLAGS = "-DEGUI_CONFIG_RECORDING_TEST=1 -DEGUI_PERF_CAPTURE_BENCHMARK_ONLY=1"
 BUILD_TARGET = "perf_scene_capture"
 BUILD_OBJ_SUFFIX = "HelloPerformance_perf_scene_capture"
 

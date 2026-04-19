@@ -1,16 +1,16 @@
 #include "decoder_registry.h"
 
-static int file_image_decoder_registry_add(const egui_image_file_decoder_t *decoder)
+static int file_image_decoder_registry_add(egui_core_t *core, const egui_image_file_decoder_t *decoder)
 {
     if (decoder == NULL)
     {
         return 1;
     }
 
-    return egui_image_file_register_decoder(decoder);
+    return egui_image_file_register_decoder(core, decoder);
 }
 
-int file_image_decoder_registry_apply(const file_image_decoder_registry_config_t *config)
+int file_image_decoder_registry_apply(egui_core_t *core, const file_image_decoder_registry_config_t *config)
 {
     if (config == NULL)
     {
@@ -19,26 +19,26 @@ int file_image_decoder_registry_apply(const file_image_decoder_registry_config_t
 
     if (config->clear_first)
     {
-        egui_image_file_clear_decoders();
+        egui_image_file_clear_decoders(core);
     }
 
-    if (!file_image_decoder_registry_add(config->bmp_stream))
+    if (!file_image_decoder_registry_add(core, config->bmp_stream))
     {
         return 0;
     }
-    if (!file_image_decoder_registry_add(config->jpeg_vendor))
+    if (!file_image_decoder_registry_add(core, config->jpeg_vendor))
     {
         return 0;
     }
-    if (!file_image_decoder_registry_add(config->jpeg_stream))
+    if (!file_image_decoder_registry_add(core, config->jpeg_stream))
     {
         return 0;
     }
-    if (!file_image_decoder_registry_add(config->png_vendor))
+    if (!file_image_decoder_registry_add(core, config->png_vendor))
     {
         return 0;
     }
-    if (!file_image_decoder_registry_add(config->generic_fallback))
+    if (!file_image_decoder_registry_add(core, config->generic_fallback))
     {
         return 0;
     }

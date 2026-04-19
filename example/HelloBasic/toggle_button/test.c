@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 toggle buttons: XS / S / M / L
 static egui_view_toggle_button_t toggle_xs;
@@ -72,37 +72,37 @@ static void on_toggled_cb(egui_view_t *self, uint8_t is_toggled)
     EGUI_LOG_INF("Toggle toggled: %s=%d\r\n", name, is_toggled);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init all toggle buttons
-    egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&toggle_xs), &toggle_xs_params);
+    egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&toggle_xs), core, &toggle_xs_params);
     egui_view_toggle_button_set_on_toggled_listener(EGUI_VIEW_OF(&toggle_xs), on_toggled_cb);
     egui_view_toggle_button_set_icon(EGUI_VIEW_OF(&toggle_xs), EGUI_ICON_MS_HEART);
     egui_view_toggle_button_set_icon_font(EGUI_VIEW_OF(&toggle_xs), EGUI_FONT_ICON_MS_16);
     egui_view_toggle_button_set_icon_text_gap(EGUI_VIEW_OF(&toggle_xs), 4);
     egui_view_toggle_button_set_text_color(EGUI_VIEW_OF(&toggle_xs), EGUI_COLOR_WHITE);
 
-    egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&toggle_s), &toggle_s_params);
+    egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&toggle_s), core, &toggle_s_params);
     egui_view_toggle_button_set_on_toggled_listener(EGUI_VIEW_OF(&toggle_s), on_toggled_cb);
     egui_view_toggle_button_set_icon(EGUI_VIEW_OF(&toggle_s), EGUI_ICON_MS_NOTIFICATIONS);
     egui_view_toggle_button_set_icon_font(EGUI_VIEW_OF(&toggle_s), EGUI_FONT_ICON_MS_16);
     egui_view_toggle_button_set_icon_text_gap(EGUI_VIEW_OF(&toggle_s), 6);
     egui_view_toggle_button_set_text_color(EGUI_VIEW_OF(&toggle_s), EGUI_COLOR_WHITE);
 
-    egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&toggle_m), &toggle_m_params);
+    egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&toggle_m), core, &toggle_m_params);
     egui_view_toggle_button_set_on_toggled_listener(EGUI_VIEW_OF(&toggle_m), on_toggled_cb);
     egui_view_toggle_button_set_icon(EGUI_VIEW_OF(&toggle_m), EGUI_ICON_MS_VISIBILITY);
     egui_view_toggle_button_set_icon_font(EGUI_VIEW_OF(&toggle_m), EGUI_FONT_ICON_MS_20);
     egui_view_toggle_button_set_icon_text_gap(EGUI_VIEW_OF(&toggle_m), 6);
     egui_view_toggle_button_set_text_color(EGUI_VIEW_OF(&toggle_m), EGUI_COLOR_WHITE);
 
-    egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&toggle_l), &toggle_l_params);
+    egui_view_toggle_button_init_with_params(EGUI_VIEW_OF(&toggle_l), core, &toggle_l_params);
     egui_view_toggle_button_set_on_toggled_listener(EGUI_VIEW_OF(&toggle_l), on_toggled_cb);
     egui_view_toggle_button_set_icon(EGUI_VIEW_OF(&toggle_l), EGUI_ICON_MS_SETTINGS);
     egui_view_toggle_button_set_icon_font(EGUI_VIEW_OF(&toggle_l), EGUI_FONT_ICON_MS_20);
@@ -128,7 +128,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

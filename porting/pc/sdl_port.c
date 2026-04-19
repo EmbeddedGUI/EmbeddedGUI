@@ -1,11 +1,14 @@
-#include "sdl_port.h"
+﻿#include "sdl_port.h"
 #include <stdlib.h>
+#include <stddef.h>
+
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
 
 #include "SDL2/SDL.h"
+#include "core/egui_input.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -105,17 +108,22 @@ static uint32_t sdl_present_fb[VT_WIDTH * VT_HEIGHT];
 #define VT_FB_PIXEL_SIZE    sizeof(uint32_t)
 #define VT_SDL_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
 #endif
-static volatile bool sdl_inited = false;
-static volatile bool sdl_refr_qry = false;
-static volatile bool sdl_quit_qry = false;
+
+static void sdl_log_core_task_caller_failure(const char *context, int display_id)
+{
+    printf("[PC_CORE_TASK_CALLER] context=%s display=%d reason=post_rejected\n", context != NULL ? context : "unknown", display_id);
+}
+static SDL_atomic_t sdl_inited;
+static SDL_atomic_t sdl_refr_qry;
+static SDL_atomic_t sdl_quit_qry;
 static bool sdl_window_visible = false;
-static bool sdl_has_presentable_frame = false;
+static SDL_atomic_t sdl_has_presentable_frame;
 
 static bool sdl_mouse_left_down = false;
 static SDL_mutex *sdl_touch_mutex = NULL;
 static SDL_mutex *sdl_frame_mutex = NULL;
+static SDL_mutex *sdl_recording_mutex = NULL;
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 typedef struct sdl_touch_event
 {
     uint8_t pressed;
@@ -124,12 +132,278 @@ typedef struct sdl_touch_event
 } sdl_touch_event_t;
 
 #define SDL_TOUCH_EVENT_QUEUE_SIZE 64
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static sdl_touch_event_t sdl_touch_event_queue[SDL_TOUCH_EVENT_QUEUE_SIZE];
 static uint8_t sdl_touch_event_head = 0;
 static uint8_t sdl_touch_event_tail = 0;
 static uint8_t sdl_touch_event_count = 0;
 static sdl_touch_event_t sdl_touch_last_state = {0, 0, 0};
+#endif
 
+/* ---- Multi-display SDL support ---- */
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+
+#define SDL_MAX_EXTRA_DISPLAYS (EGUI_CONFIG_MAX_DISPLAY_COUNT - 1)
+
+typedef struct sdl_extra_display
+{
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
+    uint32_t *tft_fb;
+    uint32_t *present_fb;
+    SDL_mutex *frame_mutex;
+    SDL_mutex *touch_mutex;
+    int16_t width;
+    int16_t height;
+    uint32_t sdl_window_id;
+    bool has_presentable_frame;
+    bool window_visible;
+    bool mouse_left_down;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    sdl_touch_event_t touch_queue[SDL_TOUCH_EVENT_QUEUE_SIZE];
+    uint8_t touch_head;
+    uint8_t touch_tail;
+    uint8_t touch_count;
+    sdl_touch_event_t touch_last;
+#endif
+} sdl_extra_display_t;
+
+static sdl_extra_display_t sdl_extra[SDL_MAX_EXTRA_DISPLAYS];
+static int sdl_extra_count = 0;
+static uint32_t sdl_display0_window_id = 0;
+
+static int sdl_get_display_for_window(uint32_t window_id)
+{
+    if (sdl_display0_window_id == window_id)
+    {
+        return 0;
+    }
+    for (int i = 0; i < sdl_extra_count; i++)
+    {
+        if (sdl_extra[i].sdl_window_id == window_id)
+        {
+            return i + 1;
+        }
+    }
+    return -1;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static void sdl_extra_touch_push(int idx, uint8_t pressed, int16_t x, int16_t y)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+
+    SDL_LockMutex(ctx->touch_mutex);
+    ctx->touch_last.pressed = pressed;
+    ctx->touch_last.x = x;
+    ctx->touch_last.y = y;
+
+    if (ctx->touch_count >= SDL_TOUCH_EVENT_QUEUE_SIZE)
+    {
+        ctx->touch_head = (uint8_t)((ctx->touch_head + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
+        ctx->touch_count--;
+    }
+    ctx->touch_queue[ctx->touch_tail] = ctx->touch_last;
+    ctx->touch_tail = (uint8_t)((ctx->touch_tail + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
+    ctx->touch_count++;
+    SDL_UnlockMutex(ctx->touch_mutex);
+}
+
+static void sdl_extra_touch_read(int idx, uint8_t *pressed, int16_t *x, int16_t *y)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    sdl_touch_event_t event;
+
+    SDL_LockMutex(ctx->touch_mutex);
+    if (ctx->touch_count > 0)
+    {
+        event = ctx->touch_queue[ctx->touch_head];
+        ctx->touch_head = (uint8_t)((ctx->touch_head + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
+        ctx->touch_count--;
+        ctx->touch_last = event;
+    }
+    else
+    {
+        event = ctx->touch_last;
+    }
+    SDL_UnlockMutex(ctx->touch_mutex);
+
+    *pressed = event.pressed;
+    *x = event.x;
+    *y = event.y;
+}
+#endif /* EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH */
+
+static void sdl_extra_fill_colors(int idx, int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    int16_t w = ctx->width;
+    int16_t h = ctx->height;
+
+    if (x2 < 0 || y2 < 0 || x1 > w - 1 || y1 > h - 1)
+    {
+        return;
+    }
+
+    int32_t act_x1 = x1 < 0 ? 0 : x1;
+    int32_t act_y1 = y1 < 0 ? 0 : y1;
+    int32_t act_x2 = x2 > w - 1 ? w - 1 : x2;
+    int32_t act_y2 = y2 > h - 1 ? h - 1 : y2;
+
+    for (int32_t y = act_y1; y <= act_y2; y++)
+    {
+        for (int32_t x = act_x1; x <= act_x2; x++)
+        {
+            ctx->tft_fb[y * w + x] = 0xff000000 | DEV_2_VT_RGB(*color_p);
+            color_p++;
+        }
+        color_p += x2 - act_x2;
+    }
+}
+
+static void sdl_extra_fill_single_color(int idx, int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t color)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    int16_t w = ctx->width;
+    int16_t h = ctx->height;
+
+    if (x2 < 0 || y2 < 0 || x1 > w - 1 || y1 > h - 1)
+    {
+        return;
+    }
+
+    int32_t act_x1 = x1 < 0 ? 0 : x1;
+    int32_t act_y1 = y1 < 0 ? 0 : y1;
+    int32_t act_x2 = x2 > w - 1 ? w - 1 : x2;
+    int32_t act_y2 = y2 > h - 1 ? h - 1 : y2;
+
+    for (int32_t y = act_y1; y <= act_y2; y++)
+    {
+        for (int32_t x = act_x1; x <= act_x2; x++)
+        {
+            ctx->tft_fb[y * w + x] = 0xff000000 | DEV_2_VT_RGB(color);
+        }
+    }
+}
+
+static void sdl_extra_set_point(int idx, int32_t x, int32_t y, egui_color_int_t color)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    int16_t w = ctx->width;
+    int16_t h = ctx->height;
+
+    if (x < 0 || y < 0 || x > w - 1 || y > h - 1)
+    {
+        return;
+    }
+
+    ctx->tft_fb[y * w + x] = 0xff000000 | DEV_2_VT_RGB(color);
+}
+
+static egui_color_int_t sdl_extra_get_point(int idx, int32_t x, int32_t y)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    int16_t w = ctx->width;
+    int16_t h = ctx->height;
+
+    if (x < 0 || y < 0 || x > w - 1 || y > h - 1)
+    {
+        return 0;
+    }
+
+    return VT_RGB_2_DEV(ctx->tft_fb[y * w + x]);
+}
+
+static void sdl_extra_commit_frame(int idx)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    SDL_LockMutex(ctx->frame_mutex);
+    memcpy(ctx->present_fb, ctx->tft_fb, (size_t)ctx->width * ctx->height * sizeof(uint32_t));
+    ctx->has_presentable_frame = true;
+    SDL_UnlockMutex(ctx->frame_mutex);
+}
+
+static bool sdl_extra_upload_committed_frame(int idx)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    bool uploaded = false;
+
+    SDL_LockMutex(ctx->frame_mutex);
+    if (ctx->has_presentable_frame)
+    {
+        SDL_UpdateTexture(ctx->texture, NULL, ctx->present_fb, ctx->width * (int)sizeof(uint32_t));
+        ctx->has_presentable_frame = false;
+        uploaded = true;
+    }
+    SDL_UnlockMutex(ctx->frame_mutex);
+
+    return uploaded;
+}
+
+static void sdl_extra_present_frame(int idx)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+
+    SDL_RenderClear(ctx->renderer);
+    SDL_RenderCopy(ctx->renderer, ctx->texture, NULL, NULL);
+    SDL_RenderPresent(ctx->renderer);
+}
+
+static void sdl_extra_present_if_dirty(int idx)
+{
+    if (sdl_extra_upload_committed_frame(idx))
+    {
+        sdl_extra_present_frame(idx);
+    }
+}
+
+void sdl_port_add_display(int display_id, int16_t w, int16_t h)
+{
+    int idx = display_id - 1;
+
+    if (idx < 0 || idx >= SDL_MAX_EXTRA_DISPLAYS)
+    {
+        return;
+    }
+
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    memset(ctx, 0, sizeof(sdl_extra_display_t));
+
+    ctx->width = w;
+    ctx->height = h;
+
+    char title[256];
+    sprintf(title, "%s-Display%d-%dx%d@%d", EGUI_APP, display_id, w, h, EGUI_CONFIG_COLOR_DEPTH);
+
+    ctx->window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, 0);
+    ctx->renderer = SDL_CreateRenderer(ctx->window, -1, 0);
+    ctx->texture = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, w, h);
+    SDL_SetTextureBlendMode(ctx->texture, SDL_BLENDMODE_BLEND);
+
+    size_t fb_size = (size_t)w * h;
+    ctx->tft_fb = (uint32_t *)malloc(fb_size * sizeof(uint32_t));
+    ctx->present_fb = (uint32_t *)malloc(fb_size * sizeof(uint32_t));
+    memset(ctx->tft_fb, 77, fb_size * sizeof(uint32_t));
+    memset(ctx->present_fb, 77, fb_size * sizeof(uint32_t));
+    SDL_UpdateTexture(ctx->texture, NULL, ctx->present_fb, w * (int)sizeof(uint32_t));
+
+    ctx->frame_mutex = SDL_CreateMutex();
+    ctx->touch_mutex = SDL_CreateMutex();
+    ctx->has_presentable_frame = false;
+    ctx->window_visible = true;
+    ctx->sdl_window_id = SDL_GetWindowID(ctx->window);
+
+    if (idx >= sdl_extra_count)
+    {
+        sdl_extra_count = idx + 1;
+    }
+}
+
+#endif /* EGUI_CONFIG_MAX_DISPLAY_COUNT > 1 */
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void sdl_touch_lock(void)
 {
     if (sdl_touch_mutex == NULL)
@@ -171,7 +445,7 @@ static void sdl_port_touch_push_event(uint8_t pressed, int16_t x, int16_t y)
     sdl_touch_unlock();
 }
 
-void sdl_port_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
+void sdl_port_touch_read(egui_core_t *core_ctx, uint8_t *pressed, int16_t *x, int16_t *y)
 {
     sdl_touch_event_t event;
 
@@ -179,6 +453,15 @@ void sdl_port_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
     {
         return;
     }
+
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    int disp_id = core_ctx != NULL ? core_ctx->id : 0;
+    if (disp_id > 0 && disp_id <= sdl_extra_count)
+    {
+        sdl_extra_touch_read(disp_id - 1, pressed, x, y);
+        return;
+    }
+#endif
 
     sdl_touch_lock();
 
@@ -200,7 +483,7 @@ void sdl_port_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
     *x = event.x;
     *y = event.y;
 }
-#endif
+#endif /* EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH */
 
 // Recording state for GIF generation
 #define RECORDING_MAX_FRAMES 1000
@@ -261,13 +544,41 @@ static void recording_request_snapshot_internal(bool block_actions);
 #endif
 static uint32_t recording_apply_clock_scale(uint32_t real_ms);
 
+static bool sdl_atomic_flag_get(SDL_atomic_t *flag)
+{
+    return SDL_AtomicGet(flag) != 0;
+}
+
+#define SHUTDOWN_MARKER_PREFIX "[SHUTDOWN_CHECK]"
+
+static void sdl_atomic_flag_set(SDL_atomic_t *flag, bool value)
+{
+    SDL_AtomicSet(flag, value ? 1 : 0);
+}
+
+static void recording_lock(void)
+{
+    if (sdl_recording_mutex != NULL)
+    {
+        SDL_LockMutex(sdl_recording_mutex);
+    }
+}
+
+static void recording_unlock(void)
+{
+    if (sdl_recording_mutex != NULL)
+    {
+        SDL_UnlockMutex(sdl_recording_mutex);
+    }
+}
+
 int quit_filter(void *userdata, SDL_Event *event)
 {
     (void)userdata;
 
     if (event->type == SDL_QUIT)
     {
-        sdl_quit_qry = true;
+        sdl_atomic_flag_set(&sdl_quit_qry, true);
     }
 
     return 1;
@@ -275,7 +586,49 @@ int quit_filter(void *userdata, SDL_Event *event)
 
 static void monitor_sdl_clean_up(void)
 {
-    sdl_inited = false;
+    int extra_window_count = 0;
+    int primary_window_destroyed = window != NULL ? 1 : 0;
+
+    sdl_atomic_flag_set(&sdl_inited, false);
+
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    extra_window_count = sdl_extra_count;
+    for (int i = 0; i < sdl_extra_count; i++)
+    {
+        sdl_extra_display_t *ctx = &sdl_extra[i];
+        if (ctx->texture != NULL)
+        {
+            SDL_DestroyTexture(ctx->texture);
+            ctx->texture = NULL;
+        }
+        if (ctx->renderer != NULL)
+        {
+            SDL_DestroyRenderer(ctx->renderer);
+            ctx->renderer = NULL;
+        }
+        if (ctx->window != NULL)
+        {
+            SDL_DestroyWindow(ctx->window);
+            ctx->window = NULL;
+        }
+        if (ctx->frame_mutex != NULL)
+        {
+            SDL_DestroyMutex(ctx->frame_mutex);
+            ctx->frame_mutex = NULL;
+        }
+        if (ctx->touch_mutex != NULL)
+        {
+            SDL_DestroyMutex(ctx->touch_mutex);
+            ctx->touch_mutex = NULL;
+        }
+        free(ctx->tft_fb);
+        ctx->tft_fb = NULL;
+        free(ctx->present_fb);
+        ctx->present_fb = NULL;
+    }
+    sdl_extra_count = 0;
+#endif
+
     SDL_DestroyTexture(texture);
     texture = NULL;
     SDL_DestroyRenderer(renderer);
@@ -292,6 +645,12 @@ static void monitor_sdl_clean_up(void)
         SDL_DestroyMutex(sdl_frame_mutex);
         sdl_frame_mutex = NULL;
     }
+    if (sdl_recording_mutex != NULL)
+    {
+        SDL_DestroyMutex(sdl_recording_mutex);
+        sdl_recording_mutex = NULL;
+    }
+    printf("%s sdl_cleanup primary_window=%d extra_windows=%d\n", SHUTDOWN_MARKER_PREFIX, primary_window_destroyed, extra_window_count);
     SDL_Quit();
 }
 
@@ -311,18 +670,26 @@ static void sdl_frame_unlock(void)
     }
 }
 
-static void sdl_port_commit_frame(void)
+static void sdl_port_commit_frame(egui_core_t *core_ctx)
 {
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    int disp_id = core_ctx != NULL ? core_ctx->id : 0;
+    if (disp_id > 0 && disp_id <= sdl_extra_count)
+    {
+        sdl_extra_commit_frame(disp_id - 1);
+        return;
+    }
+#endif
     sdl_frame_lock();
     memcpy(sdl_present_fb, tft_fb, sizeof(sdl_present_fb));
-    sdl_has_presentable_frame = true;
+    sdl_atomic_flag_set(&sdl_has_presentable_frame, true);
     sdl_frame_unlock();
 }
 
 static void sdl_port_upload_committed_frame(void)
 {
     sdl_frame_lock();
-    if (sdl_has_presentable_frame)
+    if (sdl_atomic_flag_get(&sdl_has_presentable_frame))
     {
         SDL_UpdateTexture(texture, NULL, sdl_present_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
     }
@@ -341,6 +708,10 @@ static void monitor_sdl_init(void)
     if (sdl_frame_mutex == NULL)
     {
         sdl_frame_mutex = SDL_CreateMutex();
+    }
+    if (sdl_recording_mutex == NULL)
+    {
+        sdl_recording_mutex = SDL_CreateMutex();
     }
 
     SDL_SetEventFilter(quit_filter, NULL);
@@ -378,15 +749,18 @@ static void monitor_sdl_init(void)
     memset(sdl_present_fb, 77, VT_WIDTH * VT_HEIGHT * VT_FB_PIXEL_SIZE);
     SDL_UpdateTexture(texture, NULL, sdl_present_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
 
-    sdl_has_presentable_frame = false;
+    sdl_atomic_flag_set(&sdl_has_presentable_frame, false);
     sdl_window_visible = (window_flags & SDL_WINDOW_HIDDEN) == 0;
-    sdl_refr_qry = false;
-    sdl_inited = true;
+    sdl_atomic_flag_set(&sdl_refr_qry, false);
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    sdl_display0_window_id = SDL_GetWindowID(window);
+#endif
+    sdl_atomic_flag_set(&sdl_inited, true);
 }
 
 static void sdl_port_present_frame(void)
 {
-    if (!g_sdl_headless && !sdl_window_visible && sdl_has_presentable_frame)
+    if (!g_sdl_headless && !sdl_window_visible && sdl_atomic_flag_get(&sdl_has_presentable_frame))
     {
         SDL_ShowWindow(window);
         sdl_window_visible = true;
@@ -399,22 +773,164 @@ static void sdl_port_present_frame(void)
     SDL_RenderPresent(renderer);
 }
 
+static void sdl_port_present_window_frame(uint32_t window_id)
+{
+    if (g_sdl_headless)
+    {
+        return;
+    }
+
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    if (window_id != sdl_display0_window_id)
+    {
+        int disp_id = sdl_get_display_for_window(window_id);
+        if (disp_id > 0 && disp_id <= sdl_extra_count)
+        {
+            sdl_extra_upload_committed_frame(disp_id - 1);
+            sdl_extra_present_frame(disp_id - 1);
+            return;
+        }
+        if (disp_id < 0)
+        {
+            return;
+        }
+    }
+#else
+    EGUI_UNUSED(window_id);
+#endif
+
+    if (sdl_atomic_flag_get(&sdl_has_presentable_frame))
+    {
+        sdl_port_upload_committed_frame();
+    }
+    sdl_port_present_frame();
+}
+
 __EGUI_WEAK__ void egui_port_hanlde_key_event(int key, int event)
 {
     // printf("key event: %d, %d\n", key, event);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+typedef struct sdl_scroll_task_data
+{
+    egui_dim_t x;
+    egui_dim_t y;
+    int16_t delta;
+} sdl_scroll_task_data_t;
+
+static void sdl_core_scroll_task(egui_core_t *core, uintptr_t user_data)
+{
+    sdl_scroll_task_data_t *task_data = (sdl_scroll_task_data_t *)user_data;
+
+    if (core != NULL && task_data != NULL)
+    {
+        egui_input_add_scroll(core, task_data->x, task_data->y, task_data->delta);
+    }
+
+    if (task_data != NULL)
+    {
+        free(task_data);
+    }
+}
+
+static int sdl_post_scroll_task(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t delta)
+{
+    sdl_scroll_task_data_t *task_data;
+
+    if (core == NULL)
+    {
+        return 0;
+    }
+
+    task_data = (sdl_scroll_task_data_t *)malloc(sizeof(sdl_scroll_task_data_t));
+    if (task_data == NULL)
+    {
+        return 0;
+    }
+
+    task_data->x = x;
+    task_data->y = y;
+    task_data->delta = delta;
+    if (!egui_port_post_core_task(core, sdl_core_scroll_task, (uintptr_t)task_data))
+    {
+        free(task_data);
+        return 0;
+    }
+
+    return 1;
+}
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+
+static uintptr_t sdl_pack_key_task_data(uint8_t key_type, uint8_t key_code, uint8_t is_shift, uint8_t is_ctrl)
+{
+    return ((uintptr_t)key_type) | ((uintptr_t)key_code << 8) | ((uintptr_t)is_shift << 16) | ((uintptr_t)is_ctrl << 24);
+}
+
+static void sdl_core_key_task(egui_core_t *core, uintptr_t user_data)
+{
+    uint8_t key_type = (uint8_t)(user_data & 0xFFu);
+    uint8_t key_code = (uint8_t)((user_data >> 8) & 0xFFu);
+    uint8_t is_shift = (uint8_t)((user_data >> 16) & 0xFFu);
+    uint8_t is_ctrl = (uint8_t)((user_data >> 24) & 0xFFu);
+
+    if (core != NULL)
+    {
+        egui_input_add_key(core, key_type, key_code, is_shift, is_ctrl);
+    }
+}
+#endif
+
+static void sdl_core_screen_power_task(egui_core_t *core, uintptr_t user_data)
+{
+    if (core == NULL)
+    {
+        return;
+    }
+
+    if (user_data == 2)
+    {
+        if (egui_core_is_suspended(core))
+        {
+            egui_screen_on(core);
+        }
+        else
+        {
+            egui_screen_off(core);
+        }
+    }
+    else if (user_data != 0)
+    {
+        egui_screen_on(core);
+    }
+    else
+    {
+        egui_screen_off(core);
+    }
+}
+
 void VT_sdl_refresh_task(void)
 {
-    if (sdl_refr_qry != false)
+    if (sdl_atomic_flag_get(&sdl_refr_qry))
     {
-        sdl_refr_qry = false;
-        if (sdl_has_presentable_frame)
+        sdl_atomic_flag_set(&sdl_refr_qry, false);
+        if (sdl_atomic_flag_get(&sdl_has_presentable_frame))
         {
             sdl_port_upload_committed_frame();
             sdl_port_present_frame();
         }
     }
+
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    /* Refresh extra displays */
+    for (int i = 0; i < sdl_extra_count; i++)
+    {
+        sdl_extra_present_if_dirty(i);
+    }
+#endif
+
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
@@ -424,38 +940,120 @@ void VT_sdl_refresh_task(void)
         case SDL_MOUSEBUTTONUP:
             if ((&event)->button.button == SDL_BUTTON_LEFT)
             {
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+                int target_up = sdl_get_display_for_window((&event)->button.windowID);
+                if (target_up == 0)
+                {
+                    sdl_mouse_left_down = false;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+                    sdl_port_touch_push_event(0, (&event)->button.x, (&event)->button.y);
+#endif
+                }
+                else if (target_up > 0 && target_up <= sdl_extra_count)
+                {
+                    sdl_extra[target_up - 1].mouse_left_down = false;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+                    sdl_extra_touch_push(target_up - 1, 0, (&event)->button.x, (&event)->button.y);
+#endif
+                }
+                else
+                {
+                    break;
+                }
+#else
                 sdl_mouse_left_down = false;
-
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
                 sdl_port_touch_push_event(0, (&event)->button.x, (&event)->button.y);
+#endif
 #endif
             }
             break;
         case SDL_MOUSEBUTTONDOWN:
             if ((&event)->button.button == SDL_BUTTON_LEFT)
             {
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+                int target_down = sdl_get_display_for_window((&event)->button.windowID);
+                if (target_down == 0)
+                {
+                    sdl_mouse_left_down = true;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+                    sdl_port_touch_push_event(1, (&event)->button.x, (&event)->button.y);
+#endif
+                }
+                else if (target_down > 0 && target_down <= sdl_extra_count)
+                {
+                    sdl_extra[target_down - 1].mouse_left_down = true;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+                    sdl_extra_touch_push(target_down - 1, 1, (&event)->button.x, (&event)->button.y);
+#endif
+                }
+                else
+                {
+                    break;
+                }
+#else
                 sdl_mouse_left_down = true;
-
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
                 sdl_port_touch_push_event(1, (&event)->button.x, (&event)->button.y);
+#endif
 #endif
             }
             break;
         case SDL_MOUSEMOTION:
+        {
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+            int target_motion = sdl_get_display_for_window((&event)->motion.windowID);
+            if (target_motion == 0)
+            {
+                if (sdl_mouse_left_down)
+                {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+                    sdl_port_touch_push_event(1, (&event)->motion.x, (&event)->motion.y);
+#endif
+                }
+            }
+            else if (target_motion > 0 && target_motion <= sdl_extra_count)
+            {
+                if (sdl_extra[target_motion - 1].mouse_left_down)
+                {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+                    sdl_extra_touch_push(target_motion - 1, 1, (&event)->motion.x, (&event)->motion.y);
+#endif
+                }
+            }
+            else
+            {
+                break;
+            }
+#else
             if (sdl_mouse_left_down)
             {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
                 sdl_port_touch_push_event(1, (&event)->motion.x, (&event)->motion.y);
 #endif
             }
+#endif
             break;
+        }
 
         case SDL_MOUSEWHEEL:
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
             int mx, my;
+            egui_core_t *target_core = NULL;
+            int target_display = 0;
             SDL_GetMouseState(&mx, &my);
-            egui_input_add_scroll((egui_dim_t)mx, (egui_dim_t)my, (int16_t)(&event)->wheel.y);
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+            target_display = sdl_get_display_for_window((&event)->wheel.windowID);
+#endif
+            target_core = egui_port_get_core_by_display_id(target_display);
+            if (target_core != NULL)
+            {
+                if (!sdl_post_scroll_task(target_core, (egui_dim_t)mx, (egui_dim_t)my, (int16_t)(&event)->wheel.y))
+                {
+                    sdl_log_core_task_caller_failure("scroll_event", target_display);
+                }
+            }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
             break;
         }
@@ -467,11 +1065,10 @@ void VT_sdl_refresh_task(void)
             case SDL_WINDOWEVENT_TAKE_FOCUS:
 #endif
             case SDL_WINDOWEVENT_EXPOSED:
-                if (!g_sdl_headless && sdl_has_presentable_frame)
-                {
-                    sdl_port_upload_committed_frame();
-                    sdl_port_present_frame();
-                }
+                sdl_port_present_window_frame(event.window.windowID);
+                break;
+            case SDL_WINDOWEVENT_CLOSE:
+                sdl_atomic_flag_set(&sdl_quit_qry, true);
                 break;
             default:
                 break;
@@ -490,13 +1087,18 @@ void VT_sdl_refresh_task(void)
             // F12: toggle screen on/off (demo power management)
             if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F12)
             {
-                if (egui_core_is_suspended())
+                egui_core_t *target_core = NULL;
+                int target_display = 0;
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+                target_display = sdl_get_display_for_window(event.key.windowID);
+#endif
+                target_core = egui_port_get_core_by_display_id(target_display);
+                if (target_core != NULL)
                 {
-                    egui_screen_on();
-                }
-                else
-                {
-                    egui_screen_off();
+                    if (!egui_port_post_core_task(target_core, sdl_core_screen_power_task, 2))
+                    {
+                        sdl_log_core_task_caller_failure("screen_power", target_display);
+                    }
                 }
             }
 
@@ -505,6 +1107,12 @@ void VT_sdl_refresh_task(void)
             uint8_t is_shift = (event.key.keysym.mod & KMOD_SHIFT) ? 1 : 0;
             uint8_t is_ctrl = (event.key.keysym.mod & KMOD_CTRL) ? 1 : 0;
             uint8_t key_code = EGUI_KEY_CODE_NONE;
+            egui_core_t *target_core = NULL;
+            int target_display = 0;
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+            target_display = sdl_get_display_for_window(event.key.windowID);
+#endif
+            target_core = egui_port_get_core_by_display_id(target_display);
             switch (event.key.keysym.sym)
             {
             // Navigation
@@ -707,11 +1315,20 @@ void VT_sdl_refresh_task(void)
 
             if (key_code != EGUI_KEY_CODE_NONE)
             {
-                egui_input_add_key(key_type, key_code, is_shift, is_ctrl);
+                if (target_core != NULL)
+                {
+                    if (!egui_port_post_core_task(target_core, sdl_core_key_task, sdl_pack_key_task_data(key_type, key_code, is_shift, is_ctrl)))
+                    {
+                        sdl_log_core_task_caller_failure("key_event", target_display);
+                    }
+                }
             }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY
             break;
         }
+        case SDL_QUIT:
+            sdl_atomic_flag_set(&sdl_quit_qry, true);
+            break;
         default:
             break;
         }
@@ -726,43 +1343,50 @@ void VT_sdl_refresh_task(void)
 
 bool VT_is_request_quit(void)
 {
-    return sdl_quit_qry;
+    return sdl_atomic_flag_get(&sdl_quit_qry);
 }
 
 void VT_deinit(void)
 {
     monitor_sdl_clean_up();
+    printf("%s deinit_done\n", SHUTDOWN_MARKER_PREFIX);
 }
 
 void VT_sdl_flush(int32_t nMS)
 {
+    VT_sdl_flush_core(NULL, nMS);
+}
+
+void VT_sdl_flush_core(egui_core_t *core_ctx, int32_t nMS)
+{
     EGUI_UNUSED(nMS);
 #ifdef __EMSCRIPTEN__
-    sdl_port_commit_frame();
+    sdl_port_commit_frame(core_ctx);
     sdl_port_request_refresh();
 #else
-    if (sdl_quit_qry || !sdl_inited)
+    if (sdl_atomic_flag_get(&sdl_quit_qry) || !sdl_atomic_flag_get(&sdl_inited))
     {
         return;
     }
-    sdl_port_commit_frame();
+    sdl_port_commit_frame(core_ctx);
     sdl_port_request_refresh();
 #endif
 }
 
 void sdl_port_request_refresh(void)
 {
-    if (sdl_quit_qry || !sdl_inited)
+    if (sdl_atomic_flag_get(&sdl_quit_qry) || !sdl_atomic_flag_get(&sdl_inited))
     {
         return;
     }
-    sdl_refr_qry = true;
+    sdl_atomic_flag_set(&sdl_refr_qry, true);
 }
 
 void VT_begin_shutdown(void)
 {
-    sdl_quit_qry = true;
-    sdl_refr_qry = false;
+    sdl_atomic_flag_set(&sdl_quit_qry, true);
+    sdl_atomic_flag_set(&sdl_refr_qry, false);
+    printf("%s begin_shutdown\n", SHUTDOWN_MARKER_PREFIX);
 }
 
 void sdl_port_sleep(uint32_t nMS)
@@ -830,12 +1454,22 @@ void VT_init(void)
 {
     monitor_sdl_init();
 
-    while (sdl_inited == false)
-        continue;
+    while (!sdl_atomic_flag_get(&sdl_inited))
+    {
+        SDL_Delay(1);
+    }
 }
 
-void VT_Fill_Single_Color(int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t color)
+static void VT_Fill_Single_Color_Core(egui_core_t *core_ctx, int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t color)
 {
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    int disp_id = core_ctx != NULL ? core_ctx->id : 0;
+    if (disp_id > 0 && disp_id <= sdl_extra_count)
+    {
+        sdl_extra_fill_single_color(disp_id - 1, x1, y1, x2, y2, color);
+        return;
+    }
+#endif
     /*Return if the area is out the screen*/
     if (x2 < 0)
         return;
@@ -868,8 +1502,21 @@ void VT_Fill_Single_Color(int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_c
     }
 }
 
-void VT_Fill_Multiple_Colors(int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p)
+void VT_Fill_Single_Color(int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t color)
 {
+    VT_Fill_Single_Color_Core(NULL, x1, y1, x2, y2, color);
+}
+
+void VT_Fill_Multiple_Colors_Core(egui_core_t *core_ctx, int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p)
+{
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    int disp_id = core_ctx != NULL ? core_ctx->id : 0;
+    if (disp_id > 0 && disp_id <= sdl_extra_count)
+    {
+        sdl_extra_fill_colors(disp_id - 1, x1, y1, x2, y2, color_p);
+        return;
+    }
+#endif
     /*Return if the area is out the screen*/
     if (x2 < 0)
         return;
@@ -905,8 +1552,21 @@ void VT_Fill_Multiple_Colors(int32_t x1, int32_t y1, int32_t x2, int32_t y2, egu
     }
 }
 
-void VT_Set_Point(int32_t x, int32_t y, egui_color_int_t color)
+void VT_Fill_Multiple_Colors(int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p)
 {
+    VT_Fill_Multiple_Colors_Core(NULL, x1, y1, x2, y2, color_p);
+}
+
+static void VT_Set_Point_Core(egui_core_t *core_ctx, int32_t x, int32_t y, egui_color_int_t color)
+{
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    int disp_id = core_ctx != NULL ? core_ctx->id : 0;
+    if (disp_id > 0 && disp_id <= sdl_extra_count)
+    {
+        sdl_extra_set_point(disp_id - 1, x, y, color);
+        return;
+    }
+#endif
     /*Return if the area is out the screen*/
     if (x < 0)
         return;
@@ -924,8 +1584,20 @@ void VT_Set_Point(int32_t x, int32_t y, egui_color_int_t color)
 #endif
 }
 
-egui_color_int_t VT_Get_Point(int32_t x, int32_t y)
+void VT_Set_Point(int32_t x, int32_t y, egui_color_int_t color)
 {
+    VT_Set_Point_Core(NULL, x, y, color);
+}
+
+static egui_color_int_t VT_Get_Point_Core(egui_core_t *core_ctx, int32_t x, int32_t y)
+{
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    int disp_id = core_ctx != NULL ? core_ctx->id : 0;
+    if (disp_id > 0 && disp_id <= sdl_extra_count)
+    {
+        return sdl_extra_get_point(disp_id - 1, x, y);
+    }
+#endif
     /*Return if the area is out the screen*/
     if (x < 0)
         return 0;
@@ -944,6 +1616,11 @@ egui_color_int_t VT_Get_Point(int32_t x, int32_t y)
 #endif
 }
 
+egui_color_int_t VT_Get_Point(int32_t x, int32_t y)
+{
+    return VT_Get_Point_Core(NULL, x, y);
+}
+
 void snap_shot(const char *file_name)
 {
     // Large showcase-sized canvases can exceed the default Windows stack
@@ -956,16 +1633,18 @@ void snap_shot(const char *file_name)
         return;
     }
 
+    sdl_frame_lock();
+
 #if VT_SDL_NATIVE_RGB565
     for (int i = 0; i < VT_WIDTH * VT_HEIGHT; i++)
     {
-        uint32_t rgb888 = rgb565_to_rgb888(tft_fb[i]);
+        uint32_t rgb888 = rgb565_to_rgb888(sdl_present_fb[i]);
         rgb_data[i * 3 + 0] = (uint8_t)((rgb888 >> 16) & 0xFFU);
         rgb_data[i * 3 + 1] = (uint8_t)((rgb888 >> 8) & 0xFFU);
         rgb_data[i * 3 + 2] = (uint8_t)(rgb888 & 0xFFU);
     }
 #else
-    unsigned int *p_raw_data = (unsigned int *)tft_fb;
+    unsigned int *p_raw_data = (unsigned int *)sdl_present_fb;
 
     for (int i = 0; i < VT_WIDTH * VT_HEIGHT; i++)
     {
@@ -976,13 +1655,53 @@ void snap_shot(const char *file_name)
     }
 #endif
 
+    sdl_frame_unlock();
+
     stbi_write_png(file_name, VT_WIDTH, VT_HEIGHT, 3, rgb_data, VT_WIDTH * 3);
     free(rgb_data);
 }
 
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+static void snap_shot_extra_display(int idx, const char *file_name)
+{
+    if (idx < 0 || idx >= sdl_extra_count)
+    {
+        return;
+    }
+
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    int w = ctx->width;
+    int h = ctx->height;
+    size_t rgb_size = (size_t)w * (size_t)h * 3U;
+    unsigned char *rgb_data = (unsigned char *)malloc(rgb_size);
+
+    if (rgb_data == NULL)
+    {
+        return;
+    }
+
+    SDL_LockMutex(ctx->frame_mutex);
+
+    /* Extra displays always use ARGB8888 */
+    for (int i = 0; i < w * h; i++)
+    {
+        unsigned int argb = ctx->present_fb[i];
+        rgb_data[i * 3 + 0] = (argb >> 16) & 0xFF; // R
+        rgb_data[i * 3 + 1] = (argb >> 8) & 0xFF;  // G
+        rgb_data[i * 3 + 2] = argb & 0xFF;         // B
+    }
+
+    SDL_UnlockMutex(ctx->frame_mutex);
+
+    stbi_write_png(file_name, w, h, 3, rgb_data, w * 3);
+    free(rgb_data);
+}
+#endif /* EGUI_CONFIG_MAX_DISPLAY_COUNT > 1 */
+
 // Recording functions for GIF generation
 void recording_init(const char *output_dir, int fps, int duration_sec)
 {
+    recording_lock();
     g_recording_enabled = true;
     g_recording_fps = fps > 0 ? fps : 10;
     g_recording_duration_ms = duration_sec > 0 ? duration_sec * 1000 : 10000;
@@ -1013,6 +1732,7 @@ void recording_init(const char *output_dir, int fps, int duration_sec)
 #endif
     strncpy(g_recording_output_dir, output_dir, sizeof(g_recording_output_dir) - 1);
     g_recording_output_dir[sizeof(g_recording_output_dir) - 1] = '\0';
+    recording_unlock();
 
     MKDIR(g_recording_output_dir);
     printf("Recording enabled: dir=%s, fps=%d, duration=%ds\n", g_recording_output_dir, g_recording_fps, duration_sec);
@@ -1058,12 +1778,15 @@ void recording_set_snapshot_settle_ms(int settle_ms)
     {
         settle_ms = 2000;
     }
+    recording_lock();
     g_recording_snapshot_settle_ms = settle_ms;
+    recording_unlock();
 }
 
 void recording_set_snapshot_stability(int stable_cycles, int max_wait_ms)
 {
 #if EGUI_CONFIG_RECORDING_TEST
+    recording_lock();
     if (stable_cycles >= 0)
     {
         if (stable_cycles > 20)
@@ -1081,6 +1804,7 @@ void recording_set_snapshot_stability(int stable_cycles, int max_wait_ms)
         }
         g_recording_snapshot_max_wait_ms = max_wait_ms;
     }
+    recording_unlock();
 #else
     EGUI_UNUSED(stable_cycles);
     EGUI_UNUSED(max_wait_ms);
@@ -1089,6 +1813,7 @@ void recording_set_snapshot_stability(int stable_cycles, int max_wait_ms)
 
 static void recording_request_snapshot_internal(bool block_actions)
 {
+    recording_lock();
     if (g_recording_enabled)
     {
 #if EGUI_CONFIG_RECORDING_TEST
@@ -1101,6 +1826,7 @@ static void recording_request_snapshot_internal(bool block_actions)
         g_recording_snapshot_seen_change = false;
 #endif
     }
+    recording_unlock();
 }
 
 void recording_request_snapshot(void)
@@ -1116,7 +1842,9 @@ void sdl_port_set_headless(bool headless)
 #if EGUI_CONFIG_RECORDING_TEST
 void egui_port_notify_frame_render_complete(void)
 {
+    recording_lock();
     g_recording_completed_frame_count++;
+    recording_unlock();
 }
 #else
 void egui_port_notify_frame_render_complete(void)
@@ -1149,16 +1877,35 @@ __EGUI_WEAK__ const char *egui_port_get_recording_frame_label(void)
     return NULL;
 }
 
-static uint32_t recording_calc_frame_hash(void)
+static uint32_t sdl_hash_bytes(uint32_t hash, const uint8_t *data, size_t len)
 {
-    const uint8_t *data = (const uint8_t *)tft_fb;
-    size_t len = (size_t)VT_WIDTH * (size_t)VT_HEIGHT * (size_t)VT_FB_PIXEL_SIZE;
-    uint32_t hash = 2166136261u;
     for (size_t i = 0; i < len; i++)
     {
         hash ^= data[i];
         hash *= 16777619u;
     }
+
+    return hash;
+}
+
+static uint32_t recording_calc_frame_hash(void)
+{
+    uint32_t hash = 2166136261u;
+
+    sdl_frame_lock();
+    hash = sdl_hash_bytes(hash, (const uint8_t *)sdl_present_fb, (size_t)VT_WIDTH * (size_t)VT_HEIGHT * (size_t)VT_FB_PIXEL_SIZE);
+    sdl_frame_unlock();
+
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    /* Include extra display framebuffers in the hash */
+    for (int d = 0; d < sdl_extra_count; d++)
+    {
+        sdl_extra_display_t *ctx = &sdl_extra[d];
+        SDL_LockMutex(ctx->frame_mutex);
+        hash = sdl_hash_bytes(hash, (const uint8_t *)ctx->present_fb, (size_t)ctx->width * (size_t)ctx->height * sizeof(uint32_t));
+        SDL_UnlockMutex(ctx->frame_mutex);
+    }
+#endif
     return hash;
 }
 
@@ -1167,20 +1914,39 @@ static void recording_execute_action_step(void)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     egui_sim_action_t *action = &g_recording_current_action;
+    int target_display = 0;
+
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    /* Route touch to the correct display's queue */
+    target_display = action->display_id;
+#define RECORDING_TOUCH_PUSH(pressed, x, y)                                                                                                                    \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        if (target_display > 0 && target_display <= sdl_extra_count)                                                                                           \
+            sdl_extra_touch_push(target_display - 1, (pressed), (x), (y));                                                                                     \
+        else                                                                                                                                                   \
+            sdl_port_touch_push_event((pressed), (x), (y));                                                                                                    \
+    } while (0)
+#else
+#define RECORDING_TOUCH_PUSH(pressed, x, y) sdl_port_touch_push_event((pressed), (x), (y))
+#endif
 
 #if EGUI_CONFIG_SOFTWARE_ROTATION
     // Recording actions use logical coordinates (from view region_screen),
     // but egui_input_add_motion expects physical coordinates (the polling layer
     // will transform physical -> logical). Convert logical -> physical here.
     {
-        egui_display_driver_t *drv = egui_display_driver_get();
-        if (drv != NULL && drv->rotation != EGUI_DISPLAY_ROTATION_0 && drv->ops->set_rotation == NULL)
+        egui_core_t *target_core = NULL;
+        egui_port_display_runtime_info_t runtime_info;
+        target_core = egui_port_get_core_by_display_id(target_display);
+        if (target_core != NULL && egui_port_get_display_runtime_info(target_core, &runtime_info) && runtime_info.rotation != EGUI_DISPLAY_ROTATION_0 &&
+            !runtime_info.has_hardware_rotation && runtime_info.software_rotation)
         {
-            int16_t pw = drv->physical_width;
-            int16_t ph = drv->physical_height;
+            int16_t pw = runtime_info.physical_width;
+            int16_t ph = runtime_info.physical_height;
             int lx, ly;
 
-            switch (drv->rotation)
+            switch (runtime_info.rotation)
             {
             case EGUI_DISPLAY_ROTATION_90:
                 // Inverse: lx,ly -> px=pw-1-ly, py=lx
@@ -1223,12 +1989,12 @@ static void recording_execute_action_step(void)
     case EGUI_SIM_ACTION_CLICK:
         if (!g_recording_click_release_pending)
         {
-            sdl_port_touch_push_event(1, action->x1, action->y1);
+            RECORDING_TOUCH_PUSH(1, action->x1, action->y1);
             g_recording_click_release_pending = true;
         }
         else
         {
-            sdl_port_touch_push_event(0, action->x1, action->y1);
+            RECORDING_TOUCH_PUSH(0, action->x1, action->y1);
             g_recording_click_release_pending = false;
         }
         break;
@@ -1241,19 +2007,19 @@ static void recording_execute_action_step(void)
 
         if (step == 0)
         {
-            sdl_port_touch_push_event(1, action->x1, action->y1);
+            RECORDING_TOUCH_PUSH(1, action->x1, action->y1);
             g_recording_drag_in_progress = true;
         }
         else if (step <= steps)
         {
             int x = action->x1 + (action->x2 - action->x1) * step / steps;
             int y = action->y1 + (action->y2 - action->y1) * step / steps;
-            sdl_port_touch_push_event(1, x, y);
+            RECORDING_TOUCH_PUSH(1, x, y);
         }
 
         if (step >= steps)
         {
-            sdl_port_touch_push_event(0, action->x2, action->y2);
+            RECORDING_TOUCH_PUSH(0, action->x2, action->y2);
             g_recording_drag_in_progress = false;
         }
         break;
@@ -1265,12 +2031,16 @@ static void recording_execute_action_step(void)
         // No touch action needed
         break;
     }
+#undef RECORDING_TOUCH_PUSH
 #endif
 }
 
 // Simulate user actions during recording
 static void recording_simulate_action(void)
 {
+    bool snapshot_blocks_actions;
+    bool snapshot_requested;
+
     if (!g_recording_enabled)
     {
         return;
@@ -1285,7 +2055,10 @@ static void recording_simulate_action(void)
         return;
     }
 
-    if (g_recording_snapshot_requested && g_recording_snapshot_blocks_actions)
+    recording_lock();
+    snapshot_blocks_actions = g_recording_snapshot_requested && g_recording_snapshot_blocks_actions;
+    recording_unlock();
+    if (snapshot_blocks_actions)
     {
         return;
     }
@@ -1343,14 +2116,18 @@ static void recording_simulate_action(void)
         return;
     }
 
-    if (g_recording_snapshot_requested && g_recording_snapshot_blocks_actions)
+    recording_lock();
+    snapshot_blocks_actions = g_recording_snapshot_requested && g_recording_snapshot_blocks_actions;
+    snapshot_requested = g_recording_snapshot_requested;
+    recording_unlock();
+    if (snapshot_blocks_actions)
     {
         return;
     }
 
     if ((action.type == EGUI_SIM_ACTION_WAIT || action.type == EGUI_SIM_ACTION_NONE) && action.interval_ms <= 0)
     {
-        if (g_recording_snapshot_requested)
+        if (snapshot_requested)
         {
             return;
         }
@@ -1396,6 +2173,15 @@ static void recording_do_save_frame(void)
     char filename[1024];
     snprintf(filename, sizeof(filename), "%s/frame_%04d.png", g_recording_output_dir, g_recording_frame_count);
     snap_shot(filename);
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+    /* Save extra display framebuffers alongside the main frame */
+    for (int d = 0; d < sdl_extra_count; d++)
+    {
+        char extra_filename[1024];
+        snprintf(extra_filename, sizeof(extra_filename), "%s/frame_%04d_disp%d.png", g_recording_output_dir, g_recording_frame_count, d + 1);
+        snap_shot_extra_display(d, extra_filename);
+    }
+#endif
 #if EGUI_CONFIG_RECORDING_TEST
     const char *frame_name = NULL;
     const char *windows_frame_name = NULL;
@@ -1452,14 +2238,17 @@ static void recording_save_frame(void)
     if ((now - g_recording_start_time) >= (uint32_t)g_recording_duration_ms)
 #endif
     {
+        recording_lock();
         g_recording_enabled = false;
-        sdl_quit_qry = true;
+        recording_unlock();
+        sdl_atomic_flag_set(&sdl_quit_qry, true);
         printf("Recording finished (timeout): %d frames saved\n", g_recording_frame_count);
         return;
     }
 
 #if EGUI_CONFIG_RECORDING_TEST
     // Snapshot-driven frame capture: save when requested by user code or auto-fallback
+    recording_lock();
     if (g_recording_snapshot_requested)
     {
         bool frame_completed = g_recording_completed_frame_count > g_recording_snapshot_request_frame_count;
@@ -1467,11 +2256,13 @@ static void recording_save_frame(void)
 
         if (!frame_completed && !timeout_ready)
         {
+            recording_unlock();
             return;
         }
 
         if ((real_now - g_recording_snapshot_request_time) < (uint32_t)g_recording_snapshot_settle_ms)
         {
+            recording_unlock();
             return;
         }
 
@@ -1490,22 +2281,30 @@ static void recording_save_frame(void)
         bool stable_ready = g_recording_snapshot_seen_change && g_recording_snapshot_same_hash_count >= g_recording_snapshot_stable_cycles;
         if (!stable_ready && !timeout_ready)
         {
+            recording_unlock();
             return;
         }
 
         g_recording_snapshot_requested = false;
         g_recording_snapshot_blocks_actions = false;
+        recording_unlock();
         g_recording_last_frame_time = now;
         recording_do_save_frame();
 
         // Auto-quit after all actions done and final frame captured
         if (g_recording_quit_after_snapshot)
         {
+            recording_lock();
             g_recording_enabled = false;
-            sdl_quit_qry = true;
+            recording_unlock();
+            sdl_atomic_flag_set(&sdl_quit_qry, true);
             printf("Recording finished (all actions done): %d frames saved\n", g_recording_frame_count);
             return;
         }
+    }
+    else
+    {
+        recording_unlock();
     }
 #else
     // Non-test mode: periodic FPS-based capture
@@ -1520,8 +2319,10 @@ static void recording_save_frame(void)
     // Safety limit
     if (g_recording_frame_count >= RECORDING_MAX_FRAMES)
     {
+        recording_lock();
         g_recording_enabled = false;
-        sdl_quit_qry = true;
+        recording_unlock();
+        sdl_atomic_flag_set(&sdl_quit_qry, true);
         printf("Recording stopped: max frames reached (%d)\n", RECORDING_MAX_FRAMES);
     }
 }

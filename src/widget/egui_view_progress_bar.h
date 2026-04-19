@@ -36,12 +36,12 @@ struct egui_view_progress_bar_params
     static const egui_view_progress_bar_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .process = (_val)}
 
 void egui_view_progress_bar_apply_params(egui_view_t *self, const egui_view_progress_bar_params_t *params);
-void egui_view_progress_bar_init_with_params(egui_view_t *self, const egui_view_progress_bar_params_t *params);
+void egui_view_progress_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_progress_bar_params_t *params);
 
 void egui_view_progress_bar_set_on_progress_listener(egui_view_t *self, egui_view_on_progress_changed_listener_t listener);
 void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process);
 void egui_view_progress_bar_on_draw(egui_view_t *self);
-void egui_view_progress_bar_init(egui_view_t *self);
+void egui_view_progress_bar_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

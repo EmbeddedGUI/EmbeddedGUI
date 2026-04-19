@@ -46,7 +46,7 @@ struct egui_view_tab_bar_params
     static const egui_view_tab_bar_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .tab_texts = (_texts), .tab_count = (_count)}
 
 void egui_view_tab_bar_apply_params(egui_view_t *self, const egui_view_tab_bar_params_t *params);
-void egui_view_tab_bar_init_with_params(egui_view_t *self, const egui_view_tab_bar_params_t *params);
+void egui_view_tab_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_tab_bar_params_t *params);
 
 void egui_view_tab_bar_set_tabs(egui_view_t *self, const char **tab_texts, uint8_t tab_count);
 void egui_view_tab_bar_set_current_index(egui_view_t *self, uint8_t index);
@@ -56,7 +56,7 @@ void egui_view_tab_bar_set_tab_icons(egui_view_t *self, const char **tab_icons);
 void egui_view_tab_bar_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_tab_bar_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_tab_bar_on_draw(egui_view_t *self);
-void egui_view_tab_bar_init(egui_view_t *self);
+void egui_view_tab_bar_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

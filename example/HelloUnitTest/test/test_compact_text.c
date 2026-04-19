@@ -12,9 +12,18 @@
 #include "widget/egui_view_image_button.h"
 #include "widget/egui_view_radio_button.h"
 #include "widget/egui_view_toggle_button.h"
+#include "uicode_disp0.h"
 
 EGUI_VIEW_BUTTON_PARAMS_INIT_SIMPLE(test_button_simple_params, 0, 0, 96, 28, "Run");
 EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(test_image_button_params, 4, 5, 72, 48, NULL);
+
+static egui_core_t *test_compact_text_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static void test_compact_text_supports_basic_ascii_words(void)
 {
@@ -54,7 +63,7 @@ static void test_button_simple_params_default_font_is_null(void)
 
     EGUI_TEST_ASSERT_NULL(test_button_simple_params.font);
 
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button), &test_button_simple_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button), test_compact_text_get_core(), &test_button_simple_params);
     EGUI_TEST_ASSERT_NULL(button.base.font);
 }
 
@@ -62,7 +71,7 @@ static void test_image_button_init_default_font_is_null(void)
 {
     egui_view_image_button_t button;
 
-    egui_view_image_button_init(EGUI_VIEW_OF(&button));
+    egui_view_image_button_init(EGUI_VIEW_OF(&button), test_compact_text_get_core());
     EGUI_TEST_ASSERT_NULL(button.font);
 }
 
@@ -70,7 +79,7 @@ static void test_image_button_apply_params_copies_region_and_image(void)
 {
     egui_view_image_button_t button;
 
-    egui_view_image_button_init(EGUI_VIEW_OF(&button));
+    egui_view_image_button_init(EGUI_VIEW_OF(&button), test_compact_text_get_core());
     egui_view_image_button_apply_params(EGUI_VIEW_OF(&button), &test_image_button_params);
 
     EGUI_TEST_ASSERT_EQUAL_INT(4, EGUI_VIEW_OF(&button)->region.location.x);
@@ -84,7 +93,7 @@ static void test_toggle_button_init_default_font_is_null(void)
 {
     egui_view_toggle_button_t button;
 
-    egui_view_toggle_button_init(EGUI_VIEW_OF(&button));
+    egui_view_toggle_button_init(EGUI_VIEW_OF(&button), test_compact_text_get_core());
     EGUI_TEST_ASSERT_NULL(button.font);
 }
 
@@ -92,7 +101,7 @@ static void test_circular_progress_bar_init_default_font_is_null(void)
 {
     egui_view_circular_progress_bar_t progress_bar;
 
-    egui_view_circular_progress_bar_init(EGUI_VIEW_OF(&progress_bar));
+    egui_view_circular_progress_bar_init(EGUI_VIEW_OF(&progress_bar), test_compact_text_get_core());
     EGUI_TEST_ASSERT_NULL(progress_bar.font);
 }
 
@@ -100,7 +109,7 @@ static void test_gauge_init_default_font_is_null(void)
 {
     egui_view_gauge_t gauge;
 
-    egui_view_gauge_init(EGUI_VIEW_OF(&gauge));
+    egui_view_gauge_init(EGUI_VIEW_OF(&gauge), test_compact_text_get_core());
     EGUI_TEST_ASSERT_NULL(gauge.font);
 }
 
@@ -108,7 +117,7 @@ static void test_checkbox_init_default_font_is_null(void)
 {
     egui_view_checkbox_t checkbox;
 
-    egui_view_checkbox_init(EGUI_VIEW_OF(&checkbox));
+    egui_view_checkbox_init(EGUI_VIEW_OF(&checkbox), test_compact_text_get_core());
     EGUI_TEST_ASSERT_NULL(checkbox.font);
 }
 
@@ -116,7 +125,7 @@ static void test_radio_button_init_default_font_is_null(void)
 {
     egui_view_radio_button_t radio_button;
 
-    egui_view_radio_button_init(EGUI_VIEW_OF(&radio_button));
+    egui_view_radio_button_init(EGUI_VIEW_OF(&radio_button), test_compact_text_get_core());
     EGUI_TEST_ASSERT_NULL(radio_button.font);
 }
 
@@ -124,7 +133,7 @@ static void test_chart_pie_init_default_font_is_null(void)
 {
     egui_view_chart_pie_t chart_pie;
 
-    egui_view_chart_pie_init(EGUI_VIEW_OF(&chart_pie));
+    egui_view_chart_pie_init(EGUI_VIEW_OF(&chart_pie), test_compact_text_get_core());
     EGUI_TEST_ASSERT_NULL(chart_pie.font);
     EGUI_TEST_ASSERT_NOT_NULL(chart_pie.text_ops);
 }
@@ -133,7 +142,7 @@ static void test_chart_line_init_default_font_is_null(void)
 {
     egui_view_chart_line_t chart_line;
 
-    egui_view_chart_line_init(EGUI_VIEW_OF(&chart_line));
+    egui_view_chart_line_init(EGUI_VIEW_OF(&chart_line), test_compact_text_get_core());
     EGUI_TEST_ASSERT_NULL(chart_line.axis_base.ab.font);
     EGUI_TEST_ASSERT_NOT_NULL(chart_line.axis_base.ab.text_ops);
 }

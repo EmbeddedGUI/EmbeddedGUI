@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_page_indicator.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
@@ -75,6 +76,7 @@ void egui_view_page_indicator_set_icon_font(egui_view_t *self, const egui_font_t
 
 void egui_view_page_indicator_on_draw_dot(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
 
     if (local->total_count == 0)
@@ -114,20 +116,21 @@ void egui_view_page_indicator_on_draw_dot(egui_view_t *self)
                     .center_y = 0,
                     .radius = local->dot_radius,
             };
-            egui_canvas_draw_circle_fill_gradient(cx, center_y, local->dot_radius, &dot_grad);
+            egui_canvas_draw_circle_fill_gradient(canvas, cx, center_y, local->dot_radius, &dot_grad);
         }
         else
         {
-            egui_canvas_draw_circle_fill_hq(cx, center_y, local->dot_radius, color, local->alpha);
+            egui_canvas_draw_circle_fill_hq(canvas, cx, center_y, local->dot_radius, color, local->alpha);
         }
 #else
-        egui_canvas_draw_circle_fill_basic(cx, center_y, local->dot_radius, color, local->alpha);
+        egui_canvas_draw_circle_fill_basic(canvas, cx, center_y, local->dot_radius, color, local->alpha);
 #endif
     }
 }
 
 static void egui_view_page_indicator_on_draw_icon_impl(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     egui_region_t region;
     const egui_font_t *icon_font;
@@ -168,7 +171,7 @@ static void egui_view_page_indicator_on_draw_icon_impl(egui_view_t *self)
             continue;
         }
 
-        egui_canvas_draw_text_in_rect(icon_font, icon_text, &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
+        egui_canvas_draw_text_in_rect(canvas, icon_font, icon_text, &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
     }
 }
 
@@ -202,11 +205,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_page_indicator_t) = {
 #endif
 };
 
-void egui_view_page_indicator_init(egui_view_t *self)
+void egui_view_page_indicator_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_page_indicator_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_page_indicator_t);
 
@@ -237,8 +240,8 @@ void egui_view_page_indicator_apply_params(egui_view_t *self, const egui_view_pa
     egui_view_invalidate(self);
 }
 
-void egui_view_page_indicator_init_with_params(egui_view_t *self, const egui_view_page_indicator_params_t *params)
+void egui_view_page_indicator_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_page_indicator_params_t *params)
 {
-    egui_view_page_indicator_init(self);
+    egui_view_page_indicator_init(self, core);
     egui_view_page_indicator_apply_params(self, params);
 }

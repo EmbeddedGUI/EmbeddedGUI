@@ -64,8 +64,9 @@ struct egui_chart_axis_config
 // ============== Axis Base (shared by line/scatter/bar) ==============
 typedef struct egui_chart_axis_base egui_chart_axis_base_t;
 typedef struct egui_chart_text_ops egui_chart_text_ops_t;
-typedef void (*egui_chart_draw_axis_x_fn)(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max);
-typedef void (*egui_chart_draw_legend_series_fn)(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
+typedef void (*egui_chart_draw_axis_x_fn)(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min,
+                                          int16_t view_x_max);
+typedef void (*egui_chart_draw_legend_series_fn)(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
 struct egui_chart_axis_base
 {
     // series data
@@ -142,10 +143,10 @@ egui_dim_t egui_chart_map_y(egui_chart_axis_base_t *ab, int16_t data_y, egui_dim
 void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
 
 // Draw axes (ticks, grid, labels)
-void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
+void egui_chart_draw_axes(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
 
 // Draw legend for series data (line/scatter/bar)
-void egui_chart_draw_legend_series(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
+void egui_chart_draw_legend_series(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
 
 // ============== Zoom Functions (multi-touch) ==============
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH

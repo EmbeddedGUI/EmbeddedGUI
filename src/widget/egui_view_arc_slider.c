@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_arc_slider.h"
+#include "core/egui_core.h"
 #include "widget/egui_view_group.h"
 #include "utils/egui_fixmath.h"
 #include "egui_view_circle_dirty.h"
@@ -174,6 +175,7 @@ uint8_t egui_view_arc_slider_get_value(egui_view_t *self)
 void egui_view_arc_slider_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -208,10 +210,10 @@ void egui_view_arc_slider_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = bg_stops,
         };
-        egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, bg_start, bg_end, &bg_grad);
+        egui_canvas_draw_arc_ring_fill_gradient(canvas, center_x, center_y, radius, inner_r, bg_start, bg_end, &bg_grad);
     }
 #else
-    egui_canvas_draw_arc(center_x, center_y, radius, bg_start, bg_end, local->stroke_width, local->track_color, EGUI_ALPHA_100);
+    egui_canvas_draw_arc(canvas, center_x, center_y, radius, bg_start, bg_end, local->stroke_width, local->track_color, EGUI_ALPHA_100);
 #endif
 
     // Active progress arc
@@ -231,10 +233,10 @@ void egui_view_arc_slider_on_draw(egui_view_t *self)
                     .alpha = EGUI_ALPHA_100,
                     .stops = stops,
             };
-            egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, bg_start, progress_end, &grad);
+            egui_canvas_draw_arc_ring_fill_gradient(canvas, center_x, center_y, radius, inner_r, bg_start, progress_end, &grad);
         }
 #else
-        egui_canvas_draw_arc(center_x, center_y, radius, bg_start, progress_end, local->stroke_width, local->active_color, EGUI_ALPHA_100);
+        egui_canvas_draw_arc(canvas, center_x, center_y, radius, bg_start, progress_end, local->stroke_width, local->active_color, EGUI_ALPHA_100);
 #endif
     }
 
@@ -262,10 +264,10 @@ void egui_view_arc_slider_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_circle_fill_gradient(thumb_x, thumb_y, local->thumb_radius, &grad);
+        egui_canvas_draw_circle_fill_gradient(canvas, thumb_x, thumb_y, local->thumb_radius, &grad);
     }
 #else
-    egui_canvas_draw_circle_fill(thumb_x, thumb_y, local->thumb_radius, local->thumb_color, EGUI_ALPHA_100);
+    egui_canvas_draw_circle_fill(canvas, thumb_x, thumb_y, local->thumb_radius, local->thumb_color, EGUI_ALPHA_100);
 #endif
 }
 
@@ -384,11 +386,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_arc_slider_t) = {
 #endif
 };
 
-void egui_view_arc_slider_init(egui_view_t *self)
+void egui_view_arc_slider_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_arc_slider_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_arc_slider_t);
 
@@ -418,8 +420,8 @@ void egui_view_arc_slider_apply_params(egui_view_t *self, const egui_view_arc_sl
     egui_view_invalidate(self);
 }
 
-void egui_view_arc_slider_init_with_params(egui_view_t *self, const egui_view_arc_slider_params_t *params)
+void egui_view_arc_slider_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_arc_slider_params_t *params)
 {
-    egui_view_arc_slider_init(self);
+    egui_view_arc_slider_init(self, core);
     egui_view_arc_slider_apply_params(self, params);
 }

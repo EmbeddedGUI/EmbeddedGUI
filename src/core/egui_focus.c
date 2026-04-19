@@ -7,11 +7,9 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
-static egui_focus_manager_t focus_manager;
-
-void egui_focus_manager_init(void)
+void egui_focus_manager_init(egui_core_t *core)
 {
-    focus_manager.focused_view = NULL;
+    core->system.focus_manager.focused_view = NULL;
 }
 
 static void egui_focus_set_view_focused(egui_view_t *view, int is_focused)
@@ -24,35 +22,35 @@ static void egui_focus_set_view_focused(egui_view_t *view, int is_focused)
     egui_view_invalidate(view);
 }
 
-void egui_focus_manager_set_focus(egui_view_t *view)
+void egui_focus_manager_set_focus(egui_core_t *core, egui_view_t *view)
 {
-    if (focus_manager.focused_view == view)
+    if (core->system.focus_manager.focused_view == view)
     {
         return;
     }
 
     // Clear old focus
-    if (focus_manager.focused_view != NULL)
+    if (core->system.focus_manager.focused_view != NULL)
     {
-        egui_focus_set_view_focused(focus_manager.focused_view, 0);
+        egui_focus_set_view_focused(core->system.focus_manager.focused_view, 0);
     }
 
     // Set new focus
-    focus_manager.focused_view = view;
+    core->system.focus_manager.focused_view = view;
     if (view != NULL)
     {
         egui_focus_set_view_focused(view, 1);
     }
 }
 
-void egui_focus_manager_clear_focus(void)
+void egui_focus_manager_clear_focus(egui_core_t *core)
 {
-    egui_focus_manager_set_focus(NULL);
+    egui_focus_manager_set_focus(core, NULL);
 }
 
-egui_view_t *egui_focus_manager_get_focused_view(void)
+egui_view_t *egui_focus_manager_get_focused_view(egui_core_t *core)
 {
-    return focus_manager.focused_view;
+    return core->system.focus_manager.focused_view;
 }
 
 /**
@@ -135,10 +133,10 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
 
 #define FOCUS_MAX_FOCUSABLE_VIEWS 32
 
-void egui_focus_manager_move_focus_next(void)
+void egui_focus_manager_move_focus_next(egui_core_t *core)
 {
     egui_view_t *focusable_list[FOCUS_MAX_FOCUSABLE_VIEWS];
-    egui_view_group_t *root = egui_core_get_root_view();
+    egui_view_group_t *root = egui_core_get_root_view(core);
 
     int count = egui_focus_collect_focusable_views((egui_view_t *)root, focusable_list, FOCUS_MAX_FOCUSABLE_VIEWS);
 
@@ -149,11 +147,11 @@ void egui_focus_manager_move_focus_next(void)
 
     // Find current focused view in the list
     int current_idx = -1;
-    if (focus_manager.focused_view != NULL)
+    if (core->system.focus_manager.focused_view != NULL)
     {
         for (int i = 0; i < count; i++)
         {
-            if (focusable_list[i] == focus_manager.focused_view)
+            if (focusable_list[i] == core->system.focus_manager.focused_view)
             {
                 current_idx = i;
                 break;
@@ -163,13 +161,13 @@ void egui_focus_manager_move_focus_next(void)
 
     // Move to next, wrap around
     int next_idx = (current_idx + 1) % count;
-    egui_focus_manager_set_focus(focusable_list[next_idx]);
+    egui_focus_manager_set_focus(core, focusable_list[next_idx]);
 }
 
-void egui_focus_manager_move_focus_prev(void)
+void egui_focus_manager_move_focus_prev(egui_core_t *core)
 {
     egui_view_t *focusable_list[FOCUS_MAX_FOCUSABLE_VIEWS];
-    egui_view_group_t *root = egui_core_get_root_view();
+    egui_view_group_t *root = egui_core_get_root_view(core);
 
     int count = egui_focus_collect_focusable_views((egui_view_t *)root, focusable_list, FOCUS_MAX_FOCUSABLE_VIEWS);
 
@@ -180,11 +178,11 @@ void egui_focus_manager_move_focus_prev(void)
 
     // Find current focused view in the list
     int current_idx = -1;
-    if (focus_manager.focused_view != NULL)
+    if (core->system.focus_manager.focused_view != NULL)
     {
         for (int i = 0; i < count; i++)
         {
-            if (focusable_list[i] == focus_manager.focused_view)
+            if (focusable_list[i] == core->system.focus_manager.focused_view)
             {
                 current_idx = i;
                 break;
@@ -202,7 +200,7 @@ void egui_focus_manager_move_focus_prev(void)
     {
         prev_idx = current_idx - 1;
     }
-    egui_focus_manager_set_focus(focusable_list[prev_idx]);
+    egui_focus_manager_set_focus(core, focusable_list[prev_idx]);
 }
 
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS

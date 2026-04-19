@@ -93,8 +93,9 @@ static void cst816s_del(egui_hal_touch_driver_t *self)
 }
 
 /* Driver: read */
-static int cst816s_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int cst816s_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     uint8_t buf[5]; /* Read touch data: finger_num + XH + XL + YH + YL */
     uint8_t num_points;
 

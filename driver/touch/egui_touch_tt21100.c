@@ -72,8 +72,9 @@ static void tt21100_del(egui_hal_touch_driver_t *self)
     memset(self, 0, sizeof(egui_hal_touch_driver_t));
 }
 
-static int tt21100_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int tt21100_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
+    EGUI_UNUSED(core);
     uint8_t buf[TT21100_MAX_REPORT_SIZE];
     uint16_t data_len;
     uint8_t report_id;

@@ -9,7 +9,7 @@ void egui_background_set_params(egui_background_t *self, const egui_background_p
     self->params = params;
 }
 
-void egui_background_draw(egui_background_t *self, egui_view_t *view)
+void egui_background_draw(egui_background_t *self, egui_canvas_t *canvas, egui_view_t *view)
 {
     const egui_background_params_t *params = self->params;
     const void *sel_param = NULL;
@@ -43,10 +43,10 @@ void egui_background_draw(egui_background_t *self, egui_view_t *view)
     }
 #endif
 
-    self->api->on_draw(self, &view->region, sel_param);
+    self->api->on_draw(self, canvas, &view->region, sel_param);
 }
 
-void egui_background_on_draw(egui_background_t *self, egui_region_t *region, const void *param)
+void egui_background_on_draw(egui_background_t *self, egui_canvas_t *canvas, egui_region_t *region, const void *param)
 {
 }
 

@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <string.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_gridlayout_t root_grid;
 static egui_view_pattern_lock_t pattern_lock_view;
@@ -76,14 +76,14 @@ static void on_clear_click(egui_view_t *self)
     set_status_text("Pattern cleared", EGUI_THEME_TEXT_SECONDARY);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     clip_fail_reported = 0;
 #endif
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&root_grid), &root_grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&root_grid), core, &root_grid_params);
 
-    egui_view_pattern_lock_init_with_params(EGUI_VIEW_OF(&pattern_lock_view), &pattern_lock_params);
+    egui_view_pattern_lock_init_with_params(EGUI_VIEW_OF(&pattern_lock_view), core, &pattern_lock_params);
     egui_view_pattern_lock_set_on_pattern_complete_listener(EGUI_VIEW_OF(&pattern_lock_view), on_pattern_complete);
     egui_view_pattern_lock_set_on_pattern_finish_listener(EGUI_VIEW_OF(&pattern_lock_view), on_pattern_finish);
     egui_view_pattern_lock_set_bg_color(EGUI_VIEW_OF(&pattern_lock_view), EGUI_THEME_SURFACE);
@@ -94,12 +94,12 @@ void test_init_ui(void)
     egui_view_pattern_lock_set_error_color(EGUI_VIEW_OF(&pattern_lock_view), EGUI_THEME_DANGER);
     egui_view_set_margin_all(EGUI_VIEW_OF(&pattern_lock_view), 4);
 
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&status_label), &status_label_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&status_label), core, &status_label_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&status_label), EGUI_ALIGN_CENTER | EGUI_ALIGN_VCENTER);
     egui_view_set_margin_all(EGUI_VIEW_OF(&status_label), 6);
     set_status_text("Draw at least 3 nodes", EGUI_THEME_TEXT_SECONDARY);
 
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&clear_button), &clear_button_params);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&clear_button), core, &clear_button_params);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&clear_button), on_clear_click);
     egui_view_set_margin_all(EGUI_VIEW_OF(&clear_button), 6);
 
@@ -109,7 +109,7 @@ void test_init_ui(void)
     egui_view_gridlayout_layout_childs(EGUI_VIEW_OF(&root_grid));
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&root_grid));
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&root_grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

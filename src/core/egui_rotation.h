@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-#if EGUI_CONFIG_SOFTWARE_ROTATION
-
 /**
  * Transform PFB coordinates and pixel data from logical (rotated) space
  * to physical (display hardware) space.
@@ -41,8 +39,6 @@ void egui_rotation_transform_pfb(egui_display_rotation_t rotation, int16_t phys_
  * @param y         Physical touch Y coordinate (in/out, modified to logical)
  */
 void egui_rotation_transform_touch(egui_display_rotation_t rotation, int16_t phys_w, int16_t phys_h, egui_dim_t *x, egui_dim_t *y);
-
-#endif /* EGUI_CONFIG_SOFTWARE_ROTATION */
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

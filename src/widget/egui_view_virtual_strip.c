@@ -315,9 +315,9 @@ void egui_view_virtual_strip_apply_params(egui_view_t *self, const egui_view_vir
     egui_view_virtual_strip_sync_horizontal_mode(self);
 }
 
-void egui_view_virtual_strip_init_with_params(egui_view_t *self, const egui_view_virtual_strip_params_t *params)
+void egui_view_virtual_strip_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_strip_params_t *params)
 {
-    egui_view_virtual_strip_init(self);
+    egui_view_virtual_strip_init(self, core);
     egui_view_virtual_strip_apply_params(self, params);
 }
 
@@ -337,9 +337,9 @@ void egui_view_virtual_strip_apply_setup(egui_view_t *self, const egui_view_virt
     egui_view_virtual_strip_set_state_cache_limits(self, setup->state_cache_max_entries, setup->state_cache_max_bytes);
 }
 
-void egui_view_virtual_strip_init_with_setup(egui_view_t *self, const egui_view_virtual_strip_setup_t *setup)
+void egui_view_virtual_strip_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_strip_setup_t *setup)
 {
-    egui_view_virtual_strip_init(self);
+    egui_view_virtual_strip_init(self, core);
     egui_view_virtual_strip_apply_setup(self, setup);
 }
 
@@ -764,11 +764,11 @@ egui_view_t *egui_view_virtual_strip_find_first_visible_item_view(egui_view_t *s
     return find_ctx.best_view;
 }
 
-void egui_view_virtual_strip_init(egui_view_t *self)
+void egui_view_virtual_strip_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_strip_t);
 
-    egui_view_virtual_viewport_init(self);
+    egui_view_virtual_viewport_init(self, core);
     local->data_source = NULL;
     local->data_source_context = NULL;
     egui_api_memset(&local->data_source_adapter, 0, sizeof(local->data_source_adapter));

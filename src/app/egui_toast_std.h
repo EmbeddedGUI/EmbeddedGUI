@@ -18,7 +18,7 @@ struct egui_toast_std
 };
 
 void egui_toast_std_set_index(egui_toast_t *self, int index);
-void egui_toast_std_init(egui_toast_t *self);
+void egui_toast_std_init(egui_toast_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

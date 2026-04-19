@@ -1,8 +1,9 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_textblock.h"
+#include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "core/egui_canvas_gradient.h"
 #include "font/egui_font.h"
@@ -463,7 +464,7 @@ static void egui_view_textblock_cursor_timer_callback(egui_timer_t *timer)
     local->cursor_visible = !local->cursor_visible;
     egui_view_invalidate(self);
 
-    egui_timer_start_timer(&local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
+    egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
 }
 
 static void egui_view_textblock_on_focus_change(egui_view_t *self, int is_focused)
@@ -478,12 +479,12 @@ static void egui_view_textblock_on_focus_change(egui_view_t *self, int is_focuse
     if (is_focused)
     {
         local->cursor_visible = 1;
-        egui_timer_start_timer(&local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
+        egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
     }
     else
     {
         local->cursor_visible = 0;
-        egui_timer_stop_timer(&local->cursor_timer);
+        egui_view_stop_timer(self, &local->cursor_timer);
     }
     egui_view_invalidate(self);
 }
@@ -586,8 +587,8 @@ static egui_dim_t egui_view_textblock_resolve_start_y(egui_view_t *self, egui_vi
     return draw_y;
 }
 
-static void egui_view_textblock_draw_line(const egui_font_t *font, const char *text, int text_len, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                                          egui_alpha_t alpha)
+static void egui_view_textblock_draw_line(egui_canvas_t *canvas, const egui_font_t *font, const char *text, int text_len, egui_dim_t x, egui_dim_t y,
+                                          egui_color_t color, egui_alpha_t alpha)
 {
     int offset = 0;
 
@@ -615,7 +616,7 @@ static void egui_view_textblock_draw_line(const egui_font_t *font, const char *t
 
         egui_api_memcpy(glyph_buf, &text[offset], glyph_bytes);
         glyph_buf[glyph_bytes] = '\0';
-        egui_canvas_draw_text(font, glyph_buf, x, y, color, alpha);
+        egui_canvas_draw_text(canvas, font, glyph_buf, x, y, color, alpha);
 
         x += glyph_width;
         offset += glyph_bytes;
@@ -625,6 +626,7 @@ static void egui_view_textblock_draw_line(const egui_font_t *font, const char *t
 void egui_view_textblock_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t work_region;
     const char *draw_text = egui_view_textblock_get_active_text(local);
     uint8_t is_auto_wrap = egui_view_textblock_is_auto_wrap_enabled(local);
@@ -643,7 +645,7 @@ void egui_view_textblock_on_draw(egui_view_t *self)
         {
             radius = self->region.size.height / 2;
         }
-        egui_canvas_draw_round_rectangle(0, 0, self->region.size.width, self->region.size.height, radius, EGUI_TEXTBLOCK_BORDER_STROKE,
+        egui_canvas_draw_round_rectangle(canvas, 0, 0, self->region.size.width, self->region.size.height, radius, EGUI_TEXTBLOCK_BORDER_STROKE,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
                                          (local->is_editable && self->is_focused) ? EGUI_THEME_FOCUS : local->border_color,
 #else
@@ -680,7 +682,7 @@ void egui_view_textblock_on_draw(egui_view_t *self)
             draw_align = (draw_align & ~EGUI_ALIGN_VMASK) | EGUI_ALIGN_TOP;
         }
 
-        egui_canvas_draw_text_in_rect_with_line_space(local->font, draw_text, &draw_rect, draw_align, local->line_space, local->color, local->alpha);
+        egui_canvas_draw_text_in_rect_with_line_space(canvas, local->font, draw_text, &draw_rect, draw_align, local->line_space, local->color, local->alpha);
     }
     else
     {
@@ -702,7 +704,7 @@ void egui_view_textblock_on_draw(egui_view_t *self)
             draw_x = egui_view_textblock_resolve_line_x(self, local, line_width, &work_region, (scroll_axis_mask & 0x01) != 0);
             if ((draw_y + line_height) > visible_y0 && draw_y < visible_y1)
             {
-                egui_view_textblock_draw_line(local->font, cursor, line_len, draw_x, draw_y, local->color, local->alpha);
+                egui_view_textblock_draw_line(canvas, local->font, cursor, line_len, draw_x, draw_y, local->color, local->alpha);
             }
 
             draw_y += line_height + local->line_space;
@@ -731,7 +733,7 @@ draw_cursor:
         egui_dim_t draw_cx = self->padding.left + cx - local->scroll_offset_x;
         egui_dim_t draw_cy = self->padding.top + cy - local->scroll_offset_y;
 
-        egui_canvas_draw_rectangle_fill(draw_cx, draw_cy, EGUI_TEXTBLOCK_CURSOR_WIDTH, ch, local->cursor_color, EGUI_ALPHA_100);
+        egui_canvas_draw_rectangle_fill(canvas, draw_cx, draw_cy, EGUI_TEXTBLOCK_CURSOR_WIDTH, ch, local->cursor_color, EGUI_ALPHA_100);
     }
 #else
     (void)0; // avoid empty label warning
@@ -789,11 +791,11 @@ draw_cursor:
                             .alpha = EGUI_THEME_SCROLLBAR_ALPHA,
                             .stops = stops,
                     };
-                    egui_canvas_draw_round_rectangle_fill_gradient(bar_x, bar_y, EGUI_THEME_SCROLLBAR_THICKNESS, thumb_length, EGUI_THEME_SCROLLBAR_RADIUS,
-                                                                   &grad);
+                    egui_canvas_draw_round_rectangle_fill_gradient(canvas, bar_x, bar_y, EGUI_THEME_SCROLLBAR_THICKNESS, thumb_length,
+                                                                   EGUI_THEME_SCROLLBAR_RADIUS, &grad);
                 }
 #else
-                egui_canvas_draw_round_rectangle_fill(bar_x, bar_y, EGUI_THEME_SCROLLBAR_THICKNESS, thumb_length, EGUI_THEME_SCROLLBAR_RADIUS,
+                egui_canvas_draw_round_rectangle_fill(canvas, bar_x, bar_y, EGUI_THEME_SCROLLBAR_THICKNESS, thumb_length, EGUI_THEME_SCROLLBAR_RADIUS,
                                                       EGUI_THEME_SCROLLBAR_COLOR, EGUI_THEME_SCROLLBAR_ALPHA);
 #endif
             }
@@ -843,11 +845,11 @@ draw_cursor:
                             .alpha = EGUI_THEME_SCROLLBAR_ALPHA,
                             .stops = stops,
                     };
-                    egui_canvas_draw_round_rectangle_fill_gradient(bar_x, bar_y, thumb_length, EGUI_THEME_SCROLLBAR_THICKNESS, EGUI_THEME_SCROLLBAR_RADIUS,
-                                                                   &grad);
+                    egui_canvas_draw_round_rectangle_fill_gradient(canvas, bar_x, bar_y, thumb_length, EGUI_THEME_SCROLLBAR_THICKNESS,
+                                                                   EGUI_THEME_SCROLLBAR_RADIUS, &grad);
                 }
 #else
-                egui_canvas_draw_round_rectangle_fill(bar_x, bar_y, thumb_length, EGUI_THEME_SCROLLBAR_THICKNESS, EGUI_THEME_SCROLLBAR_RADIUS,
+                egui_canvas_draw_round_rectangle_fill(canvas, bar_x, bar_y, thumb_length, EGUI_THEME_SCROLLBAR_THICKNESS, EGUI_THEME_SCROLLBAR_RADIUS,
                                                       EGUI_THEME_SCROLLBAR_COLOR, EGUI_THEME_SCROLLBAR_ALPHA);
 #endif
             }
@@ -1540,8 +1542,8 @@ void egui_view_textblock_insert_char(egui_view_t *self, char c)
 
     // Reset cursor blink
     local->cursor_visible = 1;
-    egui_timer_stop_timer(&local->cursor_timer);
-    egui_timer_start_timer(&local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
+    egui_view_stop_timer(self, &local->cursor_timer);
+    egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
 
     egui_view_textblock_update_content_size(self);
     egui_view_textblock_apply_auto_height(self);
@@ -1569,8 +1571,8 @@ void egui_view_textblock_delete_char(egui_view_t *self)
 
     // Reset cursor blink
     local->cursor_visible = 1;
-    egui_timer_stop_timer(&local->cursor_timer);
-    egui_timer_start_timer(&local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
+    egui_view_stop_timer(self, &local->cursor_timer);
+    egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
 
     egui_view_textblock_update_content_size(self);
     egui_view_textblock_apply_auto_height(self);
@@ -1595,8 +1597,8 @@ void egui_view_textblock_set_cursor_pos(egui_view_t *self, uint16_t pos)
 
     // Reset cursor blink
     local->cursor_visible = 1;
-    egui_timer_stop_timer(&local->cursor_timer);
-    egui_timer_start_timer(&local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
+    egui_view_stop_timer(self, &local->cursor_timer);
+    egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
 
     egui_view_textblock_ensure_cursor_visible(self);
     egui_view_invalidate(self);
@@ -1673,12 +1675,12 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_textblock_t) = {
 
 // ========================= Init =========================
 
-void egui_view_textblock_init(egui_view_t *self)
+void egui_view_textblock_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_textblock_t);
 
     // Call super init
-    egui_view_init(self);
+    egui_view_init(self, core);
 
     // Update API table
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_textblock_t);
@@ -1760,8 +1762,8 @@ void egui_view_textblock_apply_params(egui_view_t *self, const egui_view_textblo
     egui_view_textblock_set_text(self, params->text);
 }
 
-void egui_view_textblock_init_with_params(egui_view_t *self, const egui_view_textblock_params_t *params)
+void egui_view_textblock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_textblock_params_t *params)
 {
-    egui_view_textblock_init(self);
+    egui_view_textblock_init(self, core);
     egui_view_textblock_apply_params(self, params);
 }

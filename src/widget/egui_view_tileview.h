@@ -46,7 +46,7 @@ struct egui_view_tileview_params
 #define EGUI_VIEW_TILEVIEW_PARAMS_INIT(_name, _x, _y, _w, _h) static const egui_view_tileview_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 void egui_view_tileview_apply_params(egui_view_t *self, const egui_view_tileview_params_t *params);
-void egui_view_tileview_init_with_params(egui_view_t *self, const egui_view_tileview_params_t *params);
+void egui_view_tileview_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_tileview_params_t *params);
 
 void egui_view_tileview_add_tile(egui_view_t *self, egui_view_t *tile_view, uint8_t col, uint8_t row);
 void egui_view_tileview_set_current(egui_view_t *self, uint8_t col, uint8_t row);
@@ -57,7 +57,7 @@ int egui_view_tileview_on_intercept_touch_event(egui_view_t *self, egui_motion_e
 int egui_view_tileview_on_touch_event(egui_view_t *self, egui_motion_event_t *event);
 #endif
 
-void egui_view_tileview_init(egui_view_t *self);
+void egui_view_tileview_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

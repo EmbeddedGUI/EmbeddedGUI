@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_menu_t menu_1;
 
@@ -36,13 +36,13 @@ static const egui_view_menu_page_t pages[] = {
 
 EGUI_VIEW_MENU_PARAMS_INIT(menu_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, 30, 30);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
 
-    egui_view_menu_init_with_params(EGUI_VIEW_OF(&menu_1), &menu_1_params);
+    egui_view_menu_init_with_params(EGUI_VIEW_OF(&menu_1), core, &menu_1_params);
     egui_view_menu_set_pages(EGUI_VIEW_OF(&menu_1), pages, 3);
     egui_view_menu_set_icon_font(EGUI_VIEW_OF(&menu_1), EGUI_FONT_ICON_MS_20);
     egui_view_menu_set_navigation_icons(EGUI_VIEW_OF(&menu_1), EGUI_ICON_MS_ARROW_BACK, EGUI_ICON_MS_ARROW_FORWARD);

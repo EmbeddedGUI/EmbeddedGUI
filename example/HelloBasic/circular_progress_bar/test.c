@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 circular progress bars: XS / S / M / L
 static egui_view_circular_progress_bar_t cpb_xs;
@@ -28,34 +28,34 @@ static void progress_changed_cb(egui_view_t *self, uint8_t progress)
     EGUI_LOG_INF("Circular Progress: %d\n", progress);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init all circular progress bars
-    egui_view_circular_progress_bar_init_with_params(EGUI_VIEW_OF(&cpb_xs), &cpb_xs_params);
+    egui_view_circular_progress_bar_init_with_params(EGUI_VIEW_OF(&cpb_xs), core, &cpb_xs_params);
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&cpb_xs), 25);
     egui_view_circular_progress_bar_set_bk_color(EGUI_VIEW_OF(&cpb_xs), EGUI_THEME_TRACK_BG);
     egui_view_circular_progress_bar_set_progress_color(EGUI_VIEW_OF(&cpb_xs), EGUI_THEME_PRIMARY_DARK);
     egui_view_circular_progress_bar_set_stroke_width(EGUI_VIEW_OF(&cpb_xs), 2);
     egui_view_circular_progress_bar_set_on_progress_listener(EGUI_VIEW_OF(&cpb_xs), progress_changed_cb);
 
-    egui_view_circular_progress_bar_init_with_params(EGUI_VIEW_OF(&cpb_s), &cpb_s_params);
+    egui_view_circular_progress_bar_init_with_params(EGUI_VIEW_OF(&cpb_s), core, &cpb_s_params);
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&cpb_s), 50);
     egui_view_circular_progress_bar_set_bk_color(EGUI_VIEW_OF(&cpb_s), EGUI_THEME_TRACK_BG);
     egui_view_circular_progress_bar_set_progress_color(EGUI_VIEW_OF(&cpb_s), EGUI_THEME_PRIMARY);
     egui_view_circular_progress_bar_set_stroke_width(EGUI_VIEW_OF(&cpb_s), 4);
     egui_view_circular_progress_bar_set_on_progress_listener(EGUI_VIEW_OF(&cpb_s), progress_changed_cb);
 
-    egui_view_circular_progress_bar_init_with_params(EGUI_VIEW_OF(&cpb_m), &cpb_m_params);
+    egui_view_circular_progress_bar_init_with_params(EGUI_VIEW_OF(&cpb_m), core, &cpb_m_params);
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&cpb_m), 75);
     egui_view_circular_progress_bar_set_bk_color(EGUI_VIEW_OF(&cpb_m), EGUI_THEME_TRACK_BG);
     egui_view_circular_progress_bar_set_progress_color(EGUI_VIEW_OF(&cpb_m), EGUI_THEME_SECONDARY);
     egui_view_circular_progress_bar_set_stroke_width(EGUI_VIEW_OF(&cpb_m), 6);
     egui_view_circular_progress_bar_set_on_progress_listener(EGUI_VIEW_OF(&cpb_m), progress_changed_cb);
 
-    egui_view_circular_progress_bar_init_with_params(EGUI_VIEW_OF(&cpb_l), &cpb_l_params);
+    egui_view_circular_progress_bar_init_with_params(EGUI_VIEW_OF(&cpb_l), core, &cpb_l_params);
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&cpb_l), 100);
     egui_view_circular_progress_bar_set_bk_color(EGUI_VIEW_OF(&cpb_l), EGUI_THEME_TRACK_BG);
     egui_view_circular_progress_bar_set_progress_color(EGUI_VIEW_OF(&cpb_l), EGUI_THEME_DANGER);
@@ -81,7 +81,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

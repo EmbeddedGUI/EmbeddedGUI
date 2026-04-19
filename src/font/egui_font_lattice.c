@@ -29,8 +29,8 @@ static const LATTICE *egui_font_lattice_get_font(const LATTICE_FONT_INFO *font, 
     return 0;
 }
 
-static void egui_font_lattice_draw(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const uint8_t *p_data, egui_color_t color,
-                                   egui_alpha_t alpha)
+static void egui_font_lattice_draw(egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const uint8_t *p_data,
+                                   egui_color_t color, egui_alpha_t alpha)
 {
     uint8_t blk_value = *p_data++;
     uint8_t blk_cnt = *p_data++;
@@ -40,7 +40,7 @@ static void egui_font_lattice_draw(egui_dim_t x, egui_dim_t y, egui_dim_t width,
         for (int x_ = 0; x_ < width; x_++)
         {
             EGUI_ASSERT(blk_cnt);
-            egui_canvas_draw_point((x + x_), (y + y_), color, alpha);
+            egui_canvas_draw_point(canvas, (x + x_), (y + y_), color, alpha);
             if (--blk_cnt == 0)
             {
                 blk_value = *p_data++;
@@ -51,7 +51,8 @@ static void egui_font_lattice_draw(egui_dim_t x, egui_dim_t y, egui_dim_t width,
     }
 }
 
-static int egui_font_lattice_draw_single_char(const egui_font_t *self, uint32_t utf8_code, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
+static int egui_font_lattice_draw_single_char(const egui_font_t *self, egui_canvas_t *canvas, uint32_t utf8_code, egui_dim_t x, egui_dim_t y,
+                                              egui_color_t color, egui_alpha_t alpha)
 {
     LATTICE_FONT_INFO *font = (LATTICE_FONT_INFO *)self->res;
     if (font)
@@ -59,16 +60,17 @@ static int egui_font_lattice_draw_single_char(const egui_font_t *self, uint32_t 
         const LATTICE *p_lattice = egui_font_lattice_get_font(font, utf8_code);
         if (p_lattice)
         {
-            egui_font_lattice_draw(x, y, p_lattice->width, font->height, p_lattice->pixel_buffer, color, alpha);
+            egui_font_lattice_draw(canvas, x, y, p_lattice->width, font->height, p_lattice->pixel_buffer, color, alpha);
             return p_lattice->width;
         }
     }
 
-    egui_canvas_draw_rectangle(x, y, FONT_ERROR_LATTICE_SIZE(font->height) - 2, font->height, 1, color, alpha);
+    egui_canvas_draw_rectangle(canvas, x, y, FONT_ERROR_LATTICE_SIZE(font->height) - 2, font->height, 1, color, alpha);
     return FONT_ERROR_LATTICE_SIZE(font->height);
 }
 
-int egui_font_lattice_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
+int egui_font_lattice_draw_string(const egui_font_t *self, egui_canvas_t *canvas, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                                  egui_alpha_t alpha)
 {
     const char *s = (const char *)string;
     if (0 == s)
@@ -81,7 +83,7 @@ int egui_font_lattice_draw_string(const egui_font_t *self, const void *string, e
     while (*s)
     {
         s += egui_font_get_utf8_code(s, &utf8_code);
-        offset += egui_font_lattice_draw_single_char(self, utf8_code, (x + offset), y, color, alpha);
+        offset += egui_font_lattice_draw_single_char(self, canvas, utf8_code, (x + offset), y, color, alpha);
     }
 
     return (s - (const char *)string);

@@ -38,17 +38,95 @@ extern bool VT_is_request_quit(void);
 extern void VT_begin_shutdown(void);
 extern void VT_deinit(void);
 extern void VT_sdl_flush(int32_t nMS);
+extern void VT_sdl_flush_core(egui_core_t *core, int32_t nMS);
 extern void VT_sdl_refresh_task(void);
 extern void sdl_port_request_refresh(void);
 
 extern uint32_t sdl_get_system_timestamp_ms(void);
 extern void VT_Fill_Multiple_Colors(int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p);
+extern void VT_Fill_Multiple_Colors_Core(egui_core_t *core, int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p);
 extern void sdl_port_sleep(uint32_t nMS);
-extern void sdl_port_touch_read(uint8_t *pressed, int16_t *x, int16_t *y);
+extern void sdl_port_touch_read(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y);
+extern void egui_port_init(void);
+extern egui_display_driver_t *egui_port_get_display_driver(void);
+extern egui_platform_t *egui_port_get_platform(void);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+extern void egui_port_register_touch_driver(egui_core_t *core);
+#endif
+extern void egui_port_register_core(egui_core_t *core);
+extern egui_core_t *egui_port_get_core_by_display_id(int display_id);
+typedef void (*egui_port_core_task_func_t)(egui_core_t *core, uintptr_t user_data);
+extern int egui_port_post_core_task(egui_core_t *core, egui_port_core_task_func_t task_func, uintptr_t user_data);
+extern int egui_port_post_core_task_named(egui_core_t *core, egui_port_core_task_func_t task_func, uintptr_t user_data, const char *context);
+extern int egui_port_post_core_task_sync(egui_core_t *core, egui_port_core_task_func_t task_func, uintptr_t user_data, uint32_t timeout_ms);
+extern int egui_port_post_core_task_sync_named(egui_core_t *core, egui_port_core_task_func_t task_func, uintptr_t user_data, uint32_t timeout_ms,
+                                               const char *context);
+
+typedef struct egui_port_display_runtime_info
+{
+    int16_t physical_width;
+    int16_t physical_height;
+    egui_display_rotation_t rotation;
+    uint8_t software_rotation;
+    uint8_t has_hardware_rotation;
+} egui_port_display_runtime_info_t;
+
+extern int egui_port_get_display_runtime_info(egui_core_t *core, egui_port_display_runtime_info_t *info);
+extern int egui_port_get_view_center(egui_core_t *core, egui_view_t *view, int *x, int *y);
+
+typedef struct egui_port_core_task_queue_metrics
+{
+    uint16_t queue_capacity;
+    uint16_t pending_count;
+    uint16_t inflight_count;
+    uint16_t peak_count;
+    const char *pending_context;
+    const char *inflight_context;
+    uint16_t last_reject_pending_count;
+    uint16_t last_reject_inflight_count;
+    const char *last_reject_context;
+    const char *last_reject_pending_context;
+    const char *last_reject_inflight_context;
+    uint32_t post_success_count;
+    uint32_t post_retry_count;
+    uint32_t post_max_retry_burst;
+    uint32_t post_reject_count;
+    uint32_t wait_timeout_count;
+    uint32_t max_queue_wait_ms;
+    const char *max_queue_wait_context;
+    uint32_t max_exec_time_ms;
+    const char *max_exec_time_context;
+} egui_port_core_task_queue_metrics_t;
+
+extern int egui_port_get_core_task_queue_metrics(egui_core_t *core, egui_port_core_task_queue_metrics_t *metrics);
+
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+typedef struct egui_port_extra_display_descriptor
+{
+    int screen_width;
+    int screen_height;
+    int pfb_width;
+    int pfb_height;
+    egui_color_int_t **pfb_buffers;
+    int pfb_buffer_count;
+    egui_touch_register_func_t touch_register;
+    egui_uicode_init_func_t uicode_init;
+} egui_port_extra_display_descriptor_t;
+
+/**
+ * App hook for providing additional display descriptors on PC.
+ * Descriptors are mapped to display ids 1..N in array order.
+ */
+extern int egui_port_get_additional_display_descriptors(egui_port_extra_display_descriptor_t *descriptors, int max_count);
+#endif
 // extern
 // bool VT_mouse_get_location(arm_2d_location_t *ptLocation);
 
-// Recording functions for GIF generation
+/*
+ * Recording/session APIs are process-global for a single PC simulator runtime.
+ * They are not core-scoped and should not be used to drive multiple independent
+ * simulator instances within the same process.
+ */
 extern void recording_init(const char *output_dir, int fps, int duration_sec);
 extern void recording_set_speed(int speed);
 extern void recording_set_clock_scale(int scale);
@@ -58,6 +136,23 @@ extern bool recording_is_enabled(void);
 extern bool recording_is_finished(void);
 extern void recording_request_snapshot(void);
 extern void sdl_port_set_headless(bool headless);
+
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+extern void sdl_port_add_display(int display_id, int16_t w, int16_t h);
+
+/**
+ * Create a sub-display driver for multi-display PC simulation.
+ * Allocates a new display driver and creates an SDL window inside the
+ * current simulator process-global SDL session.
+ *
+ * @param display_id  Display ID (1, 2, ...)
+ * @param w           Screen width
+ * @param h           Screen height
+ * @return            Display driver pointer, or NULL on failure
+ */
+extern egui_display_driver_t *egui_port_create_sub_display(egui_core_t *core, int display_id, int16_t w, int16_t h);
+
+#endif
 
 #if EGUI_CONFIG_RECORDING_TEST
 #include "core/egui_input_simulator.h"

@@ -31,9 +31,9 @@ struct egui_view_chart_line_params
 // ============== API ==============
 
 // lifecycle
-void egui_view_chart_line_init(egui_view_t *self);
+void egui_view_chart_line_init(egui_view_t *self, egui_core_t *core);
 void egui_view_chart_line_apply_params(egui_view_t *self, const egui_view_chart_line_params_t *params);
-void egui_view_chart_line_init_with_params(egui_view_t *self, const egui_view_chart_line_params_t *params);
+void egui_view_chart_line_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_line_params_t *params);
 
 // line chart specific setters
 void egui_view_chart_line_set_line_width(egui_view_t *self, uint8_t width);

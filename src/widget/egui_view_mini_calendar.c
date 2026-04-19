@@ -1,7 +1,8 @@
-#include <assert.h>
+﻿#include <assert.h>
 #include <string.h>
 
 #include "egui_view_mini_calendar.h"
+#include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font.h"
@@ -215,6 +216,7 @@ void egui_view_mini_calendar_set_on_date_selected_listener(egui_view_t *self, eg
 void egui_view_mini_calendar_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -241,12 +243,12 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_round_rectangle_fill_gradient(x, y, w, h, EGUI_THEME_RADIUS_MD, &grad);
+        egui_canvas_draw_round_rectangle_fill_gradient(canvas, x, y, w, h, EGUI_THEME_RADIUS_MD, &grad);
     }
 #else
-    egui_canvas_draw_round_rectangle_fill(x, y, w, h, EGUI_THEME_RADIUS_MD, local->bg_color, EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle_fill(canvas, x, y, w, h, EGUI_THEME_RADIUS_MD, local->bg_color, EGUI_ALPHA_100);
 #endif
-    egui_canvas_draw_round_rectangle(x, y, w, h, EGUI_THEME_RADIUS_MD, EGUI_THEME_STROKE_WIDTH, EGUI_THEME_BORDER, EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle(canvas, x, y, w, h, EGUI_THEME_RADIUS_MD, EGUI_THEME_STROKE_WIDTH, EGUI_THEME_BORDER, EGUI_ALPHA_100);
 
     const egui_font_t *font = local->font ? local->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 
@@ -259,7 +261,7 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
         pos += egui_sprintf_int_pad(&buf[pos], (int)sizeof(buf) - pos, local->month, 2, '0');
     }
     egui_region_t title_rect = {{x, y}, {w, header_h}};
-    egui_canvas_draw_text_in_rect(font, buf, &title_rect, EGUI_ALIGN_CENTER, local->header_color, EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect(canvas, font, buf, &title_rect, EGUI_ALIGN_CENTER, local->header_color, EGUI_ALPHA_100);
 
     // Row 2: Weekday headers
     const char *const *weekdays = egui_view_mini_calendar_get_weekday_labels(local);
@@ -268,7 +270,7 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
     for (col = 0; col < 7; col++)
     {
         egui_region_t cell_rect = {{x + col * cell_w, y + header_h}, {cell_w, header_h}};
-        egui_canvas_draw_text_in_rect(font, weekdays[col], &cell_rect, EGUI_ALIGN_CENTER, local->header_color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, font, weekdays[col], &cell_rect, EGUI_ALIGN_CENTER, local->header_color, EGUI_ALPHA_100);
     }
 
     // Date grid (6 rows x 7 cols)
@@ -290,7 +292,7 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
         }
 
         egui_view_mini_calendar_local_region_to_screen(self, &day_rect, &day_screen_rect);
-        if (!egui_canvas_is_region_active(&day_screen_rect))
+        if (!egui_canvas_is_region_active(canvas, &day_screen_rect))
         {
             continue;
         }
@@ -320,25 +322,25 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
                         .alpha = EGUI_ALPHA_100,
                         .stops = stops,
                 };
-                egui_canvas_draw_circle_fill_gradient(cx, cy, r, &grad);
+                egui_canvas_draw_circle_fill_gradient(canvas, cx, cy, r, &grad);
             }
 #else
-            egui_canvas_draw_circle_fill(cx, cy, r, local->today_color, EGUI_ALPHA_100);
+            egui_canvas_draw_circle_fill(canvas, cx, cy, r, local->today_color, EGUI_ALPHA_100);
 #endif
-            egui_canvas_draw_text_in_rect(font, buf, &day_rect, EGUI_ALIGN_CENTER, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(canvas, font, buf, &day_rect, EGUI_ALIGN_CENTER, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
         }
         else if (d == local->day)
         {
-            egui_canvas_draw_circle(cx, cy, r, 1, local->selected_color, EGUI_ALPHA_100);
-            egui_canvas_draw_text_in_rect(font, buf, &day_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+            egui_canvas_draw_circle(canvas, cx, cy, r, 1, local->selected_color, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(canvas, font, buf, &day_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
         }
         else if (is_weekend_col(col, local->first_day_of_week))
         {
-            egui_canvas_draw_text_in_rect(font, buf, &day_rect, EGUI_ALIGN_CENTER, local->weekend_color, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(canvas, font, buf, &day_rect, EGUI_ALIGN_CENTER, local->weekend_color, EGUI_ALPHA_100);
         }
         else
         {
-            egui_canvas_draw_text_in_rect(font, buf, &day_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(canvas, font, buf, &day_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
         }
     }
 }
@@ -427,11 +429,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_mini_calendar_t) = {
 #endif
 };
 
-void egui_view_mini_calendar_init(egui_view_t *self)
+void egui_view_mini_calendar_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_mini_calendar_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_mini_calendar_t);
 
@@ -468,8 +470,8 @@ void egui_view_mini_calendar_apply_params(egui_view_t *self, const egui_view_min
     egui_view_invalidate(self);
 }
 
-void egui_view_mini_calendar_init_with_params(egui_view_t *self, const egui_view_mini_calendar_params_t *params)
+void egui_view_mini_calendar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_mini_calendar_params_t *params)
 {
-    egui_view_mini_calendar_init(self);
+    egui_view_mini_calendar_init(self, core);
     egui_view_mini_calendar_apply_params(self, params);
 }

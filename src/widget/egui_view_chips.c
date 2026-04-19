@@ -133,9 +133,9 @@ void egui_view_chips_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
     egui_view_button_matrix_set_icon_text_gap(self, gap);
 }
 
-void egui_view_chips_init(egui_view_t *self)
+void egui_view_chips_init(egui_view_t *self, egui_core_t *core)
 {
-    egui_view_button_matrix_init(self);
+    egui_view_button_matrix_init(self, core);
     egui_view_button_matrix_set_selection_enabled(self, 1);
     egui_view_set_view_name(self, "egui_view_chips");
 }
@@ -152,8 +152,8 @@ void egui_view_chips_apply_params(egui_view_t *self, const egui_view_chips_param
     egui_view_chips_set_chip_icons(self, params->icons);
 }
 
-void egui_view_chips_init_with_params(egui_view_t *self, const egui_view_chips_params_t *params)
+void egui_view_chips_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chips_params_t *params)
 {
-    egui_view_chips_init(self);
+    egui_view_chips_init(self, core);
     egui_view_chips_apply_params(self, params);
 }

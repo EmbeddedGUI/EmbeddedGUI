@@ -35,7 +35,7 @@ struct egui_view_animated_image_params
     static const egui_view_animated_image_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .frame_interval_ms = (_interval_ms)}
 
 void egui_view_animated_image_apply_params(egui_view_t *self, const egui_view_animated_image_params_t *params);
-void egui_view_animated_image_init_with_params(egui_view_t *self, const egui_view_animated_image_params_t *params);
+void egui_view_animated_image_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_animated_image_params_t *params);
 
 void egui_view_animated_image_set_frames(egui_view_t *self, const egui_image_t **frames, uint8_t count);
 void egui_view_animated_image_set_interval(egui_view_t *self, uint16_t ms);
@@ -45,7 +45,7 @@ void egui_view_animated_image_set_loop(egui_view_t *self, uint8_t enable);
 void egui_view_animated_image_set_current_frame(egui_view_t *self, uint8_t index);
 void egui_view_animated_image_update(egui_view_t *self, uint16_t elapsed_ms);
 
-void egui_view_animated_image_init(egui_view_t *self);
+void egui_view_animated_image_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

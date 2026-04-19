@@ -43,17 +43,18 @@ void egui_view_test_mask_set_text_transform(egui_view_t *self, const egui_font_t
 
 void egui_view_test_mask_on_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = &self->core->canvas;
     egui_view_test_mask_t *local = (egui_view_test_mask_t *)self;
     egui_region_t region;
     egui_dim_t cx;
     egui_dim_t cy;
 
     egui_view_get_work_region(self, &region);
-    egui_canvas_set_mask(local->mask);
+    egui_canvas_set_mask(canvas, local->mask);
 
     if (local->background_alpha > 0)
     {
-        egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, local->background_color,
+        egui_canvas_draw_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, local->background_color,
                                         local->background_alpha);
     }
 
@@ -65,14 +66,14 @@ void egui_view_test_mask_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_MASK_DRAW_IMAGE_TRANSFORM:
         if (local->base.image != NULL)
         {
-            egui_canvas_draw_image_transform(local->base.image, cx, cy, local->angle_deg, local->scale_q8);
+            egui_canvas_draw_image_transform(canvas, local->base.image, cx, cy, local->angle_deg, local->scale_q8);
         }
         break;
 
     case EGUI_VIEW_TEST_MASK_DRAW_TEXT_TRANSFORM:
         if (local->font != NULL && local->text != NULL)
         {
-            egui_canvas_draw_text_transform(local->font, local->text, cx, cy, local->angle_deg, local->scale_q8, local->draw_color, local->draw_alpha);
+            egui_canvas_draw_text_transform(canvas, local->font, local->text, cx, cy, local->angle_deg, local->scale_q8, local->draw_color, local->draw_alpha);
         }
         break;
 
@@ -83,7 +84,7 @@ void egui_view_test_mask_on_draw(egui_view_t *self)
     }
 
     // clear mask for canvas.
-    egui_canvas_clear_mask();
+    egui_canvas_clear_mask(canvas);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_test_mask_t) = {
@@ -99,11 +100,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_test_mask_t) = {
         .on_detach_from_window = egui_view_on_detach_from_window,
 };
 
-void egui_view_test_mask_init(egui_view_t *self)
+void egui_view_test_mask_init(egui_view_t *self, egui_core_t *core)
 {
     egui_view_test_mask_t *local = (egui_view_test_mask_t *)self;
     // call super init.
-    egui_view_image_init(self);
+    egui_view_image_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_test_mask_t);
 

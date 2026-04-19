@@ -1,4 +1,5 @@
-#include "egui_view_canvas_viewport.h"
+﻿#include "egui_view_canvas_viewport.h"
+#include "core/egui_core.h"
 
 #include "core/egui_canvas.h"
 #include "egui_view_arc_slider.h"
@@ -592,9 +593,10 @@ static void egui_view_canvas_viewport_calculate_layout(egui_view_t *self)
 
 static void egui_view_canvas_viewport_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     egui_region_t clip_region;
-    const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+    const egui_region_t *prev_clip = egui_canvas_get_extra_clip(canvas);
     const egui_region_t *active_clip = &self->region_screen;
 
     if (prev_clip != NULL)
@@ -603,7 +605,7 @@ static void egui_view_canvas_viewport_draw(egui_view_t *self)
         active_clip = &clip_region;
     }
 
-    egui_canvas_set_extra_clip(active_clip);
+    egui_canvas_set_extra_clip(canvas, active_clip);
     egui_view_group_draw(self);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -629,7 +631,7 @@ static void egui_view_canvas_viewport_draw(egui_view_t *self)
         bar_h = bar_height;
         if (bar_w > 0 && bar_h > 0)
         {
-            egui_canvas_draw_round_rectangle_fill(bar_x, bar_y, bar_w, bar_h, EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_RADIUS, EGUI_COLOR_BLACK, 56);
+            egui_canvas_draw_round_rectangle_fill(canvas, bar_x, bar_y, bar_w, bar_h, EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_RADIUS, EGUI_COLOR_BLACK, 56);
 
             handle_w = EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_WIDTH;
             if (handle_w > bar_w - EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_MARGIN * 2)
@@ -643,11 +645,12 @@ static void egui_view_canvas_viewport_draw(egui_view_t *self)
                 handle_y = (egui_dim_t)(bar_y +
                                         (bar_h - (EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT * 2 + EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_GAP)) / 2);
 
-                egui_canvas_draw_round_rectangle_fill(handle_x, handle_y, handle_w, EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT,
+                egui_canvas_draw_round_rectangle_fill(canvas, handle_x, handle_y, handle_w, EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT,
                                                       EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT, EGUI_COLOR_WHITE, 128);
                 egui_canvas_draw_round_rectangle_fill(
-                        handle_x, (egui_dim_t)(handle_y + EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT + EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_GAP),
-                        handle_w, EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT, EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT, EGUI_COLOR_WHITE, 128);
+                        canvas, handle_x,
+                        (egui_dim_t)(handle_y + EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT + EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_GAP), handle_w,
+                        EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT, EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_HEIGHT, EGUI_COLOR_WHITE, 128);
             }
         }
     }
@@ -655,11 +658,11 @@ static void egui_view_canvas_viewport_draw(egui_view_t *self)
 
     if (prev_clip != NULL)
     {
-        egui_canvas_set_extra_clip(prev_clip);
+        egui_canvas_set_extra_clip(canvas, prev_clip);
     }
     else
     {
-        egui_canvas_clear_extra_clip();
+        egui_canvas_clear_extra_clip(canvas);
     }
 }
 
@@ -697,9 +700,9 @@ void egui_view_canvas_viewport_apply_params(egui_view_t *self, const egui_view_c
     egui_view_canvas_viewport_set_canvas_size(self, params->canvas_width, params->canvas_height);
 }
 
-void egui_view_canvas_viewport_init_with_params(egui_view_t *self, const egui_view_canvas_viewport_params_t *params)
+void egui_view_canvas_viewport_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_canvas_viewport_params_t *params)
 {
-    egui_view_canvas_viewport_init(self);
+    egui_view_canvas_viewport_init(self, core);
     egui_view_canvas_viewport_apply_params(self, params);
 }
 
@@ -838,14 +841,14 @@ egui_dim_t egui_view_canvas_viewport_get_offset_y(egui_view_t *self)
     return local->offset_y;
 }
 
-void egui_view_canvas_viewport_init(egui_view_t *self)
+void egui_view_canvas_viewport_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_canvas_viewport_t);
 
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_canvas_viewport_t);
 
-    egui_view_group_init(EGUI_VIEW_OF(&local->content_layer));
+    egui_view_group_init(EGUI_VIEW_OF(&local->content_layer), core);
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->content_layer));
 
     local->content_view = NULL;

@@ -1,7 +1,8 @@
-#include <assert.h>
+﻿#include <assert.h>
 #include <string.h>
 
 #include "egui_view_heart_rate.h"
+#include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font.h"
@@ -64,9 +65,14 @@ static void egui_view_heart_rate_update_timer(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_heart_rate_t);
     uint32_t period;
 
+    if (egui_view_get_core(self) == NULL)
+    {
+        return;
+    }
+
     if (!local->animate || local->bpm == 0 || !self->is_attached_to_window)
     {
-        egui_timer_stop_timer(&local->anim_timer);
+        egui_view_stop_timer(self, &local->anim_timer);
         return;
     }
 
@@ -76,8 +82,8 @@ static void egui_view_heart_rate_update_timer(egui_view_t *self)
         period = 15u;
     }
 
-    egui_timer_stop_timer(&local->anim_timer);
-    egui_timer_start_timer(&local->anim_timer, period, period);
+    egui_view_stop_timer(self, &local->anim_timer);
+    egui_view_start_timer(self, &local->anim_timer, period, period);
 }
 
 static void egui_view_heart_rate_on_attach_to_window(egui_view_t *self)
@@ -90,7 +96,7 @@ static void egui_view_heart_rate_on_detach_from_window(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_heart_rate_t);
 
-    egui_timer_stop_timer(&local->anim_timer);
+    egui_view_stop_timer(self, &local->anim_timer);
     egui_view_on_detach_from_window(self);
 }
 
@@ -143,6 +149,7 @@ void egui_view_heart_rate_set_pulse_phase(egui_view_t *self, uint8_t phase)
 void egui_view_heart_rate_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_heart_rate_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -166,8 +173,8 @@ void egui_view_heart_rate_on_draw(egui_view_t *self)
     egui_color_t panel_bd = heart_rate_mix(panel_bg, med_green, 92);
     egui_color_t monitor_bg = EGUI_COLOR_MAKE(7, 13, 22);
 
-    egui_canvas_draw_rectangle_fill(x, y, w, h, panel_bg, 245);
-    egui_canvas_draw_rectangle(x, y, w, h, 1, panel_bd, 230);
+    egui_canvas_draw_rectangle_fill(canvas, x, y, w, h, panel_bg, 245);
+    egui_canvas_draw_rectangle(canvas, x, y, w, h, 1, panel_bd, 230);
 
     egui_dim_t pad = EGUI_MAX((egui_dim_t)2, w / 28);
     egui_dim_t in_x = x + pad;
@@ -201,19 +208,19 @@ void egui_view_heart_rate_on_draw(egui_view_t *self)
         return;
     }
 
-    egui_canvas_draw_rectangle_fill(ecg_x, ecg_y, ecg_w, ecg_h, monitor_bg, 250);
-    egui_canvas_draw_rectangle(ecg_x, ecg_y, ecg_w, ecg_h, 1, med_green_soft, 200);
+    egui_canvas_draw_rectangle_fill(canvas, ecg_x, ecg_y, ecg_w, ecg_h, monitor_bg, 250);
+    egui_canvas_draw_rectangle(canvas, ecg_x, ecg_y, ecg_w, ecg_h, 1, med_green_soft, 200);
 
-    egui_canvas_draw_rectangle_fill(info_x, info_y, info_w, info_h, panel_bg, 220);
-    egui_canvas_draw_rectangle(info_x, info_y, info_w, info_h, 1, med_green_soft, 180);
+    egui_canvas_draw_rectangle_fill(canvas, info_x, info_y, info_w, info_h, panel_bg, 220);
+    egui_canvas_draw_rectangle(canvas, info_x, info_y, info_w, info_h, 1, med_green_soft, 180);
 
     for (egui_dim_t gy = ecg_y + 3; gy < ecg_y + ecg_h - 2; gy += 5)
     {
-        egui_canvas_draw_hline(ecg_x + 2, gy, ecg_w - 4, med_green_soft, 34);
+        egui_canvas_draw_hline(canvas, ecg_x + 2, gy, ecg_w - 4, med_green_soft, 34);
     }
     for (egui_dim_t gx = ecg_x + 4; gx < ecg_x + ecg_w - 2; gx += 7)
     {
-        egui_canvas_draw_vline(gx, ecg_y + 2, ecg_h - 4, med_green_soft, 24);
+        egui_canvas_draw_vline(canvas, gx, ecg_y + 2, ecg_h - 4, med_green_soft, 24);
     }
 
     egui_dim_t wave_x0 = ecg_x + 2;
@@ -269,8 +276,8 @@ void egui_view_heart_rate_on_draw(egui_view_t *self)
         points[i * 2 + 1] = py;
     }
 
-    egui_canvas_draw_polyline_hq(points, (uint8_t)sample_count, 2, med_green_dim, 124);
-    egui_canvas_draw_polyline_hq(points, (uint8_t)sample_count, 1, med_green, EGUI_ALPHA_100);
+    egui_canvas_draw_polyline_hq(canvas, points, (uint8_t)sample_count, 2, med_green_dim, 124);
+    egui_canvas_draw_polyline_hq(canvas, points, (uint8_t)sample_count, 1, med_green, EGUI_ALPHA_100);
 
     egui_dim_t scan_x = wave_x0 + (egui_dim_t)(((int32_t)local->ecg_offset * (wave_w - 1)) / 31);
     uint16_t scan_phase_q8 = (uint16_t)((uint16_t)local->ecg_offset << 8);
@@ -285,8 +292,8 @@ void egui_view_heart_rate_on_draw(egui_view_t *self)
         scan_y = wave_bottom;
     }
 
-    egui_canvas_draw_vline(scan_x, ecg_y + 2, ecg_h - 4, med_green, 122);
-    egui_canvas_draw_circle_fill(scan_x, scan_y, 2, med_green, EGUI_ALPHA_100);
+    egui_canvas_draw_vline(canvas, scan_x, ecg_y + 2, ecg_h - 4, med_green, 122);
+    egui_canvas_draw_circle_fill(canvas, scan_x, scan_y, 2, med_green, EGUI_ALPHA_100);
 
     if (info_h < 10)
     {
@@ -298,16 +305,16 @@ void egui_view_heart_rate_on_draw(egui_view_t *self)
     egui_dim_t status_cy = info_y + status_r + 2;
     egui_alpha_t status_alpha = (local->beat_phase > 0) ? EGUI_ALPHA_100 : 168;
 
-    egui_canvas_draw_circle_fill(status_cx, status_cy, status_r + 2, med_green_soft, 95);
-    egui_canvas_draw_circle_fill(status_cx, status_cy, status_r, med_green, status_alpha);
+    egui_canvas_draw_circle_fill(canvas, status_cx, status_cy, status_r + 2, med_green_soft, 95);
+    egui_canvas_draw_circle_fill(canvas, status_cx, status_cy, status_r, med_green, status_alpha);
 
     egui_region_t mark_region;
     mark_region.location.x = status_cx + status_r + 2;
     mark_region.location.y = info_y;
     mark_region.size.width = EGUI_MAX((egui_dim_t)10, info_w / 2);
     mark_region.size.height = EGUI_MAX((egui_dim_t)9, info_h / 4);
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_8_4, "ECG", &mark_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_sub,
-                                  EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect(canvas, (const egui_font_t *)&egui_res_font_montserrat_8_4, "ECG", &mark_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER,
+                                  text_sub, EGUI_ALPHA_100);
 
     egui_dim_t text_x = info_x + 2;
     egui_dim_t text_w = info_w - 4;
@@ -355,14 +362,14 @@ void egui_view_heart_rate_on_draw(egui_view_t *self)
     num_region.location.y = info_y + EGUI_MAX((egui_dim_t)8, status_r * 2 + 4);
     num_region.size.width = text_w;
     num_region.size.height = EGUI_MAX((egui_dim_t)10, top_h - EGUI_MAX((egui_dim_t)8, status_r * 2 + 4));
-    egui_canvas_draw_text_in_rect(num_font, local->text_buffer, &num_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_main, EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect(canvas, num_font, local->text_buffer, &num_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_main, EGUI_ALPHA_100);
 
     egui_region_t unit_region;
     unit_region.location.x = text_x;
     unit_region.location.y = info_y + top_h + 1;
     unit_region.size.width = text_w;
     unit_region.size.height = (bottom_h > 2) ? (bottom_h - 2) : bottom_h;
-    egui_canvas_draw_text_in_rect(tag_font, "RDM", &unit_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_sub, 248);
+    egui_canvas_draw_text_in_rect(canvas, tag_font, "RDM", &unit_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_sub, 248);
 
     if (text_w > 12)
     {
@@ -370,10 +377,10 @@ void egui_view_heart_rate_on_draw(egui_view_t *self)
         egui_dim_t meter_x = text_x + text_w - meter_w;
         egui_dim_t meter_y = info_y + info_h - 2;
         egui_dim_t meter_fill = (egui_dim_t)((meter_w * (local->ecg_offset + 1)) / 32);
-        egui_canvas_draw_hline(meter_x, meter_y - 1, meter_w, med_green_soft, 86);
-        egui_canvas_draw_hline(meter_x, meter_y, meter_w, med_green_soft, 100);
-        egui_canvas_draw_hline(meter_x, meter_y - 1, meter_fill, med_green, 200);
-        egui_canvas_draw_hline(meter_x, meter_y, meter_fill, med_green, 220);
+        egui_canvas_draw_hline(canvas, meter_x, meter_y - 1, meter_w, med_green_soft, 86);
+        egui_canvas_draw_hline(canvas, meter_x, meter_y, meter_w, med_green_soft, 100);
+        egui_canvas_draw_hline(canvas, meter_x, meter_y - 1, meter_fill, med_green, 200);
+        egui_canvas_draw_hline(canvas, meter_x, meter_y, meter_fill, med_green, 220);
     }
 }
 
@@ -394,10 +401,10 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_heart_rate_t) = {
 #endif
 };
 
-void egui_view_heart_rate_init(egui_view_t *self)
+void egui_view_heart_rate_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_heart_rate_t);
-    egui_view_init(self);
+    egui_view_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_heart_rate_t);
 
     local->bpm = 0;
@@ -422,8 +429,8 @@ void egui_view_heart_rate_apply_params(egui_view_t *self, const egui_view_heart_
     egui_view_invalidate(self);
 }
 
-void egui_view_heart_rate_init_with_params(egui_view_t *self, const egui_view_heart_rate_params_t *params)
+void egui_view_heart_rate_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_heart_rate_params_t *params)
 {
-    egui_view_heart_rate_init(self);
+    egui_view_heart_rate_init(self, core);
     egui_view_heart_rate_apply_params(self, params);
 }

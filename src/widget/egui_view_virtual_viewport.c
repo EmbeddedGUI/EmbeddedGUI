@@ -1,6 +1,7 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "egui_view_virtual_viewport.h"
+#include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "core/egui_common.h"
 #include "core/egui_input.h"
@@ -139,7 +140,7 @@ static void egui_view_virtual_viewport_remove_state_entry(egui_view_virtual_view
     {
         local->state_total_bytes = 0;
     }
-    egui_free(entry);
+    egui_free(EGUI_VIEW_OF(local)->core, entry);
 }
 
 static void egui_view_virtual_viewport_trim_state_cache(egui_view_virtual_viewport_t *local)
@@ -403,17 +404,17 @@ static void egui_view_virtual_viewport_release_index_storage(egui_view_virtual_v
 {
     if (local->index_block_extents != NULL)
     {
-        egui_free(local->index_block_extents);
+        egui_free(EGUI_VIEW_OF(local)->core, local->index_block_extents);
         local->index_block_extents = NULL;
     }
     if (local->index_block_origins != NULL)
     {
-        egui_free(local->index_block_origins);
+        egui_free(EGUI_VIEW_OF(local)->core, local->index_block_origins);
         local->index_block_origins = NULL;
     }
     if (local->index_block_valid != NULL)
     {
-        egui_free(local->index_block_valid);
+        egui_free(EGUI_VIEW_OF(local)->core, local->index_block_valid);
         local->index_block_valid = NULL;
     }
 
@@ -479,7 +480,7 @@ static uint8_t egui_view_virtual_viewport_ensure_index_storage(egui_view_virtual
     }
     else
     {
-        int32_t *new_block_extents = (int32_t *)egui_malloc((int)(sizeof(int32_t) * block_count));
+        int32_t *new_block_extents = (int32_t *)egui_malloc(EGUI_VIEW_OF(local)->core, (int)(sizeof(int32_t) * block_count));
         int32_t *new_block_origins;
         uint8_t *new_block_valid;
 
@@ -488,18 +489,18 @@ static uint8_t egui_view_virtual_viewport_ensure_index_storage(egui_view_virtual
             return 0;
         }
 
-        new_block_origins = (int32_t *)egui_malloc((int)(sizeof(int32_t) * block_count));
+        new_block_origins = (int32_t *)egui_malloc(EGUI_VIEW_OF(local)->core, (int)(sizeof(int32_t) * block_count));
         if (new_block_origins == NULL)
         {
-            egui_free(new_block_extents);
+            egui_free(EGUI_VIEW_OF(local)->core, new_block_extents);
             return 0;
         }
 
-        new_block_valid = (uint8_t *)egui_malloc((int)block_count);
+        new_block_valid = (uint8_t *)egui_malloc(EGUI_VIEW_OF(local)->core, (int)block_count);
         if (new_block_valid == NULL)
         {
-            egui_free(new_block_extents);
-            egui_free(new_block_origins);
+            egui_free(EGUI_VIEW_OF(local)->core, new_block_extents);
+            egui_free(EGUI_VIEW_OF(local)->core, new_block_origins);
             return 0;
         }
 
@@ -1575,12 +1576,14 @@ static egui_dim_t egui_view_virtual_viewport_get_motion_main(egui_view_virtual_v
 
 static egui_float_t egui_view_virtual_viewport_get_velocity_main(egui_view_virtual_viewport_t *local)
 {
+    egui_view_t *self = EGUI_VIEW_OF(&local->base);
+
     if (local->orientation == EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_HORIZONTAL)
     {
-        return egui_input_get_velocity_x();
+        return egui_view_get_velocity_x(self);
     }
 
-    return egui_input_get_velocity_y();
+    return egui_view_get_velocity_y(self);
 }
 
 static void egui_view_virtual_viewport_check_begin_dragged(egui_view_t *self, egui_dim_t delta)
@@ -1618,7 +1621,7 @@ static void egui_view_virtual_viewport_fling(egui_view_t *self, egui_float_t vel
 
     if (delta > 0)
     {
-        egui_scroller_start_filing(&local->scroller, (egui_dim_t)delta, velocity);
+        egui_scroller_start_filing(&local->scroller, egui_view_get_core(self), (egui_dim_t)delta, velocity);
     }
 }
 
@@ -1724,7 +1727,7 @@ static void egui_view_virtual_viewport_compute_scroll(egui_view_t *self)
 
     egui_view_group_compute_scroll(self);
 
-    offset = egui_scroller_compute_scroll_offset(&local->scroller);
+    offset = egui_scroller_compute_scroll_offset(&local->scroller, egui_view_get_core(self));
     if (offset != 0)
     {
         egui_view_virtual_viewport_scroll_by(self, -offset);
@@ -1761,9 +1764,10 @@ static void egui_view_virtual_viewport_calculate_layout(egui_view_t *self)
 
 static void egui_view_virtual_viewport_draw(egui_view_t *self)
 {
-    egui_canvas_set_extra_clip(&self->region_screen);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
+    egui_canvas_set_extra_clip(canvas, &self->region_screen);
     egui_view_group_draw(self);
-    egui_canvas_clear_extra_clip();
+    egui_canvas_clear_extra_clip(canvas);
 }
 
 static void egui_view_virtual_viewport_on_attach_to_window(egui_view_t *self)
@@ -1959,7 +1963,7 @@ uint8_t egui_view_virtual_viewport_write_state(egui_view_t *self, uint32_t stabl
         return 1;
     }
 
-    entry = (egui_view_virtual_viewport_state_entry_t *)egui_malloc((int)(sizeof(egui_view_virtual_viewport_state_entry_t) + size));
+    entry = (egui_view_virtual_viewport_state_entry_t *)egui_malloc(EGUI_VIEW_OF(local)->core, (int)(sizeof(egui_view_virtual_viewport_state_entry_t) + size));
     if (entry == NULL)
     {
         return 0;
@@ -2527,14 +2531,14 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_virtual_viewport_t) = {
 #endif
 };
 
-void egui_view_virtual_viewport_init(egui_view_t *self)
+void egui_view_virtual_viewport_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_virtual_viewport_t);
 
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_virtual_viewport_t);
 
-    egui_view_group_init(EGUI_VIEW_OF(&local->content_layer));
+    egui_view_group_init(EGUI_VIEW_OF(&local->content_layer), core);
     egui_view_set_position(EGUI_VIEW_OF(&local->content_layer), 0, 0);
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->content_layer));
 
@@ -2572,7 +2576,7 @@ void egui_view_virtual_viewport_init(egui_view_t *self)
     local->index_block_valid = NULL;
     egui_dlist_init(&local->state_entries);
 
-    egui_scroller_init(&local->scroller);
+    egui_scroller_init(&local->scroller, core);
     egui_view_virtual_viewport_reset_slots(local);
     egui_view_set_view_name(self, "egui_view_virtual_viewport");
 }
@@ -2598,9 +2602,9 @@ void egui_view_virtual_viewport_apply_params(egui_view_t *self, const egui_view_
     egui_view_virtual_viewport_mark_dirty(self, local, 0, 1);
 }
 
-void egui_view_virtual_viewport_init_with_params(egui_view_t *self, const egui_view_virtual_viewport_params_t *params)
+void egui_view_virtual_viewport_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_viewport_params_t *params)
 {
-    egui_view_virtual_viewport_init(self);
+    egui_view_virtual_viewport_init(self, core);
     egui_view_virtual_viewport_apply_params(self, params);
 }
 
@@ -2620,8 +2624,8 @@ void egui_view_virtual_viewport_apply_setup(egui_view_t *self, const egui_view_v
     egui_view_virtual_viewport_set_state_cache_limits(self, setup->state_cache_max_entries, setup->state_cache_max_bytes);
 }
 
-void egui_view_virtual_viewport_init_with_setup(egui_view_t *self, const egui_view_virtual_viewport_setup_t *setup)
+void egui_view_virtual_viewport_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_viewport_setup_t *setup)
 {
-    egui_view_virtual_viewport_init(self);
+    egui_view_virtual_viewport_init(self, core);
     egui_view_virtual_viewport_apply_setup(self, setup);
 }

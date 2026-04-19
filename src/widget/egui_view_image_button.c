@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_image_button.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "core/egui_canvas_gradient.h"
 #include "resource/egui_resource.h"
@@ -35,7 +36,7 @@ static void egui_view_image_button_get_content_region(const egui_region_t *regio
     }
 }
 
-static void egui_view_image_button_draw_image(const egui_view_image_button_t *local, const egui_region_t *region)
+static void egui_view_image_button_draw_image(egui_canvas_t *canvas, const egui_view_image_button_t *local, const egui_region_t *region)
 {
     const egui_image_t *image = local->base.image;
 
@@ -48,26 +49,27 @@ static void egui_view_image_button_draw_image(const egui_view_image_button_t *lo
     {
         if (local->base.image_type == EGUI_VIEW_IMAGE_TYPE_NORMAL)
         {
-            egui_canvas_draw_image_color(image, region->location.x, region->location.y, local->base.image_color, local->base.image_color_alpha);
+            egui_canvas_draw_image_color(canvas, image, region->location.x, region->location.y, local->base.image_color, local->base.image_color_alpha);
         }
         else
         {
-            egui_canvas_draw_image_resize_color(image, region->location.x, region->location.y, region->size.width, region->size.height, local->base.image_color,
-                                                local->base.image_color_alpha);
+            egui_canvas_draw_image_resize_color(canvas, image, region->location.x, region->location.y, region->size.width, region->size.height,
+                                                local->base.image_color, local->base.image_color_alpha);
         }
     }
     else if (local->base.image_type == EGUI_VIEW_IMAGE_TYPE_NORMAL)
     {
-        egui_canvas_draw_image(image, region->location.x, region->location.y);
+        egui_canvas_draw_image(canvas, image, region->location.x, region->location.y);
     }
     else
     {
-        egui_canvas_draw_image_resize(image, region->location.x, region->location.y, region->size.width, region->size.height);
+        egui_canvas_draw_image_resize(canvas, image, region->location.x, region->location.y, region->size.width, region->size.height);
     }
 }
 
 static void egui_view_image_button_draw_base_frame(egui_view_t *self, egui_view_image_button_t *local, const egui_region_t *region)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     if (local->base.image == NULL && (EGUI_VIEW_ICON_TEXT_VALID(local->icon) || EGUI_VIEW_TEXT_VALID(local->text)))
     {
         egui_color_t bg_color = egui_view_get_enable(self) ? EGUI_THEME_SURFACE_VARIANT : EGUI_THEME_DISABLED;
@@ -83,7 +85,7 @@ static void egui_view_image_button_draw_base_frame(egui_view_t *self, egui_view_
             radius = EGUI_THEME_RADIUS_LG;
         }
 
-        egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, radius, border_color,
+        egui_canvas_draw_round_rectangle_fill(canvas, region->location.x, region->location.y, region->size.width, region->size.height, radius, border_color,
                                               EGUI_ALPHA_100);
         if (region->size.width > 2 && region->size.height > 2)
         {
@@ -92,12 +94,12 @@ static void egui_view_image_button_draw_base_frame(egui_view_t *self, egui_view_
             {
                 inner_radius = 0;
             }
-            egui_canvas_draw_round_rectangle_fill(region->location.x + 1, region->location.y + 1, region->size.width - 2, region->size.height - 2, inner_radius,
-                                                  bg_color, EGUI_ALPHA_100);
+            egui_canvas_draw_round_rectangle_fill(canvas, region->location.x + 1, region->location.y + 1, region->size.width - 2, region->size.height - 2,
+                                                  inner_radius, bg_color, EGUI_ALPHA_100);
         }
     }
 
-    egui_view_image_button_draw_image(local, region);
+    egui_view_image_button_draw_image(canvas, local, region);
 
     // If pressed, draw a semi-transparent overlay for visual feedback
     if (self->is_pressed)
@@ -125,16 +127,18 @@ static void egui_view_image_button_draw_base_frame(egui_view_t *self, egui_view_
                     .alpha = EGUI_THEME_PRESS_OVERLAY_ALPHA,
                     .stops = stops,
             };
-            egui_canvas_draw_round_rectangle_fill_gradient(region->location.x, region->location.y, region->size.width, region->size.height, radius, &grad);
+            egui_canvas_draw_round_rectangle_fill_gradient(canvas, region->location.x, region->location.y, region->size.width, region->size.height, radius,
+                                                           &grad);
         }
 #else
-        egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, radius, EGUI_THEME_PRESS_OVERLAY,
-                                              EGUI_THEME_PRESS_OVERLAY_ALPHA);
+        egui_canvas_draw_round_rectangle_fill(canvas, region->location.x, region->location.y, region->size.width, region->size.height, radius,
+                                              EGUI_THEME_PRESS_OVERLAY, EGUI_THEME_PRESS_OVERLAY_ALPHA);
 #endif
     }
 }
 
-static void egui_view_image_button_draw_content(egui_view_image_button_t *local, const egui_region_t *region, egui_color_t color, egui_alpha_t alpha)
+static void egui_view_image_button_draw_content(egui_canvas_t *canvas, egui_view_image_button_t *local, const egui_region_t *region, egui_color_t color,
+                                                egui_alpha_t alpha)
 {
     const char *icon = local->icon;
     const char *text = local->text;
@@ -167,7 +171,7 @@ static void egui_view_image_button_draw_content(egui_view_image_button_t *local,
             {
                 if (font != NULL)
                 {
-                    egui_canvas_draw_text_in_rect(font, text, &content_region, EGUI_ALIGN_CENTER, color, alpha);
+                    egui_canvas_draw_text_in_rect(canvas, font, text, &content_region, EGUI_ALIGN_CENTER, color, alpha);
                 }
                 return;
             }
@@ -186,7 +190,7 @@ static void egui_view_image_button_draw_content(egui_view_image_button_t *local,
             }
             if (text_w <= 0)
             {
-                egui_canvas_draw_text_in_rect(icon_font, icon, &content_region, EGUI_ALIGN_CENTER, color, alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, icon, &content_region, EGUI_ALIGN_CENTER, color, alpha);
                 return;
             }
 
@@ -217,11 +221,12 @@ static void egui_view_image_button_draw_content(egui_view_image_button_t *local,
             text_region.size.width = content_region.size.width;
             text_region.size.height = content_region.location.y + content_region.size.height - text_region.location.y;
 
-            egui_canvas_draw_text_in_rect(EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, EGUI_MIN(icon_region.size.width, icon_region.size.height), 20, 26),
+            egui_canvas_draw_text_in_rect(canvas,
+                                          EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, EGUI_MIN(icon_region.size.width, icon_region.size.height), 20, 26),
                                           icon, &icon_region, EGUI_ALIGN_CENTER, color, alpha);
             if (font != NULL)
             {
-                egui_canvas_draw_text_in_rect(font, text, &text_region, EGUI_ALIGN_CENTER, color, alpha);
+                egui_canvas_draw_text_in_rect(canvas, font, text, &text_region, EGUI_ALIGN_CENTER, color, alpha);
             }
         }
         else
@@ -230,7 +235,7 @@ static void egui_view_image_button_draw_content(egui_view_image_button_t *local,
                     EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, EGUI_MIN(content_region.size.width, content_region.size.height), 20, 26);
             if (icon_font != NULL)
             {
-                egui_canvas_draw_text_in_rect(icon_font, icon, &content_region, EGUI_ALIGN_CENTER, color, alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, icon, &content_region, EGUI_ALIGN_CENTER, color, alpha);
             }
         }
     }
@@ -238,7 +243,7 @@ static void egui_view_image_button_draw_content(egui_view_image_button_t *local,
     {
         if (font != NULL)
         {
-            egui_canvas_draw_text_in_rect(font, text, &content_region, EGUI_ALIGN_CENTER, color, alpha);
+            egui_canvas_draw_text_in_rect(canvas, font, text, &content_region, EGUI_ALIGN_CENTER, color, alpha);
         }
     }
 }
@@ -246,6 +251,7 @@ static void egui_view_image_button_draw_content(egui_view_image_button_t *local,
 void egui_view_image_button_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_image_button_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t region;
     egui_color_t content_color = local->content_color;
     egui_alpha_t content_alpha = local->content_alpha;
@@ -258,7 +264,7 @@ void egui_view_image_button_on_draw(egui_view_t *self)
         content_color = EGUI_THEME_DISABLED;
     }
 
-    egui_view_image_button_draw_content(local, &region, content_color, content_alpha);
+    egui_view_image_button_draw_content(canvas, local, &region, content_color, content_alpha);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_image_button_t) = {
@@ -278,10 +284,10 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_image_button_t) = {
 #endif
 };
 
-void egui_view_image_button_init(egui_view_t *self)
+void egui_view_image_button_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_image_button_t);
-    egui_view_image_init(self);
+    egui_view_image_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_image_button_t);
 
     local->icon = NULL;
@@ -299,9 +305,9 @@ void egui_view_image_button_apply_params(egui_view_t *self, const egui_view_imag
     egui_view_image_apply_params(self, params);
 }
 
-void egui_view_image_button_init_with_params(egui_view_t *self, const egui_view_image_params_t *params)
+void egui_view_image_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_image_params_t *params)
 {
-    egui_view_image_button_init(self);
+    egui_view_image_button_init(self, core);
     egui_view_image_button_apply_params(self, params);
 }
 

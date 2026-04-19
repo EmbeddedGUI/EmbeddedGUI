@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define SH_FONT_TITLE     EGUI_FONT_OF(&egui_res_font_montserrat_20_4)
 #define SH_FONT_CARD      EGUI_FONT_OF(&egui_res_font_montserrat_14_4)
@@ -66,7 +66,10 @@ static void sh_stagger_timer_callback(egui_timer_t *timer)
     }
     if (sh_stagger_idx >= 4)
     {
-        egui_timer_stop_timer(&sh_stagger_timer);
+        if (sh_card_views[0] != NULL)
+        {
+            egui_view_stop_timer(sh_card_views[0], &sh_stagger_timer);
+        }
     }
 }
 
@@ -78,8 +81,10 @@ static void sh_theme_btn_click(egui_view_t *self)
 
 void uicode_init_page_smarthome(egui_view_t *parent)
 {
+    egui_core_t *core = egui_view_get_core(parent);
+
     // Title "Smart Home"
-    egui_view_label_init(EGUI_VIEW_OF(&sh_title));
+    egui_view_label_init(EGUI_VIEW_OF(&sh_title), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_title), 10, 5);
     egui_view_set_size(EGUI_VIEW_OF(&sh_title), 150, 30);
     egui_view_label_set_text(EGUI_VIEW_OF(&sh_title), "Smart Home");
@@ -89,7 +94,7 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&sh_title));
 
     // Theme toggle button (icon)
-    egui_view_button_init(EGUI_VIEW_OF(&sh_theme_btn));
+    egui_view_button_init(EGUI_VIEW_OF(&sh_theme_btn), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_theme_btn), 200, 5);
     egui_view_set_size(EGUI_VIEW_OF(&sh_theme_btn), 32, 28);
     egui_view_label_set_text(EGUI_VIEW_OF(&sh_theme_btn), ICON_LIGHT_MODE);
@@ -98,12 +103,12 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&sh_theme_btn));
 
     // Card 1: Living Room (top-left)
-    egui_view_card_init(EGUI_VIEW_OF(&sh_card1));
+    egui_view_card_init(EGUI_VIEW_OF(&sh_card1), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card1), 8, 42);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card1), 108, 130);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&sh_card1), 8);
 
-    egui_view_label_init(EGUI_VIEW_OF(&sh_card1_name));
+    egui_view_label_init(EGUI_VIEW_OF(&sh_card1_name), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card1_name), 5, 8);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card1_name), 98, 18);
     egui_view_label_set_text(EGUI_VIEW_OF(&sh_card1_name), "Living Room");
@@ -111,13 +116,13 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card1_name), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&sh_card1), EGUI_VIEW_OF(&sh_card1_name));
 
-    egui_view_switch_init(EGUI_VIEW_OF(&sh_card1_sw));
+    egui_view_switch_init(EGUI_VIEW_OF(&sh_card1_sw), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card1_sw), 28, 34);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card1_sw), 50, 26);
     egui_view_switch_set_checked(EGUI_VIEW_OF(&sh_card1_sw), 1);
     egui_view_card_add_child(EGUI_VIEW_OF(&sh_card1), EGUI_VIEW_OF(&sh_card1_sw));
 
-    egui_view_slider_init(EGUI_VIEW_OF(&sh_card1_slider));
+    egui_view_slider_init(EGUI_VIEW_OF(&sh_card1_slider), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card1_slider), 8, 72);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card1_slider), 90, 30);
     egui_view_slider_set_value(EGUI_VIEW_OF(&sh_card1_slider), 75);
@@ -126,12 +131,12 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&sh_card1));
 
     // Card 2: Bedroom (top-right)
-    egui_view_card_init(EGUI_VIEW_OF(&sh_card2));
+    egui_view_card_init(EGUI_VIEW_OF(&sh_card2), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card2), 124, 42);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card2), 108, 130);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&sh_card2), 8);
 
-    egui_view_label_init(EGUI_VIEW_OF(&sh_card2_name));
+    egui_view_label_init(EGUI_VIEW_OF(&sh_card2_name), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card2_name), 5, 8);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card2_name), 98, 18);
     egui_view_label_set_text(EGUI_VIEW_OF(&sh_card2_name), "Bedroom");
@@ -139,12 +144,12 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card2_name), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&sh_card2), EGUI_VIEW_OF(&sh_card2_name));
 
-    egui_view_switch_init(EGUI_VIEW_OF(&sh_card2_sw));
+    egui_view_switch_init(EGUI_VIEW_OF(&sh_card2_sw), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card2_sw), 28, 34);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card2_sw), 50, 26);
     egui_view_card_add_child(EGUI_VIEW_OF(&sh_card2), EGUI_VIEW_OF(&sh_card2_sw));
 
-    egui_view_slider_init(EGUI_VIEW_OF(&sh_card2_slider));
+    egui_view_slider_init(EGUI_VIEW_OF(&sh_card2_slider), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card2_slider), 8, 72);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card2_slider), 90, 30);
     egui_view_slider_set_value(EGUI_VIEW_OF(&sh_card2_slider), 40);
@@ -153,12 +158,12 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&sh_card2));
 
     // Card 3: Kitchen (bottom-left)
-    egui_view_card_init(EGUI_VIEW_OF(&sh_card3));
+    egui_view_card_init(EGUI_VIEW_OF(&sh_card3), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card3), 8, 180);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card3), 108, 130);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&sh_card3), 8);
 
-    egui_view_label_init(EGUI_VIEW_OF(&sh_card3_name));
+    egui_view_label_init(EGUI_VIEW_OF(&sh_card3_name), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card3_name), 5, 8);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card3_name), 98, 18);
     egui_view_label_set_text(EGUI_VIEW_OF(&sh_card3_name), "Kitchen");
@@ -166,13 +171,13 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card3_name), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&sh_card3), EGUI_VIEW_OF(&sh_card3_name));
 
-    egui_view_switch_init(EGUI_VIEW_OF(&sh_card3_sw));
+    egui_view_switch_init(EGUI_VIEW_OF(&sh_card3_sw), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card3_sw), 28, 34);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card3_sw), 50, 26);
     egui_view_switch_set_checked(EGUI_VIEW_OF(&sh_card3_sw), 1);
     egui_view_card_add_child(EGUI_VIEW_OF(&sh_card3), EGUI_VIEW_OF(&sh_card3_sw));
 
-    egui_view_slider_init(EGUI_VIEW_OF(&sh_card3_slider));
+    egui_view_slider_init(EGUI_VIEW_OF(&sh_card3_slider), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card3_slider), 8, 72);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card3_slider), 90, 30);
     egui_view_slider_set_value(EGUI_VIEW_OF(&sh_card3_slider), 60);
@@ -181,12 +186,12 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&sh_card3));
 
     // Card 4: Temperature (bottom-right)
-    egui_view_card_init(EGUI_VIEW_OF(&sh_card4));
+    egui_view_card_init(EGUI_VIEW_OF(&sh_card4), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card4), 124, 180);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card4), 108, 130);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&sh_card4), 8);
 
-    egui_view_label_init(EGUI_VIEW_OF(&sh_card4_name));
+    egui_view_label_init(EGUI_VIEW_OF(&sh_card4_name), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card4_name), 5, 8);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card4_name), 98, 18);
     egui_view_label_set_text(EGUI_VIEW_OF(&sh_card4_name), "Temp");
@@ -194,7 +199,7 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card4_name), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&sh_card4), EGUI_VIEW_OF(&sh_card4_name));
 
-    egui_view_label_init(EGUI_VIEW_OF(&sh_card4_value));
+    egui_view_label_init(EGUI_VIEW_OF(&sh_card4_value), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card4_value), 5, 30);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card4_value), 98, 26);
     egui_view_label_set_text(EGUI_VIEW_OF(&sh_card4_value), "22\xC2\xB0"
@@ -203,7 +208,7 @@ void uicode_init_page_smarthome(egui_view_t *parent)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card4_value), EGUI_COLOR_MAKE(0x25, 0x63, 0xEB), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&sh_card4), EGUI_VIEW_OF(&sh_card4_value));
 
-    egui_view_slider_init(EGUI_VIEW_OF(&sh_card4_slider));
+    egui_view_slider_init(EGUI_VIEW_OF(&sh_card4_slider), core);
     egui_view_set_position(EGUI_VIEW_OF(&sh_card4_slider), 8, 72);
     egui_view_set_size(EGUI_VIEW_OF(&sh_card4_slider), 90, 30);
     egui_view_slider_set_value(EGUI_VIEW_OF(&sh_card4_slider), 50);
@@ -252,7 +257,10 @@ void uicode_page_smarthome_on_enter(void)
     sh_stagger_idx = 0;
     egui_animation_start(EGUI_ANIM_OF(&sh_anim_set[0]));
     sh_stagger_idx = 1;
-    egui_timer_start_timer(&sh_stagger_timer, 100, 100);
+    if (sh_card_views[0] != NULL)
+    {
+        egui_view_start_timer(sh_card_views[0], &sh_stagger_timer, 100, 100);
+    }
 }
 
 void uicode_page_smarthome_update_theme_icon(void)

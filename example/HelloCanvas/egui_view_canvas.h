@@ -17,8 +17,8 @@ struct egui_view_canvas
     uint8_t current_page;
 };
 
-void egui_view_canvas_init(egui_view_t *self);
-void egui_view_canvas_init_with_page(egui_view_t *self, uint8_t page);
+void egui_view_canvas_init(egui_view_t *self, egui_core_t *core);
+void egui_view_canvas_init_with_page(egui_view_t *self, egui_core_t *core, uint8_t page);
 void egui_view_canvas_set_page(egui_view_t *self, uint8_t page);
 
 /* Ends C function definitions when using C++ */

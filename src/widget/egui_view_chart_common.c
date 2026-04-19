@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_chart_common.h"
+#include "core/egui_core.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
@@ -11,7 +12,7 @@
 #endif
 
 typedef egui_dim_t (*egui_chart_get_font_height_fn)(egui_chart_axis_base_t *ab);
-typedef void (*egui_chart_draw_text_fn)(egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type);
+typedef void (*egui_chart_draw_text_fn)(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type);
 
 struct egui_chart_text_ops
 {
@@ -35,7 +36,7 @@ static egui_dim_t egui_chart_get_font_height_rich(egui_chart_axis_base_t *ab)
     return EGUI_FONT_STD_GET_FONT_HEIGHT(ab->font);
 }
 
-static void egui_chart_draw_text_basic(egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
+static void egui_chart_draw_text_basic(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
 {
     const egui_font_t *font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 
@@ -46,18 +47,18 @@ static void egui_chart_draw_text_basic(egui_chart_axis_base_t *ab, const char *t
 
     if (font != NULL)
     {
-        egui_canvas_draw_text_in_rect(font, text, text_rect, align_type, ab->text_color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, font, text, text_rect, align_type, ab->text_color, EGUI_ALPHA_100);
     }
 }
 
-static void egui_chart_draw_text_rich(egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
+static void egui_chart_draw_text_rich(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
 {
     if (ab == NULL || ab->font == NULL || text == NULL || text_rect == NULL)
     {
         return;
     }
 
-    egui_canvas_draw_text_in_rect(ab->font, text, text_rect, align_type, ab->text_color, EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect(canvas, ab->font, text, text_rect, align_type, ab->text_color, EGUI_ALPHA_100);
 }
 
 static const egui_chart_text_ops_t egui_chart_basic_text_ops = {
@@ -80,19 +81,19 @@ static egui_dim_t egui_chart_get_axis_font_height(egui_chart_axis_base_t *ab)
     return ab->text_ops->get_font_height(ab);
 }
 
-static void egui_chart_draw_axis_text(egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
+static void egui_chart_draw_axis_text(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
 {
     if (ab == NULL || ab->text_ops == NULL || ab->text_ops->draw_text == NULL)
     {
         return;
     }
 
-    ab->text_ops->draw_text(ab, text, text_rect, align_type);
+    ab->text_ops->draw_text(canvas, ab, text, text_rect, align_type);
 }
 
-static int egui_chart_rect_intersects_work_region(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+static int egui_chart_rect_intersects_work_region(egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
-    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
     egui_dim_t rect_x2;
     egui_dim_t rect_y2;
     egui_dim_t work_x2;
@@ -110,9 +111,9 @@ static int egui_chart_rect_intersects_work_region(egui_dim_t x, egui_dim_t y, eg
     return !(rect_x2 <= work->location.x || x >= work_x2 || rect_y2 <= work->location.y || y >= work_y2);
 }
 
-static int egui_chart_get_work_region_bounds(egui_dim_t *out_x1, egui_dim_t *out_y1, egui_dim_t *out_x2, egui_dim_t *out_y2)
+static int egui_chart_get_work_region_bounds(egui_canvas_t *canvas, egui_dim_t *out_x1, egui_dim_t *out_y1, egui_dim_t *out_x2, egui_dim_t *out_y2)
 {
-    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
 
     if (out_x1 == NULL || out_y1 == NULL || out_x2 == NULL || out_y2 == NULL || work == NULL || egui_region_is_empty(work))
     {
@@ -136,7 +137,8 @@ static int egui_chart_is_tick_value_aligned(int16_t value, int16_t base, int16_t
     return ((int32_t)value - (int32_t)base) % step == 0;
 }
 
-static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max)
+static void egui_chart_draw_x_axis_categorical(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h,
+                                               int16_t view_x_min, int16_t view_x_max)
 {
     (void)view_x_min;
     (void)view_x_max;
@@ -165,7 +167,7 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
         slot_w = 1;
     }
 
-    if (egui_chart_get_work_region_bounds(&work_x1, &work_y1, &work_x2, &work_y2))
+    if (egui_chart_get_work_region_bounds(canvas, &work_x1, &work_y1, &work_x2, &work_y2))
     {
         int32_t visible_start = (int32_t)work_x1 - plot_area->location.x - 13;
         int32_t visible_end = (int32_t)work_x2 - plot_area->location.x + 13;
@@ -194,16 +196,17 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
 
         if (can_draw_ticks)
         {
-            can_draw_ticks =
-                    egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y + plot_area->size.height, plot_area->size.width, 3);
+            can_draw_ticks = egui_chart_rect_intersects_work_region(canvas, plot_area->location.x, plot_area->location.y + plot_area->size.height,
+                                                                    plot_area->size.width, 3);
         }
         if (can_draw_grid)
         {
-            can_draw_grid = egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y, plot_area->size.width, plot_area->size.height);
+            can_draw_grid =
+                    egui_chart_rect_intersects_work_region(canvas, plot_area->location.x, plot_area->location.y, plot_area->size.width, plot_area->size.height);
         }
         if (can_draw_labels)
         {
-            can_draw_labels = egui_chart_rect_intersects_work_region(plot_area->location.x - 12, plot_area->location.y + plot_area->size.height + 3,
+            can_draw_labels = egui_chart_rect_intersects_work_region(canvas, plot_area->location.x - 12, plot_area->location.y + plot_area->size.height + 3,
                                                                      plot_area->size.width + 24, font_h);
         }
     }
@@ -218,17 +221,17 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
         int draw_tick = egui_chart_is_tick_value_aligned(ab->series[0].points[i].x, ab->axis_x.min_value, tick_step);
         egui_dim_t slot_center = plot_area->location.x + slot_w * i + slot_w / 2;
 
-        if (draw_tick && can_draw_ticks && egui_chart_rect_intersects_work_region(slot_center, plot_area->location.y + plot_area->size.height, 1, 3))
+        if (draw_tick && can_draw_ticks && egui_chart_rect_intersects_work_region(canvas, slot_center, plot_area->location.y + plot_area->size.height, 1, 3))
         {
-            egui_canvas_draw_vline(slot_center, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
+            egui_canvas_draw_vline(canvas, slot_center, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
         }
 
         if (draw_tick && can_draw_grid && i > 0)
         {
             egui_dim_t boundary = plot_area->location.x + slot_w * i;
-            if (egui_chart_rect_intersects_work_region(boundary, plot_area->location.y, 1, plot_area->size.height))
+            if (egui_chart_rect_intersects_work_region(canvas, boundary, plot_area->location.y, 1, plot_area->size.height))
             {
-                egui_canvas_draw_vline(boundary, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
+                egui_canvas_draw_vline(canvas, boundary, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
             }
         }
 
@@ -236,22 +239,23 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
         {
             egui_chart_int_to_str(ab->series[0].points[i].x, label_buf, sizeof(label_buf));
             EGUI_REGION_DEFINE(label_rect, slot_center - 12, plot_area->location.y + plot_area->size.height + 3, 24, font_h);
-            if (egui_chart_rect_intersects_work_region(label_rect.location.x, label_rect.location.y, label_rect.size.width, label_rect.size.height))
+            if (egui_chart_rect_intersects_work_region(canvas, label_rect.location.x, label_rect.location.y, label_rect.size.width, label_rect.size.height))
             {
-                egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
+                egui_chart_draw_axis_text(canvas, ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
             }
         }
     }
 }
 
-static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max)
+static void egui_chart_draw_x_axis_continuous(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h,
+                                              int16_t view_x_min, int16_t view_x_max)
 {
     char label_buf[8];
     egui_dim_t work_x1;
     egui_dim_t work_y1;
     egui_dim_t work_x2;
     egui_dim_t work_y2;
-    int has_work_bounds = egui_chart_get_work_region_bounds(&work_x1, &work_y1, &work_x2, &work_y2);
+    int has_work_bounds = egui_chart_get_work_region_bounds(canvas, &work_x1, &work_y1, &work_x2, &work_y2);
     int can_draw_ticks = ab->axis_x.show_axis;
     int can_draw_grid = ab->axis_x.show_grid;
     int can_draw_labels = ab->axis_x.show_labels;
@@ -261,16 +265,17 @@ static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_r
     {
         if (can_draw_ticks)
         {
-            can_draw_ticks =
-                    egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y + plot_area->size.height, plot_area->size.width, 3);
+            can_draw_ticks = egui_chart_rect_intersects_work_region(canvas, plot_area->location.x, plot_area->location.y + plot_area->size.height,
+                                                                    plot_area->size.width, 3);
         }
         if (can_draw_grid)
         {
-            can_draw_grid = egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y, plot_area->size.width, plot_area->size.height);
+            can_draw_grid =
+                    egui_chart_rect_intersects_work_region(canvas, plot_area->location.x, plot_area->location.y, plot_area->size.width, plot_area->size.height);
         }
         if (can_draw_labels)
         {
-            can_draw_labels = egui_chart_rect_intersects_work_region(plot_area->location.x - 12, plot_area->location.y + plot_area->size.height + 3,
+            can_draw_labels = egui_chart_rect_intersects_work_region(canvas, plot_area->location.x - 12, plot_area->location.y + plot_area->size.height + 3,
                                                                      plot_area->size.width + 24, font_h);
         }
     }
@@ -305,26 +310,26 @@ static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_r
     {
         egui_dim_t px = egui_chart_map_x(ab, v, plot_area->location.x, plot_area->size.width);
         int tick_visible = !has_work_bounds ||
-                           egui_chart_rect_intersects_work_region(px, plot_area->location.y, 1,
+                           egui_chart_rect_intersects_work_region(canvas, px, plot_area->location.y, 1,
                                                                   plot_area->size.height + (can_draw_ticks ? 3 : 0) + (can_draw_labels ? font_h + 3 : 0));
 
         if (can_draw_ticks && tick_visible)
         {
-            egui_canvas_draw_vline(px, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
+            egui_canvas_draw_vline(canvas, px, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
         }
 
         if (can_draw_grid && tick_visible)
         {
-            egui_canvas_draw_vline(px, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
+            egui_canvas_draw_vline(canvas, px, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
         }
 
         if (can_draw_labels)
         {
             egui_chart_int_to_str(v, label_buf, sizeof(label_buf));
             EGUI_REGION_DEFINE(label_rect, px - 12, plot_area->location.y + plot_area->size.height + 3, 24, font_h);
-            if (egui_chart_rect_intersects_work_region(label_rect.location.x, label_rect.location.y, label_rect.size.width, label_rect.size.height))
+            if (egui_chart_rect_intersects_work_region(canvas, label_rect.location.x, label_rect.location.y, label_rect.size.width, label_rect.size.height))
             {
-                egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
+                egui_chart_draw_axis_text(canvas, ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
             }
         }
     }
@@ -613,14 +618,14 @@ void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region
 
 // ============== Axis Drawing ==============
 
-void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
+void egui_chart_draw_axes(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
     egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
     egui_dim_t work_x1;
     egui_dim_t work_y1;
     egui_dim_t work_x2;
     egui_dim_t work_y2;
-    int has_work_bounds = egui_chart_get_work_region_bounds(&work_x1, &work_y1, &work_x2, &work_y2);
+    int has_work_bounds = egui_chart_get_work_region_bounds(canvas, &work_x1, &work_y1, &work_x2, &work_y2);
     int can_draw_x_axis_line = ab->axis_x.show_axis;
     int can_draw_y_axis_line = ab->axis_y.show_axis;
     int can_draw_y_ticks = ab->axis_y.show_axis;
@@ -637,27 +642,27 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
     {
         if (can_draw_x_axis_line)
         {
-            can_draw_x_axis_line =
-                    egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y + plot_area->size.height, plot_area->size.width, 1);
+            can_draw_x_axis_line = egui_chart_rect_intersects_work_region(canvas, plot_area->location.x, plot_area->location.y + plot_area->size.height,
+                                                                          plot_area->size.width, 1);
         }
         if (can_draw_y_axis_line)
         {
-            can_draw_y_axis_line = egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y, 1, plot_area->size.height);
+            can_draw_y_axis_line = egui_chart_rect_intersects_work_region(canvas, plot_area->location.x, plot_area->location.y, 1, plot_area->size.height);
         }
         if (can_draw_y_ticks)
         {
-            can_draw_y_ticks = egui_chart_rect_intersects_work_region(plot_area->location.x - 3, plot_area->location.y, 3, plot_area->size.height);
+            can_draw_y_ticks = egui_chart_rect_intersects_work_region(canvas, plot_area->location.x - 3, plot_area->location.y, 3, plot_area->size.height);
         }
         if (can_draw_y_grid)
         {
             can_draw_y_grid =
-                    egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y, plot_area->size.width, plot_area->size.height);
+                    egui_chart_rect_intersects_work_region(canvas, plot_area->location.x, plot_area->location.y, plot_area->size.width, plot_area->size.height);
         }
         if (can_draw_y_labels)
         {
             y_label_w = egui_chart_get_y_label_width(ab, font_h);
             can_draw_y_labels =
-                    egui_chart_rect_intersects_work_region(plot_area->location.x - y_label_w - 4, region->location.y, y_label_w, region->size.height);
+                    egui_chart_rect_intersects_work_region(canvas, plot_area->location.x - y_label_w - 4, region->location.y, y_label_w, region->size.height);
         }
     }
     else if (can_draw_y_labels)
@@ -668,13 +673,14 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
     // Draw X axis line
     if (can_draw_x_axis_line)
     {
-        egui_canvas_draw_hline(plot_area->location.x, plot_area->location.y + plot_area->size.height, plot_area->size.width, ab->axis_color, EGUI_ALPHA_100);
+        egui_canvas_draw_hline(canvas, plot_area->location.x, plot_area->location.y + plot_area->size.height, plot_area->size.width, ab->axis_color,
+                               EGUI_ALPHA_100);
     }
 
     // Draw Y axis line
     if (can_draw_y_axis_line)
     {
-        egui_canvas_draw_vline(plot_area->location.x, plot_area->location.y, plot_area->size.height, ab->axis_color, EGUI_ALPHA_100);
+        egui_canvas_draw_vline(canvas, plot_area->location.x, plot_area->location.y, plot_area->size.height, ab->axis_color, EGUI_ALPHA_100);
     }
 
     // X axis ticks, grid, labels
@@ -682,7 +688,7 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
     {
         if (ab->draw_axis_x != NULL)
         {
-            ab->draw_axis_x(ab, plot_area, font_h, view_x_min, view_x_max);
+            ab->draw_axis_x(canvas, ab, plot_area, font_h, view_x_min, view_x_max);
         }
     }
 
@@ -721,13 +727,13 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
             // Tick mark
             if (can_draw_y_ticks && tick_visible)
             {
-                egui_canvas_draw_hline(plot_area->location.x - 3, py, 3, ab->axis_color, EGUI_ALPHA_100);
+                egui_canvas_draw_hline(canvas, plot_area->location.x - 3, py, 3, ab->axis_color, EGUI_ALPHA_100);
             }
 
             // Grid line
             if (can_draw_y_grid && tick_visible)
             {
-                egui_canvas_draw_hline(plot_area->location.x, py, plot_area->size.width, ab->grid_color, EGUI_ALPHA_30);
+                egui_canvas_draw_hline(canvas, plot_area->location.x, py, plot_area->size.width, ab->grid_color, EGUI_ALPHA_30);
             }
 
             // Label
@@ -744,9 +750,9 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
                     label_y = region->location.y + region->size.height - font_h;
                 }
                 EGUI_REGION_DEFINE(label_rect, plot_area->location.x - y_label_w - 4, label_y, y_label_w, font_h);
-                if (egui_chart_rect_intersects_work_region(label_rect.location.x, label_rect.location.y, label_rect.size.width, label_rect.size.height))
+                if (egui_chart_rect_intersects_work_region(canvas, label_rect.location.x, label_rect.location.y, label_rect.size.width, label_rect.size.height))
                 {
-                    egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER);
+                    egui_chart_draw_axis_text(canvas, ab, label_buf, &label_rect, EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER);
                 }
             }
         }
@@ -755,7 +761,7 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
 
 // ============== Legend Drawing (series) ==============
 
-void egui_chart_draw_legend_series(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
+void egui_chart_draw_legend_series(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
     egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
     egui_dim_t swatch_size = font_h > 2 ? font_h - 2 : 4;
@@ -819,7 +825,7 @@ void egui_chart_draw_legend_series(egui_chart_axis_base_t *ab, egui_region_t *re
         band_h = font_h;
     }
 
-    if (!egui_chart_rect_intersects_work_region(band_x, band_y, band_w, band_h))
+    if (!egui_chart_rect_intersects_work_region(canvas, band_x, band_y, band_w, band_h))
     {
         return;
     }
@@ -835,16 +841,16 @@ void egui_chart_draw_legend_series(egui_chart_axis_base_t *ab, egui_region_t *re
         }
 
         // Draw color swatch
-        if (egui_chart_rect_intersects_work_region(lx, ly + 1, swatch_size, swatch_size))
+        if (egui_chart_rect_intersects_work_region(canvas, lx, ly + 1, swatch_size, swatch_size))
         {
-            egui_canvas_draw_rectangle_fill(lx, ly + 1, swatch_size, swatch_size, color, EGUI_ALPHA_100);
+            egui_canvas_draw_rectangle_fill(canvas, lx, ly + 1, swatch_size, swatch_size, color, EGUI_ALPHA_100);
         }
 
         // Draw name text
         EGUI_REGION_DEFINE(text_rect, lx + swatch_size + 2, ly, text_w, font_h);
-        if (egui_chart_rect_intersects_work_region(text_rect.location.x, text_rect.location.y, text_rect.size.width, text_rect.size.height))
+        if (egui_chart_rect_intersects_work_region(canvas, text_rect.location.x, text_rect.location.y, text_rect.size.width, text_rect.size.height))
         {
-            egui_chart_draw_axis_text(ab, name, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
+            egui_chart_draw_axis_text(canvas, ab, name, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
         }
 
         // Advance position

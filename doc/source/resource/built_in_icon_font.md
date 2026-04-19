@@ -32,7 +32,7 @@
 
 static egui_view_label_t icon_label;
 
-egui_view_label_init(&icon_label);
+egui_view_label_init(EGUI_VIEW_OF(&icon_label), core);
 egui_view_label_set_font(EGUI_VIEW_OF(&icon_label), EGUI_FONT_ICON_MS_20);
 egui_view_label_set_text(EGUI_VIEW_OF(&icon_label), EGUI_ICON_MS_SETTINGS);
 ```

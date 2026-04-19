@@ -19,7 +19,7 @@ typedef struct egui_touch_driver_ops egui_touch_driver_ops_t;
 struct egui_touch_driver_ops
 {
     /** Initialize touch hardware. Called once during init. */
-    void (*init)(void);
+    void (*init)(egui_core_t *core);
 
     /**
      * Read current touch state.
@@ -27,14 +27,14 @@ struct egui_touch_driver_ops
      * @param[out] x        touch X coordinate (only valid when pressed=1)
      * @param[out] y        touch Y coordinate (only valid when pressed=1)
      */
-    void (*read)(uint8_t *pressed, int16_t *x, int16_t *y);
+    void (*read)(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y);
 
     /**
      * Extended read with coordinate validity.
      * When implemented, x/y may still be valid after release and has_position
      * tells the input layer whether it should trust them for ACTION_UP.
      */
-    void (*read_ex)(uint8_t *pressed, int16_t *x, int16_t *y, uint8_t *has_position);
+    void (*read_ex)(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y, uint8_t *has_position);
 };
 
 /**
@@ -47,11 +47,11 @@ struct egui_touch_driver
     const egui_touch_driver_ops_t *ops;
 };
 
-/** Register touch driver with core. Called before egui_init(). */
-void egui_touch_driver_register(egui_touch_driver_t *driver);
+/** Register touch driver with a core. Called after egui_init() / egui_init_display(). */
+void egui_touch_driver_register(egui_core_t *core, egui_touch_driver_t *driver);
 
 /** Get current touch driver. Returns NULL if not registered. */
-egui_touch_driver_t *egui_touch_driver_get(void);
+egui_touch_driver_t *egui_touch_driver_get(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

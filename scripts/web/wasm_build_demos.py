@@ -30,6 +30,9 @@ SCRIPTS_ROOT = SCRIPT_DIR.parent
 ROOT_DIR = SCRIPTS_ROOT.parent
 CUSTOM_WIDGETS_REPO = "https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets"
 
+FILE_OP_RETRY_COUNT = 40
+FILE_OP_RETRY_DELAY_S = 0.1
+
 
 WASM_SKIP_APPS = {"HelloUnitTest"}
 WASM_PRUNE_APPS = {"HelloUnitTest"}
@@ -104,6 +107,57 @@ def run_cmd(cmd, cwd=None):
     if result.returncode != 0:
         return False, result.stderr
     return True, ""
+
+
+def wait_for_file_ready(path, allow_empty=False):
+    """Wait until a generated file exists and its size stabilizes."""
+    path = Path(path)
+    last_size = -1
+    stable_count = 0
+
+    for attempt in range(FILE_OP_RETRY_COUNT):
+        try:
+            size = path.stat().st_size
+            if ((allow_empty and size >= 0) or size > 0) and size == last_size:
+                stable_count += 1
+                if stable_count >= 1:
+                    return True
+            else:
+                stable_count = 0
+                last_size = size
+        except FileNotFoundError:
+            pass
+        except OSError:
+            pass
+
+        if attempt < FILE_OP_RETRY_COUNT - 1:
+            time.sleep(FILE_OP_RETRY_DELAY_S)
+
+    return False
+
+
+def copy2_with_retries(src, dst):
+    """Copy generated artifacts with retries for transient Windows file locks."""
+    src_path = Path(src)
+    dst_path = Path(dst)
+    last_error = None
+
+    allow_empty = src_path.suffix.lower() in {".data", ".bin"}
+    if not wait_for_file_ready(src_path, allow_empty=allow_empty):
+        raise FileNotFoundError(src_path)
+
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    for attempt in range(FILE_OP_RETRY_COUNT):
+        try:
+            shutil.copy2(src_path, dst_path)
+            return
+        except (PermissionError, FileNotFoundError, OSError) as exc:
+            last_error = exc
+            if attempt < FILE_OP_RETRY_COUNT - 1:
+                time.sleep(FILE_OP_RETRY_DELAY_S)
+
+    if last_error is not None:
+        raise last_error
 
 
 def parse_define_int(content, macro_name, default):
@@ -398,7 +452,7 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir, make_jobs=1, app_
         src = src_base + ext
         if os.path.exists(src):
             dst = os.path.join(demo_dir, app + ext)
-            shutil.copy2(src, dst)
+            copy2_with_retries(src, dst)
 
     has_doc = False
     result = {"name": demo_name, "has_doc": has_doc, "app": app, "app_sub": app_sub}
@@ -409,7 +463,7 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir, make_jobs=1, app_
     else:
         readme_src = os.path.join(root_dir, "example", app, "readme.md")
     if os.path.exists(readme_src):
-        shutil.copy2(readme_src, os.path.join(demo_dir, "README.md"))
+        copy2_with_retries(readme_src, os.path.join(demo_dir, "README.md"))
         result["has_doc"] = True
         result["docPath"] = f"demos/{demo_name}/README.md"
 

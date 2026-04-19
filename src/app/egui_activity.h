@@ -39,6 +39,8 @@ struct egui_activity
     uint8_t state;          // state of the activity
     uint8_t is_need_finish; // is need finish the activity
 
+    egui_core_t *core; // core instance this activity belongs to
+
     egui_view_root_group_t root_view; // view of the activity
 
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
@@ -51,6 +53,18 @@ struct egui_activity
 void egui_activity_set_layout(egui_activity_t *self, egui_region_t *layout);
 void egui_activity_add_view(egui_activity_t *self, egui_view_t *view);
 void egui_activity_set_name(egui_activity_t *self, const char *name);
+egui_core_t *egui_activity_get_core(egui_activity_t *self);
+egui_toast_t *egui_activity_get_toast(egui_activity_t *self);
+void egui_activity_show_toast_info_with_duration(egui_activity_t *self, const char *text, uint16_t duration);
+void egui_activity_show_toast_info(egui_activity_t *self, const char *text);
+int egui_activity_start_timer(egui_activity_t *self, egui_timer_t *handle, uint32_t ms, uint32_t period);
+void egui_activity_stop_timer(egui_activity_t *self, egui_timer_t *handle);
+int egui_activity_check_timer_start(egui_activity_t *self, egui_timer_t *handle);
+void egui_activity_set_start_anim(egui_activity_t *self, egui_animation_t *open_anim, egui_animation_t *close_anim);
+void egui_activity_set_finish_anim(egui_activity_t *self, egui_animation_t *open_anim, egui_animation_t *close_anim);
+void egui_activity_start(egui_activity_t *self, egui_activity_t *prev_activity);
+void egui_activity_finish(egui_activity_t *self);
+int egui_activity_check_in_process(egui_activity_t *self);
 
 void egui_activity_on_create(egui_activity_t *self);
 void egui_activity_on_start(egui_activity_t *self);
@@ -58,7 +72,7 @@ void egui_activity_on_resume(egui_activity_t *self);
 void egui_activity_on_pause(egui_activity_t *self);
 void egui_activity_on_stop(egui_activity_t *self);
 void egui_activity_on_destroy(egui_activity_t *self);
-void egui_activity_init(egui_activity_t *self);
+void egui_activity_init(egui_activity_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

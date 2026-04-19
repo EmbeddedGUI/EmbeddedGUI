@@ -29,8 +29,8 @@ extern "C" {
 typedef struct egui_background_api egui_background_api_t;
 struct egui_background_api
 {
-    void (*draw)(egui_background_t *self, egui_view_t *view);
-    void (*on_draw)(egui_background_t *self, egui_region_t *region, const void *param);
+    void (*draw)(egui_background_t *self, egui_canvas_t *canvas, egui_view_t *view);
+    void (*on_draw)(egui_background_t *self, egui_canvas_t *canvas, egui_region_t *region, const void *param);
 };
 
 typedef struct egui_background_params egui_background_params_t;
@@ -51,8 +51,8 @@ struct egui_background
 };
 
 void egui_background_set_params(egui_background_t *self, const egui_background_params_t *params);
-void egui_background_draw(egui_background_t *self, egui_view_t *view);
-void egui_background_on_draw(egui_background_t *self, egui_region_t *view, const void *params);
+void egui_background_draw(egui_background_t *self, egui_canvas_t *canvas, egui_view_t *view);
+void egui_background_on_draw(egui_background_t *self, egui_canvas_t *canvas, egui_region_t *view, const void *params);
 void egui_background_init(egui_background_t *self);
 
 /* Ends C function definitions when using C++ */

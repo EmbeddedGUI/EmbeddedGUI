@@ -221,14 +221,14 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
 void port_main(void)
 {
     egui_port_init();
-    egui_init(&init_config);
+    egui_init(&core, egui_pfb);
     app_lcd_init();
-    uicode_create_ui();
-    egui_screen_on();
+    uicode_disp0_init(&core);
+    egui_screen_on(&core);
 
     while (1)
     {
-        egui_polling_work();
+        egui_polling_work(&core);
         app_lcd_polling_work();  // 触摸轮询
     }
 }

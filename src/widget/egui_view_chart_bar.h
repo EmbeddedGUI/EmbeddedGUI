@@ -30,9 +30,9 @@ struct egui_view_chart_bar_params
 // ============== API ==============
 
 // lifecycle
-void egui_view_chart_bar_init(egui_view_t *self);
+void egui_view_chart_bar_init(egui_view_t *self, egui_core_t *core);
 void egui_view_chart_bar_apply_params(egui_view_t *self, const egui_view_chart_bar_params_t *params);
-void egui_view_chart_bar_init_with_params(egui_view_t *self, const egui_view_chart_bar_params_t *params);
+void egui_view_chart_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_bar_params_t *params);
 
 // style
 void egui_view_chart_bar_set_bar_gap(egui_view_t *self, uint8_t gap);

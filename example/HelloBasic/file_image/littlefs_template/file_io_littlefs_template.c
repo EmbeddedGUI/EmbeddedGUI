@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "file_io_littlefs_template.h"
 #include "core/egui_common.h"
@@ -61,7 +61,7 @@ static void *file_image_littlefs_open(void *user_data, const char *path)
         return NULL;
     }
 
-    handle = (file_image_littlefs_handle_t *)egui_malloc(sizeof(*handle));
+    handle = (file_image_littlefs_handle_t *)egui_malloc(NULL, sizeof(*handle));
     if (handle == NULL)
     {
         return NULL;
@@ -71,7 +71,7 @@ static void *file_image_littlefs_open(void *user_data, const char *path)
     handle->lfs = ctx->lfs;
     if (lfs_file_open(handle->lfs, &handle->file, full_path, LFS_O_RDONLY) < 0)
     {
-        egui_free(handle);
+        egui_free(NULL, handle);
         return NULL;
     }
 
@@ -162,7 +162,7 @@ static void file_image_littlefs_close(void *user_data, void *handle_ptr)
     }
 
     lfs_file_close(handle->lfs, &handle->file);
-    egui_free(handle);
+    egui_free(NULL, handle);
 }
 
 void file_image_littlefs_io_init(egui_image_file_io_t *io, file_image_littlefs_context_t *ctx)
@@ -180,3 +180,4 @@ void file_image_littlefs_io_init(egui_image_file_io_t *io, file_image_littlefs_c
     io->tell = file_image_littlefs_tell;
     io->close = file_image_littlefs_close;
 }
+

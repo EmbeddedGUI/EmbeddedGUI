@@ -1,11 +1,13 @@
-#include <assert.h>
+﻿#include <assert.h>
 
 #include "egui_view_image.h"
+#include "core/egui_core.h"
 #include "image/egui_image.h"
 
 void egui_view_image_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_image_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -19,21 +21,21 @@ void egui_view_image_on_draw(egui_view_t *self)
         // alpha-only color rendering path
         if (local->image_type == EGUI_VIEW_IMAGE_TYPE_NORMAL)
         {
-            egui_canvas_draw_image_color(local->image, region.location.x, region.location.y, local->image_color, local->image_color_alpha);
+            egui_canvas_draw_image_color(canvas, local->image, region.location.x, region.location.y, local->image_color, local->image_color_alpha);
         }
         else
         {
-            egui_canvas_draw_image_resize_color(local->image, region.location.x, region.location.y, region.size.width, region.size.height, local->image_color,
-                                                local->image_color_alpha);
+            egui_canvas_draw_image_resize_color(canvas, local->image, region.location.x, region.location.y, region.size.width, region.size.height,
+                                                local->image_color, local->image_color_alpha);
         }
     }
     else if (local->image_type == EGUI_VIEW_IMAGE_TYPE_NORMAL)
     {
-        egui_canvas_draw_image(local->image, region.location.x, region.location.y);
+        egui_canvas_draw_image(canvas, local->image, region.location.x, region.location.y);
     }
     else
     {
-        egui_canvas_draw_image_resize(local->image, region.location.x, region.location.y, region.size.width, region.size.height);
+        egui_canvas_draw_image_resize(canvas, local->image, region.location.x, region.location.y, region.size.width, region.size.height);
     }
 }
 
@@ -88,12 +90,12 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_image_t) = {
 #endif
 };
 
-void egui_view_image_init(egui_view_t *self)
+void egui_view_image_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_image_t);
 
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_image_t);
 
@@ -117,8 +119,8 @@ void egui_view_image_apply_params(egui_view_t *self, const egui_view_image_param
     egui_view_invalidate(self);
 }
 
-void egui_view_image_init_with_params(egui_view_t *self, const egui_view_image_params_t *params)
+void egui_view_image_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_image_params_t *params)
 {
-    egui_view_image_init(self);
+    egui_view_image_init(self, core);
     egui_view_image_apply_params(self, params);
 }

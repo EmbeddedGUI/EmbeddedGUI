@@ -72,7 +72,8 @@ src/
 | `egui_display_driver.c/h` | 显示驱动接口 |
 | `egui_theme.c/h` | 主题系统 |
 | `egui_config.h` | 编译期配置 |
-| `egui_config_default.h` | 默认配置值 |
+| `egui_config_default.h` | 主屏基础默认配置 |
+| `egui_config_multi_default.h` | 多屏默认配置 |
 | `egui_region.c/h` | 区域计算 (脏矩形) |
 | `egui_scroller.c/h` | 滚动物理引擎 |
 | `egui_velocity_tracker.c/h` | 速度追踪器 (惯性滑动) |
@@ -141,7 +142,7 @@ src/
 
 ## example/ -- 示例应用
 
-每个示例位于独立子目录中，包含 `uicode.c` (UI 代码)、`build.mk` (构建配置) 和可选的 `resource/` (资源文件) 目录。
+每个示例位于独立子目录中，通常包含 `uicode_disp0.c` (UI 代码)、`uicode_disp0.h`、`build.mk` (构建配置) 和可选的 `resource/` (资源文件) 目录。
 
 | 示例 | 说明 |
 |------|------|
@@ -188,7 +189,7 @@ src/
 | `code_compile_check.py` | 完整编译检查 (CI 使用，含示例 icon font 检查) |
 | `code_runtime_check.py` | 运行时验证 (截图对比) |
 | `code_format.py` | 代码格式化 |
-| `release_check.py` | 发布前多步骤一键检查 |
+| `release_check.py` | 发布前多步骤一键检查，也支持 `--scope multi-display` 本地快速回归 |
 | `setup_env.py` | 跨平台环境配置主脚本，负责 Python 依赖、工具链检查和 FFmpeg 准备 |
 | `checks/` | 专项检查脚本（icon font、dirty animation、parity、render workflow、touch 语义） |
 | `platform/` | 平台/工程维护脚本（如 `keil_project_sync.py`） |

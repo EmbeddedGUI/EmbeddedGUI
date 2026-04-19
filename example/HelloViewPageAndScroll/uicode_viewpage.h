@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-egui_view_t *uicode_init_ui_viewpage(void);
+egui_view_t *uicode_disp0_init_viewpage(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

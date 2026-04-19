@@ -505,7 +505,7 @@ static void egui_view_test_invalidate_blocks_change(egui_view_t *self, const egu
     }
 }
 
-static void egui_view_test_draw_text_anim(const egui_region_t *panel, const egui_view_test_t *local, uint16_t phase)
+static void egui_view_test_draw_text_anim(egui_canvas_t *canvas, const egui_region_t *panel, const egui_view_test_t *local, uint16_t phase)
 {
     static const char text_cn[] = "\xE4\xBD\xA0\xE5\xA5\xBD";
     static const char text_en[] = "Hello";
@@ -520,8 +520,8 @@ static void egui_view_test_draw_text_anim(const egui_region_t *panel, const egui
 
     egui_view_test_get_text_items(panel, local, phase, &cn_item, &en_item);
 
-    egui_canvas_draw_text(font, text_cn, cn_item.x, cn_item.y, egui_view_test_color_make(176, 230, 248), EGUI_ALPHA_90);
-    egui_canvas_draw_text(font, text_en, en_item.x, en_item.y, egui_view_test_color_make(231, 212, 170), EGUI_ALPHA_80);
+    egui_canvas_draw_text(canvas, font, text_cn, cn_item.x, cn_item.y, egui_view_test_color_make(176, 230, 248), EGUI_ALPHA_90);
+    egui_canvas_draw_text(canvas, font, text_en, en_item.x, en_item.y, egui_view_test_color_make(231, 212, 170), EGUI_ALPHA_80);
 }
 
 static void egui_view_test_timer_callback(egui_timer_t *timer)
@@ -587,7 +587,7 @@ static void egui_view_test_on_attach_to_window(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_test_t);
 
     egui_view_on_attach_to_window(self);
-    egui_timer_start_timer(&local->anim_timer, EGUI_VIEW_TEST_TIMER_INTERVAL_MS, EGUI_VIEW_TEST_TIMER_INTERVAL_MS);
+    egui_view_start_timer(self, &local->anim_timer, EGUI_VIEW_TEST_TIMER_INTERVAL_MS, EGUI_VIEW_TEST_TIMER_INTERVAL_MS);
     egui_view_invalidate(self);
 }
 
@@ -595,11 +595,11 @@ static void egui_view_test_on_detach_from_window(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_test_t);
 
-    egui_timer_stop_timer(&local->anim_timer);
+    egui_view_stop_timer(self, &local->anim_timer);
     egui_view_on_detach_from_window(self);
 }
 
-static void egui_view_test_draw_blocks(const egui_view_test_t *local)
+static void egui_view_test_draw_blocks(egui_canvas_t *canvas, const egui_view_test_t *local)
 {
     uint8_t i;
 
@@ -609,17 +609,18 @@ static void egui_view_test_draw_blocks(const egui_view_test_t *local)
 
         if (egui_view_test_block_is_circle(i))
         {
-            egui_canvas_draw_circle_fill(block->x + block->size / 2, block->y + block->size / 2, block->size / 2, block->fill_color, block->alpha);
+            egui_canvas_draw_circle_fill(canvas, block->x + block->size / 2, block->y + block->size / 2, block->size / 2, block->fill_color, block->alpha);
         }
         else
         {
-            egui_canvas_draw_rectangle_fill(block->x, block->y, block->size, block->size, block->fill_color, block->alpha);
+            egui_canvas_draw_rectangle_fill(canvas, block->x, block->y, block->size, block->size, block->fill_color, block->alpha);
         }
     }
 }
 
 static void egui_view_test_on_draw(egui_view_t *self)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_test_t);
     egui_region_t panel;
     egui_dim_t panel_center_x;
@@ -633,6 +634,11 @@ static void egui_view_test_on_draw(egui_view_t *self)
     egui_dim_t popup_anchor_y;
     int16_t popup_scale_q8;
 
+    if (canvas == NULL)
+    {
+        return;
+    }
+
     egui_view_test_ensure_metrics(local);
     egui_view_test_get_panel_region(self, &panel);
     photo_w = local->photo_w;
@@ -644,27 +650,28 @@ static void egui_view_test_on_draw(egui_view_t *self)
 
     egui_mask_set_position((egui_mask_t *)&local->photo_mask, photo_x, photo_y);
     egui_mask_set_size((egui_mask_t *)&local->photo_mask, photo_w, photo_h);
-    egui_canvas_set_mask((egui_mask_t *)&local->photo_mask);
-    egui_canvas_draw_image((egui_image_t *)&egui_res_image_test_rgb565_8, photo_x, photo_y);
-    egui_canvas_clear_mask();
+    egui_canvas_set_mask(canvas, (egui_mask_t *)&local->photo_mask);
+    egui_canvas_draw_image(canvas, (egui_image_t *)&egui_res_image_test_rgb565_8, photo_x, photo_y);
+    egui_canvas_clear_mask(canvas);
 
-    egui_canvas_draw_circle_hq(panel_center_x, panel_center_y, EGUI_VIEW_TEST_ARC_RADIUS, EGUI_VIEW_TEST_ARC_STROKE, egui_view_test_color_make(37, 58, 76),
-                               EGUI_ALPHA_70);
+    egui_canvas_draw_circle_hq(canvas, panel_center_x, panel_center_y, EGUI_VIEW_TEST_ARC_RADIUS, EGUI_VIEW_TEST_ARC_STROKE,
+                               egui_view_test_color_make(37, 58, 76), EGUI_ALPHA_70);
 
     if (local->arc_sweep > 0)
     {
-        egui_canvas_draw_arc_round_cap_sweep_hq(panel_center_x, panel_center_y, EGUI_VIEW_TEST_ARC_RADIUS, -90, (int16_t)local->arc_sweep,
+        egui_canvas_draw_arc_round_cap_sweep_hq(canvas, panel_center_x, panel_center_y, EGUI_VIEW_TEST_ARC_RADIUS, -90, (int16_t)local->arc_sweep,
                                                 EGUI_VIEW_TEST_ARC_STROKE, egui_view_test_color_make(255, 200, 82), EGUI_ALPHA_100);
     }
 
-    egui_view_test_draw_text_anim(&panel, local, local->popup_phase);
+    egui_view_test_draw_text_anim(canvas, &panel, local, local->popup_phase);
 
     egui_view_test_eval_popup(&panel, local->popup_phase, &popup_center_y, &popup_scale_q8);
     popup_anchor_x = panel_center_x - EGUI_VIEW_TEST_IMAGE_BASE_HALF;
     popup_anchor_y = popup_center_y - EGUI_VIEW_TEST_IMAGE_BASE_HALF;
-    egui_canvas_draw_image_rotate_scale((egui_image_t *)&egui_res_image_star_rgb565_8, popup_anchor_x, popup_anchor_y, local->popup_angle, popup_scale_q8);
+    egui_canvas_draw_image_rotate_scale(canvas, (egui_image_t *)&egui_res_image_star_rgb565_8, popup_anchor_x, popup_anchor_y, local->popup_angle,
+                                        popup_scale_q8);
 
-    egui_view_test_draw_blocks(local);
+    egui_view_test_draw_blocks(canvas, local);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_test_t) = {
@@ -684,11 +691,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_test_t) = {
 #endif
 };
 
-void egui_view_test_init(egui_view_t *self)
+void egui_view_test_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_LOCAL_INIT(egui_view_test_t);
 
-    egui_view_init(self);
+    egui_view_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_test_t);
 
     local->arc_sweep = 0;
@@ -698,7 +705,7 @@ void egui_view_test_init(egui_view_t *self)
     egui_view_test_reset_blocks(local);
 
     egui_timer_init_timer(&local->anim_timer, local, egui_view_test_timer_callback);
-    egui_timer_start_timer(&local->anim_timer, EGUI_VIEW_TEST_TIMER_INTERVAL_MS, EGUI_VIEW_TEST_TIMER_INTERVAL_MS);
+    egui_view_start_timer(self, &local->anim_timer, EGUI_VIEW_TEST_TIMER_INTERVAL_MS, EGUI_VIEW_TEST_TIMER_INTERVAL_MS);
     egui_mask_circle_init((egui_mask_t *)&local->photo_mask);
     egui_view_test_ensure_metrics(local);
 

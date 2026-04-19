@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_scale.h"
+#include "core/egui_core.h"
 #include "font/egui_font_std.h"
 
 static void egui_view_scale_int_to_str(int16_t value, char *buf, int buf_size)
@@ -159,6 +160,7 @@ void egui_view_scale_set_font(egui_view_t *self, const egui_font_t *font)
 void egui_view_scale_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_scale_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -201,7 +203,7 @@ void egui_view_scale_on_draw(egui_view_t *self)
         {
             // Major tick position
             egui_dim_t px = region.location.x + (egui_dim_t)((int32_t)tick_area_w * i / (major_count - 1));
-            egui_canvas_draw_line(px, base_y, px, base_y - local->major_tick_len + 1, 1, local->tick_color, EGUI_ALPHA_100);
+            egui_canvas_draw_line(canvas, px, base_y, px, base_y - local->major_tick_len + 1, 1, local->tick_color, EGUI_ALPHA_100);
 
             // Label below tick
             if (font != NULL && local->show_labels && font_h > 0)
@@ -210,7 +212,7 @@ void egui_view_scale_on_draw(egui_view_t *self)
                 char buf[8];
                 egui_view_scale_int_to_str(label_val, buf, sizeof(buf));
                 EGUI_REGION_DEFINE(label_rect, px - 15, base_y + 2, 30, font_h);
-                egui_canvas_draw_text_in_rect(font, buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP, local->label_color, EGUI_ALPHA_100);
+                egui_canvas_draw_text_in_rect(canvas, font, buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP, local->label_color, EGUI_ALPHA_100);
             }
 
             // Minor ticks between this major and next
@@ -220,7 +222,7 @@ void egui_view_scale_on_draw(egui_view_t *self)
                 for (uint8_t j = 1; j <= minor_count; j++)
                 {
                     egui_dim_t mx = px + (egui_dim_t)((int32_t)(next_px - px) * j / (minor_count + 1));
-                    egui_canvas_draw_line(mx, base_y, mx, base_y - local->minor_tick_len + 1, 1, local->tick_color, EGUI_ALPHA_100);
+                    egui_canvas_draw_line(canvas, mx, base_y, mx, base_y - local->minor_tick_len + 1, 1, local->tick_color, EGUI_ALPHA_100);
                 }
             }
         }
@@ -230,7 +232,7 @@ void egui_view_scale_on_draw(egui_view_t *self)
         {
             int32_t val_offset = (int32_t)(local->value - local->range_min) * tick_area_w / range;
             egui_dim_t ind_x = region.location.x + (egui_dim_t)val_offset;
-            egui_canvas_draw_line(ind_x, region.location.y, ind_x, base_y, 2, local->indicator_color, EGUI_ALPHA_100);
+            egui_canvas_draw_line(canvas, ind_x, region.location.y, ind_x, base_y, 2, local->indicator_color, EGUI_ALPHA_100);
         }
     }
     else
@@ -243,7 +245,7 @@ void egui_view_scale_on_draw(egui_view_t *self)
         {
             // Major tick position (bottom = range_min, top = range_max)
             egui_dim_t py = region.location.y + h - 1 - (egui_dim_t)((int32_t)tick_area_h * i / (major_count - 1));
-            egui_canvas_draw_line(base_x, py, base_x + local->major_tick_len - 1, py, 1, local->tick_color, EGUI_ALPHA_100);
+            egui_canvas_draw_line(canvas, base_x, py, base_x + local->major_tick_len - 1, py, 1, local->tick_color, EGUI_ALPHA_100);
 
             // Label to the right of tick
             if (font != NULL && local->show_labels && font_h > 0)
@@ -252,7 +254,7 @@ void egui_view_scale_on_draw(egui_view_t *self)
                 char buf[8];
                 egui_view_scale_int_to_str(label_val, buf, sizeof(buf));
                 EGUI_REGION_DEFINE(label_rect, base_x + local->major_tick_len + 2, py - font_h / 2, 30, font_h);
-                egui_canvas_draw_text_in_rect(font, buf, &label_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->label_color, EGUI_ALPHA_100);
+                egui_canvas_draw_text_in_rect(canvas, font, buf, &label_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->label_color, EGUI_ALPHA_100);
             }
 
             // Minor ticks
@@ -262,7 +264,7 @@ void egui_view_scale_on_draw(egui_view_t *self)
                 for (uint8_t j = 1; j <= minor_count; j++)
                 {
                     egui_dim_t my = py - (egui_dim_t)((int32_t)(py - next_py) * j / (minor_count + 1));
-                    egui_canvas_draw_line(base_x, my, base_x + local->minor_tick_len - 1, my, 1, local->tick_color, EGUI_ALPHA_100);
+                    egui_canvas_draw_line(canvas, base_x, my, base_x + local->minor_tick_len - 1, my, 1, local->tick_color, EGUI_ALPHA_100);
                 }
             }
         }
@@ -272,7 +274,7 @@ void egui_view_scale_on_draw(egui_view_t *self)
         {
             int32_t val_offset = (int32_t)(local->value - local->range_min) * tick_area_h / range;
             egui_dim_t ind_y = region.location.y + h - 1 - (egui_dim_t)val_offset;
-            egui_canvas_draw_line(base_x, ind_y, region.location.x + w - 1, ind_y, 2, local->indicator_color, EGUI_ALPHA_100);
+            egui_canvas_draw_line(canvas, base_x, ind_y, region.location.x + w - 1, ind_y, 2, local->indicator_color, EGUI_ALPHA_100);
         }
     }
 }
@@ -294,11 +296,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_scale_t) = {
 #endif
 };
 
-void egui_view_scale_init(egui_view_t *self)
+void egui_view_scale_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_scale_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_scale_t);
 
@@ -334,8 +336,8 @@ void egui_view_scale_apply_params(egui_view_t *self, const egui_view_scale_param
     egui_view_invalidate(self);
 }
 
-void egui_view_scale_init_with_params(egui_view_t *self, const egui_view_scale_params_t *params)
+void egui_view_scale_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_scale_params_t *params)
 {
-    egui_view_scale_init(self);
+    egui_view_scale_init(self, core);
     egui_view_scale_apply_params(self, params);
 }

@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // views in root
 static egui_view_viewpage_t viewpage_1;
@@ -31,20 +31,20 @@ EGUI_VIEW_LABEL_PARAMS_INIT(label_1_params, 0, 0, LABEL_WIDTH, LABEL_HEIGHT, "It
 EGUI_VIEW_LABEL_PARAMS_INIT(label_2_params, 0, 0, LABEL_WIDTH, LABEL_HEIGHT, "Item2", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
 EGUI_VIEW_LABEL_PARAMS_INIT(label_3_params, 0, 0, LABEL_WIDTH, LABEL_HEIGHT, "Item3", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init all views
     // viewpage_1
-    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage_1), &viewpage_1_params);
+    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage_1), core, &viewpage_1_params);
 
     // label_1
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), &label_1_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), core, &label_1_params);
 
     // label_2
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_2), &label_2_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_2), core, &label_2_params);
 
     // label_3
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_3), &label_3_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_3), core, &label_3_params);
 
     // background
     egui_view_set_background(EGUI_VIEW_OF(&label_1), EGUI_BG_OF(&bg_1));

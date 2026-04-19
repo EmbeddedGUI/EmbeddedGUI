@@ -19,7 +19,7 @@ void egui_scroller_about_animation(egui_scroller_t *self)
  *        content up/left.
  * @param duration Duration of the scroll in milliseconds.
  */
-void egui_scroller_start_scroll(egui_scroller_t *self, egui_dim_t delta, uint16_t duration)
+void egui_scroller_start_scroll(egui_scroller_t *self, egui_core_t *core, egui_dim_t delta, uint16_t duration)
 {
     self->mode = EGUI_SCROLLER_MODE_NORMAL;
     self->finished = 0;
@@ -32,7 +32,7 @@ void egui_scroller_start_scroll(egui_scroller_t *self, egui_dim_t delta, uint16_
     self->duration = duration;
     self->delta = delta;
     self->delta_offset = 0;
-    self->start_time = egui_api_timer_get_current();
+    self->start_time = egui_api_timer_get_current_core(core);
 
     // point per ms.
     self->duration_reciprocal = EGUI_FLOAT_DIV(delta, duration);
@@ -52,14 +52,14 @@ void egui_scroller_start_scroll(egui_scroller_t *self, egui_dim_t delta, uint16_
  * @param velocity Initial velocity of the fling measured in pixels per
  *        millisecond.
  */
-void egui_scroller_start_filing(egui_scroller_t *self, egui_dim_t delta, egui_float_t velocity)
+void egui_scroller_start_filing(egui_scroller_t *self, egui_core_t *core, egui_dim_t delta, egui_float_t velocity)
 {
     self->mode = EGUI_SCROLLER_MODE_FLING;
     self->finished = 0;
 
     velocity = velocity * 2;
 
-    self->start_time = egui_api_timer_get_current();
+    self->start_time = egui_api_timer_get_current_core(core);
 
     self->velocity = velocity;
     self->duration = EGUI_ABS(velocity) / EGUI_SCROLLER_DECCELERATION; // unit is milliseconds
@@ -78,7 +78,7 @@ void egui_scroller_start_filing(egui_scroller_t *self, egui_dim_t delta, egui_fl
     // total_distance);
 }
 
-int egui_scroller_compute_scroll_offset(egui_scroller_t *self)
+int egui_scroller_compute_scroll_offset(egui_scroller_t *self, egui_core_t *core)
 {
     if (self->finished)
     {
@@ -86,7 +86,7 @@ int egui_scroller_compute_scroll_offset(egui_scroller_t *self)
     }
     egui_dim_t offset = 0;
     egui_dim_t cur_delta;
-    uint32_t time_elapsed = egui_api_timer_get_current() - self->start_time;
+    uint32_t time_elapsed = egui_api_timer_get_current_core(core) - self->start_time;
     // uint16_t old_offset = self->delta_offset;
     // EGUI_LOG_DBG("egui_scroller_compute_scroll_offset, time_elapsed: %d, old_offset: %d\n", time_elapsed, old_offset);
     if (time_elapsed >= self->duration)
@@ -121,7 +121,8 @@ int egui_scroller_compute_scroll_offset(egui_scroller_t *self)
     return offset;
 }
 
-void egui_scroller_init(egui_scroller_t *self)
+void egui_scroller_init(egui_scroller_t *self, egui_core_t *core)
 {
+    EGUI_UNUSED(core);
     self->finished = 1;
 }

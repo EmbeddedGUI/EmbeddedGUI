@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 number pickers: XS / S / M / L
 static egui_view_number_picker_t picker_xs;
@@ -33,38 +33,38 @@ static void picker_value_changed_cb(egui_view_t *self, int16_t value)
     EGUI_LOG_INF("NumberPicker value: %d\n", value);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
 
     // Init all pickers
-    egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_xs), &picker_xs_params);
+    egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_xs), core, &picker_xs_params);
     egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker_xs), picker_value_changed_cb);
     egui_view_number_picker_set_step(EGUI_VIEW_OF(&picker_xs), 5);
     egui_view_number_picker_set_button_icons(EGUI_VIEW_OF(&picker_xs), EGUI_ICON_MS_ADD, EGUI_ICON_MS_REMOVE);
     egui_view_number_picker_set_icon_font(EGUI_VIEW_OF(&picker_xs), EGUI_FONT_ICON_MS_16);
     picker_xs.text_color = EGUI_THEME_TEXT_SECONDARY;
 
-    egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_s), &picker_s_params);
+    egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_s), core, &picker_s_params);
     egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker_s), picker_value_changed_cb);
     egui_view_number_picker_set_step(EGUI_VIEW_OF(&picker_s), 5);
     egui_view_number_picker_set_button_icons(EGUI_VIEW_OF(&picker_s), EGUI_ICON_MS_EXPAND_LESS, EGUI_ICON_MS_EXPAND_MORE);
     egui_view_number_picker_set_icon_font(EGUI_VIEW_OF(&picker_s), EGUI_FONT_ICON_MS_20);
     picker_s.text_color = EGUI_THEME_TEXT;
 
-    egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_m), &picker_m_params);
+    egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_m), core, &picker_m_params);
     egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker_m), picker_value_changed_cb);
     egui_view_number_picker_set_step(EGUI_VIEW_OF(&picker_m), 5);
     egui_view_number_picker_set_button_icons(EGUI_VIEW_OF(&picker_m), EGUI_ICON_MS_ADD, EGUI_ICON_MS_REMOVE);
     egui_view_number_picker_set_icon_font(EGUI_VIEW_OF(&picker_m), EGUI_FONT_ICON_MS_24);
     picker_m.text_color = EGUI_THEME_PRIMARY_DARK;
 
-    egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_l), &picker_l_params);
+    egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_l), core, &picker_l_params);
     egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker_l), picker_value_changed_cb);
     egui_view_number_picker_set_step(EGUI_VIEW_OF(&picker_l), 5);
     egui_view_number_picker_set_button_icons(EGUI_VIEW_OF(&picker_l), EGUI_ICON_MS_EXPAND_LESS, EGUI_ICON_MS_EXPAND_MORE);
@@ -90,7 +90,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

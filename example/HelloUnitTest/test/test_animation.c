@@ -1,4 +1,5 @@
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_animation.h"
 
@@ -6,6 +7,14 @@ static egui_animation_translate_t test_anim_translate;
 static egui_animation_alpha_t test_anim_alpha;
 static egui_view_t test_anim_view;
 static egui_interpolator_linear_t test_anim_interp;
+
+static egui_core_t *test_animation_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static void test_anim_translate_init(void)
 {
@@ -47,9 +56,54 @@ static void test_anim_interpolator_set(void)
 static void test_anim_target_view_set(void)
 {
     egui_animation_translate_init(EGUI_ANIM_OF(&test_anim_translate));
-    egui_view_init(&test_anim_view);
+    egui_view_init(&test_anim_view, test_animation_get_core());
     egui_animation_target_view_set(EGUI_ANIM_OF(&test_anim_translate), &test_anim_view);
     EGUI_TEST_ASSERT_TRUE(EGUI_ANIM_OF(&test_anim_translate)->target_view == &test_anim_view);
+}
+
+static void test_anim_start_uses_target_init_core_when_active_is_null(void)
+{
+    egui_core_t *core = test_animation_get_core();
+    egui_view_group_t parent_view;
+
+    egui_slist_init(&core->scene.anims);
+    egui_view_group_init(EGUI_VIEW_OF(&parent_view), core);
+    egui_view_init(&test_anim_view, core);
+    egui_view_group_add_child(EGUI_VIEW_OF(&parent_view), &test_anim_view);
+
+    egui_animation_translate_init(EGUI_ANIM_OF(&test_anim_translate));
+    egui_animation_target_view_set(EGUI_ANIM_OF(&test_anim_translate), &test_anim_view);
+
+    EGUI_TEST_ASSERT_TRUE(test_anim_view.core == core);
+    EGUI_TEST_ASSERT_TRUE(egui_slist_is_empty(&core->scene.anims));
+
+    egui_animation_start(EGUI_ANIM_OF(&test_anim_translate));
+
+    EGUI_TEST_ASSERT_TRUE(EGUI_ANIM_OF(&test_anim_translate)->is_running);
+    EGUI_TEST_ASSERT_TRUE(egui_slist_peek_head(&core->scene.anims) == &EGUI_ANIM_OF(&test_anim_translate)->node);
+
+    egui_animation_stop(EGUI_ANIM_OF(&test_anim_translate));
+    EGUI_TEST_ASSERT_FALSE(EGUI_ANIM_OF(&test_anim_translate)->is_running);
+    EGUI_TEST_ASSERT_TRUE(egui_slist_is_empty(&core->scene.anims));
+}
+
+static void test_anim_start_without_bound_core_is_noop(void)
+{
+    egui_core_t *core = test_animation_get_core();
+
+    egui_slist_init(&core->scene.anims);
+    egui_animation_translate_init(EGUI_ANIM_OF(&test_anim_translate));
+    egui_view_init(&test_anim_view, core);
+    test_anim_view.core = NULL;
+    egui_animation_target_view_set(EGUI_ANIM_OF(&test_anim_translate), &test_anim_view);
+
+    egui_animation_start(EGUI_ANIM_OF(&test_anim_translate));
+
+    EGUI_TEST_ASSERT_FALSE(EGUI_ANIM_OF(&test_anim_translate)->is_running);
+    EGUI_TEST_ASSERT_TRUE(egui_slist_is_empty(&core->scene.anims));
+
+    egui_animation_stop(EGUI_ANIM_OF(&test_anim_translate));
+    EGUI_TEST_ASSERT_TRUE(egui_slist_is_empty(&core->scene.anims));
 }
 
 void test_animation_run(void)
@@ -62,6 +116,8 @@ void test_animation_run(void)
     EGUI_TEST_RUN(test_anim_repeat_set);
     EGUI_TEST_RUN(test_anim_interpolator_set);
     EGUI_TEST_RUN(test_anim_target_view_set);
+    EGUI_TEST_RUN(test_anim_start_uses_target_init_core_when_active_is_null);
+    EGUI_TEST_RUN(test_anim_start_without_bound_core_is_noop);
 
     EGUI_TEST_SUITE_END();
 }

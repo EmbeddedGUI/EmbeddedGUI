@@ -1,5 +1,5 @@
 #include "egui.h"
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #include "decoder_bmp_stream.h"
 #include "decoder_stb.h"
@@ -86,6 +86,7 @@ static egui_image_file_t png_image;
 static egui_image_file_t bmp_image;
 static egui_image_file_t resize_image;
 static egui_image_file_t missing_image;
+static egui_core_t *s_core;
 
 EGUI_VIEW_GROUP_PARAMS_INIT(root_group_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
@@ -101,7 +102,7 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_card, &bg_card_params);
 static void file_image_demo_init_label(egui_view_label_t *label, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const char *text,
                                        const egui_font_t *font, egui_color_t color)
 {
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), s_core);
     egui_view_set_position(EGUI_VIEW_OF(label), x, y);
     egui_view_set_size(EGUI_VIEW_OF(label), width, height);
     egui_view_label_set_font(EGUI_VIEW_OF(label), font);
@@ -176,7 +177,7 @@ static void file_image_demo_init_card(file_image_demo_card_t *card, egui_dim_t x
 
     file_image_demo_build_status_text(card->status_text, sizeof(card->status_text), image, placeholder_image);
 
-    egui_view_init(EGUI_VIEW_OF(&card->panel));
+    egui_view_init(EGUI_VIEW_OF(&card->panel), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&card->panel), x, y);
     egui_view_set_size(EGUI_VIEW_OF(&card->panel), CARD_W, CARD_H);
     egui_view_set_background(EGUI_VIEW_OF(&card->panel), EGUI_BG_OF(&bg_card));
@@ -184,7 +185,7 @@ static void file_image_demo_init_card(file_image_demo_card_t *card, egui_dim_t x
     file_image_demo_init_label(&card->title, x, y + 4, CARD_W, 14, title, FILE_IMAGE_TITLE_FONT, EGUI_COLOR_HEX(0x0F172A));
     file_image_demo_init_label(&card->status, x, y + CARD_STATUS_Y, CARD_W, CARD_STATUS_H, card->status_text, FILE_IMAGE_STATUS_FONT, EGUI_COLOR_HEX(0x475569));
 
-    egui_view_image_init(EGUI_VIEW_OF(&card->image));
+    egui_view_image_init(EGUI_VIEW_OF(&card->image), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&card->image), image_x, y + CARD_IMAGE_Y);
     egui_view_set_size(EGUI_VIEW_OF(&card->image), image_width, image_height);
     egui_view_image_set_image(EGUI_VIEW_OF(&card->image), (egui_image_t *)image);
@@ -198,15 +199,16 @@ static void file_image_demo_init_card(file_image_demo_card_t *card, egui_dim_t x
 
 static void file_image_demo_prepare_image(egui_image_file_t *image, const char *path, const egui_image_t *placeholder)
 {
-    egui_image_file_init(image);
+    egui_image_file_init(image, s_core);
     egui_image_file_set_placeholder(image, placeholder);
     egui_image_file_set_path(image, path);
     egui_image_file_reload(image);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&root_group), &root_group_p);
+    s_core = core;
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&root_group), core, &root_group_p);
     egui_view_set_background(EGUI_VIEW_OF(&root_group), EGUI_BG_OF(&bg_root));
 
     /*
@@ -216,7 +218,7 @@ void test_init_ui(void)
     file_image_stdio_io_init(&file_image_sd_io, &file_image_sd_ctx);
     file_image_stdio_io_init(&file_image_lfs_io, &file_image_lfs_ctx);
     file_image_stdio_io_init(&file_image_flash_io, &file_image_flash_ctx);
-    EGUI_ASSERT(file_image_stack_apply(&file_image_stack_state, &file_image_stack_config));
+    EGUI_ASSERT(file_image_stack_apply(core, &file_image_stack_state, &file_image_stack_config));
 
     file_image_demo_prepare_image(&jpg_image, FILE_IMAGE_JPG, NULL);
     file_image_demo_prepare_image(&png_image, FILE_IMAGE_PNG, NULL);

@@ -456,7 +456,7 @@ void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
     // Restore any previous position adjustment first (e.g. switching between textinputs)
     if (local->adjusted_view != NULL)
     {
-        egui_core_update_region_dirty(&local->adjusted_view->region_screen);
+        egui_view_update_region_dirty(self, &local->adjusted_view->region_screen);
         egui_view_set_position(local->adjusted_view, local->adjusted_view->region.location.x, local->saved_y);
         local->adjusted_view = NULL;
     }
@@ -489,7 +489,7 @@ void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
             local->saved_y = root_view->region.location.y;
 
             // Mark old position as dirty before moving
-            egui_core_update_region_dirty(&root_view->region_screen);
+            egui_view_update_region_dirty(self, &root_view->region_screen);
 
             // Move root view up
             egui_view_set_position(root_view, root_view->region.location.x, local->saved_y - shift);
@@ -507,7 +507,7 @@ void egui_view_keyboard_hide(egui_view_t *self)
     // Restore position adjustment before hiding
     if (local->adjusted_view != NULL)
     {
-        egui_core_update_region_dirty(&local->adjusted_view->region_screen);
+        egui_view_update_region_dirty(self, &local->adjusted_view->region_screen);
         egui_view_set_position(local->adjusted_view, local->adjusted_view->region.location.x, local->saved_y);
         local->adjusted_view = NULL;
     }
@@ -527,7 +527,7 @@ static void egui_view_keyboard_init_key(egui_view_keyboard_t *keyboard, int key_
     egui_view_button_t *key = &keyboard->keys[key_idx];
     egui_view_t *key_view = EGUI_VIEW_OF(key);
 
-    egui_view_button_init(key_view);
+    egui_view_button_init(key_view, EGUI_VIEW_OF(keyboard)->core);
     egui_view_set_size(key_view, width, EGUI_KEYBOARD_KEY_HEIGHT);
     egui_view_label_set_text(key_view, label);
     egui_view_label_set_font_color(key_view, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -542,12 +542,12 @@ static void egui_view_keyboard_init_key(egui_view_keyboard_t *keyboard, int key_
 
 // ============== Init ==============
 
-void egui_view_keyboard_init(egui_view_t *self)
+void egui_view_keyboard_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_keyboard_t);
 
     // Init base group
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
 
     // Set keyboard background
     egui_view_set_background(self, EGUI_BG_OF(&bg_kb));
@@ -571,7 +571,7 @@ void egui_view_keyboard_init(egui_view_t *self)
     // Initialize 4 row LinearLayouts
     for (int r = 0; r < EGUI_KEYBOARD_ROW_COUNT; r++)
     {
-        egui_view_linearlayout_init(EGUI_VIEW_OF(&local->rows[r]));
+        egui_view_linearlayout_init(EGUI_VIEW_OF(&local->rows[r]), core);
         egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&local->rows[r]), 1); // horizontal
         egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&local->rows[r]), EGUI_ALIGN_HCENTER);
         egui_view_set_size(EGUI_VIEW_OF(&local->rows[r]), EGUI_KEYBOARD_DEFAULT_WIDTH, EGUI_KEYBOARD_KEY_HEIGHT + 2);

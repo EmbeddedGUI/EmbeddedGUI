@@ -42,13 +42,13 @@ struct egui_view_analog_clock_params
     static const egui_view_analog_clock_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .hour = (_hour), .minute = (_min), .second = (_sec)}
 
 void egui_view_analog_clock_apply_params(egui_view_t *self, const egui_view_analog_clock_params_t *params);
-void egui_view_analog_clock_init_with_params(egui_view_t *self, const egui_view_analog_clock_params_t *params);
+void egui_view_analog_clock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_analog_clock_params_t *params);
 
 void egui_view_analog_clock_set_time(egui_view_t *self, uint8_t h, uint8_t m, uint8_t s);
 void egui_view_analog_clock_show_second(egui_view_t *self, uint8_t show);
 void egui_view_analog_clock_show_ticks(egui_view_t *self, uint8_t show);
 void egui_view_analog_clock_on_draw(egui_view_t *self);
-void egui_view_analog_clock_init(egui_view_t *self);
+void egui_view_analog_clock_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

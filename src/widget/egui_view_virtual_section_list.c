@@ -727,9 +727,9 @@ void egui_view_virtual_section_list_apply_params(egui_view_t *self, const egui_v
     egui_view_virtual_list_apply_params(self, &list_params);
 }
 
-void egui_view_virtual_section_list_init_with_params(egui_view_t *self, const egui_view_virtual_section_list_params_t *params)
+void egui_view_virtual_section_list_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_virtual_section_list_params_t *params)
 {
-    egui_view_virtual_section_list_init(self);
+    egui_view_virtual_section_list_init(self, core);
     egui_view_virtual_section_list_apply_params(self, params);
 }
 
@@ -749,9 +749,9 @@ void egui_view_virtual_section_list_apply_setup(egui_view_t *self, const egui_vi
     egui_view_virtual_section_list_set_state_cache_limits(self, setup->state_cache_max_entries, setup->state_cache_max_bytes);
 }
 
-void egui_view_virtual_section_list_init_with_setup(egui_view_t *self, const egui_view_virtual_section_list_setup_t *setup)
+void egui_view_virtual_section_list_init_with_setup(egui_view_t *self, egui_core_t *core, const egui_view_virtual_section_list_setup_t *setup)
 {
-    egui_view_virtual_section_list_init(self);
+    egui_view_virtual_section_list_init(self, core);
     egui_view_virtual_section_list_apply_setup(self, setup);
 }
 
@@ -1328,11 +1328,11 @@ egui_view_t *egui_view_virtual_section_list_find_first_visible_entry_view(egui_v
     return find_ctx.best_view;
 }
 
-void egui_view_virtual_section_list_init(egui_view_t *self)
+void egui_view_virtual_section_list_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_section_list_t);
 
-    egui_view_virtual_list_init(self);
+    egui_view_virtual_list_init(self, core);
     local->data_source = NULL;
     local->data_source_context = NULL;
     egui_api_memset(&local->flat_data_source, 0, sizeof(local->flat_data_source));

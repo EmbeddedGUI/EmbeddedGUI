@@ -77,7 +77,7 @@ static const egui_view_list_view_holder_ops_t demo_holder_ops = {
     .restore_holder_state = demo_restore_holder_state,
 };
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     const egui_view_list_view_setup_t setup = {
         .params = &demo_params,
@@ -89,7 +89,7 @@ void init_ui(void)
     };
 
     egui_view_list_view_init_with_setup(EGUI_VIEW_OF(&list_view), &setup);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&list_view));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&list_view));
 }
 ```
 
@@ -157,7 +157,7 @@ static const egui_view_grid_view_holder_ops_t demo_holder_ops = {
     .restore_holder_state = demo_restore_holder_state,
 };
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     const egui_view_grid_view_setup_t setup = {
         .params = &demo_params,
@@ -169,7 +169,7 @@ void init_ui(void)
     };
 
     egui_view_grid_view_init_with_setup(EGUI_VIEW_OF(&grid_view), &setup);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&grid_view));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&grid_view));
 }
 ```
 
@@ -193,7 +193,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_list_init(self)` | 初始化 List |
+| `egui_view_list_init(self, core)` | 初始化 List |
 | `egui_view_list_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_list_add_item(self, text)` | 添加列表项，返回索引(-1 表示已满) |
 | `egui_view_list_clear(self)` | 清空所有列表项 |
@@ -224,7 +224,7 @@ static void on_item_click(egui_view_t *self, uint8_t index)
     EGUI_LOG_INF("List item clicked: %d\n", index);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_list_init_with_params(
         EGUI_VIEW_OF(&list), &list_params);
@@ -238,7 +238,7 @@ void init_ui(void)
     egui_view_list_set_on_item_click(
         EGUI_VIEW_OF(&list), on_item_click);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&list));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&list));
 }
 ```
 
@@ -256,7 +256,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_table_init(self)` | 初始化 Table |
+| `egui_view_table_init(self, core)` | 初始化 Table |
 | `egui_view_table_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_table_set_cell(self, row, col, text)` | 设置单元格文本 |
 | `egui_view_table_set_size(self, rows, cols)` | 设置行列数 |
@@ -286,7 +286,7 @@ static egui_view_table_t table;
 
 EGUI_VIEW_TABLE_PARAMS_INIT(table_params, 0, 0, 200, 120, 4, 3);
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_table_init_with_params(
         EGUI_VIEW_OF(&table), &table_params);
@@ -313,7 +313,7 @@ void init_ui(void)
     egui_view_table_set_cell(EGUI_VIEW_OF(&table), 3, 1, "1013");
     egui_view_table_set_cell(EGUI_VIEW_OF(&table), 3, 2, "hPa");
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&table));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&table));
 }
 ```
 
@@ -331,7 +331,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_button_matrix_init(self)` | 初始化 ButtonMatrix |
+| `egui_view_button_matrix_init(self, core)` | 初始化 ButtonMatrix |
 | `egui_view_button_matrix_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_button_matrix_set_labels(self, labels, count, cols)` | 设置按钮标签、数量和列数 |
 | `egui_view_button_matrix_set_on_click(self, callback)` | 设置按钮点击回调 |
@@ -375,7 +375,7 @@ static void on_btn_click(egui_view_t *self, uint8_t btn_index)
     EGUI_LOG_INF("Button: %s\n", calc_labels[btn_index]);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_button_matrix_init_with_params(
         EGUI_VIEW_OF(&btnmatrix), &bm_params);
@@ -386,6 +386,6 @@ void init_ui(void)
     egui_view_button_matrix_set_corner_radius(
         EGUI_VIEW_OF(&btnmatrix), 4);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&btnmatrix));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&btnmatrix));
 }
 ```

@@ -119,8 +119,8 @@ static egui_dim_t egui_font_get_line_height(const egui_font_t *self)
     return y_size;
 }
 
-void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
-                                   egui_color_t color, egui_alpha_t alpha)
+void egui_font_draw_string_in_rect(const egui_font_t *self, egui_canvas_t *canvas, const void *string, egui_region_t *rect, uint8_t align_type,
+                                   egui_dim_t line_space, egui_color_t color, egui_alpha_t alpha)
 {
     const char *s = (const char *)string;
     if (NULL == s)
@@ -135,7 +135,7 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, 
     egui_dim_t draw_y;
     uint8_t h_align = align_type & EGUI_ALIGN_HMASK;
     uint8_t v_align = align_type & EGUI_ALIGN_VMASK;
-    const egui_region_t *work_region = egui_canvas_get_base_view_work_region();
+    const egui_region_t *work_region = egui_canvas_get_base_view_work_region(canvas);
     egui_dim_t work_y0 = work_region->location.y;
     egui_dim_t work_y1 = work_y0 + work_region->size.height;
     egui_dim_t line_step;
@@ -180,7 +180,7 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, 
                 break;
             }
 
-            str_bytes = self->api->draw_string(self, s, tmp_rect.location.x, draw_y, color, alpha);
+            str_bytes = self->api->draw_string(self, canvas, s, tmp_rect.location.x, draw_y, color, alpha);
             if (str_bytes <= 0)
             {
                 break;
@@ -199,7 +199,7 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, 
     {
         egui_font_get_string_pos(self, s, rect, align_type, 0, line_space, &x, &y);
 
-        str_bytes = self->api->draw_string(self, s, tmp_rect.location.x + x, tmp_rect.location.y + y, color, alpha);
+        str_bytes = self->api->draw_string(self, canvas, s, tmp_rect.location.x + x, tmp_rect.location.y + y, color, alpha);
 
         s += str_bytes;
         tmp_rect.location.y += y_size + line_space;
@@ -209,7 +209,8 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, 
     }
 }
 
-int egui_font_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
+int egui_font_draw_string(const egui_font_t *self, egui_canvas_t *canvas, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                          egui_alpha_t alpha)
 {
     // implement is sub-class.
     return 0;

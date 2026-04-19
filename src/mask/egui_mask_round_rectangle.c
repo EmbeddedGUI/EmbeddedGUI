@@ -12,6 +12,20 @@
 
 extern const egui_circle_info_t egui_res_circle_info_arr[];
 
+/* Basic-range circle info lookup — no canvas needed. */
+__EGUI_STATIC_INLINE__ const egui_circle_info_t *egui_mask_get_circle_info_basic(egui_dim_t r)
+{
+    if (r < EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE)
+    {
+        const egui_circle_info_t *info = &egui_res_circle_info_arr[r];
+        if (info->radius == (uint16_t)r)
+        {
+            return info;
+        }
+    }
+    return NULL;
+}
+
 void egui_mask_round_rectangle_set_radius(egui_mask_t *self, egui_dim_t radius)
 {
     EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);
@@ -149,7 +163,7 @@ int egui_mask_round_rectangle_fill_row_segment(egui_mask_t *self, egui_color_int
     }
 
     {
-        const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
+        const egui_circle_info_t *info = egui_mask_get_circle_info_basic(radius);
         const egui_circle_item_t *items;
         egui_dim_t row_index;
 
@@ -370,7 +384,7 @@ int egui_mask_round_rectangle_blend_rgb565_alpha8_segment(egui_mask_t *self, egu
         return 1;
     }
 
-    info = egui_canvas_get_circle_item(radius);
+    info = egui_mask_get_circle_info_basic(radius);
     if (info == NULL)
     {
         return 0;
@@ -578,7 +592,7 @@ int egui_mask_round_rectangle_get_row_range(egui_mask_t *self, egui_dim_t y, egu
         row_in_corner = sel_y + height - 1 - y; // Bottom corners: 0 at bottom edge
     }
 
-    const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
+    const egui_circle_info_t *info = egui_mask_get_circle_info_basic(radius);
     if (info == NULL)
     {
         // No lookup table available, cannot optimize
@@ -626,7 +640,7 @@ static int egui_mask_round_rectangle_get_row_visible_range(egui_mask_t *self, eg
 
     egui_dim_t center_y = (y < sel_y + radius) ? (sel_y + radius) : (sel_y + height - radius - 1);
     egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
-    const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
+    const egui_circle_info_t *info = egui_mask_get_circle_info_basic(radius);
 
     if (info != NULL)
     {

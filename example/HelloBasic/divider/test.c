@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 dividers: XS / S / M / L
 static egui_view_divider_t divider_xs;
@@ -23,16 +23,16 @@ EGUI_VIEW_DIVIDER_PARAMS_INIT(divider_m_params, 0, 0, 168, 3, EGUI_THEME_PRIMARY
 // Size L (204x3)
 EGUI_VIEW_DIVIDER_PARAMS_INIT(divider_l_params, 0, 0, 204, 3, EGUI_THEME_PRIMARY_DARK);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init all dividers
-    egui_view_divider_init_with_params(EGUI_VIEW_OF(&divider_xs), &divider_xs_params);
-    egui_view_divider_init_with_params(EGUI_VIEW_OF(&divider_s), &divider_s_params);
-    egui_view_divider_init_with_params(EGUI_VIEW_OF(&divider_m), &divider_m_params);
-    egui_view_divider_init_with_params(EGUI_VIEW_OF(&divider_l), &divider_l_params);
+    egui_view_divider_init_with_params(EGUI_VIEW_OF(&divider_xs), core, &divider_xs_params);
+    egui_view_divider_init_with_params(EGUI_VIEW_OF(&divider_s), core, &divider_s_params);
+    egui_view_divider_init_with_params(EGUI_VIEW_OF(&divider_m), core, &divider_m_params);
+    egui_view_divider_init_with_params(EGUI_VIEW_OF(&divider_l), core, &divider_l_params);
 
     // Set margins
     egui_view_set_margin_all(EGUI_VIEW_OF(&divider_xs), 6);
@@ -53,7 +53,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

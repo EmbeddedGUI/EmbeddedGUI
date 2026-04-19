@@ -7,9 +7,9 @@
 #include "core/egui_api.h"
 #include "core/egui_input.h"
 #include "core/egui_input_simulator.h"
-#include "uicode.h"
+#include "uicode_disp0.h"
 
-extern void egui_port_init(void);
+extern void egui_port_init(egui_core_t *core);
 extern void qemu_exit(int code);
 extern void qemu_systick_init(void);
 extern void qemu_heap_reset_stats(void);
@@ -21,6 +21,8 @@ extern void qemu_log_printf(const char *format, ...);
 extern void qemu_log_write(const char *str);
 extern uint8_t _estack[];
 extern uint32_t _Min_Stack_Size;
+
+egui_core_t core;
 
 EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
@@ -191,7 +193,7 @@ static void qemu_heap_print_metric(const char *key, uint32_t value)
 static void qemu_heap_trace_stage(const char *stage)
 {
 #if QEMU_HEAP_TRACE_STAGE
-    qemu_log_printf("HEAP_STAGE:%s,tick=%lu\n", stage, (unsigned long)egui_api_timer_get_current());
+    qemu_log_printf("HEAP_STAGE:%s,tick=%lu\n", stage, (unsigned long)egui_api_timer_get_current_core(&core));
 #else
     EGUI_UNUSED(stage);
 #endif
@@ -199,18 +201,18 @@ static void qemu_heap_trace_stage(const char *stage)
 
 static void qemu_run_for_ms(uint32_t wait_ms)
 {
-    uint32_t start = egui_api_timer_get_current();
+    uint32_t start = egui_api_timer_get_current_core(&core);
 
-    while ((uint32_t)(egui_api_timer_get_current() - start) < wait_ms)
+    while ((uint32_t)(egui_api_timer_get_current_core(&core) - start) < wait_ms)
     {
-        egui_polling_work();
+        egui_polling_work(&core);
     }
 }
 
 static void qemu_send_touch(uint8_t type, int x, int y)
 {
-    egui_input_add_motion(type, (egui_dim_t)x, (egui_dim_t)y);
-    egui_polling_work();
+    egui_input_add_motion(&core, type, (egui_dim_t)x, (egui_dim_t)y);
+    egui_polling_work(&core);
 }
 
 static void qemu_execute_action(const egui_sim_action_t *action)
@@ -300,8 +302,10 @@ int main(void)
     qemu_systick_init();
 
     /* Initialize EGUI */
-    egui_port_init();
-    egui_init(egui_pfb);
+    egui_init(&core, egui_pfb);
+    egui_port_init(&core);
+    extern egui_display_driver_t *egui_port_get_display_driver(void);
+    egui_display_driver_register(&core, egui_port_get_display_driver());
 
 #if QEMU_HEAP_MEASURE
     qemu_heap_stats_t idle_stats;
@@ -320,9 +324,9 @@ int main(void)
 
     qemu_heap_reset_stats();
     qemu_heap_trace_stage("idle_reset");
-    uicode_create_ui();
+    uicode_disp0_init(&core);
     qemu_heap_trace_stage("ui_created");
-    egui_screen_on();
+    egui_screen_on(&core);
     qemu_heap_trace_stage("screen_on");
 
     qemu_run_for_ms(QEMU_HEAP_IDLE_WAIT_MS);
@@ -363,17 +367,17 @@ int main(void)
     qemu_log_write("QEMU EGUI Performance Benchmark\n");
 
     /* Create UI and run benchmark */
-    uicode_create_ui();
+    uicode_disp0_init(&core);
 
     /* Turn on screen - this resumes the core and enables rendering */
-    egui_screen_on();
+    egui_screen_on(&core);
 
     /* Run polling loop until benchmark completes.
      * HelloPerformance uses a timer callback that runs
      * all test modes then sets g_qemu_perf_complete. */
     while (!g_qemu_perf_complete)
     {
-        egui_polling_work();
+        egui_polling_work(&core);
     }
 
     qemu_log_write("PERF_EXIT\n");

@@ -39,6 +39,7 @@ typedef struct egui_sim_action
     int x2, y2;      // End position (for drag/swipe)
     int steps;       // Number of steps for drag (0 = auto)
     int interval_ms; // Time before this action (ms)
+    int display_id;  // Target display index (0 = default/main display)
 } egui_sim_action_t;
 
 /**
@@ -250,6 +251,69 @@ extern void recording_request_snapshot(void);
     {                                                                                                                                                          \
         (_p_action)->type = EGUI_SIM_ACTION_WAIT;                                                                                                              \
         (_p_action)->interval_ms = (_interval_ms);                                                                                                             \
+    } while (0)
+
+/* ---- Multi-display action macros ---- */
+
+/**
+ * @brief Click on a specific display
+ */
+#define EGUI_SIM_CLICK_DISP(_x, _y, _interval_ms, _disp) {EGUI_SIM_ACTION_CLICK, (_x), (_y), 0, 0, 0, (_interval_ms), (_disp)}
+
+/**
+ * @brief Drag on a specific display
+ */
+#define EGUI_SIM_DRAG_DISP(_x1, _y1, _x2, _y2, _steps, _interval_ms, _disp)                                                                                    \
+    {EGUI_SIM_ACTION_DRAG, (_x1), (_y1), (_x2), (_y2), (_steps), (_interval_ms), (_disp)}
+
+/**
+ * @brief Swipe on a specific display
+ */
+#define EGUI_SIM_SWIPE_DISP(_x1, _y1, _x2, _y2, _interval_ms, _disp) {EGUI_SIM_ACTION_SWIPE, (_x1), (_y1), (_x2), (_y2), 5, (_interval_ms), (_disp)}
+
+/**
+ * @brief Set action to click at view center on a specific display
+ */
+#define EGUI_SIM_SET_CLICK_VIEW_DISP(_p_action, _view, _interval_ms, _disp)                                                                                    \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        (_p_action)->type = EGUI_SIM_ACTION_CLICK;                                                                                                             \
+        (_p_action)->x1 = EGUI_SIM_VIEW_CENTER_X(_view);                                                                                                       \
+        (_p_action)->y1 = EGUI_SIM_VIEW_CENTER_Y(_view);                                                                                                       \
+        (_p_action)->interval_ms = (_interval_ms);                                                                                                             \
+        (_p_action)->display_id = (_disp);                                                                                                                     \
+    } while (0)
+
+/**
+ * @brief Set action to drag between views on a specific display
+ */
+#define EGUI_SIM_SET_DRAG_VIEW_DISP(_p_action, _view_from, _view_to, _steps, _interval_ms, _disp)                                                              \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        (_p_action)->type = EGUI_SIM_ACTION_DRAG;                                                                                                              \
+        (_p_action)->x1 = EGUI_SIM_VIEW_CENTER_X(_view_from);                                                                                                  \
+        (_p_action)->y1 = EGUI_SIM_VIEW_CENTER_Y(_view_from);                                                                                                  \
+        (_p_action)->x2 = EGUI_SIM_VIEW_CENTER_X(_view_to);                                                                                                    \
+        (_p_action)->y2 = EGUI_SIM_VIEW_CENTER_Y(_view_to);                                                                                                    \
+        (_p_action)->steps = (_steps);                                                                                                                         \
+        (_p_action)->interval_ms = (_interval_ms);                                                                                                             \
+        (_p_action)->display_id = (_disp);                                                                                                                     \
+    } while (0)
+
+/**
+ * @brief Set action to swipe between views on a specific display
+ */
+#define EGUI_SIM_SET_SWIPE_VIEW_DISP(_p_action, _view_from, _view_to, _interval_ms, _disp)                                                                     \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        (_p_action)->type = EGUI_SIM_ACTION_SWIPE;                                                                                                             \
+        (_p_action)->x1 = EGUI_SIM_VIEW_CENTER_X(_view_from);                                                                                                  \
+        (_p_action)->y1 = EGUI_SIM_VIEW_CENTER_Y(_view_from);                                                                                                  \
+        (_p_action)->x2 = EGUI_SIM_VIEW_CENTER_X(_view_to);                                                                                                    \
+        (_p_action)->y2 = EGUI_SIM_VIEW_CENTER_Y(_view_to);                                                                                                    \
+        (_p_action)->steps = 5;                                                                                                                                \
+        (_p_action)->interval_ms = (_interval_ms);                                                                                                             \
+        (_p_action)->display_id = (_disp);                                                                                                                     \
     } while (0)
 
 /* Ends C function definitions when using C++ */

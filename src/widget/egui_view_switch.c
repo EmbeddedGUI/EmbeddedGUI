@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_switch.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
@@ -21,6 +22,7 @@ static uint8_t egui_view_switch_prepare_draw(egui_view_t *self, egui_region_t *r
     egui_dim_t height;
     egui_dim_t track_radius;
     egui_state_t state;
+    const egui_theme_t *theme;
     const egui_widget_style_desc_t *desc;
     const egui_style_t *track_style;
     const egui_style_t *thumb_style;
@@ -52,7 +54,8 @@ static uint8_t egui_view_switch_prepare_draw(egui_view_t *self, egui_region_t *r
     else
         state = EGUI_STATE_NORMAL;
 
-    desc = egui_current_theme ? egui_current_theme->switch_ctrl : NULL;
+    theme = egui_theme_get(egui_view_get_core(self));
+    desc = theme ? theme->switch_ctrl : NULL;
     track_style = desc ? egui_style_get(desc, EGUI_PART_MAIN, state) : NULL;
     thumb_style = desc ? egui_style_get(desc, EGUI_PART_INDICATOR, state) : NULL;
 
@@ -98,6 +101,7 @@ static uint8_t egui_view_switch_prepare_draw(egui_view_t *self, egui_region_t *r
 static void egui_view_switch_draw_track_and_thumb(egui_view_t *self, const egui_region_t *region, egui_dim_t thumb_x, egui_dim_t thumb_y,
                                                   egui_dim_t thumb_radius, egui_color_t track_color, egui_color_t thumb_color)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_switch_t);
     egui_dim_t track_radius = region->size.height / 2;
 
@@ -120,21 +124,22 @@ static void egui_view_switch_draw_track_and_thumb(egui_view_t *self, const egui_
                 .alpha = local->alpha,
                 .stops = track_stops,
         };
-        egui_canvas_draw_round_rectangle_fill_gradient(region->location.x, region->location.y, region->size.width, region->size.height, track_radius,
+        egui_canvas_draw_round_rectangle_fill_gradient(canvas, region->location.x, region->location.y, region->size.width, region->size.height, track_radius,
                                                        &track_grad);
-        egui_canvas_draw_circle_fill_hq(thumb_x, thumb_y, thumb_radius, thumb_color, local->alpha);
+        egui_canvas_draw_circle_fill_hq(canvas, thumb_x, thumb_y, thumb_radius, thumb_color, local->alpha);
     }
 #else
-    egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, track_radius, track_color,
+    egui_canvas_draw_round_rectangle_fill(canvas, region->location.x, region->location.y, region->size.width, region->size.height, track_radius, track_color,
                                           local->alpha);
-    egui_canvas_draw_circle_fill_basic(thumb_x, thumb_y, thumb_radius, thumb_color, local->alpha);
-    egui_canvas_draw_circle_basic(thumb_x, thumb_y, thumb_radius, 1, EGUI_THEME_BORDER, local->alpha);
+    egui_canvas_draw_circle_fill_basic(canvas, thumb_x, thumb_y, thumb_radius, thumb_color, local->alpha);
+    egui_canvas_draw_circle_basic(canvas, thumb_x, thumb_y, thumb_radius, 1, EGUI_THEME_BORDER, local->alpha);
 #endif
 }
 
 void egui_view_switch_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t region;
     egui_dim_t thumb_x;
     egui_dim_t thumb_y;
@@ -170,7 +175,7 @@ void egui_view_switch_on_draw(egui_view_t *self)
     icon_region.size.width = thumb_radius * 2;
     icon_region.size.height = thumb_radius * 2;
     icon_color = egui_view_get_enable(self) ? track_color : EGUI_THEME_DISABLED;
-    egui_canvas_draw_text_in_rect(icon_font, icon_text, &icon_region, EGUI_ALIGN_CENTER, icon_color, local->alpha);
+    egui_canvas_draw_text_in_rect(canvas, icon_font, icon_text, &icon_region, EGUI_ALIGN_CENTER, icon_color, local->alpha);
 }
 
 void egui_view_switch_set_on_checked_listener(egui_view_t *self, egui_view_on_checked_listener_t listener)
@@ -249,11 +254,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_switch_t) = {
 #endif
 };
 
-void egui_view_switch_init(egui_view_t *self)
+void egui_view_switch_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_switch_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_switch_t);
 
@@ -287,8 +292,8 @@ void egui_view_switch_apply_params(egui_view_t *self, const egui_view_switch_par
     egui_view_invalidate(self);
 }
 
-void egui_view_switch_init_with_params(egui_view_t *self, const egui_view_switch_params_t *params)
+void egui_view_switch_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_switch_params_t *params)
 {
-    egui_view_switch_init(self);
+    egui_view_switch_init(self, core);
     egui_view_switch_apply_params(self, params);
 }

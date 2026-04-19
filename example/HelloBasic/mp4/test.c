@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #include "app_egui_resource_generate.h"
 #include "app_egui_resource_mp4_test_std.h"
@@ -53,14 +53,14 @@ static void mp4_callback(egui_view_mp4_t *view, int is_end)
     }
 }
 
-static void init_mp4_row(egui_view_group_t *page, egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text, egui_view_mp4_t *mp4,
-                         const egui_view_mp4_params_t *mp4_p, const egui_image_t **frames, uint16_t count)
+static void init_mp4_row(egui_core_t *core, egui_view_group_t *page, egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text,
+                         egui_view_mp4_t *mp4, const egui_view_mp4_params_t *mp4_p, const egui_image_t **frames, uint16_t count)
 {
-    egui_view_label_init_with_params(EGUI_VIEW_OF(lbl), lbl_p);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(lbl), core, lbl_p);
     egui_view_label_set_text(EGUI_VIEW_OF(lbl), text);
     egui_view_label_set_align_type(EGUI_VIEW_OF(lbl), EGUI_ALIGN_CENTER);
 
-    egui_view_mp4_init_with_params(EGUI_VIEW_OF(mp4), mp4_p);
+    egui_view_mp4_init_with_params(EGUI_VIEW_OF(mp4), core, mp4_p);
     mp4->mp4_image_list = frames;
     mp4->mp4_image_count = count;
     mp4->callback = mp4_callback;
@@ -70,12 +70,12 @@ static void init_mp4_row(egui_view_group_t *page, egui_view_label_t *lbl, const 
     egui_view_group_add_child(EGUI_VIEW_OF(page), EGUI_VIEW_OF(mp4));
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     /* ----- Page 1: Full-size STD MP4 ----- */
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&page1), &page1_p);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&page1), core, &page1_p);
 
-    egui_view_mp4_init_with_params(EGUI_VIEW_OF(&mp4_main), &mp4_main_p);
+    egui_view_mp4_init_with_params(EGUI_VIEW_OF(&mp4_main), core, &mp4_main_p);
     mp4_main.mp4_image_list = mp4_arr_test_std;
     mp4_main.mp4_image_count = MP4_IMAGE_COUNT_TEST_STD;
     mp4_main.callback = mp4_callback;
@@ -85,14 +85,14 @@ void test_init_ui(void)
     egui_view_group_layout_childs(EGUI_VIEW_OF(&page1), 0, 0, 0, EGUI_ALIGN_CENTER);
 
     /* ----- Page 2: Compressed comparison ----- */
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&page2), &page2_p);
-    init_mp4_row(&page2, &lbl_cmp_std, &lbl_cmp_std_p, "STD", &mp4_cmp_std, &mp4_cmp_std_p, mp4_arr_cmp_std, MP4_IMAGE_COUNT_CMP_STD);
-    init_mp4_row(&page2, &lbl_cmp_qoi, &lbl_cmp_qoi_p, "QOI", &mp4_cmp_qoi, &mp4_cmp_qoi_p, mp4_arr_cmp_qoi, MP4_IMAGE_COUNT_CMP_QOI);
-    init_mp4_row(&page2, &lbl_cmp_rle, &lbl_cmp_rle_p, "RLE", &mp4_cmp_rle, &mp4_cmp_rle_p, mp4_arr_cmp_rle, MP4_IMAGE_COUNT_CMP_RLE);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&page2), core, &page2_p);
+    init_mp4_row(core, &page2, &lbl_cmp_std, &lbl_cmp_std_p, "STD", &mp4_cmp_std, &mp4_cmp_std_p, mp4_arr_cmp_std, MP4_IMAGE_COUNT_CMP_STD);
+    init_mp4_row(core, &page2, &lbl_cmp_qoi, &lbl_cmp_qoi_p, "QOI", &mp4_cmp_qoi, &mp4_cmp_qoi_p, mp4_arr_cmp_qoi, MP4_IMAGE_COUNT_CMP_QOI);
+    init_mp4_row(core, &page2, &lbl_cmp_rle, &lbl_cmp_rle_p, "RLE", &mp4_cmp_rle, &mp4_cmp_rle_p, mp4_arr_cmp_rle, MP4_IMAGE_COUNT_CMP_RLE);
     egui_view_group_layout_childs(EGUI_VIEW_OF(&page2), 0, 0, 0, EGUI_ALIGN_CENTER);
 
     /* ----- ViewPage ----- */
-    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), &viewpage_p);
+    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), core, &viewpage_p);
     egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage), EGUI_VIEW_OF(&page1));
     egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage), EGUI_VIEW_OF(&page2));
     egui_view_viewpage_layout_childs(EGUI_VIEW_OF(&viewpage));

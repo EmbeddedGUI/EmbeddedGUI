@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 rollers: XS / S / M / L
 static egui_view_roller_t roller_xs;
@@ -35,26 +35,26 @@ static void on_roller_selected(egui_view_t *self, uint8_t index)
     EGUI_LOG_INF("Roller selected: %s (index=%d)\r\n", weekdays[index], index);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
 
     // Init all rollers
-    egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller_xs), &roller_xs_params);
+    egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller_xs), core, &roller_xs_params);
     egui_view_roller_set_on_selected_listener(EGUI_VIEW_OF(&roller_xs), on_roller_selected);
 
-    egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller_s), &roller_s_params);
+    egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller_s), core, &roller_s_params);
     egui_view_roller_set_on_selected_listener(EGUI_VIEW_OF(&roller_s), on_roller_selected);
 
-    egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller_m), &roller_m_params);
+    egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller_m), core, &roller_m_params);
     egui_view_roller_set_on_selected_listener(EGUI_VIEW_OF(&roller_m), on_roller_selected);
 
-    egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller_l), &roller_l_params);
+    egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller_l), core, &roller_l_params);
     egui_view_roller_set_on_selected_listener(EGUI_VIEW_OF(&roller_l), on_roller_selected);
 
     // Set margins
@@ -76,7 +76,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

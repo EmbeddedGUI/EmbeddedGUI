@@ -201,11 +201,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_tileview_t) = {
 #endif
 };
 
-void egui_view_tileview_init(egui_view_t *self)
+void egui_view_tileview_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_tileview_t);
     // call super init.
-    egui_view_group_init(self);
+    egui_view_group_init(self, core);
 
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_tileview_t);
@@ -230,8 +230,8 @@ void egui_view_tileview_apply_params(egui_view_t *self, const egui_view_tileview
     egui_view_invalidate(self);
 }
 
-void egui_view_tileview_init_with_params(egui_view_t *self, const egui_view_tileview_params_t *params)
+void egui_view_tileview_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_tileview_params_t *params)
 {
-    egui_view_tileview_init(self);
+    egui_view_tileview_init(self, core);
     egui_view_tileview_apply_params(self, params);
 }

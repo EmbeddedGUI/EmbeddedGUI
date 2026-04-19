@@ -1,7 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define DB_FONT_TITLE EGUI_FONT_OF(&egui_res_font_montserrat_20_4)
 #define DB_FONT_KPI   EGUI_FONT_OF(&egui_res_font_montserrat_22_4)
@@ -93,7 +93,7 @@ static void db_growth_timer_callback(egui_timer_t *timer)
     db_growth_frame++;
     if (db_growth_frame > DB_GROWTH_FRAMES)
     {
-        egui_timer_stop_timer(&db_growth_timer);
+        egui_view_stop_timer(EGUI_VIEW_OF(&db_title), &db_growth_timer);
         return;
     }
 
@@ -139,8 +139,10 @@ static void db_theme_btn_click(egui_view_t *self)
 
 void uicode_init_page_dashboard(egui_view_t *parent)
 {
+    egui_core_t *core = egui_view_get_core(parent);
+
     // Title "Dashboard"
-    egui_view_label_init(EGUI_VIEW_OF(&db_title));
+    egui_view_label_init(EGUI_VIEW_OF(&db_title), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_title), 10, 5);
     egui_view_set_size(EGUI_VIEW_OF(&db_title), 150, 30);
     egui_view_label_set_text(EGUI_VIEW_OF(&db_title), "Dashboard");
@@ -150,7 +152,7 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&db_title));
 
     // Theme toggle (icon button)
-    egui_view_button_init(EGUI_VIEW_OF(&db_theme_btn));
+    egui_view_button_init(EGUI_VIEW_OF(&db_theme_btn), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_theme_btn), 200, 5);
     egui_view_set_size(EGUI_VIEW_OF(&db_theme_btn), 32, 28);
     egui_view_label_set_text(EGUI_VIEW_OF(&db_theme_btn), ICON_LIGHT_MODE);
@@ -159,12 +161,12 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&db_theme_btn));
 
     // KPI 1: CPU
-    egui_view_card_init(EGUI_VIEW_OF(&db_kpi1));
+    egui_view_card_init(EGUI_VIEW_OF(&db_kpi1), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_kpi1), 5, 40);
     egui_view_set_size(EGUI_VIEW_OF(&db_kpi1), 73, 55);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&db_kpi1), 6);
 
-    egui_view_label_init(EGUI_VIEW_OF(&db_kpi1_val));
+    egui_view_label_init(EGUI_VIEW_OF(&db_kpi1_val), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_kpi1_val), 2, 5);
     egui_view_set_size(EGUI_VIEW_OF(&db_kpi1_val), 69, 24);
     egui_view_label_set_text(EGUI_VIEW_OF(&db_kpi1_val), "0%");
@@ -172,7 +174,7 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&db_kpi1_val), EGUI_COLOR_MAKE(0x25, 0x63, 0xEB), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&db_kpi1), EGUI_VIEW_OF(&db_kpi1_val));
 
-    egui_view_label_init(EGUI_VIEW_OF(&db_kpi1_name));
+    egui_view_label_init(EGUI_VIEW_OF(&db_kpi1_name), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_kpi1_name), 2, 30);
     egui_view_set_size(EGUI_VIEW_OF(&db_kpi1_name), 69, 18);
     egui_view_label_set_text(EGUI_VIEW_OF(&db_kpi1_name), "CPU");
@@ -183,12 +185,12 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&db_kpi1));
 
     // KPI 2: Users
-    egui_view_card_init(EGUI_VIEW_OF(&db_kpi2));
+    egui_view_card_init(EGUI_VIEW_OF(&db_kpi2), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_kpi2), 83, 40);
     egui_view_set_size(EGUI_VIEW_OF(&db_kpi2), 73, 55);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&db_kpi2), 6);
 
-    egui_view_label_init(EGUI_VIEW_OF(&db_kpi2_val));
+    egui_view_label_init(EGUI_VIEW_OF(&db_kpi2_val), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_kpi2_val), 2, 5);
     egui_view_set_size(EGUI_VIEW_OF(&db_kpi2_val), 69, 24);
     egui_view_label_set_text(EGUI_VIEW_OF(&db_kpi2_val), "0");
@@ -196,7 +198,7 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&db_kpi2_val), EGUI_COLOR_MAKE(0x10, 0xB9, 0x81), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&db_kpi2), EGUI_VIEW_OF(&db_kpi2_val));
 
-    egui_view_label_init(EGUI_VIEW_OF(&db_kpi2_name));
+    egui_view_label_init(EGUI_VIEW_OF(&db_kpi2_name), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_kpi2_name), 2, 30);
     egui_view_set_size(EGUI_VIEW_OF(&db_kpi2_name), 69, 18);
     egui_view_label_set_text(EGUI_VIEW_OF(&db_kpi2_name), "Users");
@@ -207,12 +209,12 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&db_kpi2));
 
     // KPI 3: Rate
-    egui_view_card_init(EGUI_VIEW_OF(&db_kpi3));
+    egui_view_card_init(EGUI_VIEW_OF(&db_kpi3), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_kpi3), 161, 40);
     egui_view_set_size(EGUI_VIEW_OF(&db_kpi3), 73, 55);
     egui_view_card_set_corner_radius(EGUI_VIEW_OF(&db_kpi3), 6);
 
-    egui_view_label_init(EGUI_VIEW_OF(&db_kpi3_val));
+    egui_view_label_init(EGUI_VIEW_OF(&db_kpi3_val), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_kpi3_val), 2, 5);
     egui_view_set_size(EGUI_VIEW_OF(&db_kpi3_val), 69, 24);
     egui_view_label_set_text(EGUI_VIEW_OF(&db_kpi3_val), "0.0");
@@ -220,7 +222,7 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_label_set_font_color(EGUI_VIEW_OF(&db_kpi3_val), EGUI_COLOR_MAKE(0xF5, 0x9E, 0x0B), EGUI_ALPHA_100);
     egui_view_card_add_child(EGUI_VIEW_OF(&db_kpi3), EGUI_VIEW_OF(&db_kpi3_val));
 
-    egui_view_label_init(EGUI_VIEW_OF(&db_kpi3_name));
+    egui_view_label_init(EGUI_VIEW_OF(&db_kpi3_name), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_kpi3_name), 2, 30);
     egui_view_set_size(EGUI_VIEW_OF(&db_kpi3_name), 69, 18);
     egui_view_label_set_text(EGUI_VIEW_OF(&db_kpi3_name), "Rate");
@@ -231,7 +233,7 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&db_kpi3));
 
     // Line chart (start with zero data)
-    egui_view_chart_line_init(EGUI_VIEW_OF(&db_line_chart));
+    egui_view_chart_line_init(EGUI_VIEW_OF(&db_line_chart), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_line_chart), 5, 102);
     egui_view_set_size(EGUI_VIEW_OF(&db_line_chart), 230, 90);
     egui_view_chart_line_set_series(EGUI_VIEW_OF(&db_line_chart), db_line_series_anim, 1);
@@ -240,7 +242,7 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&db_line_chart));
 
     // Bar chart (start with zero data)
-    egui_view_chart_bar_init(EGUI_VIEW_OF(&db_bar_chart));
+    egui_view_chart_bar_init(EGUI_VIEW_OF(&db_bar_chart), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_bar_chart), 5, 200);
     egui_view_set_size(EGUI_VIEW_OF(&db_bar_chart), 112, 110);
     egui_view_chart_bar_set_series(EGUI_VIEW_OF(&db_bar_chart), db_bar_series_anim, 1);
@@ -249,7 +251,7 @@ void uicode_init_page_dashboard(egui_view_t *parent)
     egui_view_group_add_child(parent, EGUI_VIEW_OF(&db_bar_chart));
 
     // Pie chart (start with minimal data)
-    egui_view_chart_pie_init(EGUI_VIEW_OF(&db_pie_chart));
+    egui_view_chart_pie_init(EGUI_VIEW_OF(&db_pie_chart), core);
     egui_view_set_position(EGUI_VIEW_OF(&db_pie_chart), 122, 200);
     egui_view_set_size(EGUI_VIEW_OF(&db_pie_chart), 112, 110);
     egui_view_chart_pie_set_slices(EGUI_VIEW_OF(&db_pie_chart), db_pie_slices_anim, 4);
@@ -303,5 +305,5 @@ void uicode_page_dashboard_on_enter(void)
     db_update_kpi_display(0);
 
     // Start growth animation
-    egui_timer_start_timer(&db_growth_timer, DB_GROWTH_INTERVAL, DB_GROWTH_INTERVAL);
+    egui_view_start_timer(EGUI_VIEW_OF(&db_title), &db_growth_timer, DB_GROWTH_INTERVAL, DB_GROWTH_INTERVAL);
 }

@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "egui_view_page_test.h"
 
 // views in root
@@ -12,8 +12,8 @@ EGUI_VIEW_VIEWPAGE_CACHE_PARAMS_INIT(viewpage_1_params, 0, 0, EGUI_CONFIG_SCEEN_
 void *on_page_load_listener(egui_view_t *self, int current_page_index)
 {
     EGUI_LOG_INF("on_page_load_listener, current_page_index: %d\r\n", current_page_index);
-    egui_view_page_test_t *p_page = (egui_view_page_test_t *)egui_api_malloc(sizeof(egui_view_page_test_t));
-    egui_view_page_test_init(EGUI_VIEW_OF(p_page));
+    egui_view_page_test_t *p_page = (egui_view_page_test_t *)egui_api_malloc(egui_view_get_core(self), sizeof(egui_view_page_test_t));
+    egui_view_page_test_init(EGUI_VIEW_OF(p_page), egui_view_get_core(self));
     egui_view_page_test_set_index(EGUI_VIEW_OF(p_page), current_page_index);
     return p_page;
 }
@@ -21,14 +21,14 @@ void *on_page_load_listener(egui_view_t *self, int current_page_index)
 void on_page_free_listener(egui_view_t *self, int current_page_index, egui_view_t *page)
 {
     EGUI_LOG_INF("on_page_free_listener, current_page_index: %d\r\n", current_page_index);
-    egui_api_free(page);
+    egui_api_free(egui_view_get_core(self), page);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init all views
     // viewpage_1
-    egui_view_viewpage_cache_init_with_params(EGUI_VIEW_OF(&viewpage_1), &viewpage_1_params);
+    egui_view_viewpage_cache_init_with_params(EGUI_VIEW_OF(&viewpage_1), core, &viewpage_1_params);
     egui_view_viewpage_cache_set_child_total_cnt(EGUI_VIEW_OF(&viewpage_1), 10);
     egui_view_viewpage_cache_set_on_page_load_listener(EGUI_VIEW_OF(&viewpage_1), on_page_load_listener);
     egui_view_viewpage_cache_set_on_page_free_listener(EGUI_VIEW_OF(&viewpage_1), on_page_free_listener);

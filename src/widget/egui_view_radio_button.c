@@ -1,7 +1,8 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_radio_button.h"
+#include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
@@ -230,6 +231,7 @@ static int egui_view_radio_button_perform_click(egui_view_t *self)
 
 static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use_icon_mark)
 {
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
 
     egui_region_t region;
@@ -251,7 +253,7 @@ static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use
     egui_color_t ring_color = egui_view_get_enable(self) ? outer_color : EGUI_THEME_DISABLED;
 
     // Draw outer circle (always)
-    egui_canvas_draw_circle_basic(center_x, center_y, outer_radius, stroke, ring_color, local->alpha);
+    egui_canvas_draw_circle_basic(canvas, center_x, center_y, outer_radius, stroke, ring_color, local->alpha);
 
     if (local->is_checked)
     {
@@ -271,7 +273,7 @@ static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use
             const egui_font_t *icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, icon_size, 18, 22);
             if (icon_font != NULL)
             {
-                egui_canvas_draw_text_in_rect(icon_font, local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, fill_color, local->alpha);
+                egui_canvas_draw_text_in_rect(canvas, icon_font, local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, fill_color, local->alpha);
             }
         }
         else
@@ -294,10 +296,10 @@ static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use
                         .center_y = 0,
                         .radius = inner_radius,
                 };
-                egui_canvas_draw_circle_fill_gradient(center_x, center_y, inner_radius, &dot_grad);
+                egui_canvas_draw_circle_fill_gradient(canvas, center_x, center_y, inner_radius, &dot_grad);
             }
 #else
-            egui_canvas_draw_circle_fill_basic(center_x, center_y, inner_radius, fill_color, local->alpha);
+            egui_canvas_draw_circle_fill_basic(canvas, center_x, center_y, inner_radius, fill_color, local->alpha);
 #endif
         }
     }
@@ -306,6 +308,7 @@ static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use
 void egui_view_radio_button_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t region;
     egui_dim_t size;
     egui_dim_t center_x;
@@ -329,7 +332,7 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
         text_region.size.height = region.size.height;
         if (text_region.size.width > 0 && font != NULL)
         {
-            egui_canvas_draw_text_in_rect(font, local->text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, local->alpha);
+            egui_canvas_draw_text_in_rect(canvas, font, local->text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, local->alpha);
         }
     }
 }
@@ -354,11 +357,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_radio_button_t) = {
 #endif
 };
 
-void egui_view_radio_button_init(egui_view_t *self)
+void egui_view_radio_button_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_radio_button_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_radio_button_t);
 
@@ -393,8 +396,8 @@ void egui_view_radio_button_apply_params(egui_view_t *self, const egui_view_radi
     egui_view_invalidate(self);
 }
 
-void egui_view_radio_button_init_with_params(egui_view_t *self, const egui_view_radio_button_params_t *params)
+void egui_view_radio_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_radio_button_params_t *params)
 {
-    egui_view_radio_button_init(self);
+    egui_view_radio_button_init(self, core);
     egui_view_radio_button_apply_params(self, params);
 }

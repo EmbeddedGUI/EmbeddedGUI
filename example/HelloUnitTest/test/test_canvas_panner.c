@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "core/egui_core_internal.h"
 #include "test/egui_test.h"
 #include "test_canvas_panner.h"
@@ -19,11 +20,21 @@ static int g_child_touch_up_count;
 static int g_child_touch_cancel_count;
 #endif
 
+static egui_core_t *test_canvas_panner_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static void test_canvas_panner_setup(egui_dim_t width, egui_dim_t height, egui_dim_t canvas_width, egui_dim_t canvas_height)
 {
+    egui_core_t *core = test_canvas_panner_get_core();
     egui_region_t region;
 
-    egui_view_canvas_panner_init(EGUI_VIEW_OF(&test_panner));
+    egui_view_canvas_panner_init(EGUI_VIEW_OF(&test_panner), core);
+    EGUI_VIEW_OF(&test_panner)->core = core;
     egui_region_init(&region, 0, 0, width, height);
     egui_view_layout(EGUI_VIEW_OF(&test_panner), &region);
     egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&test_panner), canvas_width, canvas_height);
@@ -31,7 +42,9 @@ static void test_canvas_panner_setup(egui_dim_t width, egui_dim_t height, egui_d
 
 static void test_canvas_panner_add_child(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
-    egui_view_init(&test_child);
+    egui_core_t *core = test_canvas_panner_get_core();
+
+    egui_view_init(&test_child, core);
     egui_view_set_position(&test_child, x, y);
     egui_view_set_size(&test_child, width, height);
     egui_view_group_add_child(EGUI_VIEW_OF(&test_panner), &test_child);
@@ -90,6 +103,8 @@ static int test_canvas_panner_send_touch(uint8_t type, egui_dim_t x, egui_dim_t 
 
 static void test_canvas_panner_offset_clamps_and_shifts_child_layout(void)
 {
+    egui_core_t *core = test_canvas_panner_get_core();
+
     test_canvas_panner_setup(100, 80, 180, 140);
     test_canvas_panner_add_child(30, 40, 20, 10);
 
@@ -101,8 +116,8 @@ static void test_canvas_panner_offset_clamps_and_shifts_child_layout(void)
     EGUI_VIEW_OF(&test_panner)->api->calculate_layout(EGUI_VIEW_OF(&test_panner));
     EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_canvas_panner_get_offset_x(EGUI_VIEW_OF(&test_panner)));
     EGUI_TEST_ASSERT_EQUAL_INT(15, egui_view_canvas_panner_get_offset_y(EGUI_VIEW_OF(&test_panner)));
-    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_core_get_pfb_scan_reverse_x());
-    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_core_get_pfb_scan_reverse_y());
+    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_core_get_pfb_scan_reverse_x(core));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_core_get_pfb_scan_reverse_y(core));
     EGUI_TEST_ASSERT_EQUAL_INT(10, test_child.region_screen.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(25, test_child.region_screen.location.y);
 
@@ -117,8 +132,8 @@ static void test_canvas_panner_offset_clamps_and_shifts_child_layout(void)
     EGUI_VIEW_OF(&test_panner)->api->calculate_layout(EGUI_VIEW_OF(&test_panner));
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_canvas_panner_get_offset_x(EGUI_VIEW_OF(&test_panner)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_canvas_panner_get_offset_y(EGUI_VIEW_OF(&test_panner)));
-    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_core_get_pfb_scan_reverse_x());
-    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_core_get_pfb_scan_reverse_y());
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_core_get_pfb_scan_reverse_x(core));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_core_get_pfb_scan_reverse_y(core));
     EGUI_TEST_ASSERT_EQUAL_INT(30, test_child.region_screen.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(40, test_child.region_screen.location.y);
 }
@@ -126,6 +141,8 @@ static void test_canvas_panner_offset_clamps_and_shifts_child_layout(void)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void test_canvas_panner_blank_drag_scrolls_canvas(void)
 {
+    egui_core_t *core = test_canvas_panner_get_core();
+
     test_canvas_panner_setup_touch_scene();
 
     EGUI_TEST_ASSERT_TRUE(test_canvas_panner_send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, 90, 60));
@@ -135,8 +152,8 @@ static void test_canvas_panner_blank_drag_scrolls_canvas(void)
 
     EGUI_TEST_ASSERT_EQUAL_INT(30, egui_view_canvas_panner_get_offset_x(EGUI_VIEW_OF(&test_panner)));
     EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_canvas_panner_get_offset_y(EGUI_VIEW_OF(&test_panner)));
-    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_core_get_pfb_scan_reverse_x());
-    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_core_get_pfb_scan_reverse_y());
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_core_get_pfb_scan_reverse_x(core));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_core_get_pfb_scan_reverse_y(core));
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_child_touch_down_count);
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_child_touch_move_count);
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_child_touch_up_count);
@@ -161,17 +178,19 @@ static void test_canvas_panner_non_draggable_child_drag_can_pan_canvas(void)
 
 static void test_canvas_panner_scroll_child_keeps_vertical_drag(void)
 {
+    egui_core_t *core = test_canvas_panner_get_core();
+
     test_canvas_panner_setup(100, 80, 180, 140);
 
-    egui_view_scroll_init(EGUI_VIEW_OF(&test_scroll));
+    egui_view_scroll_init(EGUI_VIEW_OF(&test_scroll), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_scroll), 10, 10);
     egui_view_set_size(EGUI_VIEW_OF(&test_scroll), 40, 30);
 
-    egui_view_init(&test_scroll_item1);
+    egui_view_init(&test_scroll_item1, core);
     egui_view_set_size(&test_scroll_item1, 40, 30);
     egui_view_scroll_add_child(EGUI_VIEW_OF(&test_scroll), &test_scroll_item1);
 
-    egui_view_init(&test_scroll_item2);
+    egui_view_init(&test_scroll_item2, core);
     egui_view_set_size(&test_scroll_item2, 40, 30);
     egui_view_scroll_add_child(EGUI_VIEW_OF(&test_scroll), &test_scroll_item2);
 

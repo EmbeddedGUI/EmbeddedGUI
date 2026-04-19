@@ -95,9 +95,9 @@ void egui_view_autocomplete_set_on_selected_listener(egui_view_t *self, egui_vie
     egui_view_combobox_set_on_selected_listener(self, listener);
 }
 
-void egui_view_autocomplete_init(egui_view_t *self)
+void egui_view_autocomplete_init(egui_view_t *self, egui_core_t *core)
 {
-    egui_view_combobox_init(self);
+    egui_view_combobox_init(self, core);
     egui_view_set_view_name(self, "egui_view_autocomplete");
 }
 
@@ -112,8 +112,8 @@ void egui_view_autocomplete_apply_params(egui_view_t *self, const egui_view_auto
     egui_view_combobox_apply_params(self, &combobox_params);
 }
 
-void egui_view_autocomplete_init_with_params(egui_view_t *self, const egui_view_autocomplete_params_t *params)
+void egui_view_autocomplete_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_autocomplete_params_t *params)
 {
-    egui_view_autocomplete_init(self);
+    egui_view_autocomplete_init(self, core);
     egui_view_autocomplete_apply_params(self, params);
 }

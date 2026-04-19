@@ -1,14 +1,24 @@
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_lyric_scroller.h"
 
 static egui_view_lyric_scroller_t test_scroller;
 
+static egui_core_t *test_lyric_scroller_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static void setup_scroller(egui_dim_t width, egui_dim_t height, const char *text)
 {
+    egui_core_t *core = test_lyric_scroller_get_core();
     egui_region_t region;
 
-    egui_view_lyric_scroller_init(EGUI_VIEW_OF(&test_scroller));
+    egui_view_lyric_scroller_init(EGUI_VIEW_OF(&test_scroller), core);
     egui_view_set_padding(EGUI_VIEW_OF(&test_scroller), 0, 0, 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_scroller), width, height);
     egui_view_lyric_scroller_set_font(EGUI_VIEW_OF(&test_scroller), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
@@ -43,7 +53,7 @@ static void test_lyric_scroller_overflow_attach_starts_and_moves(void)
 
     EGUI_TEST_ASSERT_TRUE(test_scroller.max_scroll_offset > 0);
     attach_scroller();
-    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(&test_scroller.scroll_timer));
+    EGUI_TEST_ASSERT_TRUE(egui_view_check_timer_start(EGUI_VIEW_OF(&test_scroller), &test_scroller.scroll_timer));
 
     test_scroller.scroll_timer.callback(&test_scroller.scroll_timer);
     EGUI_TEST_ASSERT_EQUAL_INT(2, test_scroller.scroll_offset_x);
@@ -86,14 +96,51 @@ static void test_lyric_scroller_short_text_stops_timer_until_overflow(void)
     attach_scroller();
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_scroller.max_scroll_offset);
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&test_scroller.scroll_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_view_check_timer_start(EGUI_VIEW_OF(&test_scroller), &test_scroller.scroll_timer));
 
     egui_view_lyric_scroller_set_text(EGUI_VIEW_OF(&test_scroller), "WWWWWWWW");
     EGUI_TEST_ASSERT_TRUE(test_scroller.max_scroll_offset > 0);
-    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(&test_scroller.scroll_timer));
+    EGUI_TEST_ASSERT_TRUE(egui_view_check_timer_start(EGUI_VIEW_OF(&test_scroller), &test_scroller.scroll_timer));
 
     detach_scroller();
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&test_scroller.scroll_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_view_check_timer_start(EGUI_VIEW_OF(&test_scroller), &test_scroller.scroll_timer));
+}
+
+static void test_lyric_scroller_uses_init_core_when_active_is_null(void)
+{
+    egui_core_t *core = test_lyric_scroller_get_core();
+    const egui_font_t *font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    egui_dim_t width_two = 0;
+    egui_dim_t line_height = 0;
+
+    font->api->get_str_size(font, "WW", 0, 0, &width_two, &line_height);
+
+    egui_view_lyric_scroller_init(EGUI_VIEW_OF(&test_scroller), core);
+    egui_view_set_padding(EGUI_VIEW_OF(&test_scroller), 0, 0, 0, 0);
+    egui_view_set_size(EGUI_VIEW_OF(&test_scroller), width_two, line_height + 4);
+    egui_view_lyric_scroller_set_font(EGUI_VIEW_OF(&test_scroller), font);
+    egui_view_lyric_scroller_set_interval_ms(EGUI_VIEW_OF(&test_scroller), 10);
+    egui_view_lyric_scroller_set_scroll_step(EGUI_VIEW_OF(&test_scroller), 2);
+    egui_view_lyric_scroller_set_pause_duration_ms(EGUI_VIEW_OF(&test_scroller), 0);
+    egui_view_lyric_scroller_set_text(EGUI_VIEW_OF(&test_scroller), "WWWWWW");
+
+    {
+        egui_region_t region;
+        egui_region_init(&region, 10, 20, width_two, line_height + 4);
+        egui_view_layout(EGUI_VIEW_OF(&test_scroller), &region);
+        EGUI_VIEW_OF(&test_scroller)->api->calculate_layout(EGUI_VIEW_OF(&test_scroller));
+    }
+
+    EGUI_TEST_ASSERT_TRUE(test_scroller.max_scroll_offset > 0);
+
+    attach_scroller();
+    EGUI_TEST_ASSERT_TRUE(egui_view_check_timer_start(EGUI_VIEW_OF(&test_scroller), &test_scroller.scroll_timer));
+
+    test_scroller.scroll_timer.callback(&test_scroller.scroll_timer);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_scroller.scroll_offset_x);
+
+    detach_scroller();
+    EGUI_TEST_ASSERT_FALSE(egui_view_check_timer_start(EGUI_VIEW_OF(&test_scroller), &test_scroller.scroll_timer));
 }
 
 void test_lyric_scroller_run(void)
@@ -102,5 +149,6 @@ void test_lyric_scroller_run(void)
     EGUI_TEST_RUN(test_lyric_scroller_overflow_attach_starts_and_moves);
     EGUI_TEST_RUN(test_lyric_scroller_set_text_restarts_from_left);
     EGUI_TEST_RUN(test_lyric_scroller_short_text_stops_timer_until_overflow);
+    EGUI_TEST_RUN(test_lyric_scroller_uses_init_core_when_active_is_null);
     EGUI_TEST_SUITE_END();
 }

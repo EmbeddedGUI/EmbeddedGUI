@@ -18,7 +18,7 @@
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_combobox_init(self)` | 初始化 Combobox |
+| `egui_view_combobox_init(self, core)` | 初始化 Combobox |
 | `egui_view_combobox_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_combobox_set_items(self, items, count)` | 设置选项列表 |
 | `egui_view_combobox_set_current_index(self, index)` | 设置当前选中项 |
@@ -54,7 +54,7 @@ static void on_selected(egui_view_t *self, uint8_t index)
     EGUI_LOG_INF("Selected: %s\n", options[index]);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_combobox_init_with_params(
         EGUI_VIEW_OF(&combobox), &cb_params);
@@ -63,7 +63,7 @@ void init_ui(void)
     egui_view_combobox_set_on_selected_listener(
         EGUI_VIEW_OF(&combobox), on_selected);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&combobox));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&combobox));
 }
 ```
 
@@ -81,7 +81,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_tab_bar_init(self)` | 初始化 TabBar |
+| `egui_view_tab_bar_init(self, core)` | 初始化 TabBar |
 | `egui_view_tab_bar_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_tab_bar_set_tabs(self, tab_texts, tab_count)` | 设置标签文本和数量 |
 | `egui_view_tab_bar_set_current_index(self, index)` | 设置当前选中标签 |
@@ -107,14 +107,14 @@ static void on_tab_changed(egui_view_t *self, uint8_t index)
     EGUI_LOG_INF("Tab changed: %d\n", index);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_tab_bar_init_with_params(
         EGUI_VIEW_OF(&tab_bar), &tb_params);
     egui_view_tab_bar_set_on_tab_changed_listener(
         EGUI_VIEW_OF(&tab_bar), on_tab_changed);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&tab_bar));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&tab_bar));
 }
 ```
 
@@ -132,7 +132,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_menu_init(self)` | 初始化 Menu |
+| `egui_view_menu_init(self, core)` | 初始化 Menu |
 | `egui_view_menu_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_menu_set_pages(self, pages, page_count)` | 设置菜单页面数据 |
 | `egui_view_menu_navigate_to(self, page_index)` | 导航到指定页面 |
@@ -205,7 +205,7 @@ static void on_item_click(egui_view_t *self,
         page_index, item_index);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     egui_view_menu_init_with_params(
         EGUI_VIEW_OF(&menu), &menu_params);
@@ -213,7 +213,7 @@ void init_ui(void)
     egui_view_menu_set_on_item_click(
         EGUI_VIEW_OF(&menu), on_item_click);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&menu));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&menu));
 }
 ```
 
@@ -231,7 +231,7 @@ void init_ui(void)
 
 | 函数 | 说明 |
 |------|------|
-| `egui_view_page_indicator_init(self)` | 初始化 PageIndicator |
+| `egui_view_page_indicator_init(self, core)` | 初始化 PageIndicator |
 | `egui_view_page_indicator_init_with_params(self, params)` | 使用参数初始化 |
 | `egui_view_page_indicator_set_total_count(self, total)` | 设置总页数 |
 | `egui_view_page_indicator_set_current_index(self, index)` | 设置当前页索引 |
@@ -257,7 +257,7 @@ static void on_page_changed(egui_view_t *self, int page_index)
         EGUI_VIEW_OF(&indicator), (uint8_t)page_index);
 }
 
-void init_ui(void)
+void init_ui(egui_core_t *core)
 {
     // 初始化 ViewPage (省略页面添加)
     egui_view_viewpage_set_on_page_changed(
@@ -267,7 +267,7 @@ void init_ui(void)
     egui_view_page_indicator_init_with_params(
         EGUI_VIEW_OF(&indicator), &ind_params);
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&viewpage));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&indicator));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&viewpage));
+    egui_core_add_user_root_view(core, EGUI_VIEW_OF(&indicator));
 }
 ```

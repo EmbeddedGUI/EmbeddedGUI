@@ -36,7 +36,7 @@ struct egui_view_led_params
     static const egui_view_led_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .is_on = (_on)}
 
 void egui_view_led_apply_params(egui_view_t *self, const egui_view_led_params_t *params);
-void egui_view_led_init_with_params(egui_view_t *self, const egui_view_led_params_t *params);
+void egui_view_led_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_led_params_t *params);
 
 void egui_view_led_set_on(egui_view_t *self);
 void egui_view_led_set_off(egui_view_t *self);
@@ -45,7 +45,7 @@ void egui_view_led_set_blink(egui_view_t *self, uint16_t period_ms);
 void egui_view_led_stop_blink(egui_view_t *self);
 void egui_view_led_set_colors(egui_view_t *self, egui_color_t on_color, egui_color_t off_color);
 void egui_view_led_on_draw(egui_view_t *self);
-void egui_view_led_init(egui_view_t *self);
+void egui_view_led_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

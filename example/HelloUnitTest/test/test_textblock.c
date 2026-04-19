@@ -1,14 +1,23 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_textblock.h"
 
 static egui_view_textblock_t test_textblock;
 
+static egui_core_t *test_textblock_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
+
 static void setup_textblock(egui_dim_t width, egui_dim_t height, const char *text)
 {
-    egui_view_textblock_init(EGUI_VIEW_OF(&test_textblock));
+    egui_view_textblock_init(EGUI_VIEW_OF(&test_textblock), test_textblock_get_core());
     egui_view_set_padding(EGUI_VIEW_OF(&test_textblock), 0, 0, 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&test_textblock), width, height);
     egui_view_textblock_set_font(EGUI_VIEW_OF(&test_textblock), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);

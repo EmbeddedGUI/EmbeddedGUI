@@ -52,7 +52,7 @@ struct egui_view_canvas_viewport_params
     }
 
 void egui_view_canvas_viewport_apply_params(egui_view_t *self, const egui_view_canvas_viewport_params_t *params);
-void egui_view_canvas_viewport_init_with_params(egui_view_t *self, const egui_view_canvas_viewport_params_t *params);
+void egui_view_canvas_viewport_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_canvas_viewport_params_t *params);
 
 void egui_view_canvas_viewport_set_canvas_size(egui_view_t *self, egui_dim_t canvas_width, egui_dim_t canvas_height);
 egui_dim_t egui_view_canvas_viewport_get_canvas_width(egui_view_t *self);
@@ -70,7 +70,7 @@ void egui_view_canvas_viewport_scroll_by(egui_view_t *self, egui_dim_t delta_x, 
 egui_dim_t egui_view_canvas_viewport_get_offset_x(egui_view_t *self);
 egui_dim_t egui_view_canvas_viewport_get_offset_y(egui_view_t *self);
 
-void egui_view_canvas_viewport_init(egui_view_t *self);
+void egui_view_canvas_viewport_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

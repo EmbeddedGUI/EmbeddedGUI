@@ -1,6 +1,7 @@
-#include <assert.h>
+﻿#include <assert.h>
 
 #include "egui_view_compass.h"
+#include "core/egui_core.h"
 #include "utils/egui_sprintf.h"
 #include "core/egui_canvas_gradient.h"
 #include "font/egui_font.h"
@@ -37,6 +38,7 @@ void egui_view_compass_set_show_degree(egui_view_t *self, uint8_t show)
 void egui_view_compass_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_compass_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
@@ -53,7 +55,7 @@ void egui_view_compass_on_draw(egui_view_t *self)
     }
 
     // Outer circle
-    egui_canvas_draw_circle(cx, cy, radius, local->stroke_width, local->dial_color, EGUI_ALPHA_100);
+    egui_canvas_draw_circle(canvas, cx, cy, radius, local->stroke_width, local->dial_color, EGUI_ALPHA_100);
 
     // Rotating tick marks (all angles offset by -heading)
     int i;
@@ -101,7 +103,7 @@ void egui_view_compass_on_draw(egui_view_t *self)
         egui_dim_t x2 = cx + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(outer_r), cos_v));
         egui_dim_t y2 = cy + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(outer_r), sin_v));
 
-        egui_canvas_draw_line(x1, y1, x2, y2, line_w, tick_color, EGUI_ALPHA_100);
+        egui_canvas_draw_line(canvas, x1, y1, x2, y2, line_w, tick_color, EGUI_ALPHA_100);
     }
 
     // Fixed needle pointing up (north indicator)
@@ -121,10 +123,10 @@ void egui_view_compass_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_triangle_fill_gradient(cx, cy - needle_len, cx - 4, cy, cx + 4, cy, &grad);
+        egui_canvas_draw_triangle_fill_gradient(canvas, cx, cy - needle_len, cx - 4, cy, cx + 4, cy, &grad);
     }
 #else
-    egui_canvas_draw_triangle_fill(cx, cy - needle_len, cx - 4, cy, cx + 4, cy, local->north_color, EGUI_ALPHA_100);
+    egui_canvas_draw_triangle_fill(canvas, cx, cy - needle_len, cx - 4, cy, cx + 4, cy, local->north_color, EGUI_ALPHA_100);
 #endif
     // Lower triangle (white/south): vertices at (cx, cy+needle_len), (cx-4, cy), (cx+4, cy)
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -140,10 +142,10 @@ void egui_view_compass_on_draw(egui_view_t *self)
                 .alpha = EGUI_ALPHA_100,
                 .stops = stops,
         };
-        egui_canvas_draw_triangle_fill_gradient(cx, cy + needle_len, cx - 4, cy, cx + 4, cy, &grad);
+        egui_canvas_draw_triangle_fill_gradient(canvas, cx, cy + needle_len, cx - 4, cy, cx + 4, cy, &grad);
     }
 #else
-    egui_canvas_draw_triangle_fill(cx, cy + needle_len, cx - 4, cy, cx + 4, cy, local->needle_color, EGUI_ALPHA_100);
+    egui_canvas_draw_triangle_fill(canvas, cx, cy + needle_len, cx - 4, cy, cx + 4, cy, local->needle_color, EGUI_ALPHA_100);
 #endif
 
     // Center degree text (if show_degree)
@@ -156,7 +158,7 @@ void egui_view_compass_on_draw(egui_view_t *self)
         degree_region.location.y = region.location.y + h * 2 / 3;
         degree_region.size.width = w;
         degree_region.size.height = h / 3;
-        egui_canvas_draw_text_in_rect(local->font, buf, &degree_region, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, local->font, buf, &degree_region, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
     }
 }
 
@@ -177,11 +179,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_compass_t) = {
 #endif
 };
 
-void egui_view_compass_init(egui_view_t *self)
+void egui_view_compass_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_compass_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_compass_t);
 
@@ -209,8 +211,8 @@ void egui_view_compass_apply_params(egui_view_t *self, const egui_view_compass_p
     egui_view_invalidate(self);
 }
 
-void egui_view_compass_init_with_params(egui_view_t *self, const egui_view_compass_params_t *params)
+void egui_view_compass_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_compass_params_t *params)
 {
-    egui_view_compass_init(self);
+    egui_view_compass_init(self, core);
     egui_view_compass_apply_params(self, params);
 }

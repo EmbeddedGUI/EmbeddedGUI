@@ -32,7 +32,7 @@ struct egui_view_chips_params
             .region = {{(_x), (_y)}, {(_w), (_h)}}, .labels = (_labels), .icons = NULL, .chip_count = (_count), .cols = (_cols), .gap = (_gap)}
 
 void egui_view_chips_apply_params(egui_view_t *self, const egui_view_chips_params_t *params);
-void egui_view_chips_init_with_params(egui_view_t *self, const egui_view_chips_params_t *params);
+void egui_view_chips_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chips_params_t *params);
 
 void egui_view_chips_set_chips(egui_view_t *self, const char **labels, uint8_t count, uint8_t cols);
 void egui_view_chips_set_chip_icons(egui_view_t *self, const char **icons);
@@ -49,7 +49,7 @@ void egui_view_chips_set_border_color(egui_view_t *self, egui_color_t color);
 void egui_view_chips_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_chips_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_chips_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
-void egui_view_chips_init(egui_view_t *self);
+void egui_view_chips_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

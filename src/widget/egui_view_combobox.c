@@ -1,4 +1,4 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_combobox.h"
@@ -79,8 +79,8 @@ static egui_dim_t egui_view_combobox_get_content_icon_width(egui_view_combobox_t
     return icon_width;
 }
 
-static void egui_view_combobox_draw_item_content(egui_view_combobox_t *local, const egui_region_t *rect, const char *icon, const char *text, egui_color_t color,
-                                                 egui_alpha_t alpha)
+static void egui_view_combobox_draw_item_content(egui_canvas_t *canvas, egui_view_combobox_t *local, const egui_region_t *rect, const char *icon,
+                                                 const char *text, egui_color_t color, egui_alpha_t alpha)
 {
     egui_region_t text_rect = *rect;
 
@@ -99,7 +99,7 @@ static void egui_view_combobox_draw_item_content(egui_view_combobox_t *local, co
             }
 
             icon_rect.size.width = EGUI_MIN(icon_width, rect->size.width);
-            egui_canvas_draw_text_in_rect(icon_font, icon, &icon_rect, EGUI_ALIGN_CENTER, color, alpha);
+            egui_canvas_draw_text_in_rect(canvas, icon_font, icon, &icon_rect, EGUI_ALIGN_CENTER, color, alpha);
 
             text_rect.location.x += icon_rect.size.width;
             text_rect.size.width -= icon_rect.size.width;
@@ -118,7 +118,7 @@ static void egui_view_combobox_draw_item_content(egui_view_combobox_t *local, co
 
     if (text != NULL && text[0] != '\0' && text_rect.size.width > 0)
     {
-        egui_canvas_draw_text_in_rect(local->font, text, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, color, alpha);
+        egui_canvas_draw_text_in_rect(canvas, local->font, text, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, color, alpha);
     }
 }
 
@@ -449,11 +449,11 @@ void egui_view_combobox_expand(egui_view_t *self)
 #endif
         egui_dim_t expanded_height = local->collapsed_height + visible_count * local->item_height;
         // Mark old region dirty before changing size
-        egui_core_update_region_dirty(&self->region_screen);
+        egui_view_update_region_dirty(self, &self->region_screen);
         self->region.size.height = expanded_height;
         self->region_screen.size.height = expanded_height;
         // Mark new region dirty as well
-        egui_core_update_region_dirty(&self->region_screen);
+        egui_view_update_region_dirty(self, &self->region_screen);
         egui_view_invalidate(self);
     }
 }
@@ -468,7 +468,7 @@ void egui_view_combobox_collapse(egui_view_t *self)
         egui_view_set_layer(self, EGUI_VIEW_LAYER_DEFAULT);
 #endif
         // Mark old (expanded) region dirty before changing size
-        egui_core_update_region_dirty(&self->region_screen);
+        egui_view_update_region_dirty(self, &self->region_screen);
         self->region.size.height = local->collapsed_height;
         self->region_screen.size.height = local->collapsed_height;
         egui_view_invalidate(self);
@@ -481,8 +481,8 @@ uint8_t egui_view_combobox_is_expanded(egui_view_t *self)
     return local->is_expanded;
 }
 
-static void egui_view_combobox_draw_arrow(egui_view_combobox_t *local, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, uint8_t is_expanded,
-                                          egui_color_t color, egui_alpha_t alpha)
+static void egui_view_combobox_draw_arrow(egui_canvas_t *canvas, egui_view_combobox_t *local, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
+                                          uint8_t is_expanded, egui_color_t color, egui_alpha_t alpha)
 {
     egui_region_t arrow_rect = {{x, y}, {width, height}};
     const egui_font_t *icon_font = egui_view_combobox_get_item_icon_font(local, EGUI_MIN(width, height));
@@ -493,12 +493,13 @@ static void egui_view_combobox_draw_arrow(egui_view_combobox_t *local, egui_dim_
         return;
     }
 
-    egui_canvas_draw_text_in_rect(icon_font, icon_text, &arrow_rect, EGUI_ALIGN_CENTER, color, alpha);
+    egui_canvas_draw_text_in_rect(canvas, icon_font, icon_text, &arrow_rect, EGUI_ALIGN_CENTER, color, alpha);
 }
 
 void egui_view_combobox_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     bool is_enabled = egui_view_get_enable(self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     bool is_focused = self->is_focused ? true : false;
@@ -551,13 +552,14 @@ void egui_view_combobox_on_draw(egui_view_t *self)
                     .alpha = local->alpha,
                     .stops = stops,
             };
-            egui_canvas_draw_round_rectangle_fill_gradient(region.location.x, region.location.y, region.size.width, region.size.height, border_radius, &grad);
+            egui_canvas_draw_round_rectangle_fill_gradient(canvas, region.location.x, region.location.y, region.size.width, region.size.height, border_radius,
+                                                           &grad);
         }
 #else
-        egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, border_radius, bg_color,
+        egui_canvas_draw_round_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, border_radius, bg_color,
                                               local->alpha);
 #endif
-        egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, border_radius, 1, border_color,
+        egui_canvas_draw_round_rectangle(canvas, region.location.x, region.location.y, region.size.width, region.size.height, border_radius, 1, border_color,
                                          local->alpha);
     }
     else
@@ -575,12 +577,15 @@ void egui_view_combobox_on_draw(egui_view_t *self)
                     .alpha = local->alpha,
                     .stops = stops,
             };
-            egui_canvas_draw_round_rectangle_fill_gradient(region.location.x, region.location.y, region.size.width, header_height, border_radius, &grad);
+            egui_canvas_draw_round_rectangle_fill_gradient(canvas, region.location.x, region.location.y, region.size.width, header_height, border_radius,
+                                                           &grad);
         }
 #else
-        egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, header_height, border_radius, bg_color, local->alpha);
+        egui_canvas_draw_round_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, header_height, border_radius, bg_color,
+                                              local->alpha);
 #endif
-        egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, header_height, border_radius, 1, border_color, local->alpha);
+        egui_canvas_draw_round_rectangle(canvas, region.location.x, region.location.y, region.size.width, header_height, border_radius, 1, border_color,
+                                         local->alpha);
     }
 
     if (is_focused && is_enabled)
@@ -589,9 +594,9 @@ void egui_view_combobox_on_draw(egui_view_t *self)
 
         if (region.size.width > 4 && focus_height > 4)
         {
-            egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, focus_height, border_radius, 2, focus_color,
+            egui_canvas_draw_round_rectangle(canvas, region.location.x, region.location.y, region.size.width, focus_height, border_radius, 2, focus_color,
                                              egui_color_alpha_mix(local->alpha, 100));
-            egui_canvas_draw_round_rectangle(region.location.x + 2, region.location.y + 2, region.size.width - 4, focus_height - 4,
+            egui_canvas_draw_round_rectangle(canvas, region.location.x + 2, region.location.y + 2, region.size.width - 4, focus_height - 4,
                                              border_radius > 2 ? (border_radius - 2) : border_radius, 1, focus_color, egui_color_alpha_mix(local->alpha, 56));
         }
     }
@@ -610,17 +615,18 @@ void egui_view_combobox_on_draw(egui_view_t *self)
     {
         const char *current_text = local->items[local->current_index];
         const char *current_icon = (local->item_icons != NULL) ? local->item_icons[local->current_index] : NULL;
-        egui_view_combobox_draw_item_content(local, &text_rect, current_icon, current_text, text_color, local->alpha);
+        egui_view_combobox_draw_item_content(canvas, local, &text_rect, current_icon, current_text, text_color, local->alpha);
     }
     else if (local->item_icons != NULL && local->item_count > 0)
     {
-        egui_view_combobox_draw_item_content(local, &text_rect, local->item_icons[local->current_index], NULL, text_color, local->alpha);
+        egui_view_combobox_draw_item_content(canvas, local, &text_rect, local->item_icons[local->current_index], NULL, text_color, local->alpha);
     }
 
     if (arrow_slot_width > 0)
     {
         egui_dim_t arrow_x = region.location.x + region.size.width - arrow_slot_width;
-        egui_view_combobox_draw_arrow(local, arrow_x, region.location.y, arrow_slot_width, header_height, local->is_expanded, arrow_color, local->alpha);
+        egui_view_combobox_draw_arrow(canvas, local, arrow_x, region.location.y, arrow_slot_width, header_height, local->is_expanded, arrow_color,
+                                      local->alpha);
     }
 
     if (local->is_expanded && local->items != NULL)
@@ -641,11 +647,12 @@ void egui_view_combobox_on_draw(egui_view_t *self)
 
             if (item_index == local->current_index)
             {
-                egui_canvas_draw_rectangle_fill(region.location.x + 1, item_y, region.size.width - 2, local->item_height, highlight_color, local->alpha);
+                egui_canvas_draw_rectangle_fill(canvas, region.location.x + 1, item_y, region.size.width - 2, local->item_height, highlight_color,
+                                                local->alpha);
                 item_text_color = EGUI_COLOR_WHITE;
             }
 
-            egui_view_combobox_draw_item_content(local, &item_rect, (local->item_icons != NULL) ? local->item_icons[item_index] : NULL,
+            egui_view_combobox_draw_item_content(canvas, local, &item_rect, (local->item_icons != NULL) ? local->item_icons[item_index] : NULL,
                                                  (local->items != NULL) ? local->items[item_index] : NULL, item_text_color, local->alpha);
 
             item_y += local->item_height;
@@ -845,11 +852,11 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_combobox_t) = {
 #endif
 };
 
-void egui_view_combobox_init(egui_view_t *self)
+void egui_view_combobox_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_combobox_t);
     // call super init.
-    egui_view_init(self);
+    egui_view_init(self, core);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_combobox_t);
 
@@ -906,8 +913,8 @@ void egui_view_combobox_apply_params(egui_view_t *self, const egui_view_combobox
     egui_view_invalidate(self);
 }
 
-void egui_view_combobox_init_with_params(egui_view_t *self, const egui_view_combobox_params_t *params)
+void egui_view_combobox_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_combobox_params_t *params)
 {
-    egui_view_combobox_init(self);
+    egui_view_combobox_init(self, core);
     egui_view_combobox_apply_params(self, params);
 }

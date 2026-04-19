@@ -1,4 +1,5 @@
 #include "egui_view_ring_text_basic.h"
+#include "core/egui_core.h"
 #include "core/egui_common.h"
 #include "resource/egui_resource.h"
 
@@ -170,8 +171,8 @@ uint8_t egui_view_ring_text_get_region_basic(egui_dim_t center_x, egui_dim_t cen
     return egui_region_is_empty(text_region) ? 0 : 1;
 }
 
-void egui_view_ring_text_draw_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t inner_r, egui_dim_t top_offset, uint8_t center_box, uint8_t value,
-                                    uint8_t append_percent, egui_color_t color, egui_alpha_t alpha)
+void egui_view_ring_text_draw_basic(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t inner_r, egui_dim_t top_offset,
+                                    uint8_t center_box, uint8_t value, uint8_t append_percent, egui_color_t color, egui_alpha_t alpha)
 {
     char text_buf[8];
     egui_region_t text_rect;
@@ -180,6 +181,6 @@ void egui_view_ring_text_draw_basic(egui_dim_t center_x, egui_dim_t center_y, eg
     egui_view_ring_text_format_value(value, append_percent, text_buf, sizeof(text_buf));
     if (font != NULL && egui_view_ring_text_get_box_basic(center_x, center_y, inner_r, top_offset, center_box, text_buf, &text_rect))
     {
-        egui_canvas_draw_text_in_rect(font, text_buf, &text_rect, EGUI_ALIGN_CENTER, color, alpha);
+        egui_canvas_draw_text_in_rect(canvas, font, text_buf, &text_rect, EGUI_ALIGN_CENTER, color, alpha);
     }
 }

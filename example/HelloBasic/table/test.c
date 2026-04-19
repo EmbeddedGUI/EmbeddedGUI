@@ -1,14 +1,14 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_table_t table;
 
 EGUI_VIEW_TABLE_PARAMS_INIT(table_params, 0, 0, 220, 80, 4, 3);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
-    egui_view_table_init_with_params(EGUI_VIEW_OF(&table), &table_params);
+    egui_view_table_init_with_params(EGUI_VIEW_OF(&table), core, &table_params);
 
     // Header row
     egui_view_table_set_cell(EGUI_VIEW_OF(&table), 0, 0, "Name");
@@ -29,7 +29,7 @@ void test_init_ui(void)
     egui_view_table_set_cell(EGUI_VIEW_OF(&table), 3, 2, "SF");
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&table));
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&table), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

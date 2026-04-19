@@ -50,9 +50,9 @@ extern "C" {
  * @param _type Derived class type name
  *
  * Usage:
- *   void egui_view_label_init(egui_view_t *self) {
+ *   void egui_view_label_init(egui_view_t *self, egui_core_t *core) {
  *       EGUI_INIT_LOCAL(egui_view_label_t);
- *       egui_view_init(self);
+ *       egui_view_init(self, core);
  *       self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_label_t);
  *       local->text = NULL;
  *   }

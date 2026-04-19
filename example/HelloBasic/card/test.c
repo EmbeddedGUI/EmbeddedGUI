@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // 4 cards: XS / S / M / L, each with 2 labels inside
 static egui_view_card_t card_xs;
@@ -54,15 +54,15 @@ EGUI_VIEW_LABEL_PARAMS_INIT(label_desc_m_params, 0, 0, 80, 18, "Surface", EGUI_C
 EGUI_VIEW_LABEL_PARAMS_INIT(label_title_l_params, 0, 0, 80, 22, "L Card", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
 EGUI_VIEW_LABEL_PARAMS_INIT(label_desc_l_params, 0, 0, 80, 22, "Surface", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_SECONDARY, EGUI_ALPHA_100);
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     // Init grid
-    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+    egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
     // Init card XS
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&card_xs), &card_xs_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title_xs), &label_title_xs_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_desc_xs), &label_desc_xs_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&card_xs), core, &card_xs_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title_xs), core, &label_title_xs_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_desc_xs), core, &label_desc_xs_params);
     egui_view_set_margin(EGUI_VIEW_OF(&label_title_xs), 5, 3, 5, 1);
     egui_view_set_margin(EGUI_VIEW_OF(&label_desc_xs), 5, 1, 5, 3);
     egui_view_card_add_child(EGUI_VIEW_OF(&card_xs), EGUI_VIEW_OF(&label_title_xs));
@@ -71,9 +71,9 @@ void test_init_ui(void)
     egui_view_set_shadow(EGUI_VIEW_OF(&card_xs), &card_shadow);
 
     // Init card S
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&card_s), &card_s_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title_s), &label_title_s_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_desc_s), &label_desc_s_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&card_s), core, &card_s_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title_s), core, &label_title_s_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_desc_s), core, &label_desc_s_params);
     egui_view_set_margin(EGUI_VIEW_OF(&label_title_s), 5, 5, 5, 2);
     egui_view_set_margin(EGUI_VIEW_OF(&label_desc_s), 5, 2, 5, 5);
     egui_view_card_add_child(EGUI_VIEW_OF(&card_s), EGUI_VIEW_OF(&label_title_s));
@@ -82,9 +82,9 @@ void test_init_ui(void)
     egui_view_set_shadow(EGUI_VIEW_OF(&card_s), &card_shadow);
 
     // Init card M
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&card_m), &card_m_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title_m), &label_title_m_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_desc_m), &label_desc_m_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&card_m), core, &card_m_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title_m), core, &label_title_m_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_desc_m), core, &label_desc_m_params);
     egui_view_set_margin(EGUI_VIEW_OF(&label_title_m), 5, 5, 5, 2);
     egui_view_set_margin(EGUI_VIEW_OF(&label_desc_m), 5, 2, 5, 5);
     egui_view_card_add_child(EGUI_VIEW_OF(&card_m), EGUI_VIEW_OF(&label_title_m));
@@ -93,9 +93,9 @@ void test_init_ui(void)
     egui_view_set_shadow(EGUI_VIEW_OF(&card_m), &card_shadow);
 
     // Init card L
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&card_l), &card_l_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title_l), &label_title_l_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_desc_l), &label_desc_l_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&card_l), core, &card_l_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_title_l), core, &label_title_l_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_desc_l), core, &label_desc_l_params);
     egui_view_set_margin(EGUI_VIEW_OF(&label_title_l), 5, 5, 5, 2);
     egui_view_set_margin(EGUI_VIEW_OF(&label_desc_l), 5, 2, 5, 5);
     egui_view_card_add_child(EGUI_VIEW_OF(&card_l), EGUI_VIEW_OF(&label_title_l));
@@ -122,7 +122,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
 
     // Center grid on screen
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

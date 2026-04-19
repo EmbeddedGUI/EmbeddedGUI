@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 // Layout container
 static egui_view_linearlayout_t container;
@@ -64,7 +64,7 @@ static void button_click_cb(egui_view_t *self)
 // Click on background area clears focus, which dismisses the keyboard
 static void container_click_cb(egui_view_t *self)
 {
-    egui_focus_manager_clear_focus();
+    egui_view_clear_focus(self);
 }
 
 // Custom focus change listener that handles both cursor blinking and keyboard show/hide
@@ -76,7 +76,7 @@ static void textinput_focus_changed(egui_view_t *self, int is_focused)
     {
         // Start cursor blinking
         ti->cursor_visible = 1;
-        egui_timer_start_timer(&ti->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
+        egui_view_start_timer(self, &ti->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
 
         // Show keyboard
         egui_view_keyboard_show(EGUI_VIEW_OF(&keyboard), self);
@@ -85,7 +85,7 @@ static void textinput_focus_changed(egui_view_t *self, int is_focused)
     {
         // Stop cursor blinking
         ti->cursor_visible = 0;
-        egui_timer_stop_timer(&ti->cursor_timer);
+        egui_view_stop_timer(self, &ti->cursor_timer);
 
         // Hide keyboard
         egui_view_keyboard_hide(EGUI_VIEW_OF(&keyboard));
@@ -93,7 +93,7 @@ static void textinput_focus_changed(egui_view_t *self, int is_focused)
     egui_view_invalidate(self);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
@@ -101,7 +101,7 @@ void test_init_ui(void)
 #endif
 
     // Init container
-    egui_view_linearlayout_init(EGUI_VIEW_OF(&container));
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&container), core);
     egui_view_set_position(EGUI_VIEW_OF(&container), 0, 200);
     egui_view_set_size(EGUI_VIEW_OF(&container), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&container), 0); // vertical
@@ -109,7 +109,7 @@ void test_init_ui(void)
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&container), container_click_cb);
 
     // Title label
-    egui_view_label_init(EGUI_VIEW_OF(&label_title));
+    egui_view_label_init(EGUI_VIEW_OF(&label_title), core);
     egui_view_set_position(EGUI_VIEW_OF(&label_title), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&label_title), EGUI_CONFIG_SCEEN_WIDTH, 90);
     egui_view_label_set_text(EGUI_VIEW_OF(&label_title), "TextInput Demo");
@@ -119,7 +119,7 @@ void test_init_ui(void)
     egui_view_set_margin(EGUI_VIEW_OF(&label_title), 0, 0, 10, 5);
 
     // Text input
-    egui_view_textinput_init(EGUI_VIEW_OF(&textinput_1));
+    egui_view_textinput_init(EGUI_VIEW_OF(&textinput_1), core);
     egui_view_set_size(EGUI_VIEW_OF(&textinput_1), TEXTINPUT_WIDTH, TEXTINPUT_HEIGHT);
     egui_view_set_padding(EGUI_VIEW_OF(&textinput_1), 6, 6, 4, 4);
     egui_view_textinput_set_font(EGUI_VIEW_OF(&textinput_1), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
@@ -132,7 +132,7 @@ void test_init_ui(void)
     egui_view_set_margin(EGUI_VIEW_OF(&textinput_1), 0, 0, 5, 5);
 
     // Submit button
-    egui_view_button_init(EGUI_VIEW_OF(&button_submit));
+    egui_view_button_init(EGUI_VIEW_OF(&button_submit), core);
     egui_view_set_size(EGUI_VIEW_OF(&button_submit), BUTTON_WIDTH, BUTTON_HEIGHT);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_submit), "Submit");
     egui_view_label_set_font(EGUI_VIEW_OF(&button_submit), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
@@ -145,7 +145,7 @@ void test_init_ui(void)
 #endif
 
     // Result label
-    egui_view_label_init(EGUI_VIEW_OF(&label_result));
+    egui_view_label_init(EGUI_VIEW_OF(&label_result), core);
     egui_view_set_position(EGUI_VIEW_OF(&label_result), 0, 0);
     egui_view_set_size(EGUI_VIEW_OF(&label_result), EGUI_CONFIG_SCEEN_WIDTH, 20);
     egui_view_label_set_text(EGUI_VIEW_OF(&label_result), "");
@@ -167,7 +167,7 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&container));
 
     // Initialize keyboard (positioned at bottom of screen, added as overlay)
-    egui_view_keyboard_init(EGUI_VIEW_OF(&keyboard));
+    egui_view_keyboard_init(EGUI_VIEW_OF(&keyboard), core);
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&keyboard), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_keyboard_set_icon_font(EGUI_VIEW_OF(&keyboard), EGUI_FONT_ICON_MS_20);
     egui_view_keyboard_set_special_key_icons(EGUI_VIEW_OF(&keyboard), EGUI_ICON_MS_KEYBOARD_ARROW_UP, EGUI_ICON_MS_BACKSPACE, EGUI_ICON_MS_DONE);
@@ -179,7 +179,7 @@ void test_init_ui(void)
     egui_view_override_api_on_focus_changed(EGUI_VIEW_OF(&textinput_1), &textinput_focus_api, textinput_focus_changed);
 
     // Layout root children
-    egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
+    egui_view_layout_user_root(EGUI_VIEW_OF(&container), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
