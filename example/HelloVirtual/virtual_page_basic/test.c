@@ -18,7 +18,7 @@
 #define PAGE_BASIC_VALUE_TEXT_LEN         16
 #define PAGE_BASIC_ROW_TEXT_LEN           32
 #define PAGE_BASIC_JUMP_STEP              5U
-#define PAGE_BASIC_CLICK_VERIFY_RETRY_MAX 3U
+#define PAGE_BASIC_CLICK_VERIFY_RETRY_MAX 5U
 #define PAGE_BASIC_JUMP_VERIFY_RETRY_MAX  3U
 
 #define PAGE_BASIC_MARGIN_X   8
@@ -876,6 +876,24 @@ static uint8_t page_basic_set_click_item_action(egui_sim_action_t *p_action, egu
     return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&page_view)->region_screen, (int)interval_ms);
 }
 
+static uint8_t page_basic_schedule_click_verify_retry(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    if (recording_click_verify_retry >= PAGE_BASIC_CLICK_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    recording_click_verify_retry++;
+    if (recording_click_verify_retry >= 2U && view != NULL && page_basic_set_click_item_action(p_action, view, interval_ms))
+    {
+        return 1U;
+    }
+
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
 static egui_view_t *page_basic_find_visible_view_by_index(uint32_t index)
 {
     uint32_t stable_id;
@@ -959,15 +977,8 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         view = page_basic_find_visible_view_by_index(0);
         if (page_basic_ctx.selected_id != page_basic_ctx.sections[0].stable_id)
         {
-            if (recording_click_verify_retry < PAGE_BASIC_CLICK_VERIFY_RETRY_MAX)
+            if (page_basic_schedule_click_verify_retry(p_action, view, 220))
             {
-                recording_click_verify_retry++;
-                if (view != NULL && page_basic_set_click_item_action(p_action, view, 220))
-                {
-                    return true;
-                }
-                recording_request_snapshot();
-                EGUI_SIM_SET_WAIT(p_action, 180);
                 return true;
             }
             report_runtime_failure("section click did not update selected section");

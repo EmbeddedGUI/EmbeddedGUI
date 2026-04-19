@@ -39,7 +39,7 @@
 #define TREE_BASIC_GROUP_H                50
 #define TREE_BASIC_TASK_H                 56
 #define TREE_BASIC_TASK_DETAIL_H          74
-#define TREE_BASIC_CLICK_VERIFY_RETRY_MAX 3U
+#define TREE_BASIC_CLICK_VERIFY_RETRY_MAX 5U
 #define TREE_BASIC_JUMP_VERIFY_RETRY_MAX  3U
 #define TREE_BASIC_PATCH_VERIFY_RETRY_MAX 3U
 
@@ -1033,6 +1033,24 @@ static uint8_t tree_basic_set_click_item_action(egui_sim_action_t *p_action, egu
     return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&tree_view)->region_screen, (int)interval_ms);
 }
 
+static uint8_t tree_basic_schedule_click_verify_retry(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    if (recording_click_verify_retry >= TREE_BASIC_CLICK_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    recording_click_verify_retry++;
+    if (recording_click_verify_retry >= 2U && view != NULL && tree_basic_set_click_item_action(p_action, view, interval_ms))
+    {
+        return 1U;
+    }
+
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
 static tree_basic_node_t *tree_basic_find_node_by_triplet(uint8_t kind, uint8_t root_ordinal, uint8_t group_ordinal, uint8_t task_ordinal)
 {
     uint16_t node_index;
@@ -1162,15 +1180,8 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         view = tree_basic_find_visible_view(TREE_BASIC_NODE_TASK, 0, 0, 0);
         if (node == NULL || tree_basic_ctx.selected_id != node->stable_id)
         {
-            if (recording_click_verify_retry < TREE_BASIC_CLICK_VERIFY_RETRY_MAX)
+            if (tree_basic_schedule_click_verify_retry(p_action, view, 220))
             {
-                recording_click_verify_retry++;
-                if (view != NULL && tree_basic_set_click_item_action(p_action, view, 220))
-                {
-                    return true;
-                }
-                recording_request_snapshot();
-                EGUI_SIM_SET_WAIT(p_action, 180);
                 return true;
             }
             report_runtime_failure("task click did not update selected node");

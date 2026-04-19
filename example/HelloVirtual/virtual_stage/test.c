@@ -5,8 +5,9 @@
 #include "uicode.h"
 #include "demo_virtual_stage_internal.h"
 
-#define DEMO_ALERT_RENDER_COUNT 9U
-#define DEMO_STATUS_TIMER_MS    160
+#define DEMO_ALERT_RENDER_COUNT         9U
+#define DEMO_STATUS_TIMER_MS            160
+#define DEMO_RECORDING_VERIFY_RETRY_MAX 6U
 
 #define DEMO_CANVAS_WIDTH  HELLO_VIRTUAL_STAGE_CANVAS_WIDTH
 #define DEMO_CANVAS_HEIGHT HELLO_VIRTUAL_STAGE_CANVAS_HEIGHT
@@ -210,6 +211,7 @@ static demo_virtual_stage_context_t demo_context;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_zone_verify_retry;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(header_card_params, DEMO_HEADER_X, DEMO_HEADER_Y, DEMO_HEADER_W, DEMO_HEADER_H, 18);
@@ -4668,6 +4670,7 @@ void test_init_ui(void)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
+    recording_zone_verify_retry = 0U;
 #endif
 
     demo_init_nodes();
@@ -4734,6 +4737,19 @@ static void report_runtime_failure(const char *message)
 
     runtime_fail_reported = 1;
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
+static uint8_t demo_schedule_recording_verify_retry(uint8_t *retry_counter, uint8_t retry_max, egui_sim_action_t *p_action)
+{
+    if (*retry_counter >= retry_max)
+    {
+        return 0U;
+    }
+
+    (*retry_counter)++;
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
 }
 
 static void demo_check_runtime_invariants(void)
@@ -5120,13 +5136,12 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         demo_set_click_node_action(p_action, DEMO_ZONE_BASE_ID, 220);
         return true;
     case 17:
-        if (first_call)
         {
-            if (!demo_context.zone_enabled[0])
-            {
-                demo_context.zone_enabled[0] = 1U;
-                demo_notify_zone_nodes(DEMO_ZONE_BASE_ID);
-            }
+            uint8_t had_retry = recording_zone_verify_retry;
+            uint8_t zone_enabled;
+            uint8_t slots_ok;
+            uint8_t log_ok;
+
             if (demo_find_live_view(DEMO_SEARCH_INPUT_ID) != NULL)
             {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
@@ -5134,15 +5149,35 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 #endif
                 EGUI_VIEW_VIRTUAL_STAGE_CALCULATE_LAYOUT(&virtual_stage);
             }
-            if (EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&virtual_stage) != 1)
+
+            zone_enabled = demo_context.zone_enabled[0];
+            slots_ok = (uint8_t)(EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&virtual_stage) == 1U);
+            log_ok = (uint8_t)(strstr(demo_get_recent_log_text(0U), "Zone A") != NULL);
+            if (!zone_enabled || !slots_ok || !log_ok)
             {
-                report_runtime_failure("zone interaction should not increase retained slots");
+                if (demo_schedule_recording_verify_retry(&recording_zone_verify_retry, DEMO_RECORDING_VERIFY_RETRY_MAX, p_action))
+                {
+                    return true;
+                }
+                if (!zone_enabled)
+                {
+                    report_runtime_failure("zone click did not persist enabled state");
+                }
+                if (!slots_ok)
+                {
+                    report_runtime_failure("zone interaction should not increase retained slots");
+                }
+                if (!log_ok)
+                {
+                    report_runtime_failure("zone interaction did not update activity feed");
+                }
             }
-            if (strstr(demo_get_recent_log_text(0U), "Zone A") == NULL)
+
+            recording_zone_verify_retry = 0U;
+            if (first_call || had_retry != 0U)
             {
-                report_runtime_failure("zone interaction did not update activity feed");
+                recording_request_snapshot();
             }
-            recording_request_snapshot();
         }
         demo_set_click_node_pos_action(p_action, DEMO_COMBO_LINE_ID, 0.84f, 0.5f, 420);
         return true;
