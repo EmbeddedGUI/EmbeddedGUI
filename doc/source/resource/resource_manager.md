@@ -165,9 +165,9 @@ EGUI_VIEW_LABEL_PARAMS_INIT(label_2_params, 10, 100, 160, 160,
 
 void uicode_disp0_init(egui_core_t *core)
 {
-    egui_view_image_init_with_params(EGUI_VIEW_OF(&image_1), &image_1_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), &label_1_params);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_2), &label_2_params);
+    egui_view_image_init_with_params(EGUI_VIEW_OF(&image_1), core, &image_1_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), core, &label_1_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_2), core, &label_2_params);
 
     egui_core_add_user_root_view(core, EGUI_VIEW_OF(&image_1));
     egui_core_add_user_root_view(core, EGUI_VIEW_OF(&label_1));

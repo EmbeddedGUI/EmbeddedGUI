@@ -107,7 +107,7 @@ typedef struct egui_chart_axis_config
 | 函数 | 说明 |
 |------|------|
 | `egui_view_chart_line_init(self, core)` | 初始化 ChartLine |
-| `egui_view_chart_line_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_chart_line_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_chart_line_set_line_width(self, width)` | 设置线宽(默认 2) |
 | `egui_view_chart_line_set_point_radius(self, radius)` | 设置数据点半径(默认 3) |
 
@@ -136,7 +136,7 @@ EGUI_VIEW_CHART_LINE_PARAMS_INIT(lc_params, 0, 0, 220, 160);
 void init_ui(egui_core_t *core)
 {
     egui_view_chart_line_init_with_params(
-        EGUI_VIEW_OF(&line_chart), &lc_params);
+        EGUI_VIEW_OF(&line_chart), core, &lc_params);
     egui_view_chart_line_set_series(
         EGUI_VIEW_OF(&line_chart), series, 1);
     egui_view_chart_line_set_axis_x(
@@ -169,7 +169,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_chart_bar_init(self, core)` | 初始化 ChartBar |
-| `egui_view_chart_bar_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_chart_bar_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_chart_bar_set_bar_gap(self, gap)` | 设置柱间距(默认 2) |
 
 ### 参数宏
@@ -196,7 +196,7 @@ EGUI_VIEW_CHART_BAR_PARAMS_INIT(bc_params, 0, 0, 220, 160);
 void init_ui(egui_core_t *core)
 {
     egui_view_chart_bar_init_with_params(
-        EGUI_VIEW_OF(&bar_chart), &bc_params);
+        EGUI_VIEW_OF(&bar_chart), core, &bc_params);
     egui_view_chart_bar_set_series(
         EGUI_VIEW_OF(&bar_chart), bar_series, 1);
     egui_view_chart_bar_set_axis_x(
@@ -227,7 +227,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_chart_scatter_init(self, core)` | 初始化 ChartScatter |
-| `egui_view_chart_scatter_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_chart_scatter_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_chart_scatter_set_point_radius(self, radius)` | 设置点半径(默认 3) |
 
 ### 参数宏
@@ -255,7 +255,7 @@ EGUI_VIEW_CHART_SCATTER_PARAMS_INIT(sc_params, 0, 0, 220, 160);
 void init_ui(egui_core_t *core)
 {
     egui_view_chart_scatter_init_with_params(
-        EGUI_VIEW_OF(&scatter_chart), &sc_params);
+        EGUI_VIEW_OF(&scatter_chart), core, &sc_params);
     egui_view_chart_scatter_set_series(
         EGUI_VIEW_OF(&scatter_chart), scatter_series, 1);
     egui_view_chart_scatter_set_axis_x(
@@ -284,7 +284,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_chart_pie_init(self, core)` | 初始化 ChartPie |
-| `egui_view_chart_pie_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_chart_pie_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_chart_pie_set_slices(self, slices, count)` | 设置饼图切片数据 |
 | `egui_view_chart_pie_set_legend_pos(self, pos)` | 设置图例位置 |
 | `egui_view_chart_pie_set_colors(self, bg, text)` | 设置背景色和文本色 |
@@ -313,7 +313,7 @@ EGUI_VIEW_CHART_PIE_PARAMS_INIT(pc_params, 0, 0, 220, 180);
 void init_ui(egui_core_t *core)
 {
     egui_view_chart_pie_init_with_params(
-        EGUI_VIEW_OF(&pie_chart), &pc_params);
+        EGUI_VIEW_OF(&pie_chart), core, &pc_params);
     egui_view_chart_pie_set_slices(
         EGUI_VIEW_OF(&pie_chart), slices, 4);
     egui_view_chart_pie_set_legend_pos(

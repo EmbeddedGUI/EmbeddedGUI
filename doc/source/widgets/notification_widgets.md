@@ -17,7 +17,7 @@
 | 函数 | 说明 |
 |------|------|
 | `egui_view_notification_badge_init(self, core)` | 初始化徽章 |
-| `egui_view_notification_badge_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_notification_badge_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_notification_badge_set_count(self, count)` | 设置计数 |
 | `egui_view_notification_badge_get_count(self)` | 获取计数 |
 | `egui_view_notification_badge_set_max_display(self, max)` | 设置最大显示数(超出显示 "N+") |
@@ -50,7 +50,7 @@ EGUI_VIEW_NOTIFICATION_BADGE_PARAMS_INIT(badge_params, 50, 5, 20, 20, 3);
 void init_ui(egui_core_t *core)
 {
     egui_view_notification_badge_init_with_params(
-        EGUI_VIEW_OF(&badge), &badge_params);
+        EGUI_VIEW_OF(&badge), core, &badge_params);
     egui_view_notification_badge_set_max_display(
         EGUI_VIEW_OF(&badge), 99);
     egui_core_add_user_root_view(core, EGUI_VIEW_OF(&badge));
@@ -91,7 +91,7 @@ void clear_notifications(void)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_window_init(self, core)` | 初始化窗口 |
-| `egui_view_window_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_window_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_window_set_title(self, title)` | 设置标题文字 |
 | `egui_view_window_set_header_height(self, height)` | 设置标题栏高度 |
 | `egui_view_window_add_content(self, child)` | 向内容区域添加子控件 |
@@ -128,7 +128,7 @@ static void on_close(egui_view_t *self)
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_window_init_with_params(EGUI_VIEW_OF(&win), &win_params);
+    egui_view_window_init_with_params(EGUI_VIEW_OF(&win), core, &win_params);
     egui_view_window_set_on_close(EGUI_VIEW_OF(&win), on_close);
 
     egui_view_label_init(EGUI_VIEW_OF(&content_label), core);

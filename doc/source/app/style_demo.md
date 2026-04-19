@@ -34,10 +34,10 @@ static egui_view_group_t page_smarthome, page_music, page_dashboard, page_watch;
 void uicode_disp0_init(egui_core_t *core)
 {
     // 初始化 ViewPage（全屏）
-    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), &viewpage_params);
+    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), core, &viewpage_params);
 
     // 初始化 4 个页面容器
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&page_smarthome), &page_params);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&page_smarthome), core, &page_params);
     // ... 其他页面 ...
 
     // 设置各页面背景色
@@ -121,7 +121,7 @@ void uicode_page_smarthome_on_enter(void)
     egui_animation_start(EGUI_ANIM_OF(&sh_anim_set[0]));
     sh_stagger_idx = 1;
     // 每 100ms 启动下一张
-    egui_timer_start_timer(&sh_stagger_timer, 100, 100);
+    egui_timer_start_timer(core, &sh_stagger_timer, 100, 100);
 }
 ```
 
@@ -214,7 +214,7 @@ void uicode_page_watch_on_enter(void)
         egui_view_activity_ring_set_value(EGUI_VIEW_OF(&wt_ring), i, 0);
 
     // 启动圆环增长动画
-    egui_timer_start_timer(&wt_ring_timer, WT_RING_INTERVAL, WT_RING_INTERVAL);
+    egui_timer_start_timer(core, &wt_ring_timer, WT_RING_INTERVAL, WT_RING_INTERVAL);
 
     // 启动天气卡片淡入
     egui_view_set_alpha(EGUI_VIEW_OF(&wt_weather_card), 0);

@@ -19,7 +19,7 @@ Group 作为基础容器不单独展示，其能力通过子类容器体现。
 | 函数 | 说明 |
 |------|------|
 | `egui_view_group_init(self, core)` | 初始化 Group |
-| `egui_view_group_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_group_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_group_add_child(self, child)` | 添加子控件 |
 | `egui_view_group_remove_child(self, child)` | 移除子控件 |
 | `egui_view_group_clear_childs(self)` | 清空所有子控件 |
@@ -49,7 +49,7 @@ EGUI_VIEW_GROUP_PARAMS_INIT(group_params, 0, 0, 200, 100);
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&group), &group_params);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&group), core, &group_params);
 
     egui_view_label_init(EGUI_VIEW_OF(&label), core);
     egui_view_set_position(EGUI_VIEW_OF(&label), 10, 10);
@@ -83,7 +83,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_card_init(self, core)` | 初始化 Card |
-| `egui_view_card_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_card_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_card_set_corner_radius(self, radius)` | 设置圆角半径 |
 | `egui_view_card_set_border(self, width, color)` | 设置边框宽度和颜色 |
 | `egui_view_card_set_bg_color(self, color, alpha)` | 设置背景颜色和透明度 |
@@ -106,7 +106,7 @@ EGUI_VIEW_CARD_PARAMS_INIT(card_params, 10, 10, 200, 80, 8);
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&card), &card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&card), core, &card_params);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&card),
         EGUI_COLOR_MAKE(0x33, 0x33, 0x33), EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&card), 1,
@@ -137,7 +137,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_linearlayout_init(self, core)` | 初始化 LinearLayout |
-| `egui_view_linearlayout_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_linearlayout_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_linearlayout_set_orientation(self, is_horizontal)` | 设置排列方向(0=垂直, 1=水平) |
 | `egui_view_linearlayout_set_align_type(self, align_type)` | 设置对齐方式 |
 | `egui_view_linearlayout_set_auto_width(self, is_auto)` | 启用自动宽度 |
@@ -181,7 +181,7 @@ EGUI_VIEW_LINEARLAYOUT_PARAMS_INIT(layout_params, 0, 0, 200, 150,
 void init_ui(egui_core_t *core)
 {
     egui_view_linearlayout_init_with_params(
-        EGUI_VIEW_OF(&layout), &layout_params);
+        EGUI_VIEW_OF(&layout), core, &layout_params);
 
     // 初始化三个按钮并添加到垂直布局
     egui_view_button_init(EGUI_VIEW_OF(&btn1), core);
@@ -222,7 +222,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_gridlayout_init(self, core)` | 初始化 GridLayout |
-| `egui_view_gridlayout_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_gridlayout_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_gridlayout_set_col_count(self, col_count)` | 设置列数 |
 | `egui_view_gridlayout_set_align_type(self, align_type)` | 设置对齐方式 |
 
@@ -244,7 +244,7 @@ EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 200, 150, 3,
 void init_ui(egui_core_t *core)
 {
     egui_view_gridlayout_init_with_params(
-        EGUI_VIEW_OF(&grid), &grid_params);
+        EGUI_VIEW_OF(&grid), core, &grid_params);
 
     const char *labels[] = {"A", "B", "C", "D", "E", "F"};
     for (int i = 0; i < 6; i++)

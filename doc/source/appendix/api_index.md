@@ -208,7 +208,7 @@
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
 | `egui_view_group_init(self, core)` | 初始化视图组 | egui_view_group.h |
-| `egui_view_group_init_with_params(self, params)` | 使用参数初始化视图组 | egui_view_group.h |
+| `egui_view_group_init_with_params(self, core, params)` | 使用参数初始化视图组 | egui_view_group.h |
 | `egui_view_group_apply_params(self, params)` | 应用参数到视图组 | egui_view_group.h |
 
 ### 子视图管理
@@ -307,7 +307,7 @@
 |------|------|--------|
 | `egui_timer_init()` | 初始化定时器子系统 | egui_timer.h |
 | `egui_timer_init_timer(handle, data, cb)` | 初始化定时器实例 | egui_timer.h |
-| `egui_timer_start_timer(handle, ms, period)` | 启动定时器（ms=延迟，period=周期，0=单次） | egui_timer.h |
+| `egui_timer_start_timer(core, handle, ms, period)` | 启动定时器（ms=延迟，period=周期，0=单次） | egui_timer.h |
 | `egui_timer_stop_timer(handle)` | 停止定时器 | egui_timer.h |
 | `egui_timer_check_timer_start(handle)` | 检查定时器是否已启动 | egui_timer.h |
 | `egui_timer_get_current_time()` | 获取当前时间（毫秒） | egui_timer.h |

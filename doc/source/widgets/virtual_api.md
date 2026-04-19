@@ -67,7 +67,7 @@ static const egui_view_virtual_grid_setup_t grid_setup = {
         .state_cache_max_bytes = 96 * sizeof(my_item_state_t),
 };
 
-egui_view_virtual_grid_init_with_setup(EGUI_VIEW_OF(&grid_view), &grid_setup);
+egui_view_virtual_grid_init_with_setup(EGUI_VIEW_OF(&grid_view), core, &grid_setup);
 ```
 
 ## 4. 在 `bind` 里只做当前项的视觉绑定
@@ -211,7 +211,7 @@ static const egui_view_virtual_viewport_setup_t viewport_setup = {
         .state_cache_max_bytes = 64 * sizeof(my_item_state_t),
 };
 
-egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&viewport), &viewport_setup);
+egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&viewport), core, &viewport_setup);
 ```
 
 最常用 helper：

@@ -35,7 +35,7 @@ typedef void (*egui_timer_callback_func)(egui_timer_t *);
 | API | 说明 |
 |-----|------|
 | `egui_timer_init_timer(handle, user_data, callback)` | 初始化定时器 |
-| `egui_timer_start_timer(handle, ms, period)` | 启动定时器，ms=首次延迟，period=周期间隔 |
+| `egui_timer_start_timer(core, handle, ms, period)` | 启动定时器，ms=首次延迟，period=周期间隔 |
 | `egui_timer_stop_timer(handle)` | 停止定时器 |
 | `egui_timer_check_timer_start(handle)` | 检查定时器是否已启动 |
 | `egui_timer_get_current_time()` | 获取当前系统时间（毫秒） |
@@ -73,11 +73,11 @@ static void animation_callback(egui_timer_t *timer)
     update_ui(progress);
 }
 
-void start_custom_animation(void)
+void start_custom_animation(egui_core_t *core)
 {
     frame = 0;
     egui_timer_init_timer(&my_timer, NULL, animation_callback);
-    egui_timer_start_timer(&my_timer, FRAME_INTERVAL, FRAME_INTERVAL);
+    egui_timer_start_timer(core, &my_timer, FRAME_INTERVAL, FRAME_INTERVAL);
 }
 ```
 

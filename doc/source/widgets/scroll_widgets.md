@@ -19,7 +19,7 @@
 | 函数 | 说明 |
 |------|------|
 | `egui_view_scroll_init(self, core)` | 初始化 Scroll |
-| `egui_view_scroll_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_scroll_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_scroll_add_child(self, child)` | 添加子控件 |
 | `egui_view_scroll_set_size(self, width, height)` | 设置容器大小 |
 | `egui_view_scroll_start_container_scroll(self, diff_y)` | 程序化滚动指定偏移 |
@@ -43,7 +43,7 @@ EGUI_VIEW_SCROLL_PARAMS_INIT(scroll_params, 0, 0, 200, 120);
 void init_ui(egui_core_t *core)
 {
     egui_view_scroll_init_with_params(
-        EGUI_VIEW_OF(&scroll), &scroll_params);
+        EGUI_VIEW_OF(&scroll), core, &scroll_params);
 
     char buf[16];
     for (int i = 0; i < 10; i++)
@@ -81,7 +81,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_viewpage_init(self, core)` | 初始化 ViewPage |
-| `egui_view_viewpage_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_viewpage_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_viewpage_add_child(self, child)` | 添加页面 |
 | `egui_view_viewpage_remove_child(self, child)` | 移除页面 |
 | `egui_view_viewpage_set_current_page(self, page_index)` | 直接跳转到指定页 |
@@ -112,7 +112,7 @@ static void on_page_changed(egui_view_t *self, int page_index)
 void init_ui(egui_core_t *core)
 {
     egui_view_viewpage_init_with_params(
-        EGUI_VIEW_OF(&viewpage), &vp_params);
+        EGUI_VIEW_OF(&viewpage), core, &vp_params);
 
     egui_view_label_init(EGUI_VIEW_OF(&page1), core);
     egui_view_set_size(EGUI_VIEW_OF(&page1), 240, 200);
@@ -161,7 +161,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_viewpage_cache_init(self, core)` | 初始化 ViewPageCache |
-| `egui_view_viewpage_cache_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_viewpage_cache_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_viewpage_cache_set_child_total_cnt(self, cnt)` | 设置总页面数 |
 | `egui_view_viewpage_cache_set_current_page(self, page_index)` | 直接跳转到指定页 |
 | `egui_view_viewpage_cache_scroll_to_page(self, page_index)` | 平滑滚动到指定页 |
@@ -221,7 +221,7 @@ static void on_page_free(egui_view_t *self, int page_index,
 void init_ui(egui_core_t *core)
 {
     egui_view_viewpage_cache_init_with_params(
-        EGUI_VIEW_OF(&vp_cache), &vpc_params);
+        EGUI_VIEW_OF(&vp_cache), core, &vpc_params);
     egui_view_viewpage_cache_set_child_total_cnt(
         EGUI_VIEW_OF(&vp_cache), 10);
     egui_view_viewpage_cache_set_on_page_load_listener(
@@ -250,7 +250,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_tileview_init(self, core)` | 初始化 TileView |
-| `egui_view_tileview_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_tileview_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_tileview_add_tile(self, tile_view, col, row)` | 在指定行列添加瓦片 |
 | `egui_view_tileview_set_current(self, col, row)` | 切换到指定行列的瓦片 |
 | `egui_view_tileview_set_on_changed(self, callback)` | 设置瓦片切换回调 |
@@ -285,7 +285,7 @@ static void on_tile_changed(egui_view_t *self,
 void init_ui(egui_core_t *core)
 {
     egui_view_tileview_init_with_params(
-        EGUI_VIEW_OF(&tileview), &tv_params);
+        EGUI_VIEW_OF(&tileview), core, &tv_params);
 
     egui_view_label_init(EGUI_VIEW_OF(&tile_main), core);
     egui_view_set_size(EGUI_VIEW_OF(&tile_main), 240, 240);

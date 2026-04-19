@@ -125,7 +125,7 @@ EGUI_VIEW_LINEARLAYOUT_PARAMS_INIT(layout_params, 0, 0, 200, 300, EGUI_ALIGN_HCE
 EGUI_VIEW_LINEARLAYOUT_PARAMS_INIT_H(layout_params_h, 0, 0, 300, 50, EGUI_ALIGN_VCENTER);
 
 // 使用参数初始化
-egui_view_linearlayout_init_with_params(EGUI_VIEW_OF(&my_layout), &layout_params);
+egui_view_linearlayout_init_with_params(EGUI_VIEW_OF(&my_layout), core, &layout_params);
 ```
 
 ## GridLayout 网格布局
@@ -166,7 +166,7 @@ GridLayout 的布局逻辑：
 // 3 列网格，居中对齐
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 240, 320, 3, EGUI_ALIGN_HCENTER);
 
-egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&my_grid), &grid_params);
+egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&my_grid), core, &grid_params);
 ```
 
 ## 嵌套布局示例

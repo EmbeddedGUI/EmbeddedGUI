@@ -79,7 +79,7 @@ void uicode_page_dashboard_on_enter(void)
     db_update_kpi_display(0);
 
     // 启动生长动画
-    egui_timer_start_timer(&db_growth_timer, DB_GROWTH_INTERVAL, DB_GROWTH_INTERVAL);
+    egui_view_start_timer(EGUI_VIEW_OF(&db_title), &db_growth_timer, DB_GROWTH_INTERVAL, DB_GROWTH_INTERVAL);
 }
 ```
 

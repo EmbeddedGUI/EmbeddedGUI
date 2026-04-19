@@ -17,7 +17,7 @@
 | 函数 | 说明 |
 |------|------|
 | `egui_view_analog_clock_init(self, core)` | 初始化模拟时钟 |
-| `egui_view_analog_clock_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_analog_clock_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_analog_clock_set_time(self, h, m, s)` | 设置时间(时/分/秒) |
 | `egui_view_analog_clock_show_second(self, show)` | 设置是否显示秒针 |
 | `egui_view_analog_clock_show_ticks(self, show)` | 设置是否显示刻度 |
@@ -55,7 +55,7 @@ EGUI_VIEW_ANALOG_CLOCK_PARAMS_INIT(clock_params, 10, 10, 100, 100, 10, 30, 0);
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_analog_clock_init_with_params(EGUI_VIEW_OF(&clock), &clock_params);
+    egui_view_analog_clock_init_with_params(EGUI_VIEW_OF(&clock), core, &clock_params);
     egui_view_analog_clock_show_second(EGUI_VIEW_OF(&clock), 1);
     egui_view_analog_clock_show_ticks(EGUI_VIEW_OF(&clock), 1);
     egui_core_add_user_root_view(core, EGUI_VIEW_OF(&clock));
@@ -83,7 +83,7 @@ void update_time(uint8_t h, uint8_t m, uint8_t s)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_digital_clock_init(self, core)` | 初始化数字时钟 |
-| `egui_view_digital_clock_init_with_params(self, params)` | 使用参数初始化(复用 Label 参数) |
+| `egui_view_digital_clock_init_with_params(self, core, params)` | 使用参数初始化(复用 Label 参数) |
 | `egui_view_digital_clock_set_time(self, hour, minute, second)` | 设置时间 |
 | `egui_view_digital_clock_set_format(self, format_24h)` | 设置时间格式(0=12h, 1=24h) |
 | `egui_view_digital_clock_set_colon_blink(self, enable)` | 启用冒号闪烁 |
@@ -110,7 +110,7 @@ EGUI_VIEW_DIGITAL_CLOCK_PARAMS_INIT_SIMPLE(dclock_params, 10, 10, 120, 30, "00:0
 void init_ui(egui_core_t *core)
 {
     egui_view_digital_clock_init_with_params(EGUI_VIEW_OF(&dclock),
-        &dclock_params);
+        core, &dclock_params);
     egui_view_digital_clock_set_format(EGUI_VIEW_OF(&dclock), 1);
     egui_view_digital_clock_set_show_second(EGUI_VIEW_OF(&dclock), 1);
     egui_view_digital_clock_set_colon_blink(EGUI_VIEW_OF(&dclock), 1);
@@ -134,7 +134,7 @@ void init_ui(egui_core_t *core)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_stopwatch_init(self, core)` | 初始化秒表 |
-| `egui_view_stopwatch_init_with_params(self, params)` | 使用参数初始化(复用 Label 参数) |
+| `egui_view_stopwatch_init_with_params(self, core, params)` | 使用参数初始化(复用 Label 参数) |
 | `egui_view_stopwatch_set_elapsed(self, elapsed_ms)` | 设置已用时间(毫秒) |
 | `egui_view_stopwatch_get_elapsed(self)` | 获取已用时间(毫秒) |
 | `egui_view_stopwatch_set_state(self, state)` | 设置状态 |
@@ -166,7 +166,7 @@ EGUI_VIEW_STOPWATCH_PARAMS_INIT_SIMPLE(sw_params, 10, 10, 140, 30, "00:00.000");
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_stopwatch_init_with_params(EGUI_VIEW_OF(&sw), &sw_params);
+    egui_view_stopwatch_init_with_params(EGUI_VIEW_OF(&sw), core, &sw_params);
     egui_view_stopwatch_set_show_ms(EGUI_VIEW_OF(&sw), 1);
     egui_core_add_user_root_view(core, EGUI_VIEW_OF(&sw));
 }
@@ -206,7 +206,7 @@ void reset_stopwatch(void)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_mini_calendar_init(self, core)` | 初始化日历 |
-| `egui_view_mini_calendar_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_mini_calendar_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_mini_calendar_set_date(self, year, month, day)` | 设置日期(选中日) |
 | `egui_view_mini_calendar_set_today(self, day)` | 设置今日高亮 |
 | `egui_view_mini_calendar_set_first_day_of_week(self, day)` | 设置周起始日(0=周日, 1=周一) |
@@ -247,7 +247,7 @@ static void on_date_selected(egui_view_t *self, uint8_t day)
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_mini_calendar_init_with_params(EGUI_VIEW_OF(&calendar), &cal_params);
+    egui_view_mini_calendar_init_with_params(EGUI_VIEW_OF(&calendar), core, &cal_params);
     egui_view_mini_calendar_set_today(EGUI_VIEW_OF(&calendar), 27);
     egui_view_mini_calendar_set_first_day_of_week(EGUI_VIEW_OF(&calendar), 1);
     egui_view_mini_calendar_set_on_date_selected_listener(

@@ -17,7 +17,7 @@
 | 函数 | 说明 |
 |------|------|
 | `egui_view_textblock_init(self, core)` | 初始化 Textblock |
-| `egui_view_textblock_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_textblock_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_textblock_set_text(self, text)` | 设置文本内容 |
 | `egui_view_textblock_set_font(self, font)` | 设置字体 |
 | `egui_view_textblock_set_font_color(self, color, alpha)` | 设置字体颜色和透明度 |
@@ -58,7 +58,7 @@ EGUI_VIEW_TEXTBLOCK_PARAMS_INIT(tb_params, 10, 10, 220, 80,
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_textblock_init_with_params(EGUI_VIEW_OF(&textblock), &tb_params);
+    egui_view_textblock_init_with_params(EGUI_VIEW_OF(&textblock), core, &tb_params);
     egui_view_textblock_set_align_type(EGUI_VIEW_OF(&textblock), EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP);
     egui_view_textblock_set_line_space(EGUI_VIEW_OF(&textblock), 4);
     egui_view_set_padding(EGUI_VIEW_OF(&textblock), 4, 4, 4, 4);
@@ -96,7 +96,7 @@ DynamicLabel 的外观与 Label 一致，区别在于内部维护了独立的文
 | 函数 | 说明 |
 |------|------|
 | `egui_view_dynamic_label_init(self, core)` | 初始化 DynamicLabel |
-| `egui_view_dynamic_label_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_dynamic_label_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_dynamic_label_set_text(self, text)` | 设置文本(拷贝到内部缓冲区) |
 
 DynamicLabel 继承 Label 的全部 API，可直接使用 `egui_view_label_set_font()`、`egui_view_label_set_font_color()` 等函数。
@@ -118,7 +118,7 @@ EGUI_VIEW_DYNAMIC_LABEL_PARAMS_INIT_SIMPLE(dyn_params, 10, 10, 100, 24, "0");
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_dynamic_label_init_with_params(EGUI_VIEW_OF(&dyn_label), &dyn_params);
+    egui_view_dynamic_label_init_with_params(EGUI_VIEW_OF(&dyn_label), core, &dyn_params);
     egui_core_add_user_root_view(core, EGUI_VIEW_OF(&dyn_label));
 }
 
@@ -152,7 +152,7 @@ void update_value(int val)
 | 函数 | 说明 |
 |------|------|
 | `egui_view_spangroup_init(self, core)` | 初始化 Spangroup |
-| `egui_view_spangroup_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_spangroup_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_spangroup_add_span(self, text, font, color)` | 添加一个文本片段 |
 | `egui_view_spangroup_clear(self)` | 清除所有片段 |
 | `egui_view_spangroup_set_align(self, align)` | 设置对齐方式 |
@@ -173,7 +173,7 @@ EGUI_VIEW_SPANGROUP_PARAMS_INIT(sg_params, 10, 10, 220, 140);
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_spangroup_init_with_params(EGUI_VIEW_OF(&spangroup), &sg_params);
+    egui_view_spangroup_init_with_params(EGUI_VIEW_OF(&spangroup), core, &sg_params);
     egui_view_spangroup_set_line_spacing(EGUI_VIEW_OF(&spangroup), 6);
 
     egui_view_spangroup_add_span(EGUI_VIEW_OF(&spangroup),

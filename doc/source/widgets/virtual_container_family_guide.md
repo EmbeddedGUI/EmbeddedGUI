@@ -414,7 +414,7 @@ static const egui_view_virtual_grid_setup_t card_grid_setup = {
         .state_cache_max_bytes = 96 * sizeof(my_item_state_t),
 };
 
-egui_view_virtual_grid_init_with_setup(EGUI_VIEW_OF(&card_grid), &card_grid_setup);
+egui_view_virtual_grid_init_with_setup(EGUI_VIEW_OF(&card_grid), core, &card_grid_setup);
 ```
 
 ### 5.4 第四步：在 `bind` 里只做“当前可见项”的视觉绑定
@@ -629,7 +629,7 @@ static const egui_view_virtual_list_setup_t list_setup = {
         .state_cache_max_bytes = 64 * sizeof(my_item_state_t),
 };
 
-egui_view_virtual_list_init_with_setup(EGUI_VIEW_OF(&list_view), &list_setup);
+egui_view_virtual_list_init_with_setup(EGUI_VIEW_OF(&list_view), core, &list_setup);
 ```
 
 最常用 helper：
@@ -696,7 +696,7 @@ static const egui_view_virtual_page_setup_t page_setup = {
         .state_cache_max_bytes = 48 * sizeof(my_section_state_t),
 };
 
-egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&page_view), &page_setup);
+egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&page_view), core, &page_setup);
 ```
 
 最常用 helper：

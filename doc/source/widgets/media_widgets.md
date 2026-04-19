@@ -17,7 +17,7 @@
 | 函数 | 说明 |
 |------|------|
 | `egui_view_animated_image_init(self, core)` | 初始化帧动画 |
-| `egui_view_animated_image_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_animated_image_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_animated_image_set_frames(self, frames, count)` | 设置帧数组和帧数 |
 | `egui_view_animated_image_set_interval(self, ms)` | 设置帧间隔(毫秒) |
 | `egui_view_animated_image_play(self)` | 开始播放 |
@@ -61,7 +61,7 @@ EGUI_VIEW_ANIMATED_IMAGE_PARAMS_INIT(anim_params, 10, 10, 64, 64, 100);
 void init_ui(egui_core_t *core)
 {
     egui_view_animated_image_init_with_params(
-        EGUI_VIEW_OF(&anim_img), &anim_params);
+        EGUI_VIEW_OF(&anim_img), core, &anim_params);
     egui_view_animated_image_set_frames(
         EGUI_VIEW_OF(&anim_img), anim_frames, 4);
     egui_view_animated_image_set_loop(EGUI_VIEW_OF(&anim_img), 1);
@@ -85,7 +85,7 @@ MP4 序列帧播放控件，通过定时器驱动逐帧显示图片列表，支�
 | 函数 | 说明 |
 |------|------|
 | `egui_view_mp4_init(self, core)` | 初始化 Mp4 |
-| `egui_view_mp4_init_with_params(self, params)` | 使用参数初始化 |
+| `egui_view_mp4_init_with_params(self, core, params)` | 使用参数初始化 |
 | `egui_view_mp4_set_mp4_image_list(self, list, count)` | 设置帧图片列表和帧数 |
 | `egui_view_mp4_start_work(self, interval_ms)` | 开始播放(指定帧间隔) |
 | `egui_view_mp4_stop_work(self)` | 停止播放 |
@@ -130,7 +130,7 @@ static void on_mp4_callback(egui_view_mp4_t *self, int is_end)
 
 void init_ui(egui_core_t *core)
 {
-    egui_view_mp4_init_with_params(EGUI_VIEW_OF(&mp4), &mp4_params);
+    egui_view_mp4_init_with_params(EGUI_VIEW_OF(&mp4), core, &mp4_params);
     egui_view_mp4_set_mp4_image_list(EGUI_VIEW_OF(&mp4), mp4_frames, 3);
     egui_view_mp4_set_callback(EGUI_VIEW_OF(&mp4), on_mp4_callback);
     egui_view_mp4_start_work(EGUI_VIEW_OF(&mp4), 33);

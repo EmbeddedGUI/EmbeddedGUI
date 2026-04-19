@@ -213,7 +213,7 @@
 static egui_view_virtual_stage_t page;
 EGUI_VIEW_VIRTUAL_STAGE_PARAMS_INIT(page_params, 16, 124, 768, 660);
 
-egui_view_virtual_stage_init_with_params(EGUI_VIEW_OF(&page), &page_params);
+egui_view_virtual_stage_init_with_params(EGUI_VIEW_OF(&page), core, &page_params);
 ```
 
 建议：
@@ -236,7 +236,7 @@ egui_view_virtual_stage_init_with_params(EGUI_VIEW_OF(&page), &page_params);
 典型顺序：
 
 ```c
-egui_view_virtual_stage_init_with_params(EGUI_VIEW_OF(&page), &page_params);
+egui_view_virtual_stage_init_with_params(EGUI_VIEW_OF(&page), core, &page_params);
 egui_view_virtual_stage_set_adapter(EGUI_VIEW_OF(&page), &my_adapter, &my_ctx);
 ```
 
