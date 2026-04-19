@@ -15,6 +15,8 @@ import hashlib
 import json
 import re
 import shutil
+import signal
+import tempfile
 import time
 from pathlib import Path
 
@@ -47,6 +49,7 @@ COMPILE_RETRY_DELAY_S = 1.0
 RUN_EXCEPTION_RETRY_DELAY_S = 0.5
 FILE_OP_RETRY_COUNT = 20
 FILE_OP_RETRY_DELAY_S = 0.1
+PROCESS_TERMINATE_GRACE_S = 5
 RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
 FRAME_LABEL_PATTERN = re.compile(r"PERF_FRAME:(frame_\d+\.png):([A-Za-z0-9_.-]+)")
 FRAME_LABEL_MANIFEST = "recording_frame_labels.json"
@@ -77,6 +80,80 @@ def get_windows_hidden_run_kwargs():
     # CREATE_NO_WINDOW / SW_HIDE. Keep the default spawn behavior so CI/local
     # runtime checks remain stable.
     return {}
+
+
+def get_recording_popen_kwargs():
+    kwargs = get_windows_hidden_run_kwargs().copy()
+    if platform.system() == 'Windows':
+        create_new_process_group = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)
+        if create_new_process_group:
+            kwargs['creationflags'] = kwargs.get('creationflags', 0) | create_new_process_group
+    else:
+        kwargs['start_new_session'] = True
+    return kwargs
+
+
+def read_output_file(output_file):
+    output_file.flush()
+    output_file.seek(0)
+    data = output_file.read()
+    if isinstance(data, bytes):
+        return data.decode('utf-8', errors='replace')
+    return data
+
+
+def terminate_process_tree(proc):
+    if proc.poll() is not None:
+        return
+
+    if platform.system() == 'Windows':
+        try:
+            subprocess.run(
+                ['taskkill', '/F', '/T', '/PID', str(proc.pid)],
+                capture_output=True,
+                text=True,
+                timeout=PROCESS_TERMINATE_GRACE_S,
+            )
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+
+    try:
+        proc.wait(timeout=PROCESS_TERMINATE_GRACE_S)
+    except Exception:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+
+
+def run_process_capture_output(cmd, timeout, **popen_kwargs):
+    with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
+        proc = subprocess.Popen(cmd, stdout=stdout_file, stderr=stderr_file, **popen_kwargs)
+        try:
+            returncode = proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            terminate_process_tree(proc)
+            stdout = read_output_file(stdout_file)
+            stderr = read_output_file(stderr_file)
+            raise subprocess.TimeoutExpired(cmd, timeout, output=stdout, stderr=stderr) from exc
+        except BaseException:
+            terminate_process_tree(proc)
+            raise
+
+        stdout = read_output_file(stdout_file)
+        stderr = read_output_file(stderr_file)
+        return subprocess.CompletedProcess(cmd, returncode, stdout, stderr)
 
 
 def build_recording_cmd(exe_path, resource_path, frames_dir, duration, speed, snapshot_settle_ms, clock_scale, snapshot_stable_cycles, snapshot_max_wait_ms):
@@ -224,7 +301,7 @@ def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration
     frames_dir = Path(frames_dir)
     frames_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = frames_dir / FRAME_LABEL_MANIFEST
-    hidden_kwargs = get_windows_hidden_run_kwargs()
+    popen_kwargs = get_recording_popen_kwargs()
     profiles = build_recording_profiles(timeout, duration, speed, snapshot_settle_ms,
                                         clock_scale, snapshot_stable_cycles,
                                         snapshot_max_wait_ms)
@@ -254,7 +331,7 @@ def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration
 
         for attempt in range(RUN_RETRY_COUNT):
             try:
-                result = subprocess.run(cmd, timeout=profile["timeout"], capture_output=True, text=True, **hidden_kwargs)
+                result = run_process_capture_output(cmd, timeout=profile["timeout"], **popen_kwargs)
                 if result.returncode != 0:
                     stderr_msg = result.stderr.strip() if result.stderr else ""
                     last_error = "exit code %d%s" % (result.returncode, (": " + stderr_msg) if stderr_msg else "")
