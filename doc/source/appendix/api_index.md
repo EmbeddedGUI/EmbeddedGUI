@@ -311,7 +311,7 @@
 | `egui_timer_stop_timer(handle)` | 停止定时器 | egui_timer.h |
 | `egui_timer_check_timer_start(handle)` | 检查定时器是否已启动 | egui_timer.h |
 | `egui_timer_get_current_time()` | 获取当前时间（毫秒） | egui_timer.h |
-| `egui_timer_polling_work()` | 轮询处理到期定时器 | egui_timer.h |
+| `egui_timer_polling_work(core)` | 轮询处理指定 core 的到期定时器 | egui_timer.h |
 | `egui_timer_force_refresh_timer()` | 强制刷新定时器 | egui_timer.h |
 
 ---

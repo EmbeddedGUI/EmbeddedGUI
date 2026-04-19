@@ -13,7 +13,7 @@
 
 ## 显示行为
 
-当前实现位于 `src/core/egui_core.c` 的 debug overlay 逻辑附近，行为是：
+当前实现分散在 `src/core/egui_core_debug_perf.c`、`src/core/egui_core_debug_mem.c` 和相关 refresh 路径中，行为是：
 
 1. `egui_core_refresh_screen()` 每次进入时，都会先更新 monitor 统计值。
 2. 如果 monitor 文本发生变化，就把“上一次 overlay 区域”和“当前 overlay 区域”的并集重新标脏。
@@ -128,7 +128,7 @@ xx ms (xx | xx)
 - 第一行：`FPS`、总 CPU%
 - 第二行：总时间 `(Render | Flush)`
 
-当前实现见 `src/core/egui_core.c` 里的 `egui_debug_set_perf_text()` 和相关统计函数。
+当前实现见 `src/core/egui_core_debug_perf.c` 里的 `egui_debug_set_perf_text()` 和相关统计函数。
 
 ### 计算规则
 
@@ -174,7 +174,7 @@ x.x kB
 x.x kB max
 ```
 
-当前实现见 `src/core/egui_core.c` 里的 `egui_debug_set_mem_text()`，以及 `src/core/egui_api.c` 里的 `egui_api_malloc()` / `egui_api_free()`。
+当前实现见 `src/core/egui_core_debug_mem.c` 里的 `egui_debug_set_mem_text()`，以及 `src/core/egui_api.c` 里的 `egui_api_malloc()` / `egui_api_free()`。
 
 ### 统计范围
 
