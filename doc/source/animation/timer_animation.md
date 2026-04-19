@@ -36,8 +36,8 @@ typedef void (*egui_timer_callback_func)(egui_timer_t *);
 |-----|------|
 | `egui_timer_init_timer(handle, user_data, callback)` | 初始化定时器 |
 | `egui_timer_start_timer(core, handle, ms, period)` | 启动定时器，ms=首次延迟，period=周期间隔 |
-| `egui_timer_stop_timer(handle)` | 停止定时器 |
-| `egui_timer_check_timer_start(handle)` | 检查定时器是否已启动 |
+| `egui_timer_stop_timer(core, handle)` | 停止定时器 |
+| `egui_timer_check_timer_start(core, handle)` | 检查定时器是否已启动 |
 | `egui_timer_get_current_time()` | 获取当前系统时间（毫秒） |
 
 ### 参数说明
@@ -52,6 +52,7 @@ typedef void (*egui_timer_callback_func)(egui_timer_t *);
 
 ```c
 static egui_timer_t my_timer;
+static egui_core_t *s_anim_core;
 static int frame = 0;
 #define TOTAL_FRAMES 20
 #define FRAME_INTERVAL 40  // 40ms = 25fps
@@ -62,7 +63,7 @@ static void animation_callback(egui_timer_t *timer)
     frame++;
     if (frame > TOTAL_FRAMES)
     {
-        egui_timer_stop_timer(&my_timer);
+        egui_timer_stop_timer(s_anim_core, &my_timer);
         return;
     }
 
@@ -75,6 +76,7 @@ static void animation_callback(egui_timer_t *timer)
 
 void start_custom_animation(egui_core_t *core)
 {
+    s_anim_core = core;
     frame = 0;
     egui_timer_init_timer(&my_timer, NULL, animation_callback);
     egui_timer_start_timer(core, &my_timer, FRAME_INTERVAL, FRAME_INTERVAL);
@@ -85,6 +87,7 @@ void start_custom_animation(egui_core_t *core)
 
 ```c
 static egui_timer_t counter_timer;
+static egui_core_t *s_counter_core;
 static int counter_frame = 0;
 static char value_buf[16];
 #define COUNTER_FRAMES 30
@@ -97,7 +100,7 @@ static void counter_callback(egui_timer_t *timer)
     counter_frame++;
     if (counter_frame > COUNTER_FRAMES)
     {
-        egui_timer_stop_timer(&counter_timer);
+        egui_timer_stop_timer(s_counter_core, &counter_timer);
         return;
     }
 
@@ -106,6 +109,14 @@ static void counter_callback(egui_timer_t *timer)
 
     sprintf(value_buf, "%d", value);
     egui_view_label_set_text(EGUI_VIEW_OF(&my_label), value_buf);
+}
+
+void start_counter_animation(egui_core_t *core)
+{
+    s_counter_core = core;
+    counter_frame = 0;
+    egui_timer_init_timer(&counter_timer, NULL, counter_callback);
+    egui_timer_start_timer(core, &counter_timer, COUNTER_INTERVAL, COUNTER_INTERVAL);
 }
 ```
 
@@ -120,7 +131,7 @@ static void eased_callback(egui_timer_t *timer)
     frame++;
     if (frame > TOTAL_FRAMES)
     {
-        egui_timer_stop_timer(&my_timer);
+        egui_timer_stop_timer(s_anim_core, &my_timer);
         return;
     }
 

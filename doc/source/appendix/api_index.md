@@ -308,8 +308,8 @@
 | `egui_timer_init()` | 初始化定时器子系统 | egui_timer.h |
 | `egui_timer_init_timer(handle, data, cb)` | 初始化定时器实例 | egui_timer.h |
 | `egui_timer_start_timer(core, handle, ms, period)` | 启动定时器（ms=延迟，period=周期，0=单次） | egui_timer.h |
-| `egui_timer_stop_timer(handle)` | 停止定时器 | egui_timer.h |
-| `egui_timer_check_timer_start(handle)` | 检查定时器是否已启动 | egui_timer.h |
+| `egui_timer_stop_timer(core, handle)` | 停止定时器 | egui_timer.h |
+| `egui_timer_check_timer_start(core, handle)` | 检查定时器是否已启动 | egui_timer.h |
 | `egui_timer_get_current_time()` | 获取当前时间（毫秒） | egui_timer.h |
 | `egui_timer_polling_work(core)` | 轮询处理指定 core 的到期定时器 | egui_timer.h |
 | `egui_timer_force_refresh_timer()` | 强制刷新定时器 | egui_timer.h |

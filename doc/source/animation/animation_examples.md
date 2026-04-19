@@ -44,7 +44,7 @@ static void db_growth_timer_callback(egui_timer_t *timer)
     db_growth_frame++;
     if (db_growth_frame > DB_GROWTH_FRAMES)
     {
-        egui_timer_stop_timer(&db_growth_timer);
+        egui_view_stop_timer(EGUI_VIEW_OF(&db_title), &db_growth_timer);
         return;
     }
 
