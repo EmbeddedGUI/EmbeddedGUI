@@ -65,21 +65,23 @@ extern "C" {
 
 // --- Display Driver ---
 
-static void my_display_init(void)
+static void my_display_init(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
     // 初始化 LCD 硬件（SPI、GPIO、LCD 控制器）
     lcd_hw_init();
 }
 
-static void my_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h,
-                                  const egui_color_int_t *data)
+static void my_display_draw_area(egui_core_t *core, int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
 {
+    EGUI_UNUSED(core);
     lcd_set_window(x, y, x + w - 1, y + h - 1);
     lcd_write_data((const uint8_t *)data, w * h * sizeof(egui_color_int_t));
 }
 
-static void my_display_flush(void)
+static void my_display_flush(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
     // 如果 LCD 需要手动触发刷新，在此处理
     // 大多数 SPI LCD 不需要，留空即可
 }
@@ -215,7 +217,6 @@ static egui_platform_t my_platform = {
 ```c
 void egui_port_init(void)
 {
-    egui_display_driver_register(&my_display);
     egui_platform_register(&my_platform);
 }
 
@@ -236,7 +237,7 @@ void port_main(void)
     setup.pfb_buffer_count = 1;
     setup.display_driver = &my_display;
     setup.platform = &my_platform;
-    setup.touch_register = NULL;
+    setup.touch_register = NULL;   // 有触摸时填 egui_port_register_touch_driver
     setup.uicode_init = uicode_disp0_init;
     setup.display_id = 0;
 

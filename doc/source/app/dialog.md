@@ -7,7 +7,7 @@
 - Dialog 必须在 `egui_dialog_init(self, core)` 时直接绑定目标 `core`
 - `dialog.root_view` 与 `dialog.user_root_view` 会在 init 阶段一起带上同一个 `core`
 - `egui_dialog_start(self, activity)` 要求 `dialog`、`dialog.root_view`、`dialog.user_root_view` 与目标 `activity` 已经属于同一个 `core`
-- `egui_dialog_start_with_current(self)` 也只是使用 Dialog 自身的 `core` 去查找当前 Activity，不再自动补绑
+- 当前实现不会在启动时自动改写 `dialog` / `root_view` / `user_root_view` 的 `core` 归属
 
 `bind_core` 相关旧接口已经删除，多屏场景下应在构造 Dialog 时就传入目标屏幕的 `core`。
 
@@ -63,9 +63,6 @@ struct egui_dialog
 ```c
 // 启动 Dialog（绑定到指定 Activity）
 void egui_dialog_start(egui_dialog_t *self, egui_activity_t *activity);
-
-// 启动 Dialog（绑定到当前栈顶 Activity）
-void egui_dialog_start_with_current(egui_dialog_t *self);
 
 // 关闭 Dialog
 void egui_dialog_finish(egui_dialog_t *self);
@@ -222,15 +219,13 @@ static void button_1_click_cb(egui_view_t *self)
 
 ## Core 解析说明
 
-在常规单屏流程下，`egui_dialog_start_with_current(self)` 会优先使用当前 activity / active core，
-`egui_dialog_start(self, activity)` 也会优先复用 `activity` 已绑定的 core，
-并在需要时自动把 `self` 绑定到该 core。
+当前实现里，`egui_dialog_start(self, activity)` 只使用 `dialog` 自身已经绑定的 `core`。
+如果 `dialog`、`dialog.root_view` 或 `dialog.user_root_view` 与目标 `activity` 不属于同一个 `core`，启动流程会直接返回，不会做自动补绑，也不依赖 active core。
 
 `egui_dialog_show_toast_info(...)` /
 `egui_dialog_show_toast_info_with_duration(...)` 这类对象式 helper，
-则会优先使用 `dialog.root_view` 已绑定的 `core` 去查找默认 Toast。
+则会通过 `dialog` 自身绑定的 `core` 去查找默认 Toast。
 因此只要 Dialog 在初始化时已经带上目标屏幕的 `core`，
 后续显示 Toast 时就不需要再额外传 `core`。
 
-只有在多屏场景下、目标屏幕无法通过当前 activity 唯一确定时，
-才需要在构造 Dialog 时直接传入目标屏幕的 `core`。
+多屏场景下更应该在构造 Dialog 时就明确目标屏幕，而不是把跨屏归属判断留到启动阶段。

@@ -13,8 +13,6 @@
 | `egui_init(core, pfb)` | 使用主屏编译期配置初始化 core，本质上是 `egui_init_display()` 的便捷封装 | egui_core.h |
 | `egui_init_display(core, screen_w, screen_h, pfb_bufs, buf_count, pfb_w, pfb_h)` | 初始化底层显示 core | egui_core.h |
 | `egui_setup_display(core, setup)` | 按 `egui_display_setup_t` 完成显示初始化、注册与 UI 构建 | egui_core.h |
-| `egui_core_set_active(core)` | 设置当前 active core | egui_core.h |
-| `egui_core_get_active()` | 获取当前 active core | egui_core.h |
 | `egui_polling_work(core)` | 主循环轮询（处理定时器、动画、输入、刷新） | egui_core.h |
 | `egui_polling_refresh_display(core)` | 轮询刷新显示 | egui_core.h |
 | `egui_check_need_refresh(core)` | 检查是否需要刷新屏幕 | egui_core.h |
@@ -75,14 +73,12 @@
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
 | `egui_activity_start(self, prev)` | 启动 Activity（指定前一个） | egui_activity.h |
-| `egui_activity_start_with_current(self)` | 启动 Activity（以当前为前一个） | egui_activity.h |
 | `egui_activity_finish(self)` | 结束 Activity | egui_activity.h |
 | `egui_activity_check_in_process(self)` | 检查 Activity 是否在处理中 | egui_activity.h |
 | `egui_activity_set_start_anim(self, open, close)` | 设置当前 Activity 的启动动画 | egui_activity.h |
 | `egui_activity_set_finish_anim(self, open, close)` | 设置当前 Activity 的结束动画 | egui_activity.h |
 | `egui_view_get_activity(view)` | 通过视图查找所属 Activity | egui_view.h |
 | `egui_dialog_start(self, activity)` | 在指定 Activity 上启动 Dialog | egui_dialog.h |
-| `egui_dialog_start_with_current(self)` | 在当前 Activity 上启动 Dialog | egui_dialog.h |
 | `egui_dialog_finish(self)` | 结束 Dialog | egui_dialog.h |
 | `egui_dialog_check_in_process(self)` | 检查 Dialog 是否在处理中 | egui_dialog.h |
 | `egui_dialog_set_anim(self, open, close)` | 设置 Dialog 动画 | egui_dialog.h |

@@ -7,7 +7,7 @@
 - Activity 必须在 `egui_activity_init(self, core)` 时直接绑定目标 `core`
 - `activity.root_view` 会在 init 阶段一起绑定到同一个 `core`
 - `egui_activity_start(self, prev_activity)` 要求 `self` 与 `self.root_view` 已经属于目标 `core`
-- `egui_activity_start_with_current(self)` 也只是使用 Activity 自身的 `core` 去查找当前栈顶 Activity，不再自动补绑
+- 当前实现不会在启动时自动改写 `self->core` 或 `root_view` 的归属关系
 
 `bind_core` 相关旧接口已经删除，多屏场景下应在构造 Activity 时就传入目标屏幕的 `core`。
 
@@ -83,9 +83,6 @@ EmbeddedGUI 使用双向链表维护 Activity 栈。核心 API 如下：
 ```c
 // 启动新 Activity（prev_activity 为前一个 Activity，可为 NULL）
 void egui_activity_start(egui_activity_t *self, egui_activity_t *prev_activity);
-
-// 以当前栈顶 Activity 为前驱启动新 Activity
-void egui_activity_start_with_current(egui_activity_t *self);
 
 // 结束 Activity（触发 onPause -> onStop -> onDestroy）
 void egui_activity_finish(egui_activity_t *self);
@@ -294,15 +291,13 @@ static void button_next_click_cb(egui_view_t *self)
 
 ## Core 解析说明
 
-在常规单屏流程下，`egui_activity_start_with_current(self)` 会优先使用当前 active core，
-`egui_activity_start(self, prev_activity)` 也会优先复用 `prev_activity` 已绑定的 core，
-并在需要时自动把 `self` 绑定到该 core。
+当前实现里，`egui_activity_start(self, prev_activity)` 只使用 `self` 自身已经绑定的 `core`。
+如果 `self` 或 `self.root_view` 不属于传入的目标 `core`，启动流程会直接返回，不会做自动补绑，也不依赖全局 active core。
 
 `egui_activity_show_toast_info(...)` /
 `egui_activity_show_toast_info_with_duration(...)` 这类对象式 helper，
-则会优先使用 `activity.root_view` 已绑定的 `core` 去查找默认 Toast。
+则会通过 `activity` 自身绑定的 `core` 去查找默认 Toast。
 因此只要 Activity 在初始化时已经带上目标屏幕的 `core`，
 后续显示 Toast 时就不需要再额外传 `core`。
 
-只有在多屏场景下、目标屏幕无法通过 `prev_activity` 唯一确定时，
-才需要在构造 Activity 时直接传入目标屏幕的 `core`。
+多屏场景下更应该遵守这个约束：创建对象时就明确绑定到目标屏幕的 `core`，而不是指望启动阶段推断或修正归属关系。
