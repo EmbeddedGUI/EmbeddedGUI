@@ -78,7 +78,7 @@ LFLAGS += --preload-file $(OUTPUT_PATH)/app_egui_resource_merge.bin@app_egui_res
 ```c
 static void main_loop_iteration(void)
 {
-    egui_polling_work();
+    egui_polling_work(&core);
     VT_sdl_refresh_task();
 
     if (VT_is_request_quit())
@@ -89,8 +89,12 @@ static void main_loop_iteration(void)
 
 int main(int argc, const char *argv[])
 {
+    printf("Hello, egui! (WebAssembly)\n");
+
+    strcpy(input_file_path, "app_egui_resource_merge.bin");
     VT_init();
     egui_init(&core, egui_pfb);
+    egui_port_register_core(&core);
     egui_port_init();
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     egui_port_register_touch_driver(&core);
@@ -107,6 +111,8 @@ int main(int argc, const char *argv[])
     return 0;
 }
 ```
+
+当前 `emscripten` 入口仍采用单屏低层初始化路径：`egui_init()` 后手动注册 platform / display / touch。新的多屏推荐流程见 [多屏方案](../multi-display.md)，其核心入口是 `egui_setup_display()`。
 
 与 PC 版本的关键区别：
 - 单线程运行（浏览器主线程）

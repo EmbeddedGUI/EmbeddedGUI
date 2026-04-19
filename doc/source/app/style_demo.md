@@ -224,21 +224,23 @@ void uicode_page_watch_on_enter(void)
 
 ## 主题切换
 
-应用支持亮色/暗色主题切换，通过 `egui_theme_set()` 全局切换：
+应用支持亮色/暗色主题切换，通过 `egui_theme_set(core, theme)` 在当前 core 上切换主题：
 
 ```c
 static uint8_t is_dark_theme = 0;
 
 void uicode_toggle_theme(void)
 {
+    egui_core_t *core = g_core;  // 当前页面所属 core
+
     if (is_dark_theme)
     {
-        egui_theme_set(&egui_theme_light);
+        egui_theme_set(core, &egui_theme_light);
         is_dark_theme = 0;
     }
     else
     {
-        egui_theme_set(&egui_theme_dark);
+        egui_theme_set(core, &egui_theme_dark);
         is_dark_theme = 1;
     }
     uicode_update_theme_icons();  // 更新所有页面的主题图标

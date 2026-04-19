@@ -106,16 +106,16 @@ typedef struct egui_theme
 
 ```c
 // 切换到暗色主题
-egui_theme_set(&egui_theme_dark);
+egui_theme_set(core, &egui_theme_dark);
 
 // 切换到亮色主题
-egui_theme_set(&egui_theme_light);
+egui_theme_set(core, &egui_theme_light);
 
 // 获取当前主题
-const egui_theme_t *theme = egui_theme_get();
+const egui_theme_t *theme = egui_theme_get(core);
 ```
 
-`egui_theme_set()` 内部调用 `egui_core_force_refresh()` 强制全屏重绘，确保所有控件立即应用新主题。
+`egui_theme_set(core, theme)` 内部调用 `egui_core_force_refresh(core)` 强制全屏重绘，确保当前 core 上的所有控件立即应用新主题。
 
 ## 控件如何响应主题
 
@@ -124,9 +124,10 @@ const egui_theme_t *theme = egui_theme_get();
 ```c
 void egui_view_button_on_draw(egui_view_t *self)
 {
-    // 从当前主题获取 button 的样式描述符
+    // 从当前 core 的主题获取 button 的样式描述符
+    const egui_theme_t *theme = egui_theme_get(egui_view_get_core(self));
     const egui_widget_style_desc_t *desc =
-        egui_current_theme ? egui_current_theme->button : NULL;
+        theme ? theme->button : NULL;
 
     // 根据当前状态（normal/pressed/disabled）获取对应样式
     const egui_style_t *style =
@@ -179,7 +180,7 @@ const egui_theme_t my_custom_theme = {
 };
 
 // 使用
-egui_theme_set(&my_custom_theme);
+egui_theme_set(core, &my_custom_theme);
 ```
 
 主题结构体中未赋值的控件指针为 NULL，对应控件会回退到硬编码的默认外观。

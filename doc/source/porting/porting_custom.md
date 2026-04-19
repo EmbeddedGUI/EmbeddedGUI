@@ -215,9 +215,9 @@ static egui_platform_t my_platform = {
 ### 第五步：注册驱动和主循环
 
 ```c
-void egui_port_init(void)
+void egui_port_init(egui_core_t *core)
 {
-    egui_platform_register(&my_platform);
+    egui_platform_register(core, &my_platform);
 }
 
 static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
@@ -228,7 +228,7 @@ void port_main(void)
     egui_color_int_t *pfb_bufs[1] = { egui_pfb };
     egui_display_setup_t setup;
 
-    egui_port_init();
+    egui_port_init(&core);
     setup.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
     setup.screen_height = EGUI_CONFIG_SCEEN_HEIGHT;
     setup.pfb_width = EGUI_CONFIG_PFB_WIDTH;

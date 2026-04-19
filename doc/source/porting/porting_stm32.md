@@ -1,71 +1,97 @@
-# STM32 移植
+﻿# STM32 绉绘
 
-本文档介绍 EmbeddedGUI 在 STM32G0 系列 MCU 上的移植实现，使用 SPI 接口驱动 ST7789 LCD 屏幕，FT6336 触摸控制器。
+鏈枃妗ｄ粙缁?EmbeddedGUI 鍦?STM32G0 绯诲垪 MCU 涓婄殑绉绘瀹炵幇锛屼娇鐢?SPI 鎺ュ彛椹卞姩 ST7789 LCD 灞忓箷锛孎T6336 瑙︽懜鎺у埗鍣ㄣ€?
 
-## 硬件配置
+## 纭欢閰嶇疆
 
-参考平台：STM32G0B0RE
+鍙傝€冨钩鍙帮細STM32G0B0RE
 
-| 组件 | 型号/接口 | 说明 |
+| 缁勪欢 | 鍨嬪彿/鎺ュ彛 | 璇存槑 |
 |------|----------|------|
 | MCU | STM32G0B0RE | Cortex-M0+, 64MHz, 128KB Flash, 144KB RAM |
-| LCD | ST7789 | 240x320, RGB565, SPI 接口 |
-| 触摸 | FT6336 | 电容触摸, I2C 接口 |
+| LCD | ST7789 | 240x320, RGB565, SPI 鎺ュ彛 |
+| 瑙︽懜 | FT6336 | 鐢靛瑙︽懜, I2C 鎺ュ彛 |
 
-## 文件结构
+## 鏂囦欢缁撴瀯
 
 ```
 porting/stm32g0/
-├── Porting/
-│   ├── egui_port_mcu.c    # Display/Platform Driver 注册
-│   ├── port_main.c        # 主循环入口
-│   ├── port_main.h        # 主循环头文件
-│   ├── app_lcd.c          # LCD 应用层（触摸轮询、DMA 回调）
-│   ├── app_lcd.h          # LCD 应用层头文件
-│   ├── lcd_st7789.c       # ST7789 SPI 驱动
-│   ├── lcd_st7789.h       # ST7789 驱动头文件
-│   ├── tc_ft6336.c        # FT6336 触摸驱动
-│   └── tc_ft6336.h        # FT6336 驱动头文件
-├── GCC/
-│   └── Makefile.base      # GCC 构建规则
-├── STM32G0B0RETX_FLASH.ld # 链接脚本
-├── build.mk               # 构建模块定义
-└── app_egui_config.h      # 配置覆盖（在 example 目录下）
+鈹溾攢鈹€ Porting/
+鈹?  鈹溾攢鈹€ egui_port_mcu.c    # Display/Platform Driver 娉ㄥ唽
+鈹?  鈹溾攢鈹€ port_main.c        # 涓诲惊鐜叆鍙?
+鈹?  鈹溾攢鈹€ port_main.h        # 涓诲惊鐜ご鏂囦欢
+鈹?  鈹溾攢鈹€ app_lcd.c          # LCD 搴旂敤灞傦紙瑙︽懜杞銆丏MA 鍥炶皟锛?
+鈹?  鈹溾攢鈹€ app_lcd.h          # LCD 搴旂敤灞傚ご鏂囦欢
+鈹?  鈹溾攢鈹€ lcd_st7789.c       # ST7789 SPI 椹卞姩
+鈹?  鈹溾攢鈹€ lcd_st7789.h       # ST7789 椹卞姩澶存枃浠?
+鈹?  鈹溾攢鈹€ tc_ft6336.c        # FT6336 瑙︽懜椹卞姩
+鈹?  鈹斺攢鈹€ tc_ft6336.h        # FT6336 椹卞姩澶存枃浠?
+鈹溾攢鈹€ GCC/
+鈹?  鈹斺攢鈹€ Makefile.base      # GCC 鏋勫缓瑙勫垯
+鈹溾攢鈹€ STM32G0B0RETX_FLASH.ld # 閾炬帴鑴氭湰
+鈹溾攢鈹€ build.mk               # 鏋勫缓妯″潡瀹氫箟
+鈹斺攢鈹€ app_egui_config.h      # 閰嶇疆瑕嗙洊锛堝湪 example 鐩綍涓嬶級
 ```
 
-## SPI 屏幕驱动
+## SPI 灞忓箷椹卞姩
 
-### Display Driver 注册
+### Display Driver 娉ㄥ唽
 
-`egui_port_mcu.c` 中注册 Display Driver：
+`egui_port_mcu.c` 涓敞鍐?Display Driver锛?
 
 ```c
-static void mcu_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h,
-                                         const egui_color_int_t *data)
+static void port_display_set_brightness(egui_core_t *core, uint8_t level)
 {
-    st7789_draw_image_dma_async(x, y, w, h, (const uint16_t *)data);
+    EGUI_UNUSED(core);
+    egui_hal_stm32g0_set_backlight_level(level);
 }
 
-static void mcu_display_wait_draw_complete(void)
+static void port_display_set_rotation(egui_core_t *core, egui_display_rotation_t rotation)
 {
-    st7789_wait_dma_complete();
+    egui_hal_lcd_driver_t *lcd = egui_hal_lcd_get(core);
+    if (lcd == NULL)
+    {
+        return;
+    }
+
+    switch (rotation)
+    {
+    case EGUI_DISPLAY_ROTATION_0:
+        if (lcd->mirror) lcd->mirror(lcd, 0, 0);
+        if (lcd->swap_xy) lcd->swap_xy(lcd, 0);
+        break;
+    case EGUI_DISPLAY_ROTATION_90:
+        if (lcd->mirror) lcd->mirror(lcd, 1, 0);
+        if (lcd->swap_xy) lcd->swap_xy(lcd, 1);
+        break;
+    case EGUI_DISPLAY_ROTATION_180:
+        if (lcd->mirror) lcd->mirror(lcd, 1, 1);
+        if (lcd->swap_xy) lcd->swap_xy(lcd, 0);
+        break;
+    case EGUI_DISPLAY_ROTATION_270:
+        if (lcd->mirror) lcd->mirror(lcd, 0, 1);
+        if (lcd->swap_xy) lcd->swap_xy(lcd, 1);
+        break;
+    }
 }
 ```
 
-同时支持同步和异步（DMA）两种传输模式。
+褰撳墠 `stm32g0` 绀轰緥鍏ュ彛鐨勫疄闄呴『搴忔槸锛歚egui_init(&core, egui_pfb)` 鈫?`egui_port_init(&core)` 鈫?`egui_display_driver_register()` 鈫?鍙€?`egui_port_register_touch_driver()` 鈫?`uicode_disp0_init()` 鈫?`egui_screen_on(&core)`銆傝嫢瑕佹柊寤哄灞忔垨寮傛瀯鍒嗚鲸鐜?port锛屽缓璁敼鐢?`egui_display_setup_t + egui_setup_display()` 鐨勭粺涓€鍏ュ彛銆?
+褰撳墠 `stm32g0` port 涓嶅啀鑷繁瀹炵幇涓€灞?`draw_area(core, ...)` 杞彂锛涘儚绱犲啓鍏ユˉ鎺ョ敱 `egui_hal_lcd_register()` 鑷姩瀹屾垚锛屾澘绾т唬鐮佷富瑕佽ˉ鍏呬寒搴︺€佹棆杞瓑鑳藉姏銆?
+鍚屾椂鏀寔鍚屾鍜屽紓姝ワ紙DMA锛変袱绉嶄紶杈撴ā寮忋€?
 
-### ST7789 SPI 通信
+### ST7789 SPI 閫氫俊
 
-典型的 SPI LCD 写入流程：
+鍏稿瀷鐨?SPI LCD 鍐欏叆娴佺▼锛?
 
-1. 设置列地址范围（CASET 命令）
-2. 设置行地址范围（RASET 命令）
-3. 发送写内存命令（RAMWR）
-4. 通过 SPI 发送像素数据
+1. 璁剧疆鍒楀湴鍧€鑼冨洿锛圕ASET 鍛戒护锛?
+2. 璁剧疆琛屽湴鍧€鑼冨洿锛圧ASET 鍛戒护锛?
+3. 鍙戦€佸啓鍐呭瓨鍛戒护锛圧AMWR锛?
+4. 閫氳繃 SPI 鍙戦€佸儚绱犳暟鎹?
 
-## SysTick 定时器
+## SysTick 瀹氭椂鍣?
 
-Platform Driver 使用 HAL 库的 SysTick 提供毫秒时间戳：
+Platform Driver 浣跨敤 HAL 搴撶殑 SysTick 鎻愪緵姣鏃堕棿鎴筹細
 
 ```c
 static uint32_t mcu_get_tick_ms(void)
@@ -79,18 +105,18 @@ static void mcu_delay(uint32_t ms)
 }
 ```
 
-`HAL_GetTick()` 基于 SysTick 中断，每 1ms 递增一次，为动画、定时器和输入超时提供时间基准。
+`HAL_GetTick()` 鍩轰簬 SysTick 涓柇锛屾瘡 1ms 閫掑涓€娆★紝涓哄姩鐢汇€佸畾鏃跺櫒鍜岃緭鍏ヨ秴鏃舵彁渚涙椂闂村熀鍑嗐€?
 
-## DMA 异步传输
+## DMA 寮傛浼犺緭
 
-### 基本原理
+### 鍩烘湰鍘熺悊
 
-SPI DMA 传输允许 CPU 在数据传输期间继续执行其他任务（如渲染下一个 PFB 块）。
+SPI DMA 浼犺緭鍏佽 CPU 鍦ㄦ暟鎹紶杈撴湡闂寸户缁墽琛屽叾浠栦换鍔★紙濡傛覆鏌撲笅涓€涓?PFB 鍧楋級銆?
 
-### PFB 缓冲区清零加速
+### PFB 缂撳啿鍖烘竻闆跺姞閫?
 
-通过 `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1` 注册 `memset_fast` 后，
-可以把内部 `egui_api_memset()` / `egui_api_pfb_clear()` 的零填充分支接到 DMA：
+閫氳繃 `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1` 娉ㄥ唽 `memset_fast` 鍚庯紝
+鍙互鎶婂唴閮?`egui_api_memset()` / `egui_api_pfb_clear()` 鐨勯浂濉厖鍒嗘敮鎺ュ埌 DMA锛?
 
 ```c
 #if APP_EGUI_CONFIG_USE_DMA_TO_RESET_PFB_BUFFER
@@ -111,158 +137,129 @@ static void mcu_memset_fast(void *s, int c, int n)
 #endif
 ```
 
-这样可以保证：
+杩欐牱鍙互淇濊瘉锛?
 
-- `c == 0` 时走 DMA 清零，收益最大
-- 非零填充值时回退到标准 `memset`，语义保持完整
+- `c == 0` 鏃惰蛋 DMA 娓呴浂锛屾敹鐩婃渶澶?
+- 闈為浂濉厖鍊兼椂鍥為€€鍒版爣鍑?`memset`锛岃涔変繚鎸佸畬鏁?
 
-### 双缓冲 + DMA
+### 鍙岀紦鍐?+ DMA
 
-`app_lcd.c` 实现了双缓冲机制，在 DMA 传输当前 PFB 时切换到备用缓冲区：
+`app_lcd.c` 瀹炵幇浜嗗弻缂撳啿鏈哄埗锛屽湪 DMA 浼犺緭褰撳墠 PFB 鏃跺垏鎹㈠埌澶囩敤缂撳啿鍖猴細
 
 ```c
-void app_lcd_draw_data(int16_t x, int16_t y, int16_t width, int16_t height, void *data)
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
+static egui_core_t core;
+
+void port_main(void)
 {
-#if APP_EGUI_CONFIG_LCD_ENABLE_BACKUP_PFB
-    if (data == egui_normal_pfb_buffer)
-    {
-        egui_core_set_pfb_buffer_ptr(egui_pfb_backup);
-    }
-    else
-    {
-        egui_core_set_pfb_buffer_ptr(egui_normal_pfb_buffer);
-    }
-    st7789_draw_image_dma_cache(x, y, width, height, (uint16_t *)data);
-#else
-    st7789_draw_image(x, y, width, height, (uint16_t *)data);
-#endif
+    egui_init(&core, egui_pfb);
+    // egui_init() 浼氭妸缂栬瘧鏈熷０鏄庣殑鎵€鏈?PFB buffer 涓€娆℃€т氦缁?core
 }
 ```
 
-SPI DMA 传输完成中断回调：
+褰撳墠澶氱紦鍐插凡缁忕敱 core 鍐呴儴鐨?`egui_pfb_manager_t` 缁熶竴绠＄悊锛屼笉鍐嶉€氳繃搴旂敤灞傛墜鍔ㄥ垏鎹⑩€滀富 / 澶囦唤 PFB 鎸囬拡鈥濄€?
+SPI DMA 浼犺緭瀹屾垚涓柇鍥炶皟锛?
 
 ```c
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi->Instance == ST7789_SPI_PORT.Instance)
     {
-        egui_pfb_notify_flush_complete();
+        egui_pfb_notify_flush_complete(&core);
     }
 }
 ```
 
-### 多缓冲环形队列
+### 澶氱紦鍐茬幆褰㈤槦鍒?
 
-`port_main.c` 支持最多 4 个 PFB 缓冲区的环形队列：
+`port_main.c` 鏀寔鏈€澶?4 涓?PFB 缂撳啿鍖虹殑鐜舰闃熷垪锛?
 
 ```c
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
-#if EGUI_CONFIG_PFB_BUFFER_COUNT >= 2
-static egui_color_int_t egui_pfb_2[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
-#endif
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
+static egui_core_t core;
 
 void port_main(void)
 {
-    egui_port_init();
-    egui_init(&init_config);
-#if EGUI_CONFIG_PFB_BUFFER_COUNT >= 2
-    egui_pfb_add_buffer(egui_pfb_2);
-#endif
-    // ...
-}
-```
-
-## 触摸输入
-
-### FT6336 触摸驱动
-
-通过 I2C 读取触摸坐标，在 `app_lcd.c` 中轮询处理：
-
-```c
-void app_lcd_polling_work(void)
-{
-    if (is_touch_in_process)
-    {
-        uint16_t x, y;
-        if (app_lcd_get_touch_point(&x, &y))
-        {
-            if (last_touch_x == APP_LCD_INVALID_POINT)
-                egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_DOWN, x, y);
-            else
-                egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_MOVE, x, y);
-            last_touch_x = x; last_touch_y = y;
-        }
-        else
-        {
-            if (last_touch_x != APP_LCD_INVALID_POINT)
-            {
-                egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_UP, last_touch_x, last_touch_y);
-                last_touch_x = APP_LCD_INVALID_POINT;
-            }
-            is_touch_in_process = 0;
-        }
-    }
-}
-```
-
-触摸中断通过 GPIO EXTI 触发：
-
-```c
-void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
-{
-    if (GPIO_Pin == APP_EGUI_TOUCH_INT_PIN)
-        is_touch_in_process = 1;
-}
-```
-
-## 主循环
-
-```c
-void port_main(void)
-{
-    egui_port_init();
     egui_init(&core, egui_pfb);
-    app_lcd_init();
+    // egui_init() 浼氭妸缂栬瘧鏈熷０鏄庣殑鎵€鏈?PFB buffer 涓€娆℃€т氦缁?core
+}
+```
+
+## 瑙︽懜杈撳叆
+
+### FT6336 瑙︽懜椹卞姩
+
+閫氳繃 I2C 璇诲彇瑙︽懜鍧愭爣锛屽湪 `app_lcd.c` 涓疆璇㈠鐞嗭細
+
+```c
+static egui_hal_touch_driver_t s_touch_driver;
+void egui_port_register_touch_driver(egui_core_t *core)
+{
+    egui_hal_touch_config_t touch_config = {
+        .width = EGUI_CONFIG_SCEEN_WIDTH,
+        .height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .swap_xy = 0,
+        .mirror_x = 0,
+        .mirror_y = 0,
+    };
+
+    egui_hal_touch_register(core, &s_touch_driver, &touch_config);
+}
+```
+
+当前实现说明：
+
+FT6336 鐨?INT / RST 绠¤剼浠嶇敱搴曞眰 port 鎻愪緵锛屼絾瑙︽懜涓婃姤宸茬粡鐢?HAL touch driver 缁熶竴澶勭悊锛屼笉鍐嶉渶瑕佸簲鐢ㄥ眰鑷繁杞骞惰浆鎴?motion event銆?
+## 涓诲惊鐜?
+
+```c
+void port_main(void)
+{
+    egui_init(&core, egui_pfb);
+    egui_port_init(&core);
+    egui_display_driver_register(&core, egui_port_get_display_driver());
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    egui_port_register_touch_driver(&core);
+#endif
     uicode_disp0_init(&core);
     egui_screen_on(&core);
 
     while (1)
     {
         egui_polling_work(&core);
-        app_lcd_polling_work();  // 触摸轮询
     }
 }
 ```
 
-## 典型资源占用
+## 鍏稿瀷璧勬簮鍗犵敤
 
-基于 STM32G0B0RE，RGB565，PFB 30x40 的典型占用：
+鍩轰簬 STM32G0B0RE锛孯GB565锛孭FB 30x40 鐨勫吀鍨嬪崰鐢細
 
-| 项目 | 大小 |
+| 椤圭洰 | 澶у皬 |
 |------|------|
-| 核心框架代码 | ~5-8KB Flash |
-| PFB 缓冲区 | 2,400B RAM（单缓冲） |
-| 每个控件实例 | ~50-200B RAM |
-| 字体资源（16px, 4-bit） | ~2-10KB Flash（取决于字符数） |
-| 图片资源 | 取决于尺寸和格式 |
+| 鏍稿績妗嗘灦浠ｇ爜 | ~5-8KB Flash |
+| PFB 缂撳啿鍖?| 2,400B RAM锛堝崟缂撳啿锛?|
+| 姣忎釜鎺т欢瀹炰緥 | ~50-200B RAM |
+| 瀛椾綋璧勬簮锛?6px, 4-bit锛?| ~2-10KB Flash锛堝彇鍐充簬瀛楃鏁帮級 |
+| 鍥剧墖璧勬簮 | 鍙栧喅浜庡昂瀵稿拰鏍煎紡 |
 
-## 构建命令
+## 鏋勫缓鍛戒护
 
 ```bash
-# 使用 GCC 工具链构建
+# 浣跨敤 GCC 宸ュ叿閾炬瀯寤?
 make all APP=HelloSimple PORT=stm32g0
 
-# 使用空平台（仅分析大小，不含硬件驱动）
-# 打开 Keil 工程
+# 浣跨敤绌哄钩鍙帮紙浠呭垎鏋愬ぇ灏忥紝涓嶅惈纭欢椹卞姩锛?
+# 鎵撳紑 Keil 宸ョ▼
 # porting/stm32g0/MDK-ARM/proj_stm32g0.uvprojx
 ```
 
-## 中断优先级
+## 涓柇浼樺厛绾?
 
-建议的中断优先级配置：
+寤鸿鐨勪腑鏂紭鍏堢骇閰嶇疆锛?
 
-| 中断 | 优先级 | 说明 |
+| 涓柇 | 浼樺厛绾?| 璇存槑 |
 |------|--------|------|
-| SysTick | 最高 | 保证时间戳准确 |
-| SPI DMA | 中 | DMA 传输完成回调 |
-| GPIO EXTI（触摸） | 低 | 触摸中断不需要实时响应 |
+| SysTick | 鏈€楂?| 淇濊瘉鏃堕棿鎴冲噯纭?|
+| SPI DMA | 涓?| DMA 浼犺緭瀹屾垚鍥炶皟 |
+| GPIO EXTI锛堣Е鎽革級 | 浣?| 瑙︽懜涓柇涓嶉渶瑕佸疄鏃跺搷搴?|

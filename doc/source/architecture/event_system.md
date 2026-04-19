@@ -2,14 +2,14 @@
 
 ## 概述
 
-EmbeddedGUI 采用轮询式事件循环，由 `egui_polling_work()` 驱动。输入事件（触摸、键盘）通过队列缓冲，在主循环中统一分发到视图树。这种设计避免了中断上下文中的复杂处理，适合嵌入式系统的单线程模型。
+EmbeddedGUI 采用轮询式事件循环，由 `egui_polling_work(core)` 驱动。输入事件（触摸、键盘）通过队列缓冲，在主循环中统一分发到视图树。这种设计避免了中断上下文中的复杂处理，适合嵌入式系统的单线程模型。
 
 ## 主循环
 
-### egui_polling_work() 工作流程
+### egui_polling_work(core) 工作流程
 
 ```
-egui_polling_work()
+egui_polling_work(core)
     |
     +-- egui_timer_polling_work()        // 1. 处理定时器和动画
     |
@@ -21,21 +21,21 @@ egui_polling_work()
 对应源码（`src/core/egui_core.c`）：
 
 ```c
-void egui_polling_work(void)
+void egui_polling_work(egui_core_t *core)
 {
-    egui_timer_polling_work();
+    egui_timer_polling_work(core);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    if (!egui_input_check_idle())
+    if (!egui_input_check_idle(core))
     {
-        egui_input_polling_work();
+        egui_input_polling_work(core);
     }
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-    if (!egui_input_check_key_idle())
+    if (!egui_input_check_key_idle(core))
     {
-        egui_input_key_dispatch_work();
+        egui_input_key_dispatch_work(core);
     }
 #endif
 }
@@ -48,11 +48,11 @@ void egui_polling_work(void)
 ```c
 while (1)
 {
-    egui_polling_work();                  // 处理事件和定时器
-    if (egui_check_need_refresh())        // 检查是否有脏区域
+    egui_polling_work(&core);                  // 处理事件和定时器
+    if (egui_check_need_refresh(&core))        // 检查是否有脏区域
     {
-        egui_core_draw_view_group_pre_work();  // 计算布局
-        egui_polling_refresh_display();        // PFB 分块渲染
+        egui_core_draw_view_group_pre_work(&core);  // 计算布局
+        egui_polling_refresh_display(&core);        // PFB 分块渲染
     }
 }
 ```

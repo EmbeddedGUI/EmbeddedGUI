@@ -161,7 +161,7 @@ brew install ffmpeg
 
 1. 先执行 `make run`
 2. 检查 `app_egui_config.h` 中的屏幕尺寸是否合理
-3. 检查 `egui_polling_work()` 是否在主循环中被调用
+3. 检查 `egui_polling_work(&core)` 是否在主循环中被调用
 4. 用运行时检查脚本验证
 
 ```bash

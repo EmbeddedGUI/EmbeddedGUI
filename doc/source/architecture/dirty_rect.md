@@ -110,9 +110,9 @@ egui_view_invalidate()
     -> egui_view_request_layout()         // 标记需要重新布局
     -> egui_core_update_region_dirty()    // 更新脏矩形列表
     -> egui_core_refresh_screen()         // 定时器触发刷新
-        -> egui_check_need_refresh()      // 检查是否有脏矩形
-        -> egui_polling_refresh_display() // 遍历脏矩形列表
-            -> egui_core_draw_view_group() // 对每个脏矩形做 PFB 分块绘制
+        -> egui_check_need_refresh(core)      // 检查是否有脏矩形
+        -> egui_polling_refresh_display(core) // 遍历脏矩形列表
+            -> egui_core_draw_view_group(core) // 对每个脏矩形做 PFB 分块绘制
 ```
 
 当 PFB 区域与脏矩形不重叠时，该 PFB 分块直接跳过，不进行任何绘制操作。当 PFB 区域被脏矩形部分包含时，框架会将 PFB 缩小到实际需要绘制的交叉区域，进一步减少绘制量。
@@ -239,7 +239,7 @@ egui_view_invalidate(my_custom_view);
 
 1. **减少 CPU 计算量**：只有脏矩形区域内的控件才需要参与绘制计算，静态控件的绘制开销为零
 2. **减少 SPI 传输量**：只将脏矩形覆盖的 PFB 分块数据发送到显示屏，减少总线传输量
-3. **支持低功耗模式**：当画面完全静止时（无脏矩形），`egui_check_need_refresh()` 返回 0，不会触发任何绘制和传输操作，CPU 可以进入睡眠状态
+3. **支持低功耗模式**：当画面完全静止时（无脏矩形），`egui_check_need_refresh(core)` 返回 0，不会触发任何绘制和传输操作，CPU 可以进入睡眠状态
 
 脏矩形数量通过 `EGUI_CONFIG_DIRTY_AREA_COUNT` 配置，默认值通常为 4~8。数量越多可以避免不必要的区域合并，但同时也增加了遍历开销。对于大多数应用，4 个脏矩形已经足够。
 

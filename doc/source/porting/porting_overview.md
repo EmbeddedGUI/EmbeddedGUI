@@ -141,7 +141,7 @@ typedef struct egui_platform_ops {
 
 ### 电源管理
 
-实现 `set_brightness` 和 `set_power`，配合 `egui_screen_on()` / `egui_screen_off()` 使用。
+实现 `set_brightness` 和 `set_power`，配合 `egui_screen_on(core)` / `egui_screen_off(core)` 使用。
 
 ### 硬件旋转
 
@@ -183,7 +183,7 @@ void main(void)
     system_hw_init();
 
     // 2. 准备平台单例
-    egui_port_init();
+    egui_port_init(&core);
 
     // 3. 初始化 GUI 框架并创建 UI
     egui_setup_display(&core, &setup);
@@ -196,14 +196,14 @@ void main(void)
 }
 ```
 
-调用顺序：`egui_port_init()` -> `egui_setup_display(&core, &setup)` -> 循环 `egui_polling_work(&core)`
+调用顺序：`egui_port_init(&core)` -> `egui_setup_display(&core, &setup)` -> 循环 `egui_polling_work(&core)`
 
 ### RTOS 环境
 
 ```c
 void gui_task(void *arg)
 {
-    egui_port_init();
+    egui_port_init(&core);
     egui_setup_display(&core, &setup);
 
     while (1)
@@ -217,9 +217,9 @@ void gui_task(void *arg)
 ### 驱动注册函数
 
 ```c
-void egui_port_init(void)
+void egui_port_init(egui_core_t *core)
 {
-    egui_platform_register(&my_platform);
+    egui_platform_register(core, &my_platform);
 }
 
 void port_main(void)
@@ -241,7 +241,7 @@ void port_main(void)
         .display_id = 0,
     };
 
-    egui_port_init();
+    egui_port_init(&core);
     egui_setup_display(&core, &setup);
 }
 ```
@@ -285,7 +285,7 @@ PFB 宽高必须是屏幕宽高的整数约数。
 
 ## 移植检查清单
 
-- [ ] `egui_port_init()` 中注册了 Display Driver 和 Platform Driver
+- [ ] `egui_port_init()` 中已准备好 Display Driver 和 Platform Driver，并能被当前初始化流程正确绑定
 - [ ] `draw_area()` 能正确将像素数据发送到屏幕
 - [ ] `get_tick_ms()` 返回单调递增的毫秒时间戳
 - [ ] 默认配置下标准库 `memset` / `memcpy` 可用；若启用 `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP`，`memset_fast()` / `memcpy_fast()` 工作正确
@@ -293,5 +293,4 @@ PFB 宽高必须是屏幕宽高的整数约数。
 - [ ] PFB 宽高是屏幕宽高的整数约数
 - [ ] 主循环中按正确顺序调用初始化函数
 - [ ] （如有触摸）Touch Driver 返回正确的坐标
-- [ ] （如用双缓冲）`pfb_backup` 指向了备用缓冲区
 - [ ] 编译通过且运行时屏幕有正确渲染输出
