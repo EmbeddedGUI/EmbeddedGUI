@@ -78,17 +78,23 @@ struct egui_image_file
     uint16_t height;
     uint16_t row_capacity;
     uint16_t alpha_capacity;
+    uint16_t row_capacity_secondary;
+    uint16_t alpha_capacity_secondary;
     uint16_t cached_row;
+    uint16_t cached_row_secondary;
     uint16_t resize_width;
     uint16_t resize_height;
 
     uint8_t has_alpha;
     uint8_t status;
     uint8_t row_cache_valid;
+    uint8_t row_cache_secondary_valid;
     uint8_t resize_enabled;
 
     uint16_t *row_pixels;
     uint8_t *row_alpha;
+    uint16_t *row_pixels_secondary;
+    uint8_t *row_alpha_secondary;
 };
 
 void egui_image_file_init(egui_image_file_t *self, egui_core_t *core);

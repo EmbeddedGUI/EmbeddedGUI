@@ -1,4 +1,5 @@
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_image_svg.h"
 #include <string.h>
@@ -12,6 +13,15 @@ static egui_color_int_t test_svg_pfb[TEST_SVG_CANVAS_W * TEST_SVG_CANVAS_H];
 static egui_color_int_t test_svg_pfb_large[TEST_SVG_CANVAS_LARGE_W * TEST_SVG_CANVAS_LARGE_H];
 static egui_color_int_t *test_svg_active_pfb = test_svg_pfb;
 static egui_dim_t test_svg_active_width = TEST_SVG_CANVAS_W;
+static egui_canvas_t test_svg_canvas;
+
+static egui_core_t *test_image_svg_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static void setup_svg_canvas(egui_color_int_t *pfb, size_t pfb_size, egui_dim_t width, egui_dim_t height)
 {
@@ -22,9 +32,9 @@ static void setup_svg_canvas(egui_color_int_t *pfb, size_t pfb_size, egui_dim_t 
     test_svg_active_pfb = pfb;
     test_svg_active_width = width;
     egui_region_init(&pfb_region, 0, 0, width, height);
-    egui_canvas_init(pfb, &pfb_region);
+    egui_canvas_init(&test_svg_canvas, test_image_svg_get_core(), pfb, &pfb_region);
     egui_region_init(&base_region, 0, 0, width, height);
-    egui_canvas_calc_work_region(&base_region);
+    egui_canvas_calc_work_region(&test_svg_canvas, &base_region);
 }
 
 static void setup_svg_canvas_full(void)
@@ -68,7 +78,7 @@ static void test_image_svg_rect_fill_resize_basic(void)
     EGUI_TEST_ASSERT_EQUAL_INT(10, height);
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image_resize((egui_image_t *)&image, 0, 0, 20, 20);
+    egui_canvas_draw_image_resize(&test_svg_canvas, (egui_image_t *)&image, 0, 0, 20, 20);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_RED.full, (int)get_svg_pixel(4, 6));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(0, 0));
@@ -103,7 +113,7 @@ static void test_image_svg_evenodd_path_hole(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_GREEN.full, (int)get_svg_pixel(3, 3));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 10));
@@ -122,7 +132,7 @@ static void test_image_svg_preserve_aspect_ratio_meet_center(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image_resize((egui_image_t *)&image, 0, 0, 20, 20);
+    egui_canvas_draw_image_resize(&test_svg_canvas, (egui_image_t *)&image, 0, 0, 20, 20);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 2));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_BLUE.full, (int)get_svg_pixel(10, 10));
@@ -142,7 +152,7 @@ static void test_image_svg_preserve_aspect_ratio_slice_clips_to_image_bounds(voi
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image_resize((egui_image_t *)&image, 0, 0, 20, 20);
+    egui_canvas_draw_image_resize(&test_svg_canvas, (egui_image_t *)&image, 0, 0, 20, 20);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(14, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(24, 10));
@@ -161,7 +171,7 @@ static void test_image_svg_rect_percentage_geometry_uses_viewport_axes(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 10));
@@ -181,7 +191,7 @@ static void test_image_svg_rect_percentage_geometry_uses_explicit_root_viewport_
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 42));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 24));
@@ -202,7 +212,7 @@ static void test_image_svg_circle_percentage_radius_uses_normalized_diagonal(voi
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(25, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(29, 10));
@@ -221,7 +231,7 @@ static void test_image_svg_line_percentage_endpoints_use_viewport_axes(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(20, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -240,7 +250,7 @@ static void test_image_svg_rect_absolute_length_units_are_supported(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(122, 60, 255).full, (int)get_svg_pixel(20, 12));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(12, 12));
@@ -261,7 +271,7 @@ static void test_image_svg_group_transform_and_style_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 165, 0).full, (int)get_svg_pixel(8, 6));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(3, 3));
@@ -282,7 +292,7 @@ static void test_image_svg_transform_list_preserves_svg_order(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(46, 52));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(58, 42));
@@ -302,7 +312,7 @@ static void test_image_svg_style_stroke_opacity_properties(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)expected.full, (int)get_svg_pixel(28, 12));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(28, 24));
@@ -321,7 +331,7 @@ static void test_image_svg_style_display_none_skips_shape(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 10));
 
@@ -339,7 +349,7 @@ static void test_image_svg_style_fill_overrides_presentation_attr(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_GREEN.full, (int)get_svg_pixel(10, 10));
 
@@ -357,7 +367,7 @@ static void test_image_svg_style_display_overrides_presentation_attr(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(10, 10));
 
@@ -375,7 +385,7 @@ static void test_image_svg_style_fill_rule_evenodd_hole(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_GREEN.full, (int)get_svg_pixel(3, 3));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 10));
@@ -394,7 +404,7 @@ static void test_image_svg_ignores_href_on_shape(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 51, 102).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -415,7 +425,7 @@ static void test_image_svg_ignores_href_on_group(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -436,7 +446,7 @@ static void test_image_svg_group_skewx_transform_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_RED.full, (int)get_svg_pixel(8, 4));
     EGUI_TEST_ASSERT_TRUE(get_svg_pixel(9, 4) != 0);
@@ -458,7 +468,7 @@ static void test_image_svg_group_skewy_transform_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_GREEN.full, (int)get_svg_pixel(4, 8));
     EGUI_TEST_ASSERT_TRUE(get_svg_pixel(4, 9) != 0);
@@ -480,7 +490,7 @@ static void test_image_svg_group_scale_transform_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(12, 12));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(6, 12));
@@ -506,7 +516,7 @@ static void test_image_svg_root_width_height_without_viewbox_sets_natural_size(v
     EGUI_TEST_ASSERT_EQUAL_INT(12, height);
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 170, 0).full, (int)get_svg_pixel(6, 4));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -531,7 +541,7 @@ static void test_image_svg_root_width_with_viewbox_preserves_explicit_width(void
     EGUI_TEST_ASSERT_EQUAL_INT(6, height);
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 51, 102).full, (int)get_svg_pixel(8, 2));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(3, 2));
@@ -556,7 +566,7 @@ static void test_image_svg_root_height_with_viewbox_preserves_explicit_height(vo
     EGUI_TEST_ASSERT_EQUAL_INT(12, height);
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(3, 4));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(3, 1));
@@ -576,7 +586,7 @@ static void test_image_svg_circle_fill_basic(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
     edge_pixel.full = get_svg_pixel(10, 6);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(10, 10));
@@ -598,7 +608,7 @@ static void test_image_svg_ellipse_fill_basic(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(122, 60, 255).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(122, 60, 255).full, (int)get_svg_pixel(14, 10));
@@ -627,7 +637,7 @@ static void test_image_svg_tiny_ellipse_fill_keeps_partial_center_coverage(void)
     EGUI_TEST_ASSERT_EQUAL_INT(4, height);
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
     center_pixel.full = get_svg_pixel(2, 1);
     edge_pixel.full = get_svg_pixel(1, 1);
 
@@ -657,7 +667,7 @@ static void test_image_svg_nested_svg_viewbox_scales_content(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 102, 0).full, (int)get_svg_pixel(22, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(6, 18));
@@ -678,7 +688,7 @@ static void test_image_svg_nested_svg_without_viewbox_translates_content(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(24, 18));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(8, 8));
@@ -699,7 +709,7 @@ static void test_image_svg_nested_svg_preserve_aspect_ratio_meet(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(16, 10));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 51, 102).full, (int)get_svg_pixel(16, 16));
@@ -721,7 +731,7 @@ static void test_image_svg_nested_svg_preserve_aspect_ratio_none(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(6, 16));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 176, 80).full, (int)get_svg_pixel(16, 10));
@@ -747,7 +757,7 @@ static void test_image_svg_nested_svg_preserve_aspect_ratio_none_nonuniform_circ
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_large();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
     left_edge_pixel.full = get_svg_pixel(64, 11);
     right_edge_pixel.full = get_svg_pixel(103, 11);
 
@@ -774,7 +784,7 @@ static void test_image_svg_nested_svg_default_overflow_clips_to_viewport(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(28, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(36, 24));
@@ -795,7 +805,7 @@ static void test_image_svg_nested_svg_visible_overflow_allows_paint_outside_view
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(36, 24));
 
@@ -815,7 +825,7 @@ static void test_image_svg_nested_svg_default_overflow_clips_stroke_to_viewport(
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 77, 79).full, (int)get_svg_pixel(28, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(36, 24));
@@ -836,7 +846,7 @@ static void test_image_svg_nested_svg_preserve_aspect_ratio_slice_clips_overflow
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(20, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(28, 24));
@@ -857,7 +867,7 @@ static void test_image_svg_nested_svg_viewbox_defaults_to_parent_viewport_size(v
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(122, 60, 255).full, (int)get_svg_pixel(40, 40));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(6, 18));
@@ -879,7 +889,7 @@ static void test_image_svg_nested_svg_viewbox_defaults_use_parent_viewbox_units(
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(28, 28));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(18, 18));
@@ -900,7 +910,7 @@ static void test_image_svg_nested_svg_viewbox_accepts_percentage_viewport_attrs(
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 51, 102).full, (int)get_svg_pixel(20, 20));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(20, 12));
@@ -922,7 +932,7 @@ static void test_image_svg_nested_svg_percentage_geometry_uses_nested_viewport_a
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 42));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 24));
@@ -944,7 +954,7 @@ static void test_image_svg_nested_svg_percentage_viewport_attrs_use_parent_viewp
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 146, 43).full, (int)get_svg_pixel(40, 52));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(40, 34));
@@ -964,7 +974,7 @@ static void test_image_svg_polygon_fill_basic(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(8, 12));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(6, 8));
@@ -984,7 +994,7 @@ static void test_image_svg_preserve_aspect_ratio_none_stretches(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image_resize((egui_image_t *)&image, 0, 0, 20, 20);
+    egui_canvas_draw_image_resize(&test_svg_canvas, (egui_image_t *)&image, 0, 0, 20, 20);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_RED.full, (int)get_svg_pixel(10, 2));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_RED.full, (int)get_svg_pixel(10, 18));
@@ -1007,7 +1017,7 @@ static void test_image_svg_group_opacity_multiplies_fill_opacity(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     assert_svg_pixel_color_close(get_svg_pixel(16, 16), expected, 0, 1, 0);
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(4, 4));
@@ -1032,7 +1042,7 @@ static void test_image_svg_group_opacity_isolates_overlap(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)expected_red.full, (int)get_svg_pixel(8, 8));
     assert_svg_pixel_color_close(get_svg_pixel(14, 12), expected_blue, 0, 1, 1);
@@ -1056,7 +1066,7 @@ static void test_image_svg_shape_opacity_isolates_fill_and_stroke(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)expected_stroke.full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT((int)expected_fill.full, (int)get_svg_pixel(16, 16));
@@ -1077,7 +1087,7 @@ static void test_image_svg_rect_fill_opacity(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     assert_svg_pixel_color_close(get_svg_pixel(16, 16), expected, 1, 0, 0);
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(4, 4));
@@ -1096,7 +1106,7 @@ static void test_image_svg_rgb_function_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_RED.full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1116,7 +1126,7 @@ static void test_image_svg_rgba_function_fill_uses_alpha(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     assert_svg_pixel_color_close(get_svg_pixel(10, 10), expected, 0, 0, 1);
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1136,7 +1146,7 @@ static void test_image_svg_hex8_fill_uses_alpha(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)expected.full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1155,7 +1165,7 @@ static void test_image_svg_named_color_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 165, 0).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1175,7 +1185,7 @@ static void test_image_svg_negative_rect_size_is_skipped(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1195,7 +1205,7 @@ static void test_image_svg_negative_circle_radius_is_skipped(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1215,7 +1225,7 @@ static void test_image_svg_negative_ellipse_radius_is_skipped(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1234,7 +1244,7 @@ static void test_image_svg_root_negative_dimensions_with_viewbox_are_ignored(voi
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image_resize((egui_image_t *)&image, 0, 0, 64, 64);
+    egui_canvas_draw_image_resize(&test_svg_canvas, (egui_image_t *)&image, 0, 0, 64, 64);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(32, 32));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(4, 4));
@@ -1254,7 +1264,7 @@ static void test_image_svg_opacity_zero_skips_invalid_use_reference(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -1276,7 +1286,7 @@ static void test_image_svg_opacity_zero_skips_unsupported_subtree(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(122, 60, 255).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1296,7 +1306,7 @@ static void test_image_svg_opacity_zero_skips_unsupported_leaf(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -1315,7 +1325,7 @@ static void test_image_svg_display_none_skips_shape(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 10));
 
@@ -1334,7 +1344,7 @@ static void test_image_svg_display_none_skips_unsupported_leaf(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -1354,7 +1364,7 @@ static void test_image_svg_display_none_skips_invalid_use_reference(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -1376,7 +1386,7 @@ static void test_image_svg_display_none_skips_unsupported_subtree(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1396,7 +1406,7 @@ static void test_image_svg_visibility_hidden_skips_unsupported_leaf(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -1418,7 +1428,7 @@ static void test_image_svg_visibility_hidden_skips_unsupported_subtree(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -1438,7 +1448,7 @@ static void test_image_svg_visibility_hidden_skips_invalid_use_reference(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -1458,7 +1468,7 @@ static void test_image_svg_visibility_hidden_skips_unsupported_shape_props(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -1478,7 +1488,7 @@ static void test_image_svg_visibility_hidden_skips_unsupported_leaf_props(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(1, 1));
@@ -1499,7 +1509,7 @@ static void test_image_svg_group_visibility_hidden_skips_children(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 10));
 
@@ -1518,7 +1528,7 @@ static void test_image_svg_visible_unsupported_element_is_skipped(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1538,7 +1548,7 @@ static void test_image_svg_visible_unsupported_shape_props_are_skipped(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1558,7 +1568,7 @@ static void test_image_svg_invalid_opacity_value_is_skipped(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1578,7 +1588,7 @@ static void test_image_svg_invalid_use_reference_is_skipped(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1599,7 +1609,7 @@ static void test_image_svg_use_unsupported_reference_is_skipped(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1620,7 +1630,7 @@ static void test_image_svg_child_visibility_visible_overrides_hidden_parent(void
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1641,7 +1651,7 @@ static void test_image_svg_child_visibility_visible_cannot_override_display_none
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 10));
 
@@ -1658,7 +1668,7 @@ static void test_image_svg_load_memory_len_without_null_terminator(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory_len(&image, svg_text, (uint32_t)sizeof(svg_text)));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 255, 255).full, (int)get_svg_pixel(6, 6));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(0, 0));
@@ -1689,7 +1699,7 @@ static void test_image_svg_relative_smooth_cubic_path_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 128, 255).full, (int)get_svg_pixel(32, 44));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(4, 20));
@@ -1708,7 +1718,7 @@ static void test_image_svg_relative_smooth_cubic_path_fill_resize_preserves_curv
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_large();
-    egui_canvas_draw_image_resize((egui_image_t *)&image, 0, 0, TEST_SVG_CANVAS_LARGE_W, TEST_SVG_CANVAS_LARGE_H);
+    egui_canvas_draw_image_resize(&test_svg_canvas, (egui_image_t *)&image, 0, 0, TEST_SVG_CANVAS_LARGE_W, TEST_SVG_CANVAS_LARGE_H);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 128, 255).full, (int)get_svg_pixel(71, 26));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 128, 255).full, (int)get_svg_pixel(88, 26));
@@ -1730,7 +1740,7 @@ static void test_image_svg_relative_smooth_quad_path_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(122, 66, 244).full, (int)get_svg_pixel(20, 40));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(122, 66, 244).full, (int)get_svg_pixel(44, 48));
@@ -1751,7 +1761,7 @@ static void test_image_svg_diagonal_edge_has_partial_aa_pixel(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     edge_pixel = get_svg_pixel(9, 10);
     EGUI_TEST_ASSERT_TRUE(edge_pixel != 0);
@@ -1772,7 +1782,7 @@ static void test_image_svg_absolute_arc_circle_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(10, 132, 255).full, (int)get_svg_pixel(32, 32));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(8, 8));
@@ -1792,7 +1802,7 @@ static void test_image_svg_relative_rotated_arc_ellipse_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(32, 32));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 32));
@@ -1813,7 +1823,7 @@ static void test_image_svg_invalid_arc_flag_is_skipped(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(10, 10));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(2, 2));
@@ -1832,7 +1842,7 @@ static void test_image_svg_rect_stroke_only(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_RED.full, (int)get_svg_pixel(28, 12));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(28, 24));
@@ -1853,7 +1863,7 @@ static void test_image_svg_rect_stroke_opacity(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)expected.full, (int)get_svg_pixel(28, 12));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(28, 24));
@@ -1873,7 +1883,7 @@ static void test_image_svg_open_path_stroke_does_not_close(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 255, 0).full, (int)get_svg_pixel(12, 26));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 255, 0).full, (int)get_svg_pixel(26, 40));
@@ -1893,7 +1903,7 @@ static void test_image_svg_fill_and_stroke_render_together(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_WHITE.full, (int)get_svg_pixel(14, 24));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_BLUE.full, (int)get_svg_pixel(28, 24));
@@ -1913,7 +1923,7 @@ static void test_image_svg_polyline_fill_closes_shape(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 255, 255).full, (int)get_svg_pixel(20, 32));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(32, 20));
@@ -1932,7 +1942,7 @@ static void test_image_svg_line_stroke_only(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 0, 255).full, (int)get_svg_pixel(32, 20));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(13, 20));
@@ -1953,7 +1963,7 @@ static void test_image_svg_line_round_cap_extends_endpoints(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
     fringe_pixel.full = get_svg_pixel(12, 17);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 136, 0).full, (int)get_svg_pixel(13, 20));
@@ -1978,7 +1988,7 @@ static void test_image_svg_line_square_cap_extends_corners(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 160, 255).full, (int)get_svg_pixel(13, 20));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 160, 255).full, (int)get_svg_pixel(12, 17));
@@ -1997,7 +2007,7 @@ static void test_image_svg_polyline_round_join_fills_outer_corner(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 85, 0).full, (int)get_svg_pixel(14, 22));
 
@@ -2017,7 +2027,7 @@ static void test_image_svg_polyline_round_join_fractional_scale_preserves_curved
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_large();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     edge_pixel.full = get_svg_pixel(15, 1);
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_WHITE.full, (int)get_svg_pixel(17, 0));
@@ -2040,7 +2050,7 @@ static void test_image_svg_polyline_bevel_join_keeps_corner_cut(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(13, 21));
     EGUI_TEST_ASSERT_TRUE(get_svg_pixel(14, 22) != 0);
@@ -2062,7 +2072,7 @@ static void test_image_svg_polyline_miter_join_forms_sharp_corner(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(122, 60, 255).full, (int)get_svg_pixel(13, 21));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(122, 60, 255).full, (int)get_svg_pixel(15, 22));
@@ -2082,7 +2092,7 @@ static void test_image_svg_polyline_miter_join_respects_miterlimit(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(13, 21));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 51, 102).full, (int)get_svg_pixel(16, 28));
@@ -2101,7 +2111,7 @@ static void test_image_svg_rounded_rect_fill(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(13, 13));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 128, 255).full, (int)get_svg_pixel(16, 16));
@@ -2121,7 +2131,7 @@ static void test_image_svg_rounded_rect_stroke(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(12, 12));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 255, 128).full, (int)get_svg_pixel(15, 15));
@@ -2142,7 +2152,7 @@ static void test_image_svg_rounded_rect_stroke_fractional_resize(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image_resize((egui_image_t *)&image, 0, 0, 50, 50);
+    egui_canvas_draw_image_resize(&test_svg_canvas, (egui_image_t *)&image, 0, 0, 50, 50);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(7, 7));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 255, 128).full, (int)get_svg_pixel(11, 11));
@@ -2164,7 +2174,7 @@ static void test_image_svg_use_references_defs_shape(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_RED.full, (int)get_svg_pixel(26, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 10));
@@ -2189,7 +2199,7 @@ static void test_image_svg_use_references_group_with_xlink_href(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 255, 0).full, (int)get_svg_pixel(26, 24));
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_BLUE.full, (int)get_svg_pixel(38, 24));
@@ -2217,7 +2227,7 @@ static void test_image_svg_use_xlink_href_fractional_meet_keeps_top_edge_aa(void
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_large();
-    egui_canvas_draw_image_resize((egui_image_t *)&image, 0, 0, 160, 80);
+    egui_canvas_draw_image_resize(&test_svg_canvas, (egui_image_t *)&image, 0, 0, 160, 80);
 
     edge_pixel = get_svg_pixel(20, 4);
     EGUI_TEST_ASSERT_TRUE(edge_pixel != 0);
@@ -2243,7 +2253,7 @@ static void test_image_svg_use_references_nested_use(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 170, 0).full, (int)get_svg_pixel(34, 22));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(20, 20));
@@ -2283,7 +2293,7 @@ static void test_image_svg_use_references_symbol(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 77, 79).full, (int)get_svg_pixel(28, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(8, 8));
@@ -2307,7 +2317,7 @@ static void test_image_svg_use_symbol_viewbox_scales_to_use_size(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(22, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(6, 18));
@@ -2331,7 +2341,7 @@ static void test_image_svg_use_symbol_default_overflow_clips_to_viewport(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(28, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(36, 24));
@@ -2355,7 +2365,7 @@ static void test_image_svg_use_symbol_visible_overflow_allows_paint_outside_view
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(36, 24));
 
@@ -2378,7 +2388,7 @@ static void test_image_svg_use_symbol_default_overflow_clips_stroke_to_viewport(
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 77, 79).full, (int)get_svg_pixel(28, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(36, 24));
@@ -2402,7 +2412,7 @@ static void test_image_svg_use_symbol_visible_overflow_allows_stroke_outside_vie
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(36, 24));
 
@@ -2425,7 +2435,7 @@ static void test_image_svg_use_symbol_viewbox_preserves_aspect_ratio(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(20, 16));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(20, 12));
@@ -2450,7 +2460,7 @@ static void test_image_svg_use_symbol_preserve_aspect_ratio_slice_clips_overflow
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(28, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(36, 24));
@@ -2474,7 +2484,7 @@ static void test_image_svg_use_references_svg_viewbox(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(24, 28));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(8, 20));
@@ -2498,7 +2508,7 @@ static void test_image_svg_use_references_svg_default_overflow_clips_to_viewport
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(28, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(36, 24));
@@ -2522,7 +2532,7 @@ static void test_image_svg_use_references_svg_visible_overflow_allows_paint_outs
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(36, 24));
 
@@ -2545,7 +2555,7 @@ static void test_image_svg_use_references_svg_default_overflow_clips_stroke_to_v
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 77, 79).full, (int)get_svg_pixel(28, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(36, 24));
@@ -2569,7 +2579,7 @@ static void test_image_svg_use_references_svg_preserve_aspect_ratio_slice_clips_
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 51, 102).full, (int)get_svg_pixel(28, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(36, 24));
@@ -2593,7 +2603,7 @@ static void test_image_svg_use_references_svg_viewbox_honors_ref_xy(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 51, 102).full, (int)get_svg_pixel(30, 36));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(14, 20));
@@ -2617,7 +2627,7 @@ static void test_image_svg_use_references_svg_without_viewbox_honors_ref_xy(void
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(24, 24));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(14, 18));
@@ -2641,7 +2651,7 @@ static void test_image_svg_use_symbol_viewbox_defaults_to_parent_viewport_size(v
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(40, 40));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(6, 18));
@@ -2666,7 +2676,7 @@ static void test_image_svg_use_references_svg_viewbox_defaults_to_parent_viewpor
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 200, 83).full, (int)get_svg_pixel(40, 40));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(6, 18));
@@ -2693,7 +2703,7 @@ static void test_image_svg_use_symbol_nested_svg_defaults_use_symbol_viewbox_uni
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(255, 122, 0).full, (int)get_svg_pixel(44, 44));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(32, 32));
@@ -2717,7 +2727,7 @@ static void test_image_svg_use_symbol_viewbox_accepts_percentage_use_attrs(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(0, 140, 255).full, (int)get_svg_pixel(20, 20));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(20, 12));
@@ -2739,7 +2749,7 @@ static void test_image_svg_symbol_is_not_rendered_directly(void)
     EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
 
     setup_svg_canvas_full();
-    egui_canvas_draw_image((egui_image_t *)&image, 0, 0);
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
 
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(10, 10));
 

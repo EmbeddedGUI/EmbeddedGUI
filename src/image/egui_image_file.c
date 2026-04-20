@@ -44,6 +44,42 @@ static void egui_image_file_invalidate_row_cache(egui_image_file_t *self)
 {
     self->cached_row = 0xFFFFu;
     self->row_cache_valid = 0;
+    self->cached_row_secondary = 0xFFFFu;
+    self->row_cache_secondary_valid = 0;
+}
+
+static void egui_image_file_swap_row_cache_slots(egui_image_file_t *self)
+{
+    uint16_t *row_pixels;
+    uint8_t *row_alpha;
+    uint16_t row_capacity;
+    uint16_t alpha_capacity;
+    uint16_t cached_row;
+    uint8_t row_cache_valid;
+
+    row_pixels = self->row_pixels;
+    self->row_pixels = self->row_pixels_secondary;
+    self->row_pixels_secondary = row_pixels;
+
+    row_alpha = self->row_alpha;
+    self->row_alpha = self->row_alpha_secondary;
+    self->row_alpha_secondary = row_alpha;
+
+    row_capacity = self->row_capacity;
+    self->row_capacity = self->row_capacity_secondary;
+    self->row_capacity_secondary = row_capacity;
+
+    alpha_capacity = self->alpha_capacity;
+    self->alpha_capacity = self->alpha_capacity_secondary;
+    self->alpha_capacity_secondary = alpha_capacity;
+
+    cached_row = self->cached_row;
+    self->cached_row = self->cached_row_secondary;
+    self->cached_row_secondary = cached_row;
+
+    row_cache_valid = self->row_cache_valid;
+    self->row_cache_valid = self->row_cache_secondary_valid;
+    self->row_cache_secondary_valid = row_cache_valid;
 }
 
 static void egui_image_file_reset_runtime(egui_image_file_t *self)
@@ -197,6 +233,77 @@ static int egui_image_file_prepare_row_buffers(egui_image_file_t *self)
         }
         self->row_alpha = new_alpha;
         self->alpha_capacity = width;
+    }
+
+    return 1;
+}
+
+static int egui_image_file_prepare_secondary_row_buffers(egui_image_file_t *self)
+{
+    egui_core_t *core;
+    uint16_t *new_pixels = self->row_pixels_secondary;
+    uint8_t *new_alpha = self->row_alpha_secondary;
+    uint16_t width = self->width;
+
+    core = egui_image_file_get_core(self, NULL);
+
+    if (width == 0)
+    {
+        self->status = EGUI_IMAGE_FILE_STATUS_OPEN_DECODER_FAIL;
+        return 0;
+    }
+
+    if (self->row_capacity_secondary < width)
+    {
+        new_pixels = (uint16_t *)egui_malloc(core, (int)((uint32_t)width * sizeof(uint16_t)));
+        if (new_pixels == NULL)
+        {
+            self->status = EGUI_IMAGE_FILE_STATUS_OOM;
+            return 0;
+        }
+    }
+
+    if (self->has_alpha)
+    {
+        if (self->alpha_capacity_secondary < width)
+        {
+            new_alpha = (uint8_t *)egui_malloc(core, (int)width);
+            if (new_alpha == NULL)
+            {
+                if (new_pixels != self->row_pixels_secondary)
+                {
+                    egui_free(core, new_pixels);
+                }
+                self->status = EGUI_IMAGE_FILE_STATUS_OOM;
+                return 0;
+            }
+        }
+    }
+    else if (self->row_alpha_secondary != NULL)
+    {
+        egui_free(core, self->row_alpha_secondary);
+        self->row_alpha_secondary = NULL;
+        self->alpha_capacity_secondary = 0;
+    }
+
+    if (new_pixels != self->row_pixels_secondary)
+    {
+        if (self->row_pixels_secondary != NULL)
+        {
+            egui_free(core, self->row_pixels_secondary);
+        }
+        self->row_pixels_secondary = new_pixels;
+        self->row_capacity_secondary = width;
+    }
+
+    if (self->has_alpha && new_alpha != self->row_alpha_secondary)
+    {
+        if (self->row_alpha_secondary != NULL)
+        {
+            egui_free(core, self->row_alpha_secondary);
+        }
+        self->row_alpha_secondary = new_alpha;
+        self->alpha_capacity_secondary = width;
     }
 
     return 1;
@@ -357,10 +464,30 @@ static int egui_image_file_load_row(egui_image_file_t *self, uint16_t row)
     {
         return 1;
     }
+    if (self->row_cache_secondary_valid && self->cached_row_secondary == row)
+    {
+        egui_image_file_swap_row_cache_slots(self);
+        return 1;
+    }
     if (self->decoder == NULL || self->decoder->read_row == NULL)
     {
         self->status = EGUI_IMAGE_FILE_STATUS_OPEN_DECODER_FAIL;
         return 0;
+    }
+    if (self->row_cache_valid)
+    {
+        if (!egui_image_file_prepare_secondary_row_buffers(self))
+        {
+            return 0;
+        }
+
+        memcpy(self->row_pixels_secondary, self->row_pixels, (size_t)self->width * sizeof(uint16_t));
+        if (self->has_alpha && self->row_alpha != NULL && self->row_alpha_secondary != NULL)
+        {
+            memcpy(self->row_alpha_secondary, self->row_alpha, (size_t)self->width);
+        }
+        self->cached_row_secondary = self->cached_row;
+        self->row_cache_secondary_valid = 1;
     }
     if (!self->decoder->read_row(self->decoder_ctx, row, self->row_pixels, self->has_alpha ? self->row_alpha : NULL))
     {
@@ -1014,8 +1141,12 @@ void egui_image_file_init(egui_image_file_t *self, egui_core_t *core)
     self->placeholder = NULL;
     self->row_pixels = NULL;
     self->row_alpha = NULL;
+    self->row_pixels_secondary = NULL;
+    self->row_alpha_secondary = NULL;
     self->row_capacity = 0;
     self->alpha_capacity = 0;
+    self->row_capacity_secondary = 0;
+    self->alpha_capacity_secondary = 0;
     self->resize_width = 0;
     self->resize_height = 0;
     self->resize_enabled = 0;
@@ -1046,8 +1177,20 @@ void egui_image_file_deinit(egui_image_file_t *self)
         egui_free(self->core, self->row_alpha);
         self->row_alpha = NULL;
     }
+    if (self->row_pixels_secondary != NULL)
+    {
+        egui_free(self->core, self->row_pixels_secondary);
+        self->row_pixels_secondary = NULL;
+    }
+    if (self->row_alpha_secondary != NULL)
+    {
+        egui_free(self->core, self->row_alpha_secondary);
+        self->row_alpha_secondary = NULL;
+    }
     self->row_capacity = 0;
     self->alpha_capacity = 0;
+    self->row_capacity_secondary = 0;
+    self->alpha_capacity_secondary = 0;
     self->resize_width = 0;
     self->resize_height = 0;
     self->resize_enabled = 0;

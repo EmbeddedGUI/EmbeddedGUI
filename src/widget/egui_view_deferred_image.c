@@ -5,7 +5,12 @@
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
 
-static int egui_view_deferred_image_copy_string(char **target, const char *value)
+static egui_core_t *egui_view_deferred_image_get_core(egui_view_deferred_image_t *local)
+{
+    return local != NULL ? egui_view_get_core(EGUI_VIEW_OF(local)) : NULL;
+}
+
+static int egui_view_deferred_image_copy_string(egui_core_t *core, char **target, const char *value)
 {
     size_t len;
     char *copy;
@@ -19,14 +24,14 @@ static int egui_view_deferred_image_copy_string(char **target, const char *value
     {
         if (*target != NULL)
         {
-            egui_free(*target);
+            egui_free(core, *target);
             *target = NULL;
         }
         return 1;
     }
 
     len = strlen(value);
-    copy = (char *)egui_malloc((int)(len + 1));
+    copy = (char *)egui_malloc(core, (int)(len + 1));
     if (copy == NULL)
     {
         return 0;
@@ -35,7 +40,7 @@ static int egui_view_deferred_image_copy_string(char **target, const char *value
     memcpy(copy, value, len + 1);
     if (*target != NULL)
     {
-        egui_free(*target);
+        egui_free(core, *target);
     }
     *target = copy;
     return 1;
@@ -48,8 +53,8 @@ static void egui_view_deferred_image_stop_timers(egui_view_deferred_image_t *loc
         return;
     }
 
-    egui_timer_stop_timer(&local->delay_timer);
-    egui_timer_stop_timer(&local->poll_timer);
+    egui_view_stop_timer(EGUI_VIEW_OF(local), &local->delay_timer);
+    egui_view_stop_timer(EGUI_VIEW_OF(local), &local->poll_timer);
 }
 
 static int egui_view_deferred_image_has_loader(const egui_view_deferred_image_t *local)
@@ -65,13 +70,16 @@ static int egui_view_deferred_image_is_config_ready(const egui_view_deferred_ima
 
 static void egui_view_deferred_image_reset_loaded_image(egui_view_deferred_image_t *local)
 {
+    egui_core_t *core;
+
     if (local == NULL)
     {
         return;
     }
 
+    core = egui_view_deferred_image_get_core(local);
     egui_image_file_deinit(&local->loaded_image);
-    egui_image_file_init(&local->loaded_image);
+    egui_image_file_init(&local->loaded_image, core);
     egui_image_file_set_placeholder(&local->loaded_image, local->file_placeholder);
 }
 
@@ -166,7 +174,7 @@ static void egui_view_deferred_image_begin_load(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_deferred_image_t);
     void *request_handle = NULL;
 
-    egui_timer_stop_timer(&local->delay_timer);
+    egui_view_stop_timer(self, &local->delay_timer);
     if (!egui_view_deferred_image_is_config_ready(local))
     {
         local->status = EGUI_VIEW_DEFERRED_IMAGE_STATUS_IDLE;
@@ -181,7 +189,7 @@ static void egui_view_deferred_image_begin_load(egui_view_t *self)
 
     local->request_handle = request_handle;
     local->status = EGUI_VIEW_DEFERRED_IMAGE_STATUS_LOADING;
-    egui_timer_start_timer(&local->poll_timer, local->poll_interval_ms, local->poll_interval_ms);
+    egui_view_start_timer(self, &local->poll_timer, local->poll_interval_ms, local->poll_interval_ms);
 }
 
 static void egui_view_deferred_image_delay_timer_callback(egui_timer_t *timer)
@@ -213,14 +221,14 @@ static void egui_view_deferred_image_start_schedule(egui_view_t *self)
         return;
     }
 
-    egui_timer_start_timer(&local->delay_timer, local->load_delay_ms, 0);
+    egui_view_start_timer(self, &local->delay_timer, local->load_delay_ms, 0);
 }
 
-static void egui_view_deferred_image_draw_default_placeholder(const egui_region_t *region)
+static void egui_view_deferred_image_draw_default_placeholder(egui_canvas_t *canvas, const egui_region_t *region)
 {
     egui_dim_t radius;
 
-    if (region == NULL || region->size.width <= 0 || region->size.height <= 0)
+    if (canvas == NULL || region == NULL || region->size.width <= 0 || region->size.height <= 0)
     {
         return;
     }
@@ -235,7 +243,7 @@ static void egui_view_deferred_image_draw_default_placeholder(const egui_region_
         radius = EGUI_THEME_RADIUS_LG;
     }
 
-    egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, radius, EGUI_THEME_BORDER,
+    egui_canvas_draw_round_rectangle_fill(canvas, region->location.x, region->location.y, region->size.width, region->size.height, radius, EGUI_THEME_BORDER,
                                           EGUI_ALPHA_100);
     if (region->size.width > 2 && region->size.height > 2)
     {
@@ -245,24 +253,25 @@ static void egui_view_deferred_image_draw_default_placeholder(const egui_region_
         {
             inner_radius = 0;
         }
-        egui_canvas_draw_round_rectangle_fill(region->location.x + 1, region->location.y + 1, region->size.width - 2, region->size.height - 2, inner_radius,
-                                              EGUI_THEME_SURFACE_VARIANT, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(canvas, region->location.x + 1, region->location.y + 1, region->size.width - 2, region->size.height - 2,
+                                              inner_radius, EGUI_THEME_SURFACE_VARIANT, EGUI_ALPHA_100);
     }
 }
 
 static void egui_view_deferred_image_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_deferred_image_t);
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
     egui_region_t region;
 
     egui_view_get_work_region(self, &region);
     if (local->display_image != NULL)
     {
-        egui_canvas_draw_image_resize(local->display_image, region.location.x, region.location.y, region.size.width, region.size.height);
+        egui_canvas_draw_image_resize(canvas, local->display_image, region.location.x, region.location.y, region.size.width, region.size.height);
         return;
     }
 
-    egui_view_deferred_image_draw_default_placeholder(&region);
+    egui_view_deferred_image_draw_default_placeholder(canvas, &region);
 }
 
 static void egui_view_deferred_image_on_attach_to_window(egui_view_t *self)
@@ -307,12 +316,6 @@ void egui_view_deferred_image_apply_params(egui_view_t *self, const egui_view_de
     egui_view_invalidate(self);
 }
 
-void egui_view_deferred_image_init_with_params(egui_view_t *self, const egui_view_deferred_image_params_t *params)
-{
-    egui_view_deferred_image_init(self);
-    egui_view_deferred_image_apply_params(self, params);
-}
-
 void egui_view_deferred_image_set_source_uri(egui_view_t *self, const char *source_uri)
 {
     EGUI_LOCAL_INIT(egui_view_deferred_image_t);
@@ -323,7 +326,7 @@ void egui_view_deferred_image_set_source_uri(egui_view_t *self, const char *sour
     {
         return;
     }
-    if (!egui_view_deferred_image_copy_string(&local->source_uri, source_uri))
+    if (!egui_view_deferred_image_copy_string(egui_view_get_core(self), &local->source_uri, source_uri))
     {
         local->status = EGUI_VIEW_DEFERRED_IMAGE_STATUS_FAILED;
         return;
@@ -350,7 +353,7 @@ void egui_view_deferred_image_set_cache_path(egui_view_t *self, const char *cach
     {
         return;
     }
-    if (!egui_view_deferred_image_copy_string(&local->cache_path, cache_path))
+    if (!egui_view_deferred_image_copy_string(egui_view_get_core(self), &local->cache_path, cache_path))
     {
         local->status = EGUI_VIEW_DEFERRED_IMAGE_STATUS_FAILED;
         return;
@@ -475,18 +478,19 @@ egui_view_deferred_image_status_t egui_view_deferred_image_get_status(const egui
 void egui_view_deferred_image_deinit(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_deferred_image_t);
+    egui_core_t *core = egui_view_get_core(self);
 
     egui_view_deferred_image_stop_timers(local);
     egui_view_deferred_image_release_request(local);
     egui_image_file_deinit(&local->loaded_image);
     if (local->source_uri != NULL)
     {
-        egui_free(local->source_uri);
+        egui_free(core, local->source_uri);
         local->source_uri = NULL;
     }
     if (local->cache_path != NULL)
     {
-        egui_free(local->cache_path);
+        egui_free(core, local->cache_path);
         local->cache_path = NULL;
     }
     local->display_image = NULL;
@@ -513,11 +517,17 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_deferred_image_t) = {
 #endif
 };
 
-void egui_view_deferred_image_init(egui_view_t *self)
+void egui_view_deferred_image_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_deferred_image_params_t *params)
+{
+    egui_view_deferred_image_init(self, core);
+    egui_view_deferred_image_apply_params(self, params);
+}
+
+void egui_view_deferred_image_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_deferred_image_t);
 
-    egui_view_init(self);
+    egui_view_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_deferred_image_t);
 
     local->source_uri = NULL;
@@ -532,7 +542,7 @@ void egui_view_deferred_image_init(egui_view_t *self)
     local->status = EGUI_VIEW_DEFERRED_IMAGE_STATUS_IDLE;
     local->auto_start_on_attach = 1u;
 
-    egui_image_file_init(&local->loaded_image);
+    egui_image_file_init(&local->loaded_image, core);
     egui_timer_init_timer(&local->delay_timer, local, egui_view_deferred_image_delay_timer_callback);
     egui_timer_init_timer(&local->poll_timer, local, egui_view_deferred_image_poll_timer_callback);
 

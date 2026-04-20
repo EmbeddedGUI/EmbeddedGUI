@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "egui.h"
+#include "uicode_disp0.h"
 #include "test/egui_test.h"
 #include "test_deferred_image.h"
 
@@ -41,6 +42,14 @@ static test_deferred_image_decoder_ctx_t s_test_deferred_image_decoder_ctx;
 static egui_view_deferred_image_t s_test_deferred_image_view;
 static egui_image_t s_test_deferred_placeholder;
 static test_deferred_image_loader_state_t s_test_deferred_image_loader_state;
+
+static egui_core_t *test_deferred_image_get_core(void)
+{
+    egui_core_t *core = uicode_get_core();
+
+    EGUI_ASSERT(core != NULL);
+    return core;
+}
 
 static void test_deferred_image_reset_decoder_counters(void)
 {
@@ -156,6 +165,7 @@ static const egui_image_file_decoder_t s_test_deferred_image_decoder = {
 
 static int test_deferred_image_loader_start(void *user_data, const char *source_uri, const char *cache_path, void **request_handle)
 {
+    egui_core_t *core = test_deferred_image_get_core();
     test_deferred_image_request_t *request;
 
     EGUI_UNUSED(user_data);
@@ -168,7 +178,7 @@ static int test_deferred_image_loader_start(void *user_data, const char *source_
         return 0;
     }
 
-    request = (test_deferred_image_request_t *)egui_malloc(sizeof(*request));
+    request = (test_deferred_image_request_t *)egui_malloc(core, sizeof(*request));
     if (request == NULL)
     {
         return 0;
@@ -202,11 +212,13 @@ static egui_view_deferred_image_loader_poll_result_t test_deferred_image_loader_
 
 static void test_deferred_image_loader_cancel(void *user_data, void *request_handle)
 {
+    egui_core_t *core = test_deferred_image_get_core();
+
     EGUI_UNUSED(user_data);
     s_test_deferred_image_loader_state.cancel_count++;
     if (request_handle != NULL)
     {
-        egui_free(request_handle);
+        egui_free(core, request_handle);
     }
 }
 
@@ -219,18 +231,20 @@ static const egui_view_deferred_image_loader_t s_test_deferred_image_loader = {
 
 static int test_deferred_image_prepare_widget(const char *source_uri, const char *cache_path, uint16_t delay_ms)
 {
+    egui_core_t *core = test_deferred_image_get_core();
+
     memset(&s_test_deferred_image_view, 0, sizeof(s_test_deferred_image_view));
     memset(&s_test_deferred_placeholder, 0, sizeof(s_test_deferred_placeholder));
     test_deferred_image_reset_decoder_counters();
     test_deferred_image_reset_loader_state();
-    egui_image_file_set_default_io(&s_test_deferred_image_io);
-    egui_image_file_clear_decoders();
-    if (!egui_image_file_register_decoder(&s_test_deferred_image_decoder))
+    egui_image_file_set_default_io(core, &s_test_deferred_image_io);
+    egui_image_file_clear_decoders(core);
+    if (!egui_image_file_register_decoder(core, &s_test_deferred_image_decoder))
     {
         return 0;
     }
 
-    egui_view_deferred_image_init(EGUI_VIEW_OF(&s_test_deferred_image_view));
+    egui_view_deferred_image_init(EGUI_VIEW_OF(&s_test_deferred_image_view), core);
     egui_view_set_size(EGUI_VIEW_OF(&s_test_deferred_image_view), 64, 48);
     egui_view_deferred_image_set_placeholder_image(EGUI_VIEW_OF(&s_test_deferred_image_view), &s_test_deferred_placeholder);
     egui_view_deferred_image_set_loader(EGUI_VIEW_OF(&s_test_deferred_image_view), &s_test_deferred_image_loader);
@@ -242,21 +256,25 @@ static int test_deferred_image_prepare_widget(const char *source_uri, const char
 
 static void test_deferred_image_cleanup_widget(void)
 {
+    egui_core_t *core = test_deferred_image_get_core();
+
     egui_view_deferred_image_deinit(EGUI_VIEW_OF(&s_test_deferred_image_view));
-    egui_image_file_set_default_io(NULL);
-    egui_image_file_clear_decoders();
+    egui_image_file_set_default_io(core, NULL);
+    egui_image_file_clear_decoders(core);
 }
 
 static void test_deferred_image_attach_starts_delay_timer(void)
 {
+    egui_core_t *core = test_deferred_image_get_core();
+
     EGUI_TEST_ASSERT_TRUE(test_deferred_image_prepare_widget("mock:/source", "mock:/cache.bin", 25));
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_DEFERRED_IMAGE_STATUS_IDLE, egui_view_deferred_image_get_status(EGUI_VIEW_OF(&s_test_deferred_image_view)));
 
     egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&s_test_deferred_image_view));
 
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_DEFERRED_IMAGE_STATUS_DELAY, egui_view_deferred_image_get_status(EGUI_VIEW_OF(&s_test_deferred_image_view)));
-    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(&s_test_deferred_image_view.delay_timer));
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&s_test_deferred_image_view.poll_timer));
+    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(core, &s_test_deferred_image_view.delay_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(core, &s_test_deferred_image_view.poll_timer));
     EGUI_TEST_ASSERT_EQUAL_INT(0, s_test_deferred_image_loader_state.start_count);
 
     test_deferred_image_cleanup_widget();
@@ -264,6 +282,8 @@ static void test_deferred_image_attach_starts_delay_timer(void)
 
 static void test_deferred_image_delay_callback_starts_loader_and_polling(void)
 {
+    egui_core_t *core = test_deferred_image_get_core();
+
     EGUI_TEST_ASSERT_TRUE(test_deferred_image_prepare_widget("mock:/source", "mock:/cache.bin", 25));
 
     egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&s_test_deferred_image_view));
@@ -273,8 +293,8 @@ static void test_deferred_image_delay_callback_starts_loader_and_polling(void)
     EGUI_TEST_ASSERT_EQUAL_INT(1, s_test_deferred_image_loader_state.start_count);
     EGUI_TEST_ASSERT_TRUE(strcmp(s_test_deferred_image_loader_state.last_source_uri, "mock:/source") == 0);
     EGUI_TEST_ASSERT_TRUE(strcmp(s_test_deferred_image_loader_state.last_cache_path, "mock:/cache.bin") == 0);
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&s_test_deferred_image_view.delay_timer));
-    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(&s_test_deferred_image_view.poll_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(core, &s_test_deferred_image_view.delay_timer));
+    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(core, &s_test_deferred_image_view.poll_timer));
     EGUI_TEST_ASSERT_NOT_NULL(s_test_deferred_image_view.request_handle);
 
     test_deferred_image_cleanup_widget();
@@ -282,6 +302,8 @@ static void test_deferred_image_delay_callback_starts_loader_and_polling(void)
 
 static void test_deferred_image_success_reaches_ready_and_uses_loaded_image(void)
 {
+    egui_core_t *core = test_deferred_image_get_core();
+
     EGUI_TEST_ASSERT_TRUE(test_deferred_image_prepare_widget("mock:/source", "mock:/cache.bin", 0));
 
     egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&s_test_deferred_image_view));
@@ -290,7 +312,7 @@ static void test_deferred_image_success_reaches_ready_and_uses_loaded_image(void
     s_test_deferred_image_view.poll_timer.callback(&s_test_deferred_image_view.poll_timer);
 
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_DEFERRED_IMAGE_STATUS_READY, egui_view_deferred_image_get_status(EGUI_VIEW_OF(&s_test_deferred_image_view)));
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&s_test_deferred_image_view.poll_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(core, &s_test_deferred_image_view.poll_timer));
     EGUI_TEST_ASSERT_NULL(s_test_deferred_image_view.request_handle);
     EGUI_TEST_ASSERT_EQUAL_INT(1, s_test_deferred_image_loader_state.cancel_count);
     EGUI_TEST_ASSERT_TRUE(s_test_deferred_image_view.display_image == (const egui_image_t *)&s_test_deferred_image_view.loaded_image);
@@ -303,6 +325,8 @@ static void test_deferred_image_success_reaches_ready_and_uses_loaded_image(void
 
 static void test_deferred_image_fail_reaches_failed_and_keeps_placeholder(void)
 {
+    egui_core_t *core = test_deferred_image_get_core();
+
     EGUI_TEST_ASSERT_TRUE(test_deferred_image_prepare_widget("mock:/source", "mock:/cache.bin", 0));
     s_test_deferred_image_loader_state.terminal_result = EGUI_VIEW_DEFERRED_IMAGE_LOADER_POLL_FAILED;
 
@@ -310,7 +334,7 @@ static void test_deferred_image_fail_reaches_failed_and_keeps_placeholder(void)
     s_test_deferred_image_view.poll_timer.callback(&s_test_deferred_image_view.poll_timer);
 
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_DEFERRED_IMAGE_STATUS_FAILED, egui_view_deferred_image_get_status(EGUI_VIEW_OF(&s_test_deferred_image_view)));
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&s_test_deferred_image_view.poll_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(core, &s_test_deferred_image_view.poll_timer));
     EGUI_TEST_ASSERT_NULL(s_test_deferred_image_view.request_handle);
     EGUI_TEST_ASSERT_EQUAL_INT(1, s_test_deferred_image_loader_state.cancel_count);
     EGUI_TEST_ASSERT_TRUE(s_test_deferred_image_view.display_image == &s_test_deferred_placeholder);
@@ -321,6 +345,8 @@ static void test_deferred_image_fail_reaches_failed_and_keeps_placeholder(void)
 
 static void test_deferred_image_detach_cancels_loading_request(void)
 {
+    egui_core_t *core = test_deferred_image_get_core();
+
     EGUI_TEST_ASSERT_TRUE(test_deferred_image_prepare_widget("mock:/source", "mock:/cache.bin", 0));
     s_test_deferred_image_loader_state.polls_until_terminal = 1u;
 
@@ -330,7 +356,7 @@ static void test_deferred_image_detach_cancels_loading_request(void)
     egui_view_dispatch_detach_from_window(EGUI_VIEW_OF(&s_test_deferred_image_view));
 
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_DEFERRED_IMAGE_STATUS_IDLE, egui_view_deferred_image_get_status(EGUI_VIEW_OF(&s_test_deferred_image_view)));
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&s_test_deferred_image_view.poll_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(core, &s_test_deferred_image_view.poll_timer));
     EGUI_TEST_ASSERT_EQUAL_INT(1, s_test_deferred_image_loader_state.cancel_count);
     EGUI_TEST_ASSERT_NULL(s_test_deferred_image_view.request_handle);
     EGUI_TEST_ASSERT_TRUE(s_test_deferred_image_view.display_image == &s_test_deferred_placeholder);
@@ -340,14 +366,16 @@ static void test_deferred_image_detach_cancels_loading_request(void)
 
 static void test_deferred_image_detach_cancels_pending_delay(void)
 {
+    egui_core_t *core = test_deferred_image_get_core();
+
     EGUI_TEST_ASSERT_TRUE(test_deferred_image_prepare_widget("mock:/source", "mock:/cache.bin", 25));
 
     egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&s_test_deferred_image_view));
     egui_view_dispatch_detach_from_window(EGUI_VIEW_OF(&s_test_deferred_image_view));
 
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_DEFERRED_IMAGE_STATUS_IDLE, egui_view_deferred_image_get_status(EGUI_VIEW_OF(&s_test_deferred_image_view)));
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&s_test_deferred_image_view.delay_timer));
-    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&s_test_deferred_image_view.poll_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(core, &s_test_deferred_image_view.delay_timer));
+    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(core, &s_test_deferred_image_view.poll_timer));
     EGUI_TEST_ASSERT_EQUAL_INT(0, s_test_deferred_image_loader_state.start_count);
     EGUI_TEST_ASSERT_EQUAL_INT(0, s_test_deferred_image_loader_state.cancel_count);
 

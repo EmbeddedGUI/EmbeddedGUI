@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "egui.h"
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #include "decoder_bmp_stream.h"
 #include "file_io_stdio.h"
@@ -51,6 +51,7 @@ static egui_view_label_t subtitle_label;
 static deferred_image_demo_card_t fast_card;
 static deferred_image_demo_card_t slow_card;
 static deferred_image_demo_card_t fail_card;
+static egui_core_t *s_deferred_image_core;
 
 static file_image_stdio_context_t deferred_image_file_ctx = {
         .root_prefix = "example/HelloBasic/file_image/files/",
@@ -75,7 +76,7 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_card, &bg_card_params);
 static void deferred_image_demo_init_label(egui_view_label_t *label, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const char *text,
                                            const egui_font_t *font, egui_color_t color, uint8_t align_type)
 {
-    egui_view_label_init(EGUI_VIEW_OF(label));
+    egui_view_label_init(EGUI_VIEW_OF(label), s_deferred_image_core);
     egui_view_set_position(EGUI_VIEW_OF(label), x, y);
     egui_view_set_size(EGUI_VIEW_OF(label), width, height);
     egui_view_label_set_font(EGUI_VIEW_OF(label), font);
@@ -123,7 +124,7 @@ static int deferred_image_mock_loader_start(void *user_data, const char *source_
         return 0;
     }
 
-    request = (deferred_image_mock_request_t *)egui_malloc(sizeof(*request));
+    request = (deferred_image_mock_request_t *)egui_malloc(s_deferred_image_core, sizeof(*request));
     if (request == NULL)
     {
         return 0;
@@ -131,7 +132,7 @@ static int deferred_image_mock_loader_start(void *user_data, const char *source_
 
     if (!deferred_image_mock_loader_parse_request(source_uri, request))
     {
-        egui_free(request);
+        egui_free(s_deferred_image_core, request);
         return 0;
     }
 
@@ -163,7 +164,7 @@ static void deferred_image_mock_loader_cancel(void *user_data, void *request_han
     EGUI_UNUSED(user_data);
     if (request_handle != NULL)
     {
-        egui_free(request_handle);
+        egui_free(s_deferred_image_core, request_handle);
     }
 }
 
@@ -177,12 +178,12 @@ static const egui_view_deferred_image_loader_t deferred_image_loader = {
 static void deferred_image_demo_init_card(deferred_image_demo_card_t *card, egui_dim_t y, const char *title, const char *body, const char *source_uri,
                                           const char *cache_path, uint16_t delay_ms)
 {
-    egui_view_init(EGUI_VIEW_OF(&card->panel));
+    egui_view_init(EGUI_VIEW_OF(&card->panel), s_deferred_image_core);
     egui_view_set_position(EGUI_VIEW_OF(&card->panel), CARD_X, y);
     egui_view_set_size(EGUI_VIEW_OF(&card->panel), CARD_W, CARD_H);
     egui_view_set_background(EGUI_VIEW_OF(&card->panel), EGUI_BG_OF(&bg_card));
 
-    egui_view_deferred_image_init(EGUI_VIEW_OF(&card->image));
+    egui_view_deferred_image_init(EGUI_VIEW_OF(&card->image), s_deferred_image_core);
     egui_view_set_position(EGUI_VIEW_OF(&card->image), CARD_X + CARD_IMAGE_X, y + CARD_IMAGE_Y);
     egui_view_set_size(EGUI_VIEW_OF(&card->image), CARD_IMAGE_W, CARD_IMAGE_H);
     egui_view_deferred_image_set_loader(EGUI_VIEW_OF(&card->image), &deferred_image_loader);
@@ -242,19 +243,20 @@ static void deferred_image_runtime_verify(void)
 }
 #endif
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0u;
 #endif
+    s_deferred_image_core = core;
 
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&root_group), &root_group_params);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&root_group), core, &root_group_params);
     egui_view_set_background(EGUI_VIEW_OF(&root_group), EGUI_BG_OF(&bg_root));
 
     file_image_stdio_io_init(&deferred_image_file_io, &deferred_image_file_ctx);
-    egui_image_file_set_default_io(&deferred_image_file_io);
-    egui_image_file_clear_decoders();
-    EGUI_ASSERT(egui_image_file_register_decoder(&g_file_image_bmp_stream_decoder));
+    egui_image_file_set_default_io(core, &deferred_image_file_io);
+    egui_image_file_clear_decoders(core);
+    EGUI_ASSERT(egui_image_file_register_decoder(core, &g_file_image_bmp_stream_decoder));
 
     deferred_image_demo_init_label(&title_label, 8, 12, 224, 20, "Deferred Image", DEMO_TITLE_FONT, EGUI_COLOR_HEX(0xF8FAFC),
                                    EGUI_ALIGN_CENTER | EGUI_ALIGN_VCENTER);

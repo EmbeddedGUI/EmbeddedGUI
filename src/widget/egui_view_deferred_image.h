@@ -75,7 +75,7 @@ struct egui_view_deferred_image_params
     static const egui_view_deferred_image_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 void egui_view_deferred_image_apply_params(egui_view_t *self, const egui_view_deferred_image_params_t *params);
-void egui_view_deferred_image_init_with_params(egui_view_t *self, const egui_view_deferred_image_params_t *params);
+void egui_view_deferred_image_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_deferred_image_params_t *params);
 
 void egui_view_deferred_image_set_source_uri(egui_view_t *self, const char *source_uri);
 void egui_view_deferred_image_set_cache_path(egui_view_t *self, const char *cache_path);
@@ -88,7 +88,7 @@ void egui_view_deferred_image_reload(egui_view_t *self);
 void egui_view_deferred_image_cancel(egui_view_t *self);
 egui_view_deferred_image_status_t egui_view_deferred_image_get_status(const egui_view_t *self);
 void egui_view_deferred_image_deinit(egui_view_t *self);
-void egui_view_deferred_image_init(egui_view_t *self);
+void egui_view_deferred_image_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
