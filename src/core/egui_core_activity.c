@@ -7,6 +7,207 @@
 #include "widget/egui_view.h"
 #include "utils/egui_dlist.h"
 
+egui_activity_t *egui_core_activity_get_by_view(egui_core_t *core, egui_view_t *view)
+{
+    if (core == NULL || view == NULL)
+    {
+        return NULL;
+    }
+
+    // Walk ancestors until user root and match any activity root_view on the path.
+    while (view != NULL)
+    {
+        egui_dnode_t *p_head;
+        egui_activity_t *tmp;
+
+        if (view == (egui_view_t *)&core->scene.user_root_view_group)
+        {
+            break;
+        }
+
+        if (!egui_dlist_is_empty(&core->scene.activitys))
+        {
+            EGUI_DLIST_FOR_EACH_NODE(&core->scene.activitys, p_head)
+            {
+                tmp = EGUI_DLIST_ENTRY(p_head, egui_activity_t, node);
+
+                if (view == EGUI_VIEW_OF(&tmp->root_view))
+                {
+                    return tmp;
+                }
+            }
+        }
+
+        view = (egui_view_t *)view->parent;
+    }
+
+    return NULL;
+}
+
+int egui_core_activity_check_in_process(egui_core_t *core, egui_activity_t *activity)
+{
+    egui_dnode_t *p_head;
+    egui_activity_t *tmp;
+
+    if (!egui_dlist_is_empty(&core->scene.activitys))
+    {
+        EGUI_DLIST_FOR_EACH_NODE(&core->scene.activitys, p_head)
+        {
+            tmp = EGUI_DLIST_ENTRY(p_head, egui_activity_t, node);
+
+            if (activity == tmp)
+            {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+void egui_core_activity_append(egui_core_t *core, egui_activity_t *activity)
+{
+    egui_dlist_append(&core->scene.activitys, &activity->node);
+}
+
+void egui_core_activity_remove(egui_core_t *core, egui_activity_t *activity)
+{
+    egui_dlist_remove(&activity->node);
+}
+
+egui_activity_t *egui_core_activity_get_current(egui_core_t *core)
+{
+    egui_dnode_t *tmp = egui_dlist_peek_tail(&core->scene.activitys);
+    if (tmp == NULL)
+    {
+        return NULL;
+    }
+
+    return EGUI_DLIST_ENTRY(tmp, egui_activity_t, node);
+}
+
+static void on_activity_anim_start_open_end(egui_animation_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self->target_view);
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
+    EGUI_LOG_DBG("on_activity_anim_start_open_end\n");
+#endif
+    if (core == NULL)
+    {
+        return;
+    }
+
+    if (core->scene.activity_open)
+    {
+        core->scene.activity_open->api->on_resume(core->scene.activity_open);
+    }
+}
+
+static const egui_animation_handle_t activity_anim_start_open_hanlde = {
+        .start = NULL,
+        .end = on_activity_anim_start_open_end,
+        .repeat = NULL,
+};
+
+static void on_activity_anim_start_close_end(egui_animation_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self->target_view);
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
+    EGUI_LOG_DBG("on_activity_anim_start_close_end\n");
+#endif
+    if (core == NULL)
+    {
+        return;
+    }
+
+    if (core->scene.activity_close)
+    {
+        core->scene.activity_close->api->on_stop(core->scene.activity_close);
+    }
+}
+
+static const egui_animation_handle_t activity_anim_start_close_hanlde = {
+        .start = NULL,
+        .end = on_activity_anim_start_close_end,
+        .repeat = NULL,
+};
+
+static void on_activity_anim_finish_open_end(egui_animation_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self->target_view);
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
+    EGUI_LOG_DBG("on_activity_anim_finish_open_end\n");
+#endif
+    if (core == NULL)
+    {
+        return;
+    }
+
+    if (core->scene.activity_open)
+    {
+        core->scene.activity_open->api->on_resume(core->scene.activity_open);
+    }
+}
+
+static const egui_animation_handle_t activity_anim_finish_open_hanlde = {
+        .start = NULL,
+        .end = on_activity_anim_finish_open_end,
+        .repeat = NULL,
+};
+
+static void on_activity_anim_finish_close_end(egui_animation_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self->target_view);
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
+    EGUI_LOG_DBG("on_activity_anim_finish_close_end\n");
+#endif
+    if (core == NULL)
+    {
+        return;
+    }
+
+    if (core->scene.activity_close)
+    {
+        core->scene.activity_close->api->on_stop(core->scene.activity_close);
+    }
+}
+
+static const egui_animation_handle_t activity_anim_finish_close_hanlde = {
+        .start = NULL,
+        .end = on_activity_anim_finish_close_end,
+        .repeat = NULL,
+};
+
+void egui_core_activity_set_start_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim)
+{
+    core->scene.activity_anim_start_open = open_anim;
+    core->scene.activity_anim_start_close = close_anim;
+
+    if (open_anim)
+    {
+        egui_animation_handle_set(open_anim, &activity_anim_start_open_hanlde);
+    }
+    if (close_anim)
+    {
+        egui_animation_handle_set(close_anim, &activity_anim_start_close_hanlde);
+    }
+}
+
+void egui_core_activity_set_finish_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim)
+{
+    core->scene.activity_anim_finish_open = open_anim;
+    core->scene.activity_anim_finish_close = close_anim;
+
+    if (open_anim)
+    {
+        egui_animation_handle_set(open_anim, &activity_anim_finish_open_hanlde);
+    }
+    if (close_anim)
+    {
+        egui_animation_handle_set(close_anim, &activity_anim_finish_close_hanlde);
+    }
+}
+
 void egui_core_activity_start(egui_core_t *core, egui_activity_t *self, egui_activity_t *prev_activity)
 {
     if (core == NULL || self == NULL)
