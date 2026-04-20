@@ -9,6 +9,10 @@
 #include "egui_input.h"
 #include "egui_platform.h"
 #include "egui_timer.h"
+#include "font/egui_font_std.h"
+#include "image/egui_image_std.h"
+#include "image/egui_image_svg.h"
+#include "mask/egui_mask_circle.h"
 
 egui_view_group_t *egui_core_get_root_view(egui_core_t *core)
 {
@@ -197,6 +201,281 @@ void egui_refresh_timer_callback(egui_timer_t *timer)
     }
 }
 
+__EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
+{
+}
+
+void egui_polling_refresh_display(egui_core_t *core)
+{
+#if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
+    uint32_t render_start_time = egui_api_timer_get_current_core(core);
+    uint32_t render_end_time;
+    uint32_t flush_end_time;
+#endif
+
+#if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+#if EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR == 0
+    // clear last all dirty region
+    EGUI_REGION_DEFINE(region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_core_draw_view_group(core, &region, false);
+#endif
+#endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+    if (!egui_region_is_empty(&core->scene.region_dirty_arr[0]))
+    {
+        egui_core_dirty_region_stats_begin_frame(core);
+    }
+#endif
+
+    for (int i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    {
+        egui_region_t *p_region_dirty = &core->scene.region_dirty_arr[i];
+
+        if (egui_region_is_empty(p_region_dirty))
+        {
+            break;
+        }
+
+        egui_core_draw_view_group(core, p_region_dirty, EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH);
+    }
+
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+    if (core->debug.dirty_region_stats.is_collecting_frame)
+    {
+        egui_core_dirty_region_stats_end_frame(core);
+    }
+#endif
+
+    // clear the dirty region
+    egui_core_clear_region_dirty(core);
+
+#if EGUI_DEBUG_MONITOR_SHOW
+    egui_debug_commit_overlay_regions(core);
+#endif
+
+#if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
+    render_end_time = egui_api_timer_get_current_core(core);
+#endif
+
+    // wait for all PFB flush complete before next frame, to avoid too many pending buffers in the PFB manager when the screen is updated frequently.
+    egui_pfb_manager_wait_all_complete(&core->render.pfb_mgr);
+
+    /* Release per-frame heap caches after the full dirty-frame finishes.
+     * They need to stay alive across PFB tiles within the same frame, but
+     * should not remain resident once the frame is done. */
+    egui_image_std_release_frame_cache(core);
+    egui_image_svg_release_frame_cache();
+    egui_canvas_transform_release_frame_cache(&core->canvas);
+    egui_mask_circle_release_frame_cache(core);
+    egui_font_std_release_frame_cache(core);
+
+#if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
+    flush_end_time = egui_api_timer_get_current_core(core);
+    egui_debug_perf_record_work_time(core, render_end_time - render_start_time, flush_end_time - render_end_time, flush_end_time);
+#endif
+}
+
+int egui_check_need_refresh(egui_core_t *core)
+{
+    int i;
+
+    for (i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    {
+        if (!egui_region_is_empty(&core->scene.region_dirty_arr[i]))
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+void egui_core_refresh_screen(egui_core_t *core)
+{
+#if EGUI_DEBUG_MONITOR_SHOW
+    egui_debug_update_monitors(core, egui_api_timer_get_current_core(core));
+#endif
+
+    if (core->system.is_suspended)
+    {
+        return;
+    }
+
+    egui_core_animation_polling_work(core);
+    egui_core_draw_view_group_pre_work(core);
+
+    if (egui_check_need_refresh(core))
+    {
+        egui_display_driver_t *drv = egui_display_driver_get(core);
+
+        if (drv != NULL)
+        {
+            if (drv->frame_sync_enabled)
+            {
+                if (!drv->frame_sync_ready)
+                {
+                    return;
+                }
+                drv->frame_sync_ready = 0;
+            }
+            else if (drv->ops->wait_vsync != NULL)
+            {
+                drv->ops->wait_vsync(core);
+            }
+        }
+
+        egui_polling_refresh_display(core);
+        egui_api_refresh_display(core);
+        egui_port_notify_frame_render_complete();
+
+#if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+        egui_api_delay_core(core, EGUI_CONFIG_DEBUG_REFRESH_DELAY);
+#endif
+    }
+}
+
+void egui_core_stop_auto_refresh_screen(egui_core_t *core)
+{
+    egui_timer_stop_timer(core, &core->system.refresh_timer);
+}
+
+void egui_polling_work(egui_core_t *core)
+{
+    egui_timer_polling_work(core);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    egui_input_polling_work(core);
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    if (!egui_input_check_key_idle(core))
+    {
+        egui_input_key_dispatch_work(core);
+    }
+#endif
+}
+
+void egui_core_power_off(egui_core_t *core)
+{
+    egui_timer_stop_timer(core, &core->system.refresh_timer);
+}
+
+void egui_core_power_on(egui_core_t *core)
+{
+    egui_timer_start_timer(core, &core->system.refresh_timer, 0, 0);
+}
+
+void egui_core_suspend(egui_core_t *core)
+{
+    core->system.is_suspended = 1;
+    egui_core_stop_auto_refresh_screen(core);
+}
+
+void egui_core_resume(egui_core_t *core)
+{
+    core->system.is_suspended = 0;
+    egui_core_update_region_dirty_all(core);
+    egui_core_power_on(core);
+}
+
+int egui_core_is_suspended(egui_core_t *core)
+{
+    return core->system.is_suspended;
+}
+
+void egui_core_clear_screen(egui_core_t *core)
+{
+    int16_t screen_w = egui_display_get_width(core);
+    int16_t screen_h = egui_display_get_height(core);
+    int16_t pfb_w = core->pfb_width;
+    int16_t pfb_h = core->pfb_height;
+
+    // Clear PFB buffer to black
+    egui_api_pfb_clear(core->pfb, core->pfb_total_buffer_size);
+
+    // Send black tiles to cover entire screen
+    for (int16_t y = 0; y < screen_h; y += pfb_h)
+    {
+        for (int16_t x = 0; x < screen_w; x += pfb_w)
+        {
+            int16_t w = (x + pfb_w > screen_w) ? (screen_w - x) : pfb_w;
+            int16_t h = (y + pfb_h > screen_h) ? (screen_h - y) : pfb_h;
+            EGUI_REGION_DEFINE(region, x, y, w, h);
+
+            if (core->render.pfb_mgr.buffer_count > 1)
+            {
+                core->pfb = egui_pfb_manager_get_render_buffer(&core->render.pfb_mgr);
+                // Clear PFB buffer to black
+                egui_api_pfb_clear(core->pfb, core->pfb_total_buffer_size);
+            }
+
+            egui_core_draw_data(core, &region);
+        }
+    }
+
+    egui_pfb_manager_wait_all_complete(&core->render.pfb_mgr);
+}
+
+void egui_screen_off(egui_core_t *core)
+{
+    // 1. Suspend core: stop rendering and refresh timer
+    egui_core_suspend(core);
+
+    // 2. Turn off display hardware
+    egui_display_set_power(core, 0);
+}
+
+void egui_screen_on(egui_core_t *core)
+{
+    // 1. Turn on display hardware
+    egui_display_set_power(core, 1);
+
+    // 2. Clear screen to avoid garbage (GRAM may contain random data)
+    egui_core_clear_screen(core);
+
+    // 3. Resume core: mark all dirty, restart refresh timer
+    // The first refresh cycle will redraw the entire UI
+    egui_core_resume(core);
+}
+
+void egui_core_set_screen_size(egui_core_t *core, int16_t width, int16_t height)
+{
+    core->screen_width = width;
+    core->screen_height = height;
+
+    // Recalculate PFB tile counts for the new screen size
+    core->pfb_width_count = (width + core->pfb_width - 1) / core->pfb_width;
+    core->pfb_height_count = (height + core->pfb_height - 1) / core->pfb_height;
+
+    // Update root view group sizes
+    egui_view_set_size((egui_view_t *)&core->scene.root_view_group, width, height);
+#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
+    egui_view_set_size((egui_view_t *)&core->scene.user_root_view_group, width, height);
+#endif
+
+    // Force full screen refresh
+    egui_core_update_region_dirty_all(core);
+}
+
+void egui_core_setup_display_start(egui_core_t *core, const egui_display_setup_t *setup)
+{
+    egui_platform_register(core, setup->platform);
+    egui_display_driver_register(core, setup->display_driver);
+
+    if (setup->touch_register != NULL)
+    {
+        setup->touch_register(core);
+    }
+
+    if (setup->uicode_init != NULL)
+    {
+        setup->uicode_init(core);
+    }
+
+    egui_screen_on(core);
+}
+
 void egui_core_init_display_scene(egui_core_t *core, int16_t screen_w, int16_t screen_h)
 {
     egui_core_update_region_dirty_all(core);
@@ -276,6 +555,21 @@ void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, eg
 #endif
 
     egui_core_init_display_scene(core, screen_w, screen_h);
+}
+
+void egui_setup_display(egui_core_t *core, const egui_display_setup_t *setup)
+{
+    EGUI_ASSERT(core != NULL);
+    EGUI_ASSERT(setup != NULL);
+    EGUI_ASSERT(setup->pfb_buffers != NULL);
+    EGUI_ASSERT(setup->pfb_buffer_count > 0);
+    EGUI_ASSERT(setup->display_driver != NULL);
+    EGUI_ASSERT(setup->platform != NULL);
+
+    egui_init_display(core, (int16_t)setup->screen_width, (int16_t)setup->screen_height, setup->pfb_buffers, setup->pfb_buffer_count, setup->pfb_width,
+                      setup->pfb_height);
+    core->id = setup->display_id;
+    egui_core_setup_display_start(core, setup);
 }
 
 void egui_init(egui_core_t *core, egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT])
