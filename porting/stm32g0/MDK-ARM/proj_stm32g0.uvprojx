@@ -780,19 +780,9 @@
               <FilePath>..\..\..\src\core\egui_core_frame.c</FilePath>
             </File>
             <File>
-              <FileName>egui_core_init_display.c</FileName>
+              <FileName>egui_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core_init_display.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_core_init_primary.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core_init_primary.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_core_init_scene.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core_init_scene.c</FilePath>
+              <FilePath>..\..\..\src\core\egui_core.c</FilePath>
             </File>
             <File>
               <FileName>egui_core_key.c</FileName>
@@ -888,11 +878,6 @@
               <FileName>egui_core_touch.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_core_touch.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_core_touch_init.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core_touch_init.c</FilePath>
             </File>
             <File>
               <FileName>egui_core_touch_trace_draw.c</FileName>
