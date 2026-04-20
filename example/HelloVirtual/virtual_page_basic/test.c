@@ -986,6 +986,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         recording_click_verify_retry = 0U;
         recording_jump_verify_retry = 0U;
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[PAGE_BASIC_ACTION_JUMP]), 220);
         return true;
     case 3:
@@ -1022,6 +1026,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("target section was not selected correctly after jump");
         }
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[PAGE_BASIC_ACTION_PATCH]), 220);
         return true;
     case 5:
@@ -1038,6 +1046,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         if (first_call && egui_view_virtual_page_get_scroll_y(EGUI_VIEW_OF(&page_view)) <= 0)
         {
             report_runtime_failure("scroll action did not move page viewport");
+        }
+        if (first_call)
+        {
+            recording_request_snapshot();
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[PAGE_BASIC_ACTION_RESET]), 220);
         return true;

@@ -403,6 +403,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("first tile toggle did not update data model");
         }
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         grid_view_basic_set_scroll_action(p_action, 320);
         return true;
     case 4:

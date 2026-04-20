@@ -1115,6 +1115,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         if (first_call)
         {
             expected_armed = item->armed ? 0U : 1U;
+            recording_request_snapshot();
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&hero_holder->arm_toggle), 220);
         return true;
@@ -1146,6 +1147,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         if (first_call)
         {
             expected_expanded = item->expanded ? 0U : 1U;
+            recording_request_snapshot();
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[2]), 220);
         return true;
@@ -1173,6 +1175,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         if (first_call && egui_view_grid_view_get_scroll_y(EGUI_VIEW_OF(&grid_view)) <= 0)
         {
             report_runtime_failure("grid view did not scroll");
+        }
+        if (first_call)
+        {
+            recording_request_snapshot();
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[3]), 220);
         return true;

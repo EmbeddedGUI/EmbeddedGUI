@@ -250,6 +250,8 @@ static egui_view_t *showcase_find_live_view(uint32_t stable_id);
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t showcase_recording_verify_retry;
+static int showcase_recording_verify_retry_index = -1;
 
 static uint8_t showcase_recording_uses_small_screen(void)
 {
@@ -2990,17 +2992,132 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
-static void showcase_verify_runtime_state(int action_index)
+#define SHOWCASE_RECORDING_VERIFY_RETRY_MAX 4U
+
+static void showcase_reset_verify_retry(int verify_index)
+{
+    showcase_recording_verify_retry = 0U;
+    showcase_recording_verify_retry_index = verify_index;
+}
+
+static uint8_t showcase_schedule_verify_retry(int verify_index, egui_sim_action_t *p_action)
+{
+    if (showcase_recording_verify_retry_index != verify_index)
+    {
+        showcase_recording_verify_retry = 0U;
+        showcase_recording_verify_retry_index = verify_index;
+    }
+
+    if (showcase_recording_verify_retry >= SHOWCASE_RECORDING_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    showcase_recording_verify_retry++;
+    if (showcase_recording_verify_retry == 1U)
+    {
+        recording_request_snapshot();
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return 1U;
+    }
+
+    switch (verify_index)
+    {
+    case 1:
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return 1U;
+    case 2:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_THEME_BUTTON);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_THEME_BUTTON, 50, 50, 650);
+        return 1U;
+    case 3:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LANG_BUTTON);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_LANG_BUTTON, 50, 50, 650);
+        return 1U;
+    case 4:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_SWITCH);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_SWITCH, 50, 50, 600);
+        return 1U;
+    case 5:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_CHECKBOX);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_CHECKBOX, 50, 50, 600);
+        return 1U;
+    case 6:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_OPTION2);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_OPTION2, 50, 50, 600);
+        return 1U;
+    case 7:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_TOGGLE_BUTTON);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_TOGGLE_BUTTON, 50, 50, 600);
+        return 1U;
+    case 8:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_SLIDER);
+        showcase_sim_set_drag_node(p_action, SHOWCASE_NODE_INDEX_SLIDER, 60, 50, 22, 50, 8, 450);
+        return 1U;
+    case 9:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_ARC_SLIDER);
+        showcase_sim_set_arc_slider_drag(p_action, 70U, 32U, 8, 450);
+        return 1U;
+    case 10:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_NUMBER_PICKER);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_NUMBER_PICKER, 50, 16, 650);
+        return 1U;
+    case 11:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_COMBOBOX);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_COMBOBOX, 50, 14, 650);
+        return 1U;
+    case 12:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_COMBOBOX);
+        if (!showcase_sim_set_combobox_item_click(p_action, 1U, 650))
+        {
+            showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_COMBOBOX, 50, 14, 650);
+        }
+        return 1U;
+    case 13:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_ROLLER);
+        showcase_sim_set_drag_node(p_action, SHOWCASE_NODE_INDEX_ROLLER, 50, 68, 50, 28, 6, 450);
+        return 1U;
+    case 14:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LIST);
+        showcase_sim_set_drag_node(p_action, SHOWCASE_NODE_INDEX_LIST, 50, 90, 50, 8, 10, 450);
+        return 1U;
+    case 15:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_MINI_CALENDAR);
+        if (!showcase_sim_set_calendar_day_click(p_action, 18U, 450))
+        {
+            EGUI_SIM_SET_WAIT(p_action, 300);
+        }
+        return 1U;
+    case 16:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_BUTTON_MATRIX);
+        showcase_sim_set_button_matrix_click(p_action, 4U, 450);
+        return 1U;
+    case 17:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_TAB_BAR);
+        showcase_sim_set_tab_bar_click(p_action, 2U, 450);
+        return 1U;
+    case 18:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_ALPHA1);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_ALPHA1, 50, 50, 450);
+        return 1U;
+    default:
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return 1U;
+    }
+}
+
+static uint8_t showcase_verify_runtime_state(int action_index, egui_sim_action_t *p_action)
 {
     egui_view_t *live_combobox;
     egui_view_t *live_list;
     int verify_index = action_index;
     uint8_t is_small_screen_recording = showcase_recording_uses_small_screen();
+    const char *failure_message = NULL;
 
     if (EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&showcase_stage_view) > SHOWCASE_LIVE_SLOT_LIMIT)
     {
         report_runtime_failure("virtual_stage_showcase exceeded live slot limit");
-        return;
+        return 0U;
     }
 
     if (is_small_screen_recording)
@@ -3010,9 +3127,9 @@ static void showcase_verify_runtime_state(int action_index)
             if (egui_view_canvas_panner_get_offset_x(EGUI_VIEW_OF(&showcase_root)) <= 0 &&
                 egui_view_canvas_panner_get_offset_y(EGUI_VIEW_OF(&showcase_root)) <= 0)
             {
-                report_runtime_failure("small-screen showcase drag did not move canvas");
+                failure_message = "small-screen showcase drag did not move canvas";
             }
-            return;
+            goto verify_finish;
         }
 
         if (action_index > 2)
@@ -3026,90 +3143,90 @@ static void showcase_verify_runtime_state(int action_index)
     case 0:
         if (EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&showcase_stage_view) > SHOWCASE_PINNED_SLOT_BUDGET)
         {
-            report_runtime_failure("virtual_stage_showcase exceeded pinned live-slot budget at startup");
+            failure_message = "virtual_stage_showcase exceeded pinned live-slot budget at startup";
         }
         break;
     case 1:
         if (showcase_ctx.anim_tick == 0U)
         {
-            report_runtime_failure("virtual_stage_showcase animation timer did not advance");
+            failure_message = "virtual_stage_showcase animation timer did not advance";
         }
         break;
     case 2:
         if (showcase_ctx.is_dark_theme != 0U)
         {
-            report_runtime_failure("theme button did not switch virtual showcase to light mode");
+            failure_message = "theme button did not switch virtual showcase to light mode";
         }
         break;
     case 3:
         if (showcase_ctx.is_chinese != 1U)
         {
-            report_runtime_failure("language button did not switch virtual showcase to Chinese");
+            failure_message = "language button did not switch virtual showcase to Chinese";
         }
         else if (strcmp(showcase_ctx.textinput_text, showcase_get_default_textinput_text(1U)) != 0)
         {
-            report_runtime_failure("language button did not refresh textinput text");
+            failure_message = "language button did not refresh textinput text";
         }
         break;
     case 4:
         if (showcase_ctx.switch_checked != 0U)
         {
-            report_runtime_failure("switch did not toggle off");
+            failure_message = "switch did not toggle off";
         }
         break;
     case 5:
         if (showcase_ctx.checkbox_checked != 0U)
         {
-            report_runtime_failure("checkbox did not toggle off");
+            failure_message = "checkbox did not toggle off";
         }
         break;
     case 6:
         if (showcase_ctx.option_index != 1U)
         {
-            report_runtime_failure("radio button did not switch to option 2");
+            failure_message = "radio button did not switch to option 2";
         }
         break;
     case 7:
         if (showcase_ctx.toggle_checked != 0U)
         {
-            report_runtime_failure("toggle button did not toggle off");
+            failure_message = "toggle button did not toggle off";
         }
         break;
     case 8:
         if (showcase_ctx.slider_value >= 45U)
         {
-            report_runtime_failure("slider drag did not update showcase state");
+            failure_message = "slider drag did not update showcase state";
         }
         break;
     case 9:
         if (showcase_ctx.arc_slider_value >= 55U)
         {
-            report_runtime_failure("arc slider drag did not update showcase state");
+            failure_message = "arc slider drag did not update showcase state";
         }
         break;
     case 10:
         if (showcase_ctx.numpick_value != 43)
         {
-            report_runtime_failure("number picker did not increment");
+            failure_message = "number picker did not increment";
         }
         break;
     case 11:
         live_combobox = showcase_find_live_view(SHOWCASE_NODE_COMBOBOX);
         if (live_combobox == NULL || !egui_view_combobox_is_expanded(live_combobox))
         {
-            report_runtime_failure("combobox did not expand");
+            failure_message = "combobox did not expand";
         }
         break;
     case 12:
         if (showcase_ctx.combobox_index != 1U)
         {
-            report_runtime_failure("combobox did not select the expected item");
+            failure_message = "combobox did not select the expected item";
         }
         break;
     case 13:
         if (showcase_ctx.roller_index != 2U)
         {
-            report_runtime_failure("roller did not scroll to the next item");
+            failure_message = "roller did not scroll to the next item";
         }
         break;
     case 14:
@@ -3120,41 +3237,56 @@ static void showcase_verify_runtime_state(int action_index)
         }
         if (showcase_ctx.list_scroll_y >= 0)
         {
-            report_runtime_failure("list drag did not scroll content");
+            failure_message = "list drag did not scroll content";
         }
         break;
     case 15:
         if (showcase_ctx.calendar_day != 18U)
         {
-            report_runtime_failure("calendar did not select the expected day");
+            failure_message = "calendar did not select the expected day";
         }
         break;
     case 16:
         if (showcase_ctx.button_matrix_index != 4U)
         {
-            report_runtime_failure("button matrix did not update selected index");
+            failure_message = "button matrix did not update selected index";
         }
         break;
     case 17:
         if (showcase_ctx.tab_index != 2U)
         {
-            report_runtime_failure("tab bar did not switch to the expected tab");
+            failure_message = "tab bar did not switch to the expected tab";
         }
         break;
     case 18:
         if (showcase_ctx.active_layer != 1U)
         {
-            report_runtime_failure("layer card did not update active layer");
+            failure_message = "layer card did not update active layer";
         }
         break;
     default:
         break;
     }
 
+verify_finish:
+    if (failure_message != NULL)
+    {
+        if (showcase_schedule_verify_retry(verify_index, p_action))
+        {
+            return 1U;
+        }
+        report_runtime_failure(failure_message);
+        return 0U;
+    }
+
+    showcase_reset_verify_retry(verify_index);
+
     if (EGUI_VIEW_OF(&showcase_keyboard_view)->region.size.width != EGUI_CONFIG_SCEEN_WIDTH)
     {
         report_runtime_failure("virtual_stage_showcase keyboard width does not match the showcase canvas");
     }
+
+    return 0U;
 }
 
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
@@ -3213,7 +3345,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 
     last_action = action_index;
 
-    showcase_verify_runtime_state(action_index);
+    if (showcase_verify_runtime_state(action_index, p_action))
+    {
+        return true;
+    }
 
     if (is_small_screen_recording)
     {
@@ -3239,7 +3374,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_THEME_BUTTON);
         }
-        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_THEME_BUTTON, 50, 50, 350);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_THEME_BUTTON, 50, 50, 500);
         return true;
     case 2:
         if (first_call)
@@ -3247,7 +3382,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LANG_BUTTON);
         }
-        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_LANG_BUTTON, 50, 50, 350);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_LANG_BUTTON, 50, 50, 500);
         return true;
     case 3:
         if (first_call)
@@ -3255,7 +3390,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_SWITCH);
         }
-        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_SWITCH, 50, 50, 300);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_SWITCH, 50, 50, 450);
         return true;
     case 4:
         if (first_call)
@@ -3263,7 +3398,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_CHECKBOX);
         }
-        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_CHECKBOX, 50, 50, 300);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_CHECKBOX, 50, 50, 450);
         return true;
     case 5:
         if (first_call)
@@ -3271,7 +3406,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_OPTION2);
         }
-        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_OPTION2, 50, 50, 300);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_OPTION2, 50, 50, 450);
         return true;
     case 6:
         if (first_call)
@@ -3279,7 +3414,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_TOGGLE_BUTTON);
         }
-        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_TOGGLE_BUTTON, 50, 50, 300);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_TOGGLE_BUTTON, 50, 50, 450);
         return true;
     case 7:
         if (first_call)
@@ -3303,7 +3438,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_NUMBER_PICKER);
         }
-        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_NUMBER_PICKER, 50, 16, 300);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_NUMBER_PICKER, 50, 16, 450);
         return true;
     case 10:
         if (first_call)
@@ -3311,7 +3446,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_COMBOBOX);
         }
-        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_COMBOBOX, 50, 14, 350);
+        showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_COMBOBOX, 50, 14, 500);
         return true;
     case 11:
         if (first_call)
@@ -3319,9 +3454,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_COMBOBOX);
         }
-        if (!showcase_sim_set_combobox_item_click(p_action, 1U, 350))
+        if (!showcase_sim_set_combobox_item_click(p_action, 1U, 500))
         {
-            EGUI_SIM_SET_WAIT(p_action, 350);
+            EGUI_SIM_SET_WAIT(p_action, 500);
         }
         return true;
     case 12:

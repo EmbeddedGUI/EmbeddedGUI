@@ -32,10 +32,18 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
-static void set_matrix_cell_click(egui_sim_action_t *p_action, float x_ratio, float y_ratio, int interval_ms)
+static void set_matrix_cell_click_by_index(egui_sim_action_t *p_action, uint8_t index, int interval_ms)
 {
+    egui_view_t *view = EGUI_VIEW_OF(&btn_matrix);
+    egui_dim_t gap = 8;
+    egui_dim_t cell_w = (view->region.size.width - gap * 2) / 3;
+    egui_dim_t cell_h = (view->region.size.height - gap * 2) / 3;
+    uint8_t col = (uint8_t)(index % 3U);
+    uint8_t row = (uint8_t)(index / 3U);
+
     p_action->type = EGUI_SIM_ACTION_CLICK;
-    egui_sim_get_view_pos(&btn_matrix, x_ratio, y_ratio, &p_action->x1, &p_action->y1);
+    p_action->x1 = view->region_screen.location.x + col * (cell_w + gap) + cell_w / 2;
+    p_action->y1 = view->region_screen.location.y + row * (cell_h + gap) + cell_h / 2;
     p_action->interval_ms = interval_ms;
 }
 #endif
@@ -95,7 +103,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("button_matrix initial selected index mismatch");
         }
-        set_matrix_cell_click(p_action, 0.50f, 0.17f, 1000);
+        set_matrix_cell_click_by_index(p_action, 1U, 1200);
         return true;
     case 1:
         if (first_call)
@@ -105,7 +113,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("button_matrix home selection did not commit");
             }
         }
-        set_matrix_cell_click(p_action, 0.50f, 0.50f, 1000);
+        set_matrix_cell_click_by_index(p_action, 4U, 1200);
         return true;
     case 2:
         if (first_call)
@@ -115,7 +123,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("button_matrix alerts selection did not commit");
             }
         }
-        set_matrix_cell_click(p_action, 0.83f, 0.83f, 1000);
+        set_matrix_cell_click_by_index(p_action, 8U, 1200);
         return true;
     case 3:
         if (first_call)

@@ -1,7 +1,7 @@
 #include "egui.h"
 #include "background/egui_background_color.h"
 #include "svg_spec_cases_gen.h"
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 static egui_view_group_t root;
 static egui_view_image_t image_view;
@@ -47,14 +47,14 @@ static void hello_svg_spec_apply_case(int case_index)
     egui_view_invalidate(EGUI_VIEW_OF(&image_view));
 }
 
-void uicode_create_ui(void)
+static void uicode_disp0_init_ui(egui_core_t *core)
 {
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&root), &root_params);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&root), core, &root_params);
     egui_view_set_background(EGUI_VIEW_OF(&root), EGUI_BG_OF(&root_bg));
 
     egui_image_svg_init(&svg_image);
 
-    egui_view_image_init_with_params(EGUI_VIEW_OF(&image_view), &image_view_params);
+    egui_view_image_init_with_params(EGUI_VIEW_OF(&image_view), core, &image_view_params);
     egui_view_image_set_image(EGUI_VIEW_OF(&image_view), (egui_image_t *)&svg_image);
     egui_view_image_set_image_type(EGUI_VIEW_OF(&image_view), EGUI_VIEW_IMAGE_TYPE_RESIZE);
 
@@ -62,6 +62,11 @@ void uicode_create_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&root));
 
     hello_svg_spec_apply_case(0);
+}
+
+void uicode_disp0_init(egui_core_t *core)
+{
+    uicode_disp0_init_ui(core);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

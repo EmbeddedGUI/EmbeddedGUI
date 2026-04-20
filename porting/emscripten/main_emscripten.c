@@ -40,6 +40,36 @@ egui_core_t *egui_port_get_core_by_display_id(int display_id)
     return g_registered_core;
 }
 
+int egui_port_post_core_task(egui_core_t *core_inst, egui_port_core_task_func_t task_func, uintptr_t user_data)
+{
+    return egui_port_post_core_task_named(core_inst, task_func, user_data, "wasm_post");
+}
+
+int egui_port_post_core_task_named(egui_core_t *core_inst, egui_port_core_task_func_t task_func, uintptr_t user_data, const char *context)
+{
+    EGUI_UNUSED(context);
+
+    if (core_inst == NULL || task_func == NULL)
+    {
+        return 0;
+    }
+
+    task_func(core_inst, user_data);
+    return 1;
+}
+
+int egui_port_post_core_task_sync(egui_core_t *core_inst, egui_port_core_task_func_t task_func, uintptr_t user_data, uint32_t timeout_ms)
+{
+    return egui_port_post_core_task_sync_named(core_inst, task_func, user_data, timeout_ms, "wasm_post_sync");
+}
+
+int egui_port_post_core_task_sync_named(egui_core_t *core_inst, egui_port_core_task_func_t task_func, uintptr_t user_data, uint32_t timeout_ms,
+                                        const char *context)
+{
+    EGUI_UNUSED(timeout_ms);
+    return egui_port_post_core_task_named(core_inst, task_func, user_data, context);
+}
+
 static void main_loop_iteration(void)
 {
     egui_polling_work(&core);

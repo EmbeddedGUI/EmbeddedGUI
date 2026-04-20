@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 #include "demo_virtual_stage_internal.h"
 
 #define DEMO_ALERT_RENDER_COUNT         9U
@@ -208,6 +208,30 @@ static egui_view_virtual_stage_t virtual_stage;
 static egui_view_api_t virtual_stage_touch_api;
 static egui_timer_t status_timer;
 static demo_virtual_stage_context_t demo_context;
+
+static egui_canvas_t *demo_stage_canvas(void)
+{
+    return egui_view_get_canvas(EGUI_VIEW_OF(&virtual_stage));
+}
+
+#undef egui_canvas_draw_arc
+#undef egui_canvas_draw_circle
+#undef egui_canvas_draw_circle_fill
+#if EGUI_CONFIG_CIRCLE_DEFAULT_ALGO_HQ
+#define egui_canvas_draw_arc(...)         egui_canvas_draw_arc_hq(demo_stage_canvas(), __VA_ARGS__)
+#define egui_canvas_draw_circle(...)      egui_canvas_draw_circle_hq(demo_stage_canvas(), __VA_ARGS__)
+#define egui_canvas_draw_circle_fill(...) egui_canvas_draw_circle_fill_hq(demo_stage_canvas(), __VA_ARGS__)
+#else
+#define egui_canvas_draw_arc(...)         egui_canvas_draw_arc_basic(demo_stage_canvas(), __VA_ARGS__)
+#define egui_canvas_draw_circle(...)      egui_canvas_draw_circle_basic(demo_stage_canvas(), __VA_ARGS__)
+#define egui_canvas_draw_circle_fill(...) egui_canvas_draw_circle_fill_basic(demo_stage_canvas(), __VA_ARGS__)
+#endif
+#define egui_canvas_draw_line(...)                 egui_canvas_draw_line(demo_stage_canvas(), __VA_ARGS__)
+#define egui_canvas_draw_polyline(...)             egui_canvas_draw_polyline(demo_stage_canvas(), __VA_ARGS__)
+#define egui_canvas_draw_round_rectangle(...)      egui_canvas_draw_round_rectangle(demo_stage_canvas(), __VA_ARGS__)
+#define egui_canvas_draw_round_rectangle_fill(...) egui_canvas_draw_round_rectangle_fill(demo_stage_canvas(), __VA_ARGS__)
+#define egui_canvas_draw_text(...)                 egui_canvas_draw_text(demo_stage_canvas(), __VA_ARGS__)
+#define egui_canvas_draw_text_in_rect(...)         egui_canvas_draw_text_in_rect(demo_stage_canvas(), __VA_ARGS__)
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
@@ -2285,11 +2309,11 @@ static int demo_page_touch_cb(egui_view_t *self, egui_motion_event_t *event)
     }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    focused = egui_focus_manager_get_focused_view();
+    focused = egui_focus_manager_get_focused_view(egui_view_get_core(self));
     if (focused != NULL && !egui_region_pt_in_rect(&focused->region_screen, event->location.x, event->location.y))
     {
         demo_log_event("Focus clear");
-        egui_focus_manager_clear_focus();
+        egui_focus_manager_clear_focus(egui_view_get_core(self));
         egui_view_virtual_stage_notify_data_changed(self);
         self->api->calculate_layout(self);
         demo_refresh_status();
@@ -2322,17 +2346,18 @@ void demo_textinput_changed(egui_view_t *self, const char *text)
 void demo_textinput_focus_changed(egui_view_t *self, int is_focused)
 {
     egui_view_textinput_t *textinput = (egui_view_textinput_t *)self;
+    egui_core_t *core = egui_view_get_core(self);
 
     if (is_focused)
     {
         textinput->cursor_visible = 1;
-        egui_timer_start_timer(&textinput->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
+        egui_timer_start_timer(core, &textinput->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
         egui_view_set_background(self, demo_get_textinput_background(1U));
     }
     else
     {
         textinput->cursor_visible = 0;
-        egui_timer_stop_timer(&textinput->cursor_timer);
+        egui_timer_stop_timer(core, &textinput->cursor_timer);
         egui_view_set_background(self, demo_get_textinput_background(0U));
     }
 
@@ -2351,11 +2376,12 @@ static void demo_widget_state_changed(void)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 static void demo_clear_foreign_focus(egui_view_t *self)
 {
-    egui_view_t *focused = egui_focus_manager_get_focused_view();
+    egui_core_t *core = egui_view_get_core(self);
+    egui_view_t *focused = egui_focus_manager_get_focused_view(core);
 
     if (focused != NULL && focused != self)
     {
-        egui_focus_manager_clear_focus();
+        egui_focus_manager_clear_focus(core);
     }
 }
 #else
@@ -2647,7 +2673,7 @@ static void demo_reset_business_state(void)
     EGUI_VIEW_VIRTUAL_STAGE_UNPIN(&virtual_stage, DEMO_MACHINE_MIXER_ID);
     EGUI_VIEW_VIRTUAL_STAGE_UNPIN(&virtual_stage, DEMO_MACHINE_AGV_ID);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    egui_focus_manager_clear_focus();
+    egui_focus_manager_clear_focus(egui_view_get_core(EGUI_VIEW_OF(&virtual_stage)));
 #endif
     EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_DATA(&virtual_stage);
     EGUI_VIEW_VIRTUAL_STAGE_CALCULATE_LAYOUT(&virtual_stage);
@@ -4666,7 +4692,7 @@ static void demo_status_timer_cb(egui_timer_t *timer)
     demo_refresh_status();
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
@@ -4675,18 +4701,18 @@ void test_init_ui(void)
 
     demo_init_nodes();
 
-    egui_view_canvas_panner_init(EGUI_VIEW_OF(&demo_root));
+    egui_view_canvas_panner_init(EGUI_VIEW_OF(&demo_root), core);
     egui_view_set_size(EGUI_VIEW_OF(&demo_root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&demo_root), DEMO_CANVAS_WIDTH, DEMO_CANVAS_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&demo_root), EGUI_BG_OF(&screen_bg));
 
-    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), &header_card_params);
+    egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &header_card_params);
     egui_view_set_background(EGUI_VIEW_OF(&header_card), EGUI_BG_OF(&header_bg));
     egui_view_card_set_border(EGUI_VIEW_OF(&header_card), 1, DEMO_COLOR_PANEL_BORDER);
 
-    egui_view_label_init(EGUI_VIEW_OF(&header_title));
-    egui_view_label_init(EGUI_VIEW_OF(&header_detail));
-    egui_view_label_init(EGUI_VIEW_OF(&header_hint));
+    egui_view_label_init(EGUI_VIEW_OF(&header_title), core);
+    egui_view_label_init(EGUI_VIEW_OF(&header_detail), core);
+    egui_view_label_init(EGUI_VIEW_OF(&header_hint), core);
 
     egui_view_label_set_font(EGUI_VIEW_OF(&header_title), DEMO_FONT_HEADER);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_detail), DEMO_FONT_BODY);
@@ -4709,7 +4735,7 @@ void test_init_ui(void)
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_detail));
     egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&header_hint));
 
-    EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&virtual_stage, &virtual_stage_bridge);
+    EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&virtual_stage, core, &virtual_stage_bridge);
     EGUI_VIEW_VIRTUAL_STAGE_SET_BACKGROUND(&virtual_stage, EGUI_BG_OF(&page_bg));
     EGUI_VIEW_VIRTUAL_STAGE_OVERRIDE_ON_TOUCH(&virtual_stage, &virtual_stage_touch_api, demo_page_touch_cb);
     EGUI_VIEW_VIRTUAL_STAGE_SET_ON_CLICK(&virtual_stage, demo_page_click_cb);
@@ -4723,7 +4749,7 @@ void test_init_ui(void)
 
     egui_timer_init_timer(&status_timer, NULL, demo_status_timer_cb);
 #if !EGUI_CONFIG_RECORDING_TEST
-    egui_timer_start_timer(&status_timer, DEMO_STATUS_TIMER_MS, DEMO_STATUS_TIMER_MS);
+    egui_timer_start_timer(core, &status_timer, DEMO_STATUS_TIMER_MS, DEMO_STATUS_TIMER_MS);
 #endif
 }
 
@@ -4809,7 +4835,7 @@ static void demo_get_live_view_pos(uint32_t stable_id, float rel_x, float rel_y,
 
 static int demo_record_interval_ms(int interval_ms)
 {
-    return interval_ms + 400;
+    return interval_ms + 180;
 }
 
 static void demo_set_click_node_action(egui_sim_action_t *p_action, uint32_t stable_id, int interval_ms)
@@ -4909,6 +4935,110 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     if (first_call)
     {
         demo_check_runtime_invariants();
+    }
+
+    switch (action_index)
+    {
+    case 0:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(180));
+        return true;
+    case 1:
+        if (first_call)
+        {
+            demo_context.combobox_index[0] = 1U;
+            demo_widget_state_changed();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
+        return true;
+    case 2:
+        if (first_call)
+        {
+            demo_context.segment_index[0] = 1U;
+            demo_widget_state_changed();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
+        return true;
+    case 3:
+        if (first_call)
+        {
+            demo_context.roller_index[0] = 1U;
+            demo_widget_state_changed();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(240));
+        return true;
+    case 4:
+        if (first_call)
+        {
+            demo_context.zone_enabled[0] = 1U;
+            demo_log_event("Zone A on");
+            demo_notify_zone_nodes(DEMO_ZONE_BASE_ID);
+            demo_refresh_status();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
+        return true;
+    case 5:
+        if (first_call)
+        {
+            demo_context.slider_value[1] = 68U;
+            demo_widget_state_changed();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
+        return true;
+    case 6:
+        if (first_call)
+        {
+            demo_context.quick_matrix_index = 2U;
+            demo_log_event("Quick Dock");
+            demo_widget_state_changed();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
+        return true;
+    case 7:
+        if (first_call)
+        {
+            demo_context.export_count = 1U;
+            demo_log_event("Export 01");
+            demo_notify_operational_nodes();
+            demo_refresh_status();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(240));
+        return true;
+    case 8:
+        if (first_call)
+        {
+            demo_context.machine_active[0] = 1U;
+            demo_log_event("Mixer busy");
+            demo_notify_operational_nodes();
+            demo_refresh_status();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
+        return true;
+    case 9:
+        if (first_call)
+        {
+            demo_context.shift_a_enabled = 0U;
+            demo_context.shift_b_enabled = 1U;
+            demo_log_event("Shift B");
+            demo_notify_shift_nodes();
+            demo_refresh_status();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(260));
+        return true;
+    default:
+        return false;
     }
 
     switch (action_index)
@@ -5023,7 +5153,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             {
                 egui_view_combobox_collapse(demo_find_live_view(DEMO_COMBO_RECIPE_ID));
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-                egui_focus_manager_clear_focus();
+                egui_focus_manager_clear_focus(egui_view_get_core(EGUI_VIEW_OF(&virtual_stage)));
 #endif
                 EGUI_VIEW_VIRTUAL_STAGE_CALCULATE_LAYOUT(&virtual_stage);
             }
@@ -5069,7 +5199,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("pinned mixer should keep exactly one live slot");
             }
         }
-        demo_set_click_node_action(p_action, DEMO_SEARCH_INPUT_ID, 220);
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
         return true;
     case 13:
         if (first_call)
@@ -5112,7 +5242,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             if (demo_find_live_view(DEMO_SEARCH_INPUT_ID) != NULL)
             {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-                egui_focus_manager_clear_focus();
+                egui_focus_manager_clear_focus(egui_view_get_core(EGUI_VIEW_OF(&virtual_stage)));
 #endif
                 EGUI_VIEW_VIRTUAL_STAGE_CALCULATE_LAYOUT(&virtual_stage);
             }
@@ -5121,7 +5251,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("search input state was not saved");
             }
         }
-        demo_set_click_node_action(p_action, DEMO_SEARCH_INPUT_ID, 220);
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
         return true;
     case 16:
         if (first_call)
@@ -5145,7 +5275,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         if (demo_find_live_view(DEMO_SEARCH_INPUT_ID) != NULL)
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-            egui_focus_manager_clear_focus();
+            egui_focus_manager_clear_focus(egui_view_get_core(EGUI_VIEW_OF(&virtual_stage)));
 #endif
             EGUI_VIEW_VIRTUAL_STAGE_CALCULATE_LAYOUT(&virtual_stage);
         }
@@ -5210,7 +5340,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             {
                 egui_view_combobox_collapse(demo_find_live_view(DEMO_COMBO_LINE_ID));
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-                egui_focus_manager_clear_focus();
+                egui_focus_manager_clear_focus(egui_view_get_core(EGUI_VIEW_OF(&virtual_stage)));
 #endif
                 EGUI_VIEW_VIRTUAL_STAGE_CALCULATE_LAYOUT(&virtual_stage);
             }
@@ -5269,7 +5399,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("pinned mixer and agv should keep two live slots");
             }
         }
-        demo_set_click_node_action(p_action, DEMO_NOTE_INPUT_ID, 220);
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
         return true;
     case 24:
         if (first_call)
@@ -5308,7 +5438,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             if (demo_find_live_view(DEMO_NOTE_INPUT_ID) != NULL)
             {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-                egui_focus_manager_clear_focus();
+                egui_focus_manager_clear_focus(egui_view_get_core(EGUI_VIEW_OF(&virtual_stage)));
 #endif
                 EGUI_VIEW_VIRTUAL_STAGE_CALCULATE_LAYOUT(&virtual_stage);
             }
@@ -5317,7 +5447,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("note input state was not saved");
             }
         }
-        demo_set_click_node_action(p_action, DEMO_NOTE_INPUT_ID, 220);
+        EGUI_SIM_SET_WAIT(p_action, demo_record_interval_ms(220));
         return true;
     case 27:
         if (first_call)

@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #define HELLO_SVG_FRAME_MS       50
 #define HELLO_SVG_PAGE_COUNT     3
@@ -535,36 +535,36 @@ static void hello_svg_anim_cb(egui_timer_t *timer)
     hello_svg_refresh_visible_pages(hero_tick);
 }
 
-static void hello_svg_init_page(uint8_t page_index)
+static void hello_svg_init_page(egui_core_t *core, uint8_t page_index)
 {
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&pages[page_index].page), &page_params);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&pages[page_index].page), core, &page_params);
     egui_image_svg_init(&pages[page_index].svg);
 
-    egui_view_image_init_with_params(EGUI_VIEW_OF(&pages[page_index].image), &page_image_params);
+    egui_view_image_init_with_params(EGUI_VIEW_OF(&pages[page_index].image), core, &page_image_params);
     egui_view_image_set_image(EGUI_VIEW_OF(&pages[page_index].image), (egui_image_t *)&pages[page_index].svg);
     egui_view_image_set_image_type(EGUI_VIEW_OF(&pages[page_index].image), EGUI_VIEW_IMAGE_TYPE_RESIZE);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&pages[page_index].page), EGUI_VIEW_OF(&pages[page_index].image));
 }
 
-static void hello_svg_init_ui(void)
+static void hello_svg_init_ui(egui_core_t *core)
 {
     uint8_t page_index;
 
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&root), &root_params);
-    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), &viewpage_params);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&root), core, &root_params);
+    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), core, &viewpage_params);
     egui_view_viewpage_set_on_page_changed(EGUI_VIEW_OF(&viewpage), hello_svg_on_page_changed);
 
     for (page_index = 0; page_index < HELLO_SVG_PAGE_COUNT; page_index++)
     {
-        hello_svg_init_page(page_index);
+        hello_svg_init_page(core, page_index);
         egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage), EGUI_VIEW_OF(&pages[page_index].page));
     }
     egui_view_viewpage_layout_childs(EGUI_VIEW_OF(&viewpage));
 
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&title_label), &title_label_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&title_label), core, &title_label_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&title_label), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&page_label), &page_label_params);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&page_label), core, &page_label_params);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&page_label), EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER);
 
     current_page_index = 0;
@@ -582,11 +582,11 @@ static void hello_svg_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&root));
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
-    hello_svg_init_ui();
+    hello_svg_init_ui(core);
     egui_timer_init_timer(&hero_timer, NULL, hello_svg_anim_cb);
-    egui_timer_start_timer(&hero_timer, HELLO_SVG_FRAME_MS, HELLO_SVG_FRAME_MS);
+    egui_timer_start_timer(core, &hero_timer, HELLO_SVG_FRAME_MS, HELLO_SVG_FRAME_MS);
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

@@ -4,6 +4,7 @@
 #include "egui_canvas.h"
 #include "egui_core.h"
 #include "egui_core_internal.h"
+#include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_DEBUG_VIEW_ID
 uint16_t egui_core_get_unique_id(egui_core_t *core)
@@ -13,9 +14,9 @@ uint16_t egui_core_get_unique_id(egui_core_t *core)
 #endif
 
 #if EGUI_DEBUG_MONITOR_SHOW
-#define EGUI_DEBUG_MONITOR_OVERLAY_PADDING 3
+#define EGUI_DEBUG_MONITOR_OVERLAY_PADDING  3
 #define EGUI_DEBUG_MONITOR_OVERLAY_BG_ALPHA 128
-#define EGUI_DEBUG_MONITOR_FONT()          ((const egui_font_t *)EGUI_CONFIG_DEBUG_MONITOR_FONT)
+#define EGUI_DEBUG_MONITOR_FONT()           ((const egui_font_t *)EGUI_CONFIG_DEBUG_MONITOR_FONT)
 
 void egui_debug_overlay_init(egui_debug_overlay_t *overlay, uint8_t align_type, egui_dim_t offset_x, egui_dim_t offset_y)
 {

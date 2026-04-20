@@ -1,6 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
-#include "uicode.h"
+#include "uicode_disp0.h"
 
 #include "app_egui_resource_generate.h"
 
@@ -80,24 +80,24 @@ static const char runtime_svg_panel[] = "<svg viewBox='0 0 120 80'>"
                                         "</g>"
                                         "</svg>";
 
-static void init_image_row(egui_view_group_t *page, egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text, egui_view_image_t *img,
-                           const egui_view_image_params_t *img_p)
+static void init_image_row(egui_core_t *core, egui_view_group_t *page, egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text,
+                           egui_view_image_t *img, const egui_view_image_params_t *img_p)
 {
-    egui_view_label_init_with_params(EGUI_VIEW_OF(lbl), lbl_p);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(lbl), core, lbl_p);
     egui_view_label_set_text(EGUI_VIEW_OF(lbl), text);
     egui_view_label_set_align_type(EGUI_VIEW_OF(lbl), EGUI_ALIGN_CENTER);
 
-    egui_view_image_init_with_params(EGUI_VIEW_OF(img), img_p);
+    egui_view_image_init_with_params(EGUI_VIEW_OF(img), core, img_p);
     egui_view_image_set_image_type(EGUI_VIEW_OF(img), EGUI_VIEW_IMAGE_TYPE_NORMAL);
 
     egui_view_group_add_child(EGUI_VIEW_OF(page), EGUI_VIEW_OF(lbl));
     egui_view_group_add_child(EGUI_VIEW_OF(page), EGUI_VIEW_OF(img));
 }
 
-static void init_runtime_svg_row(egui_view_group_t *page, egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text,
+static void init_runtime_svg_row(egui_core_t *core, egui_view_group_t *page, egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text,
                                  egui_view_image_t *img, const egui_view_image_params_t *img_p)
 {
-    init_image_row(page, lbl, lbl_p, text, img, img_p);
+    init_image_row(core, page, lbl, lbl_p, text, img, img_p);
     egui_view_image_set_image_type(EGUI_VIEW_OF(img), EGUI_VIEW_IMAGE_TYPE_RESIZE);
 }
 
@@ -107,7 +107,7 @@ static void on_viewpage_changed(egui_view_t *self, int page_index)
     egui_view_invalidate_full(self);
 }
 
-void test_init_ui(void)
+void test_init_ui(egui_core_t *core)
 {
     egui_image_svg_init(&runtime_svg_badge_data);
     egui_image_svg_init(&runtime_svg_ring_data);
@@ -126,28 +126,28 @@ void test_init_ui(void)
     }
 
     /* ----- Page 1: alpha=0 images ----- */
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&page1), &page1_p);
-    init_image_row(&page1, &lbl_a0_std, &lbl_a0_std_p, "STD a0", &img_a0_std, &img_a0_std_p);
-    init_image_row(&page1, &lbl_a0_qoi, &lbl_a0_qoi_p, "QOI a0", &img_a0_qoi, &img_a0_qoi_p);
-    init_image_row(&page1, &lbl_a0_rle, &lbl_a0_rle_p, "RLE a0", &img_a0_rle, &img_a0_rle_p);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&page1), core, &page1_p);
+    init_image_row(core, &page1, &lbl_a0_std, &lbl_a0_std_p, "STD a0", &img_a0_std, &img_a0_std_p);
+    init_image_row(core, &page1, &lbl_a0_qoi, &lbl_a0_qoi_p, "QOI a0", &img_a0_qoi, &img_a0_qoi_p);
+    init_image_row(core, &page1, &lbl_a0_rle, &lbl_a0_rle_p, "RLE a0", &img_a0_rle, &img_a0_rle_p);
     egui_view_group_layout_childs(EGUI_VIEW_OF(&page1), 0, 0, 0, EGUI_ALIGN_CENTER);
 
     /* ----- Page 2: alpha=8 images ----- */
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&page2), &page2_p);
-    init_image_row(&page2, &lbl_a8_std, &lbl_a8_std_p, "STD a8", &img_a8_std, &img_a8_std_p);
-    init_image_row(&page2, &lbl_a8_qoi, &lbl_a8_qoi_p, "QOI a8", &img_a8_qoi, &img_a8_qoi_p);
-    init_image_row(&page2, &lbl_a8_rle, &lbl_a8_rle_p, "RLE a8", &img_a8_rle, &img_a8_rle_p);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&page2), core, &page2_p);
+    init_image_row(core, &page2, &lbl_a8_std, &lbl_a8_std_p, "STD a8", &img_a8_std, &img_a8_std_p);
+    init_image_row(core, &page2, &lbl_a8_qoi, &lbl_a8_qoi_p, "QOI a8", &img_a8_qoi, &img_a8_qoi_p);
+    init_image_row(core, &page2, &lbl_a8_rle, &lbl_a8_rle_p, "RLE a8", &img_a8_rle, &img_a8_rle_p);
     egui_view_group_layout_childs(EGUI_VIEW_OF(&page2), 0, 0, 0, EGUI_ALIGN_CENTER);
 
     /* ----- Page 3: runtime SVG ----- */
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&page3), &page3_p);
-    init_runtime_svg_row(&page3, &lbl_rt_badge, &lbl_rt_badge_p, "RT path", &img_rt_badge, &img_rt_badge_p);
-    init_runtime_svg_row(&page3, &lbl_rt_ring, &lbl_rt_ring_p, "RT evenodd", &img_rt_ring, &img_rt_ring_p);
-    init_runtime_svg_row(&page3, &lbl_rt_panel, &lbl_rt_panel_p, "RT group", &img_rt_panel, &img_rt_panel_p);
+    egui_view_group_init_with_params(EGUI_VIEW_OF(&page3), core, &page3_p);
+    init_runtime_svg_row(core, &page3, &lbl_rt_badge, &lbl_rt_badge_p, "RT path", &img_rt_badge, &img_rt_badge_p);
+    init_runtime_svg_row(core, &page3, &lbl_rt_ring, &lbl_rt_ring_p, "RT evenodd", &img_rt_ring, &img_rt_ring_p);
+    init_runtime_svg_row(core, &page3, &lbl_rt_panel, &lbl_rt_panel_p, "RT group", &img_rt_panel, &img_rt_panel_p);
     egui_view_group_layout_childs(EGUI_VIEW_OF(&page3), 0, 0, 0, EGUI_ALIGN_CENTER);
 
     /* ----- ViewPage ----- */
-    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), &viewpage_p);
+    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), core, &viewpage_p);
     egui_view_viewpage_set_on_page_changed(EGUI_VIEW_OF(&viewpage), on_viewpage_changed);
     egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage), EGUI_VIEW_OF(&page1));
     egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage), EGUI_VIEW_OF(&page2));
