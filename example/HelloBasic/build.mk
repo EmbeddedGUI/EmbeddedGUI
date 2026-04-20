@@ -78,12 +78,19 @@ EGUI_CODE_SRC		+= $(EGUI_APP_SUB_PATH)/resource/font
 
 ifeq ($(APP_SUB),file_image)
 EGUI_CODE_SRC		+= $(EGUI_APP_SUB_PATH)/mount_router_template
+EGUI_CODE_SRC_FILES += \
+	third_party/file_image/decoder_bmp_stream.c \
+	third_party/file_image/decoder_stb.c \
+	third_party/file_image/decoder_tjpgd_stream.c \
+	third_party/file_image/third_party_tjpgd.c
+EGUI_CODE_INCLUDE	+= third_party/file_image
 endif
 
 ifeq ($(APP_SUB),deferred_image)
 EGUI_CODE_SRC_FILES += \
 	$(EGUI_APP_PATH)/file_image/file_io_stdio.c \
-	$(EGUI_APP_PATH)/file_image/decoder_bmp_stream.c
+	third_party/file_image/decoder_bmp_stream.c
+EGUI_CODE_INCLUDE	+= third_party/file_image
 EGUI_CODE_INCLUDE	+= $(EGUI_APP_PATH)/file_image
 endif
 

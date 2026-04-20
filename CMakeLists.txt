@@ -40,6 +40,7 @@ endif()
 # Global include directories
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/example/${APP})
+include_directories(${CMAKE_SOURCE_DIR}/third_party/file_image)
 
 # For apps with sub-apps, add sub-app include paths
 if((APP STREQUAL "HelloBasic" OR APP STREQUAL "HelloVirtual" OR APP STREQUAL "HelloSizeAnalysis") AND NOT APP_SUB STREQUAL "")
