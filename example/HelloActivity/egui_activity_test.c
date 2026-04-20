@@ -55,11 +55,39 @@ static void button_3_click_cb(egui_view_t *self)
     }
 }
 
-#define BUTTON_WIDTH  150
-#define BUTTON_HEIGHT 30
+static void button_4_click_cb(egui_view_t *self)
+{
+    EGUI_LOG_INF("button_4_click_cb\n");
 
-#define LABEL_WIDTH  150
-#define LABEL_HEIGHT 30
+    {
+        egui_activity_t *p_activity = egui_view_get_activity(self);
+
+        if (p_activity)
+        {
+            uicode_start_activity_stress(p_activity);
+        }
+    }
+}
+
+static void button_5_click_cb(egui_view_t *self)
+{
+    EGUI_LOG_INF("button_5_click_cb\n");
+
+    {
+        egui_activity_t *p_activity = egui_view_get_activity(self);
+
+        if (p_activity)
+        {
+            uicode_start_dialog_stress(p_activity);
+        }
+    }
+}
+
+#define BUTTON_WIDTH  160
+#define BUTTON_HEIGHT 26
+
+#define LABEL_WIDTH  160
+#define LABEL_HEIGHT 26
 
 void egui_activity_test_on_create(egui_activity_t *self)
 {
@@ -80,7 +108,7 @@ void egui_activity_test_on_create(egui_activity_t *self)
     egui_view_label_init((egui_view_t *)&local->label_1, core);
     egui_view_set_position((egui_view_t *)&local->label_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->label_1, LABEL_WIDTH, LABEL_HEIGHT);
-    egui_view_set_margin_all((egui_view_t *)&local->label_1, 5);
+    egui_view_set_margin_all((egui_view_t *)&local->label_1, 4);
     egui_view_label_set_text((egui_view_t *)&local->label_1, local->label_str);
     egui_view_label_set_align_type((egui_view_t *)&local->label_1, EGUI_ALIGN_CENTER);
     egui_view_label_set_font((egui_view_t *)&local->label_1, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
@@ -90,7 +118,7 @@ void egui_activity_test_on_create(egui_activity_t *self)
     egui_view_button_init((egui_view_t *)&local->button_1, core);
     egui_view_set_position((egui_view_t *)&local->button_1, 0, 0);
     egui_view_set_size((egui_view_t *)&local->button_1, BUTTON_WIDTH, BUTTON_HEIGHT);
-    egui_view_set_margin_all((egui_view_t *)&local->button_1, 5);
+    egui_view_set_margin_all((egui_view_t *)&local->button_1, 4);
     egui_view_label_set_text((egui_view_t *)&local->button_1, "Next");
     egui_view_label_set_align_type((egui_view_t *)&local->button_1, EGUI_ALIGN_CENTER);
     egui_view_label_set_font((egui_view_t *)&local->button_1, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
@@ -101,7 +129,7 @@ void egui_activity_test_on_create(egui_activity_t *self)
     egui_view_button_init((egui_view_t *)&local->button_2, core);
     egui_view_set_position((egui_view_t *)&local->button_2, 0, 0);
     egui_view_set_size((egui_view_t *)&local->button_2, BUTTON_WIDTH, BUTTON_HEIGHT);
-    egui_view_set_margin_all((egui_view_t *)&local->button_2, 5);
+    egui_view_set_margin_all((egui_view_t *)&local->button_2, 4);
     egui_view_label_set_text((egui_view_t *)&local->button_2, "Finish");
     egui_view_label_set_align_type((egui_view_t *)&local->button_2, EGUI_ALIGN_CENTER);
     egui_view_label_set_font((egui_view_t *)&local->button_2, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
@@ -112,18 +140,42 @@ void egui_activity_test_on_create(egui_activity_t *self)
     egui_view_button_init((egui_view_t *)&local->button_3, core);
     egui_view_set_position((egui_view_t *)&local->button_3, 0, 0);
     egui_view_set_size((egui_view_t *)&local->button_3, BUTTON_WIDTH, BUTTON_HEIGHT);
-    egui_view_set_margin_all((egui_view_t *)&local->button_3, 5);
+    egui_view_set_margin_all((egui_view_t *)&local->button_3, 4);
     egui_view_label_set_text((egui_view_t *)&local->button_3, "Dialog");
     egui_view_label_set_align_type((egui_view_t *)&local->button_3, EGUI_ALIGN_CENTER);
     egui_view_label_set_font((egui_view_t *)&local->button_3, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_font_color((egui_view_t *)&local->button_3, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
     egui_view_set_on_click_listener((egui_view_t *)&local->button_3, button_3_click_cb);
 
+    // button_4
+    egui_view_button_init((egui_view_t *)&local->button_4, core);
+    egui_view_set_position((egui_view_t *)&local->button_4, 0, 0);
+    egui_view_set_size((egui_view_t *)&local->button_4, BUTTON_WIDTH, BUTTON_HEIGHT);
+    egui_view_set_margin_all((egui_view_t *)&local->button_4, 4);
+    egui_view_label_set_text((egui_view_t *)&local->button_4, "Act Stress");
+    egui_view_label_set_align_type((egui_view_t *)&local->button_4, EGUI_ALIGN_CENTER);
+    egui_view_label_set_font((egui_view_t *)&local->button_4, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    egui_view_label_set_font_color((egui_view_t *)&local->button_4, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
+    egui_view_set_on_click_listener((egui_view_t *)&local->button_4, button_4_click_cb);
+
+    // button_5
+    egui_view_button_init((egui_view_t *)&local->button_5, core);
+    egui_view_set_position((egui_view_t *)&local->button_5, 0, 0);
+    egui_view_set_size((egui_view_t *)&local->button_5, BUTTON_WIDTH, BUTTON_HEIGHT);
+    egui_view_set_margin_all((egui_view_t *)&local->button_5, 4);
+    egui_view_label_set_text((egui_view_t *)&local->button_5, "Dlg Stress");
+    egui_view_label_set_align_type((egui_view_t *)&local->button_5, EGUI_ALIGN_CENTER);
+    egui_view_label_set_font((egui_view_t *)&local->button_5, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    egui_view_label_set_font_color((egui_view_t *)&local->button_5, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
+    egui_view_set_on_click_listener((egui_view_t *)&local->button_5, button_5_click_cb);
+
     // Add childs to layout_1
     egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->label_1);
     egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->button_1);
     egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->button_2);
     egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->button_3);
+    egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->button_4);
+    egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->button_5);
 
     // Re-layout childs
     egui_view_linearlayout_layout_childs((egui_view_t *)&local->layout_1);

@@ -21,6 +21,8 @@ struct egui_activity_test
     egui_view_button_t button_1;
     egui_view_button_t button_2;
     egui_view_button_t button_3;
+    egui_view_button_t button_4;
+    egui_view_button_t button_5;
 };
 
 void egui_activity_test_set_index(egui_activity_t *self, int index);

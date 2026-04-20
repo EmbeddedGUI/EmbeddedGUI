@@ -12,6 +12,9 @@ extern "C" {
 
 int uicode_start_next_activity(egui_activity_t *current_activity);
 int uicode_start_dialog(egui_activity_t *activity);
+int uicode_start_activity_stress(egui_activity_t *activity);
+int uicode_start_dialog_stress(egui_activity_t *activity);
+int uicode_is_stress_running(void);
 void uicode_disp0_init(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
