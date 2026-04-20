@@ -3,6 +3,8 @@
 #include <math.h>
 
 #include "egui_page_base.h"
+#include "egui_toast.h"
+#include "core/egui_core_toast.h"
 #include "core/egui_core_internal.h"
 
 void egui_page_base_set_layout(egui_page_base_t *self, egui_region_t *layout)

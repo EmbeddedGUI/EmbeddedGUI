@@ -1,6 +1,7 @@
 #include "egui_api.h"
 #include "egui_core.h"
 #include "egui_core_internal.h"
+#include "anim/egui_animation.h"
 
 void egui_core_animation_append(egui_core_t *core, egui_animation_t *anim)
 {

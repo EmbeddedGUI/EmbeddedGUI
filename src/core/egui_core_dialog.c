@@ -1,6 +1,7 @@
 #include "egui_api.h"
 #include "egui_common.h"
 #include "egui_core.h"
+#include "egui_core_dialog.h"
 #include "egui_core_internal.h"
 #include "anim/egui_animation.h"
 #include "app/egui_activity.h"

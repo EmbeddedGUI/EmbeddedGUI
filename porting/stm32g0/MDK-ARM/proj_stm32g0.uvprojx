@@ -695,11 +695,6 @@
               <FilePath>..\..\..\src\core\egui_core_activity.c</FilePath>
             </File>
             <File>
-              <FileName>egui_core_activity_force.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core_activity_force.c</FilePath>
-            </File>
-            <File>
               <FileName>egui_core_animation.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_core_animation.c</FilePath>
@@ -743,21 +738,6 @@
               <FileName>egui_core_touch.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_core_touch.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_core_touch_trace_draw.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core_touch_trace_draw.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_core_touch_trace_record.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core_touch_trace_record.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_core_user_root.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core_user_root.c</FilePath>
             </File>
             <File>
               <FileName>egui_display_driver.c</FileName>

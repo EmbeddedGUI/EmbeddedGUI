@@ -2,6 +2,9 @@
 #define _EGUI_CORE_INTERNAL_H_
 
 #include "egui_core.h"
+#include "egui_core_activity.h"
+#include "egui_core_dialog.h"
+#include "egui_core_toast.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -11,24 +14,6 @@ extern "C" {
 void egui_core_add_root_view(egui_core_t *core, egui_view_t *view);
 void egui_core_remove_user_root_view(egui_core_t *core, egui_view_t *view);
 void egui_core_layout_childs_user_root_view(egui_core_t *core, uint8_t is_orientation_horizontal, uint8_t align_type);
-egui_activity_t *egui_core_activity_get_current(egui_core_t *core);
-void egui_core_activity_force_finish_all(egui_core_t *core);
-void egui_core_activity_force_finish_to_activity(egui_core_t *core, egui_activity_t *activity);
-int egui_core_activity_check_in_process(egui_core_t *core, egui_activity_t *activity);
-void egui_core_activity_append(egui_core_t *core, egui_activity_t *activity);
-void egui_core_activity_remove(egui_core_t *core, egui_activity_t *activity);
-void egui_core_activity_start(egui_core_t *core, egui_activity_t *self, egui_activity_t *prev_activity);
-void egui_core_activity_set_start_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim);
-void egui_core_activity_set_finish_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim);
-void egui_core_activity_finish(egui_core_t *core, egui_activity_t *self);
-egui_activity_t *egui_core_activity_get_by_view(egui_core_t *core, egui_view_t *view);
-egui_dialog_t *egui_core_dialog_get(egui_core_t *core);
-void egui_core_dialog_set_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim);
-void egui_core_dialog_start(egui_core_t *core, egui_activity_t *activity, egui_dialog_t *self);
-int egui_core_dialog_check_in_process(egui_core_t *core, egui_dialog_t *dialog);
-void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self);
-egui_toast_t *egui_core_toast_get(egui_core_t *core);
-void egui_core_toast_set(egui_core_t *core, egui_toast_t *toast);
 void egui_core_set_pfb_scan_direction(egui_core_t *core, uint8_t reverse_x, uint8_t reverse_y);
 void egui_core_reset_pfb_scan_direction(egui_core_t *core);
 uint8_t egui_core_get_pfb_scan_reverse_x(egui_core_t *core);

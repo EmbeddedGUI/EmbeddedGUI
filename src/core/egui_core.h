@@ -19,10 +19,6 @@
 #include "egui_focus.h"
 #endif
 #include "widget/egui_view_group.h"
-#include "anim/egui_animation.h"
-#include "app/egui_activity.h"
-#include "app/egui_dialog.h"
-#include "app/egui_toast.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus

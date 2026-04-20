@@ -2,7 +2,10 @@
 #include <assert.h>
 
 #include "egui_dialog.h"
+#include "egui_toast.h"
 #include "widget/egui_view.h"
+#include "core/egui_core_dialog.h"
+#include "core/egui_core_toast.h"
 #include "core/egui_core_internal.h"
 #include "core/egui_api.h"
 #include "background/egui_background_color.h"

@@ -1,5 +1,6 @@
 #include "egui_common.h"
 #include "egui_core.h"
+#include "egui_core_toast.h"
 #include "egui_core_internal.h"
 #include "app/egui_toast.h"
 

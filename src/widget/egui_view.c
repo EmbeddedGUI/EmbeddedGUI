@@ -2,8 +2,12 @@
 #include <assert.h>
 
 #include "egui_view.h"
+#include "app/egui_toast.h"
 #include "core/egui_core.h"
+#include "core/egui_core_activity.h"
+#include "core/egui_core_dialog.h"
 #include "core/egui_core_internal.h"
+#include "core/egui_core_toast.h"
 #include "core/egui_api.h"
 #include "style/egui_theme.h"
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
