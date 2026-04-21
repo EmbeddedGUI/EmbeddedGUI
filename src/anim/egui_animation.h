@@ -54,6 +54,7 @@ struct egui_animation
 
     uint32_t start_time;      // start time of the animation in milliseconds
     egui_view_t *target_view; // target view of the animation
+    egui_core_t *queue_core;  // core that currently owns this animation in scene.anims
 
     egui_interpolator_t *interpolator; // interpolator used for the animation
 
@@ -73,6 +74,7 @@ void egui_animation_target_view_set(egui_animation_t *self, egui_view_t *view);
 void egui_animation_is_fill_before_set(egui_animation_t *self, int is_fill_before);
 void egui_animation_is_fill_after_set(egui_animation_t *self, int is_fill_after);
 void egui_animation_start(egui_animation_t *self);
+void egui_animation_complete(egui_animation_t *self);
 void egui_animation_stop(egui_animation_t *self);
 void egui_animation_update(egui_animation_t *self, uint32_t current_time);
 void egui_animation_init(egui_animation_t *self);

@@ -536,8 +536,14 @@ void egui_core_init_display_scene(egui_core_t *core, int16_t screen_w, int16_t s
     core->scene.activity_anim_start_close = NULL;
     core->scene.activity_anim_finish_open = NULL;
     core->scene.activity_anim_finish_close = NULL;
+    core->scene.activity_anim_start_open_owner = NULL;
+    core->scene.activity_anim_start_close_owner = NULL;
+    core->scene.activity_anim_finish_open_owner = NULL;
+    core->scene.activity_anim_finish_close_owner = NULL;
     core->scene.dialog_anim_start = NULL;
     core->scene.dialog_anim_finish = NULL;
+    core->scene.dialog_anim_start_owner = NULL;
+    core->scene.dialog_anim_finish_owner = NULL;
     core->scene.dialog = NULL;
     core->scene.toast = NULL;
 

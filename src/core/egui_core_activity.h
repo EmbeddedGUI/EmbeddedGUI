@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 egui_activity_t *egui_core_activity_get_current(egui_core_t *core);
+egui_activity_t *egui_core_activity_get_current_active(egui_core_t *core);
 void egui_core_activity_force_finish_all(egui_core_t *core);
 void egui_core_activity_force_finish_to_activity(egui_core_t *core, egui_activity_t *activity);
 int egui_core_activity_check_in_process(egui_core_t *core, egui_activity_t *activity);

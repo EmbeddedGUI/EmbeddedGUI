@@ -104,8 +104,8 @@ static uint8_t s_dialog_anim_enabled = 1U;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t s_runtime_fail_reported;
-static uint8_t s_recording_activity_retry;
-static uint8_t s_recording_dialog_retry;
+static uint8_t s_recording_activity_wait_done;
+static uint8_t s_recording_dialog_wait_done;
 #endif
 
 static int index = 0;
@@ -142,7 +142,7 @@ static egui_activity_t *uicode_get_current_activity(void)
         return NULL;
     }
 
-    return egui_core_activity_get_current(s_core);
+    return egui_core_activity_get_current_active(s_core);
 }
 
 static void uicode_show_status_toast(egui_activity_t *activity, const char *text)
@@ -182,7 +182,7 @@ static void uicode_verify_stress_settled(void)
     {
         uicode_report_runtime_failure("stress scenario left dialog open");
     }
-    if (egui_core_activity_get_current(s_core) == NULL)
+    if (egui_core_activity_get_current_active(s_core) == NULL)
     {
         uicode_report_runtime_failure("stress scenario left activity stack empty");
     }
@@ -390,8 +390,8 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     s_dialog_anim_enabled = 1U;
 #if EGUI_CONFIG_RECORDING_TEST
     s_runtime_fail_reported = 0U;
-    s_recording_activity_retry = 0U;
-    s_recording_dialog_retry = 0U;
+    s_recording_activity_wait_done = 0U;
+    s_recording_dialog_wait_done = 0U;
 #endif
 
     // anim_dialog_start
@@ -479,36 +479,46 @@ static uint8_t uicode_set_click_current_activity_button(egui_sim_action_t *p_act
     return 1U;
 }
 
-static uint8_t uicode_recording_wait_for_stress(uint8_t *retry_counter, uint8_t retry_max, egui_sim_action_t *p_action, const char *timeout_message)
+static uint8_t uicode_recording_wait_for_stress_slot(uint8_t *wait_done, egui_sim_action_t *p_action, const char *timeout_message, uint8_t is_last_slot)
 {
-    if (retry_counter == NULL || p_action == NULL)
+    if (wait_done == NULL || p_action == NULL)
     {
         return 0U;
     }
 
-    if (uicode_is_stress_running())
+    if (*wait_done == 0U)
     {
-        if (*retry_counter < retry_max)
+        if (uicode_is_stress_running())
         {
-            (*retry_counter)++;
+            if (is_last_slot)
+            {
+                uicode_report_runtime_failure(timeout_message);
+            }
             EGUI_SIM_SET_WAIT(p_action, 80);
             return 1U;
         }
 
-        uicode_report_runtime_failure(timeout_message);
-        EGUI_SIM_SET_WAIT(p_action, 80);
+        *wait_done = 1U;
+        uicode_verify_stress_settled();
+        recording_request_snapshot();
+        EGUI_SIM_SET_WAIT(p_action, 180);
         return 1U;
     }
 
-    *retry_counter = 0U;
-    uicode_verify_stress_settled();
-    recording_request_snapshot();
-    EGUI_SIM_SET_WAIT(p_action, 180);
+    EGUI_SIM_SET_WAIT(p_action, 50);
     return 1U;
 }
 
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    enum
+    {
+        UICODE_RECORD_ACTION_ACTIVITY_WAIT_BEGIN = 2,
+        UICODE_RECORD_ACTION_ACTIVITY_WAIT_END = 41,
+        UICODE_RECORD_ACTION_DIALOG_CLICK = 42,
+        UICODE_RECORD_ACTION_DIALOG_WAIT_BEGIN = 43,
+        UICODE_RECORD_ACTION_DIALOG_WAIT_END = 90,
+    };
     static int last_action = -1;
     int first_call = (action_index != last_action);
 
@@ -526,7 +536,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 1:
         if (first_call)
         {
-            s_recording_activity_retry = 0U;
+            s_recording_activity_wait_done = 0U;
         }
         if (!uicode_set_click_current_activity_button(p_action, 4, 160))
         {
@@ -534,23 +544,45 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 160);
         }
         return true;
-    case 2:
-        return uicode_recording_wait_for_stress(&s_recording_activity_retry, 40U, p_action, "activity stress did not settle");
-    case 3:
+    default:
+        break;
+    }
+
+    if (action_index >= UICODE_RECORD_ACTION_ACTIVITY_WAIT_BEGIN && action_index <= UICODE_RECORD_ACTION_ACTIVITY_WAIT_END)
+    {
+        return uicode_recording_wait_for_stress_slot(&s_recording_activity_wait_done, p_action, "activity stress did not settle",
+                                                     action_index == UICODE_RECORD_ACTION_ACTIVITY_WAIT_END);
+    }
+
+    if (action_index == UICODE_RECORD_ACTION_DIALOG_CLICK)
+    {
+        egui_activity_t *activity = uicode_get_current_activity();
+
         if (first_call)
         {
-            s_recording_dialog_retry = 0U;
+            s_recording_dialog_wait_done = 0U;
+
+            if (activity == NULL)
+            {
+                uicode_report_runtime_failure("dialog stress activity was not reachable");
+            }
+            else
+            {
+                uicode_start_dialog_stress(activity);
+                recording_request_snapshot();
+            }
         }
-        if (!uicode_set_click_current_activity_button(p_action, 5, 160))
-        {
-            uicode_report_runtime_failure("dialog stress button was not reachable");
-            EGUI_SIM_SET_WAIT(p_action, 160);
-        }
+
+        EGUI_SIM_SET_WAIT(p_action, 160);
         return true;
-    case 4:
-        return uicode_recording_wait_for_stress(&s_recording_dialog_retry, 48U, p_action, "dialog stress did not settle");
-    default:
-        return false;
     }
+
+    if (action_index >= UICODE_RECORD_ACTION_DIALOG_WAIT_BEGIN && action_index <= UICODE_RECORD_ACTION_DIALOG_WAIT_END)
+    {
+        return uicode_recording_wait_for_stress_slot(&s_recording_dialog_wait_done, p_action, "dialog stress did not settle",
+                                                     action_index == UICODE_RECORD_ACTION_DIALOG_WAIT_END);
+    }
+
+    return false;
 }
 #endif

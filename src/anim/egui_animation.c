@@ -91,6 +91,7 @@ void egui_animation_notify_repeat(egui_animation_t *self)
 void egui_animation_start(egui_animation_t *self)
 {
     egui_core_t *core;
+    egui_core_t *queue_core;
 
     if (self->target_view == NULL)
     {
@@ -103,6 +104,14 @@ void egui_animation_start(egui_animation_t *self)
         return;
     }
 
+    queue_core = self->queue_core;
+    if (!self->is_inside_animation && queue_core != NULL)
+    {
+        // Restarting the same animation instance must first remove its old node
+        // from the queue, otherwise the singly-linked list can self-link.
+        egui_core_animation_remove(queue_core, self);
+    }
+
     self->start_time = (uint32_t)-1;
     self->is_running = true;
     self->is_started = false;
@@ -112,10 +121,46 @@ void egui_animation_start(egui_animation_t *self)
 
     if (!self->is_inside_animation)
     {
+        self->queue_core = core;
         egui_core_animation_append(core, self);
+    }
+    else
+    {
+        self->queue_core = NULL;
     }
 
     self->api->on_start(self);
+}
+
+void egui_animation_complete(egui_animation_t *self)
+{
+    egui_float_t fraction = EGUI_FLOAT_VALUE(1.0f);
+
+    if (self == NULL || !self->is_running)
+    {
+        return;
+    }
+
+    if (!self->is_started)
+    {
+        self->is_started = true;
+        egui_animation_notify_start(self);
+    }
+
+    if (self->is_cycle_flip)
+    {
+        fraction = EGUI_FLOAT_VALUE(0.0f);
+    }
+
+    if (self->interpolator)
+    {
+        fraction = self->interpolator->api->get_interpolation(self->interpolator, fraction);
+    }
+
+    self->api->on_update(self, fraction);
+    egui_animation_stop(self);
+    self->is_ended = true;
+    egui_animation_notify_end(self);
 }
 
 void egui_animation_stop(egui_animation_t *self)
@@ -127,11 +172,12 @@ void egui_animation_stop(egui_animation_t *self)
         self->is_running = false;
         if (!self->is_inside_animation)
         {
-            core = egui_animation_get_core(self);
+            core = self->queue_core;
             if (core != NULL)
             {
                 egui_core_animation_remove(core, self);
             }
+            self->queue_core = NULL;
         }
     }
 }
@@ -243,6 +289,7 @@ void egui_animation_init(egui_animation_t *self)
     self->repeated = 0;
     self->handle = NULL;
     self->target_view = NULL;
+    self->queue_core = NULL;
 
     self->is_running = false;
     self->is_started = false;

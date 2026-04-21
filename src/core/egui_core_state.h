@@ -155,10 +155,16 @@ typedef struct egui_core_scene_state
     egui_animation_t *activity_anim_start_close;
     egui_animation_t *activity_anim_finish_open;
     egui_animation_t *activity_anim_finish_close;
+    egui_activity_t *activity_anim_start_open_owner;
+    egui_activity_t *activity_anim_start_close_owner;
+    egui_activity_t *activity_anim_finish_open_owner;
+    egui_activity_t *activity_anim_finish_close_owner;
     egui_activity_t *activity_open;
     egui_activity_t *activity_close;
     egui_animation_t *dialog_anim_start;
     egui_animation_t *dialog_anim_finish;
+    egui_dialog_t *dialog_anim_start_owner;
+    egui_dialog_t *dialog_anim_finish_owner;
     egui_dialog_t *dialog;
     egui_toast_t *toast;
     egui_view_root_group_t root_view_group;

@@ -8,6 +8,37 @@
 #include "app/egui_dialog.h"
 #include "widget/egui_view.h"
 
+static void egui_core_dialog_cancel_anim_slot(egui_animation_t *anim, egui_dialog_t **owner_slot, egui_dialog_t *dialog)
+{
+    if (owner_slot == NULL || *owner_slot != dialog)
+    {
+        return;
+    }
+
+    if (anim != NULL && anim->is_running)
+    {
+        egui_animation_complete(anim);
+    }
+
+    *owner_slot = NULL;
+}
+
+static void egui_core_dialog_cancel_pending(egui_core_t *core, egui_dialog_t *dialog)
+{
+    if (core == NULL || dialog == NULL)
+    {
+        return;
+    }
+
+    egui_core_dialog_cancel_anim_slot(core->scene.dialog_anim_start, &core->scene.dialog_anim_start_owner, dialog);
+    egui_core_dialog_cancel_anim_slot(core->scene.dialog_anim_finish, &core->scene.dialog_anim_finish_owner, dialog);
+
+    if (core->scene.dialog == dialog)
+    {
+        core->scene.dialog = NULL;
+    }
+}
+
 egui_dialog_t *egui_core_dialog_get(egui_core_t *core)
 {
     return core->scene.dialog;
@@ -26,6 +57,7 @@ void egui_core_dialog_start(egui_core_t *core, egui_activity_t *activity, egui_d
         return;
     }
 
+    egui_core_dialog_cancel_pending(core, self);
     core->scene.dialog = self;
     self->is_need_finish = 0;
 
@@ -35,11 +67,13 @@ void egui_core_dialog_start(egui_core_t *core, egui_activity_t *activity, egui_d
 
     if (core->scene.dialog_anim_start != NULL)
     {
+        core->scene.dialog_anim_start_owner = self;
         egui_animation_target_view_set(core->scene.dialog_anim_start, (egui_view_t *)&self->user_root_view);
         egui_animation_start(core->scene.dialog_anim_start);
     }
     else
     {
+        core->scene.dialog_anim_start_owner = NULL;
         self->api->on_resume(self);
     }
 }
@@ -55,7 +89,6 @@ int egui_core_dialog_check_in_process(egui_core_t *core, egui_dialog_t *dialog)
 
 void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self)
 {
-    core->scene.dialog = self;
     EGUI_LOG_DBG("egui_core_dialog_finish %p, self->is_need_finish: %d\n", self, self->is_need_finish);
     // avoid enter twice
     if (self->is_need_finish)
@@ -67,6 +100,8 @@ void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self)
         return;
     }
 
+    egui_core_dialog_cancel_pending(core, self);
+    core->scene.dialog = self;
     self->is_need_finish = true;
     self->api->on_pause(self);
 
@@ -75,11 +110,13 @@ void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self)
         // check anim
         if (core->scene.dialog_anim_finish != NULL)
         {
+            core->scene.dialog_anim_finish_owner = self;
             egui_animation_target_view_set(core->scene.dialog_anim_finish, (egui_view_t *)&self->user_root_view);
             egui_animation_start(core->scene.dialog_anim_finish);
         }
         else
         {
+            core->scene.dialog_anim_finish_owner = NULL;
             self->api->on_stop(self);
             self->bind_activity->api->on_resume(self->bind_activity);
             core->scene.dialog = NULL;
@@ -87,6 +124,7 @@ void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self)
     }
     else
     {
+        core->scene.dialog_anim_finish_owner = NULL;
         // something error.
         if (self->state < EGUI_DIALOG_STATE_DESTROY)
         {
@@ -101,18 +139,22 @@ void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self)
 static void on_dialog_anim_start_end(egui_animation_t *self)
 {
     egui_core_t *core = egui_view_get_core(self->target_view);
+    egui_dialog_t *dialog = NULL;
+
+    if (core != NULL)
+    {
+        dialog = core->scene.dialog_anim_start_owner;
+        core->scene.dialog_anim_start_owner = NULL;
+    }
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     EGUI_LOG_DBG("on_dialog_anim_start_end\n");
 #endif
-    if (core == NULL)
+    if (core == NULL || dialog == NULL || dialog->is_need_finish || dialog->state >= EGUI_DIALOG_STATE_STOP)
     {
         return;
     }
 
-    if (core->scene.dialog)
-    {
-        core->scene.dialog->api->on_resume(core->scene.dialog);
-    }
+    dialog->api->on_resume(dialog);
 }
 
 static const egui_animation_handle_t dialog_anim_start_hanlde = {
@@ -124,19 +166,25 @@ static const egui_animation_handle_t dialog_anim_start_hanlde = {
 static void on_dialog_anim_finish_end(egui_animation_t *self)
 {
     egui_core_t *core = egui_view_get_core(self->target_view);
+    egui_dialog_t *dialog = NULL;
+
+    if (core != NULL)
+    {
+        dialog = core->scene.dialog_anim_finish_owner;
+        core->scene.dialog_anim_finish_owner = NULL;
+    }
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     EGUI_LOG_DBG("on_dialog_anim_finish_end\n");
 #endif
-    if (core == NULL)
+    if (core == NULL || dialog == NULL || dialog->state >= EGUI_DIALOG_STATE_STOP)
     {
         return;
     }
 
-    if (core->scene.dialog)
+    dialog->bind_activity->api->on_resume(dialog->bind_activity);
+    dialog->api->on_stop(dialog);
+    if (core->scene.dialog == dialog)
     {
-        core->scene.dialog->bind_activity->api->on_resume(core->scene.dialog->bind_activity);
-
-        core->scene.dialog->api->on_stop(core->scene.dialog);
         core->scene.dialog = NULL;
     }
 }
@@ -149,6 +197,9 @@ static const egui_animation_handle_t dialog_anim_finish_hanlde = {
 
 void egui_core_dialog_set_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim)
 {
+    egui_core_dialog_cancel_anim_slot(core->scene.dialog_anim_start, &core->scene.dialog_anim_start_owner, core->scene.dialog_anim_start_owner);
+    egui_core_dialog_cancel_anim_slot(core->scene.dialog_anim_finish, &core->scene.dialog_anim_finish_owner, core->scene.dialog_anim_finish_owner);
+
     core->scene.dialog_anim_start = open_anim;
     core->scene.dialog_anim_finish = close_anim;
 

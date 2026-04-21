@@ -7,6 +7,19 @@ static egui_animation_translate_t test_anim_translate;
 static egui_animation_alpha_t test_anim_alpha;
 static egui_view_t test_anim_view;
 static egui_interpolator_linear_t test_anim_interp;
+static int test_anim_end_called;
+
+static void test_anim_on_end(egui_animation_t *self)
+{
+    EGUI_UNUSED(self);
+    test_anim_end_called++;
+}
+
+static const egui_animation_handle_t test_anim_handle = {
+        .start = NULL,
+        .repeat = NULL,
+        .end = test_anim_on_end,
+};
 
 static egui_core_t *test_animation_get_core(void)
 {
@@ -106,6 +119,74 @@ static void test_anim_start_without_bound_core_is_noop(void)
     EGUI_TEST_ASSERT_TRUE(egui_slist_is_empty(&core->scene.anims));
 }
 
+static void test_anim_restart_reuses_single_queue_node(void)
+{
+    egui_core_t *core = test_animation_get_core();
+    egui_view_group_t parent_view;
+
+    egui_slist_init(&core->scene.anims);
+    egui_view_group_init(EGUI_VIEW_OF(&parent_view), core);
+    egui_view_init(&test_anim_view, core);
+    egui_view_group_add_child(EGUI_VIEW_OF(&parent_view), &test_anim_view);
+
+    egui_animation_translate_init(EGUI_ANIM_OF(&test_anim_translate));
+    egui_animation_target_view_set(EGUI_ANIM_OF(&test_anim_translate), &test_anim_view);
+
+    egui_animation_start(EGUI_ANIM_OF(&test_anim_translate));
+    egui_animation_start(EGUI_ANIM_OF(&test_anim_translate));
+
+    EGUI_TEST_ASSERT_TRUE(EGUI_ANIM_OF(&test_anim_translate)->is_running);
+    EGUI_TEST_ASSERT_TRUE(EGUI_ANIM_OF(&test_anim_translate)->queue_core == core);
+    EGUI_TEST_ASSERT_TRUE(egui_slist_peek_head(&core->scene.anims) == &EGUI_ANIM_OF(&test_anim_translate)->node);
+    EGUI_TEST_ASSERT_TRUE(egui_slist_peek_tail(&core->scene.anims) == &EGUI_ANIM_OF(&test_anim_translate)->node);
+    EGUI_TEST_ASSERT_TRUE(EGUI_ANIM_OF(&test_anim_translate)->node.next == NULL);
+
+    egui_animation_stop(EGUI_ANIM_OF(&test_anim_translate));
+    EGUI_TEST_ASSERT_FALSE(EGUI_ANIM_OF(&test_anim_translate)->is_running);
+    EGUI_TEST_ASSERT_TRUE(EGUI_ANIM_OF(&test_anim_translate)->queue_core == NULL);
+    EGUI_TEST_ASSERT_TRUE(egui_slist_is_empty(&core->scene.anims));
+}
+
+static void test_anim_complete_settles_translate_and_notifies_end(void)
+{
+    static const egui_animation_translate_params_t complete_params = {
+            .from_x = 0,
+            .to_x = 100,
+            .from_y = 0,
+            .to_y = 0,
+    };
+    egui_core_t *core = test_animation_get_core();
+    egui_view_group_t parent_view;
+
+    test_anim_end_called = 0;
+    egui_slist_init(&core->scene.anims);
+    egui_view_group_init(EGUI_VIEW_OF(&parent_view), core);
+    egui_view_init(&test_anim_view, core);
+    egui_view_group_add_child(EGUI_VIEW_OF(&parent_view), &test_anim_view);
+
+    egui_animation_translate_init(EGUI_ANIM_OF(&test_anim_translate));
+    egui_animation_translate_params_set(&test_anim_translate, &complete_params);
+    egui_animation_duration_set(EGUI_ANIM_OF(&test_anim_translate), 100);
+    egui_animation_handle_set(EGUI_ANIM_OF(&test_anim_translate), &test_anim_handle);
+    egui_animation_is_fill_before_set(EGUI_ANIM_OF(&test_anim_translate), true);
+    egui_animation_target_view_set(EGUI_ANIM_OF(&test_anim_translate), &test_anim_view);
+
+    egui_animation_start(EGUI_ANIM_OF(&test_anim_translate));
+    egui_animation_update(EGUI_ANIM_OF(&test_anim_translate), 0);
+    egui_animation_update(EGUI_ANIM_OF(&test_anim_translate), 50);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(50, (int)test_anim_view.region.location.x);
+    EGUI_TEST_ASSERT_TRUE(EGUI_ANIM_OF(&test_anim_translate)->is_running);
+
+    egui_animation_complete(EGUI_ANIM_OF(&test_anim_translate));
+
+    EGUI_TEST_ASSERT_FALSE(EGUI_ANIM_OF(&test_anim_translate)->is_running);
+    EGUI_TEST_ASSERT_TRUE(EGUI_ANIM_OF(&test_anim_translate)->queue_core == NULL);
+    EGUI_TEST_ASSERT_TRUE(egui_slist_is_empty(&core->scene.anims));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)test_anim_view.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_anim_end_called);
+}
+
 void test_animation_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(animation);
@@ -118,6 +199,8 @@ void test_animation_run(void)
     EGUI_TEST_RUN(test_anim_target_view_set);
     EGUI_TEST_RUN(test_anim_start_uses_target_init_core_when_active_is_null);
     EGUI_TEST_RUN(test_anim_start_without_bound_core_is_noop);
+    EGUI_TEST_RUN(test_anim_restart_reuses_single_queue_node);
+    EGUI_TEST_RUN(test_anim_complete_settles_translate_and_notifies_end);
 
     EGUI_TEST_SUITE_END();
 }
