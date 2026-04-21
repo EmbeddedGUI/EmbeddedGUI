@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_toggle_button.h"
@@ -6,8 +6,8 @@
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t);
@@ -142,7 +142,7 @@ static egui_color_t egui_view_toggle_button_draw_frame(egui_view_t *self, egui_v
     }
 
     // Draw background rounded rectangle
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(bg_color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t tb_stops[2] = {

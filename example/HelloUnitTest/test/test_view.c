@@ -835,7 +835,7 @@ static void test_view_velocity_helpers_use_bound_core_when_active_is_null(void)
 
     egui_view_init(&test_view, core);
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
     egui_float_t prev_velocity_x = core->input.velocity_tracker.velocity_x;
     egui_float_t prev_velocity_y = core->input.velocity_tracker.velocity_y;
     egui_float_t target_velocity_x = EGUI_FLOAT_VALUE(0.25f);

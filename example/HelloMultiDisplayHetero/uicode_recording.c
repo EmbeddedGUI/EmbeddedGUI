@@ -1,7 +1,7 @@
 #include "uicode_disp0.h"
 #include "uicode_disp1.h"
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #if EGUI_PORT == EGUI_PORT_TYPE_PC
 #include "sdl_port.h"
@@ -612,4 +612,4 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return false;
     }
 }
-#endif /* EGUI_CONFIG_RECORDING_TEST */
+#endif /* EGUI_CONFIG_FUNCTION_RECORDING_TEST */

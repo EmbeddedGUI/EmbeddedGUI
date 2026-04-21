@@ -72,7 +72,7 @@ void uicode_disp0_init(egui_core_t *core)
     egui_view_start_timer(EGUI_VIEW_OF(&image_1), &ui_timer, 1000, 1000);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

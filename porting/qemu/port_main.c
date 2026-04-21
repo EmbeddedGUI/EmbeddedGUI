@@ -160,7 +160,7 @@ static const egui_sim_action_t s_showcase_common_actions[] = {
         EGUI_SIM_END(),
 };
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 __EGUI_WEAK__ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     EGUI_UNUSED(action_index);
@@ -256,7 +256,7 @@ static void qemu_execute_action(const egui_sim_action_t *action)
 
 static int qemu_get_heap_measure_action(int action_index, egui_sim_action_t *action)
 {
-#if QEMU_HEAP_ACTIONS_APP_RECORDING && EGUI_CONFIG_RECORDING_TEST
+#if QEMU_HEAP_ACTIONS_APP_RECORDING && EGUI_CONFIG_FUNCTION_RECORDING_TEST
     return egui_port_get_recording_action(action_index, action) ? 1 : 0;
 #elif QEMU_HEAP_ACTIONS_SHOWCASE_COMMON
     if (action_index < 0)

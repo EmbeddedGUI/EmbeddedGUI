@@ -1,4 +1,4 @@
-﻿#include "egui_canvas_compact.h"
+#include "canvas/egui_canvas_compact.h"
 
 #define EGUI_CANVAS_COMPACT_TEXT_ROWS   5
 #define EGUI_CANVAS_COMPACT_NUMBER_ROWS 5

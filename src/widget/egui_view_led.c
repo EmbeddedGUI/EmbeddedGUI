@@ -1,12 +1,12 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_led.h"
 #include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 static uint8_t egui_view_led_get_dirty_region(egui_view_t *self, egui_region_t *dirty_region)
@@ -178,7 +178,7 @@ void egui_view_led_on_draw(egui_view_t *self)
     egui_dim_t inner_radius = radius - local->border_width;
     if (inner_radius > 0)
     {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t fill_light = egui_rgb_mix(fill_color, EGUI_COLOR_WHITE, 100);
             egui_gradient_stop_t led_stops[2] = {

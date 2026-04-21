@@ -3,16 +3,16 @@
 #include "egui_image_decode_utils.h"
 #include "core/egui_api.h"
 
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI || EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 
-#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if !EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 #define egui_image_decode_row_pixel_buf            (core->image.image_decode_cache.row_pixel_buf)
 #define g_egui_image_decode_row_pixel_buf_capacity (core->image.image_decode_cache.row_pixel_buf_capacity)
 #endif
 #define egui_image_decode_row_alpha_buf            (core->image.image_decode_cache.row_alpha_buf)
 #define g_egui_image_decode_row_alpha_buf_capacity (core->image.image_decode_cache.row_alpha_buf_capacity)
 
-#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if !EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 static uint8_t *egui_image_decode_prepare_single_row_pixel_buf(egui_core_t *core, uint8_t bytes_per_pixel)
 {
     uint32_t required_bytes;
@@ -72,7 +72,7 @@ static uint8_t *egui_image_decode_prepare_single_row_alpha_buf(egui_core_t *core
     return egui_image_decode_row_alpha_buf;
 }
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 /* Row-band decode cache: frame-local heap scratch sized from the active image row band. */
 #define egui_image_decode_row_cache_pixel            (core->image.image_decode_cache.row_cache_pixel)
 #define egui_image_decode_row_cache_alpha            (core->image.image_decode_cache.row_cache_alpha)
@@ -885,9 +885,9 @@ void egui_image_decode_blend_row(egui_canvas_t *canvas, egui_dim_t img_x, egui_d
     }
 }
 
-#endif /* EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE */
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI || EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE */
 
-#if !EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE && !EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if !EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI && !EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 void egui_image_decode_release_frame_cache(egui_core_t *core)
 {
     EGUI_UNUSED(core);

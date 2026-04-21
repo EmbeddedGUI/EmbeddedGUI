@@ -15,8 +15,7 @@ static int egui_core_activity_is_active_candidate(const egui_activity_t *activit
 
 static int egui_core_activity_is_resume_candidate(const egui_activity_t *activity)
 {
-    return (activity != NULL) && (!activity->is_need_finish) && (activity->state > EGUI_ACTIVITY_STATE_NONE) &&
-           (activity->state < EGUI_ACTIVITY_STATE_DESTROY);
+    return (activity != NULL) && (!activity->is_need_finish) && (activity->state > EGUI_ACTIVITY_STATE_NONE) && (activity->state < EGUI_ACTIVITY_STATE_DESTROY);
 }
 
 static egui_activity_t *egui_core_activity_find_previous_candidate(egui_core_t *core, egui_activity_t *activity,

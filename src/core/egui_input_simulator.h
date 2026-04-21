@@ -6,10 +6,10 @@
  * @brief Input simulation helpers for GIF recording
  *
  * Provides helper functions and types for simulating user interactions
- * during GIF recording. Used with EGUI_CONFIG_RECORDING_TEST macro.
+ * during GIF recording. Used with EGUI_CONFIG_FUNCTION_RECORDING_TEST macro.
  */
 
-#include "egui_config.h"
+#include "config/egui_config.h"
 #include "egui_region.h"
 
 /* Set up for C function definitions, even when using C++ */

@@ -312,7 +312,7 @@ make all APP=HelloSimple PORT=emscripten
 
 ## 注意事项
 
-- Emscripten 构建禁用了录制测试（`EGUI_CONFIG_RECORDING_TEST=0`）
+- Emscripten 构建禁用了录制测试（`EGUI_CONFIG_FUNCTION_RECORDING_TEST=0`）
 - 浏览器中 `delay` 为空操作，不会阻塞
 - 初始内存设为 32MB，启用了 `ALLOW_MEMORY_GROWTH` 允许动态增长
 - 栈大小设为 5MB，足够大多数 GUI 应用使用

@@ -1,7 +1,7 @@
 #include "egui.h"
 #include "uicode_disp0.h"
 
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 #include "image/egui_image_qoi.h"
 #include "image/egui_image_rle.h"
 #include "image/egui_image_std.h"
@@ -61,7 +61,7 @@ static const egui_image_std_info_t probe_image_std_info = {
 
 EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_std_t, probe_image_std, &probe_image_std_info);
 
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 static const uint8_t probe_image_rle_data[] = {
         0x00,
 };
@@ -82,7 +82,7 @@ static const egui_image_rle_info_t probe_image_rle_info = {
 EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_rle_t, probe_image_rle, &probe_image_rle_info);
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
 static const uint8_t probe_image_qoi_data[] = {
         0x00,
 };
@@ -251,14 +251,14 @@ EGUI_SIZE_PROBE_FUNC canvas_probe_text_rotate(void)
 
 EGUI_SIZE_PROBE_FUNC canvas_probe_rle_draw(void)
 {
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
     egui_canvas_draw_image(canvas, (const egui_image_t *)&probe_image_rle, 0, 0);
 #endif
 }
 
 EGUI_SIZE_PROBE_FUNC canvas_probe_qoi_draw(void)
 {
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
     egui_canvas_draw_image(canvas, (const egui_image_t *)&probe_image_qoi, 0, 0);
 #endif
 }

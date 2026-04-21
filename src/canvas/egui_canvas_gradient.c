@@ -1,6 +1,6 @@
-﻿#include "egui_canvas.h"
-#include "egui_canvas_gradient.h"
-#include "egui_api.h"
+#include "canvas/egui_canvas.h"
+#include "canvas/egui_canvas_gradient.h"
+#include "core/egui_api.h"
 #include "utils/egui_fixmath.h"
 #include "image/egui_image.h"
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK

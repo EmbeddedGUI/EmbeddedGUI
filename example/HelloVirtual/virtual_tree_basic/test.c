@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -72,7 +72,7 @@ typedef struct tree_basic_node tree_basic_node_t;
 typedef struct tree_basic_branch_view tree_basic_branch_view_t;
 typedef struct tree_basic_task_view tree_basic_task_view_t;
 typedef struct tree_basic_context tree_basic_context_t;
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 typedef struct tree_basic_visible_summary tree_basic_visible_summary_t;
 #endif
 
@@ -138,7 +138,7 @@ struct tree_basic_context
     uint32_t jump_target_id;
 };
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 struct tree_basic_visible_summary
 {
     uint32_t first_visible_index;
@@ -160,7 +160,7 @@ static egui_view_virtual_tree_t tree_view;
 static tree_basic_context_t tree_basic_ctx;
 static egui_core_t *s_core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_click_verify_retry;
 static uint8_t recording_jump_verify_retry;
@@ -388,7 +388,7 @@ static void tree_basic_reset_model(void)
     tree_basic_ctx.jump_target_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t tree_basic_visible_node_visitor(egui_view_t *self, const egui_view_virtual_tree_slot_t *slot, const egui_view_virtual_tree_entry_t *entry,
                                                egui_view_t *node_view, void *context)
 {
@@ -1009,7 +1009,7 @@ static uint8_t tree_basic_ds_should_keep_alive(void *context, egui_view_t *view,
     return stable_id == tree_basic_ctx.selected_id;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -1351,7 +1351,7 @@ void test_init_ui(egui_core_t *core)
     tree_basic_reset_model();
     s_core = core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0U;
     recording_click_verify_retry = 0U;
     recording_jump_verify_retry = 0U;

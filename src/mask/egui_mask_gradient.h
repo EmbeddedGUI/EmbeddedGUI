@@ -2,7 +2,7 @@
 #define _EGUI_MASK_GRADIENT_H_
 
 #include "egui_mask.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus

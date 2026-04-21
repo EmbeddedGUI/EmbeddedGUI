@@ -58,7 +58,7 @@ static file_image_stdio_context_t deferred_image_file_ctx = {
 };
 static egui_image_file_io_t deferred_image_file_io;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 #endif
 
@@ -202,7 +202,7 @@ static void deferred_image_demo_init_card(deferred_image_demo_card_t *card, egui
     egui_view_group_add_child(EGUI_VIEW_OF(&root_group), EGUI_VIEW_OF(&card->body));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void deferred_image_report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -245,7 +245,7 @@ static void deferred_image_runtime_verify(void)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0u;
 #endif
     s_deferred_image_core = core;
@@ -273,7 +273,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&root_group));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

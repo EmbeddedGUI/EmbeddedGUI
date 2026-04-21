@@ -1,10 +1,10 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_image_button.h"
 #include "core/egui_core.h"
 #include "egui_view_icon_font.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
 
@@ -114,7 +114,7 @@ static void egui_view_image_button_draw_base_frame(egui_view_t *self, egui_view_
         {
             radius = EGUI_THEME_RADIUS_LG;
         }
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t color_light = egui_rgb_mix(EGUI_THEME_PRESS_OVERLAY, EGUI_COLOR_WHITE, 80);
             egui_gradient_stop_t stops[2] = {

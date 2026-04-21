@@ -1,12 +1,12 @@
-﻿#include "egui_view_circular_progress_bar.h"
+#include "egui_view_circular_progress_bar.h"
 #include "core/egui_core.h"
 #include "core/egui_common.h"
 #include "resource/egui_resource.h"
 #include "egui_view_circle_dirty.h"
 #include "egui_view_ring_text_basic.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 typedef uint8_t (*egui_view_circular_progress_bar_get_text_region_fn)(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
@@ -352,7 +352,7 @@ void egui_view_circular_progress_bar_on_draw(egui_view_t *self)
 
     // Draw background arc (full 360 degrees)
     // In Enhanced mode use ring fill so geometry matches the progress ring fill below
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_gradient_stop_t bg_stops[2] = {
                 {.position = 0, .color = local->bk_color},
@@ -374,7 +374,7 @@ void egui_view_circular_progress_bar_on_draw(egui_view_t *self)
     if (local->process > 0)
     {
         int16_t end_angle = local->start_angle + (int16_t)((uint32_t)local->process * 360 / 100);
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t color_light = egui_rgb_mix(local->progress_color, EGUI_COLOR_WHITE, 80);
             egui_gradient_stop_t stops[2] = {

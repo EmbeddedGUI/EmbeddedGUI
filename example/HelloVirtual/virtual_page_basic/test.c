@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -62,7 +62,7 @@ typedef struct page_basic_hero_view page_basic_hero_view_t;
 typedef struct page_basic_metric_view page_basic_metric_view_t;
 typedef struct page_basic_checklist_view page_basic_checklist_view_t;
 typedef struct page_basic_context page_basic_context_t;
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 typedef struct page_basic_visible_summary page_basic_visible_summary_t;
 #endif
 
@@ -140,7 +140,7 @@ struct page_basic_context
     uint32_t jump_cursor;
 };
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 struct page_basic_visible_summary
 {
     uint32_t first_index;
@@ -157,7 +157,7 @@ static egui_view_virtual_page_t page_view;
 static page_basic_context_t page_basic_ctx;
 static egui_core_t *s_core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_click_verify_retry;
 static uint8_t recording_jump_verify_retry;
@@ -300,7 +300,7 @@ static void page_basic_init_sections(void)
     page_basic_ctx.jump_cursor = 0U;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t page_basic_visible_section_visitor(egui_view_t *self, const egui_view_virtual_page_slot_t *slot, const egui_view_virtual_page_entry_t *entry,
                                                   egui_view_t *section_view, void *context)
 {
@@ -852,7 +852,7 @@ static uint8_t page_basic_ds_should_keep_alive(void *context, egui_view_t *view,
     return stable_id == page_basic_ctx.selected_id;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -1095,7 +1095,7 @@ void test_init_ui(egui_core_t *core)
     page_basic_init_sections();
     s_core = core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0U;
     recording_click_verify_retry = 0U;
     recording_jump_verify_retry = 0U;

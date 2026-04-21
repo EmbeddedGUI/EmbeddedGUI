@@ -1,9 +1,9 @@
-﻿#include <assert.h>
+#include <assert.h>
 
 #include "egui_view_compass.h"
 #include "core/egui_core.h"
 #include "utils/egui_sprintf.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
@@ -110,7 +110,7 @@ void egui_view_compass_on_draw(egui_view_t *self)
     egui_dim_t needle_len = radius * 60 / 100;
 
     // Upper triangle (red/north): vertices at (cx, cy-needle_len), (cx-4, cy), (cx+4, cy)
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(local->north_color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {
@@ -129,7 +129,7 @@ void egui_view_compass_on_draw(egui_view_t *self)
     egui_canvas_draw_triangle_fill(canvas, cx, cy - needle_len, cx - 4, cy, cx + 4, cy, local->north_color, EGUI_ALPHA_100);
 #endif
     // Lower triangle (white/south): vertices at (cx, cy+needle_len), (cx-4, cy), (cx+4, cy)
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(local->needle_color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {

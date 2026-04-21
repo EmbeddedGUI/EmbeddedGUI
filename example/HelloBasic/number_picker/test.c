@@ -24,7 +24,7 @@ EGUI_VIEW_NUMBER_PICKER_PARAMS_INIT(picker_m_params, 0, 0, 60, 100, 50, 0, 100);
 // Size L (80x120)
 EGUI_VIEW_NUMBER_PICKER_PARAMS_INIT(picker_l_params, 0, 0, 80, 120, 80, 0, 100);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 #endif
 
@@ -38,7 +38,7 @@ void test_init_ui(egui_core_t *core)
     // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
 
@@ -93,7 +93,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)

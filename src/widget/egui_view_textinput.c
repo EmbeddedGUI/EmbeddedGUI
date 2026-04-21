@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "egui_view_textinput.h"
@@ -7,8 +7,8 @@
 #include "font/egui_font_std.h"
 #include "core/egui_api.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
@@ -430,7 +430,7 @@ void egui_view_textinput_on_draw(egui_view_t *self)
     }
 
     // Draw input container first.
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(EGUI_THEME_SURFACE, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {

@@ -2,7 +2,7 @@
 #include <assert.h>
 
 #include "egui_shadow.h"
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "core/egui_api.h"
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW

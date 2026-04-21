@@ -24,7 +24,7 @@ EGUI_VIEW_ARC_SLIDER_PARAMS_INIT(arc_m_params, 0, 0, 92, 92, 60);
 // Size L (108x108)
 EGUI_VIEW_ARC_SLIDER_PARAMS_INIT(arc_l_params, 0, 0, 108, 108, 80);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 #endif
 
@@ -38,7 +38,7 @@ void test_init_ui(egui_core_t *core)
     // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
 
@@ -77,7 +77,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)

@@ -1,7 +1,7 @@
 #ifndef _EGUI_INTERPOLATOR_H_
 #define _EGUI_INTERPOLATOR_H_
 
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "core/egui_region.h"
 
 /* Set up for C function definitions, even when using C++ */

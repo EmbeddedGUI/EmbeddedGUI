@@ -7,7 +7,7 @@ static egui_view_gridlayout_t grid;
 static egui_view_chips_t chips_view;
 static egui_view_label_t status_label;
 static char status_text[48];
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t clip_fail_reported = 0;
 #endif
 
@@ -49,7 +49,7 @@ static void on_chip_selected(egui_view_t *self, uint8_t index)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     clip_fail_reported = 0;
 #endif
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
@@ -80,7 +80,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_if_clipped(const char *name, egui_view_t *view)
 {
     int clipped_w = (view->region_screen.size.width < view->region.size.width);

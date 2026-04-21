@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_button.h"
@@ -9,8 +9,8 @@
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #include "shadow/egui_shadow.h"
 #endif
 
@@ -181,7 +181,7 @@ static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *l
                     radius = region.size.height / 2;
             }
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             /* Subtle gradient from style bg_color */
             egui_color_t color_top = egui_rgb_mix(bg, EGUI_COLOR_WHITE, 20);
             egui_color_t color_bottom = egui_rgb_mix(bg, EGUI_COLOR_BLACK, 20);
@@ -218,7 +218,7 @@ static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *l
         else
         {
             /* Original fallback code */
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             egui_color_t color_top, color_bottom;
             if (egui_view_get_enable(self))
             {
@@ -318,7 +318,7 @@ void egui_view_button_init(egui_view_t *self, egui_core_t *core)
     local->icon_text_gap = 6;
     egui_view_set_clickable(self, 1);
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         const egui_theme_t *theme = egui_theme_get(egui_view_get_core(self));
         const egui_widget_style_desc_t *desc = theme ? theme->button : NULL;

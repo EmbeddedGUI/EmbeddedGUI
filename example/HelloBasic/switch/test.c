@@ -24,7 +24,7 @@ EGUI_VIEW_SWITCH_PARAMS_INIT(switch_m_params, 0, 0, 96, 38, 0);
 // Size L (112x44)
 EGUI_VIEW_SWITCH_PARAMS_INIT(switch_l_params, 0, 0, 112, 44, 1);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 
 static void report_runtime_failure(const char *message)
@@ -46,7 +46,7 @@ static void switch_checked_cb(egui_view_t *self, int is_checked)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
     // Init grid
@@ -95,7 +95,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

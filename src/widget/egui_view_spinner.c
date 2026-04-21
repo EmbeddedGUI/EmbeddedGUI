@@ -1,12 +1,12 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_spinner.h"
 #include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 static void egui_view_spinner_invalidate_rotation_change(egui_view_t *self, egui_view_spinner_t *local, int16_t old_rotation_angle)
@@ -174,7 +174,7 @@ void egui_view_spinner_on_draw(egui_view_t *self)
     int16_t start = local->rotation_angle;
     int16_t end = local->rotation_angle + local->arc_length;
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(local->color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {

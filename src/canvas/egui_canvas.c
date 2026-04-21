@@ -1,14 +1,14 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
-#include "egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "font/egui_font.h"
 #include "image/egui_image.h"
 #include "image/egui_image_std.h"
-#include "egui_api.h"
-#include "egui_core_internal.h"
-#include "egui_trig_lut.h"
+#include "core/egui_api.h"
+#include "core/egui_core_internal.h"
+#include "core/egui_trig_lut.h"
 
 #define TEST_CANVAS_TEST_WOKR 0
 
@@ -249,7 +249,7 @@ const egui_circle_info_t *egui_canvas_get_circle_item(egui_canvas_t *self, egui_
         return NULL;
     }
 
-#if EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE
+#if EGUI_CONFIG_FUNCTION_CANVAS_SPEC_CIRCLE_INFO
     for (int i = 0; i < self->res_circle_info_count_spec; i++)
     {
         if (self->res_circle_info_spec_arr[i].radius == r)
@@ -3995,7 +3995,7 @@ void egui_canvas_calc_work_region(egui_canvas_t *self, egui_region_t *base_regio
 
     // If an extra clip is set (e.g. scroll view viewport), also intersect with it.
     // This prevents children of scroll views from rendering outside the visible viewport.
-#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
+#if EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
     if (self->extra_clip_region != NULL)
     {
         egui_region_t clipped;
@@ -4015,7 +4015,7 @@ void egui_canvas_calc_work_region(egui_canvas_t *self, egui_region_t *base_regio
 
 void egui_canvas_register_spec_circle_info(egui_canvas_t *self, uint16_t res_circle_info_count_spec, const egui_circle_info_t *res_circle_info_spec_arr)
 {
-#if EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE
+#if EGUI_CONFIG_FUNCTION_CANVAS_SPEC_CIRCLE_INFO
     self->res_circle_info_count_spec = res_circle_info_count_spec;
     self->res_circle_info_spec_arr = res_circle_info_spec_arr;
 #else
@@ -4041,7 +4041,7 @@ void egui_canvas_init(egui_canvas_t *self, egui_core_t *core, egui_color_int_t *
     egui_region_copy(&self->pfb_region, region);
 
     self->alpha = EGUI_ALPHA_100;
-#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
+#if EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
     self->extra_clip_region = NULL;
 #endif
 }

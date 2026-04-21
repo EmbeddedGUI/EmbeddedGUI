@@ -2,6 +2,7 @@ EGUI_CODE_SRC		+= $(EGUI_PATH)
 EGUI_CODE_SRC		+= $(EGUI_PATH)/app
 EGUI_CODE_SRC		+= $(EGUI_PATH)/anim
 EGUI_CODE_SRC		+= $(EGUI_PATH)/background
+EGUI_CODE_SRC		+= $(EGUI_PATH)/canvas
 EGUI_CODE_SRC		+= $(EGUI_PATH)/core
 EGUI_CODE_SRC		+= $(EGUI_PATH)/widget
 EGUI_CODE_SRC		+= $(EGUI_PATH)/font

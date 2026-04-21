@@ -960,7 +960,7 @@ def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=
     )
 
     # Always inject RECORDING_TEST into the build signature so cached outputs stay isolated.
-    recording_flag = '-DEGUI_CONFIG_RECORDING_TEST=%d' % (1 if recording_test else 0)
+    recording_flag = '-DEGUI_CONFIG_FUNCTION_RECORDING_TEST=%d' % (1 if recording_test else 0)
     combined_cflags = ('%s %s' % (recording_flag, user_cflags)).strip()
     cmd = ['make', get_make_job_arg(make_jobs), 'APP=%s' % app, 'PORT=pc'] + COMPILE_FAST_FLAGS
     if app_sub:
@@ -1309,7 +1309,18 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
             status = "PASS" if success else "FAIL"
             print("  %s (%s)" % (status, msg))
             results.append((app_name, success, msg))
-        return results
+        return retry_failed_runtime_cases_serial(
+            results,
+            case_specs,
+            bits64,
+            explicit_timeout=explicit_timeout,
+            speed=speed,
+            snapshot_settle_ms=snapshot_settle_ms,
+            clock_scale=clock_scale,
+            snapshot_stable_cycles=snapshot_stable_cycles,
+            snapshot_max_wait_ms=snapshot_max_wait_ms,
+            user_cflags=user_cflags,
+        )
 
     print("Running %d runtime cases with jobs=%d, make -j%d, speed=%dx" % (total, parallel_jobs, make_jobs, speed))
     results = [None] * total

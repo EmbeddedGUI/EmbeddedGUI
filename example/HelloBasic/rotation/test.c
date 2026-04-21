@@ -129,7 +129,7 @@ void test_init_ui(egui_core_t *core)
     apply_rotation(0);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     // Pattern: CLICK then WAIT to let egui thread process rotation and re-render

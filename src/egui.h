@@ -1,7 +1,7 @@
 #ifndef _EGUI_H_
 #define _EGUI_H_
 
-#include "core/egui_config.h"
+#include "config/egui_config.h"
 
 #include "app/egui_activity.h"
 #include "app/egui_dialog.h"
@@ -55,7 +55,7 @@
 #include "core/egui_focus.h"
 #endif
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -66,7 +66,7 @@
 #include "image/egui_image.h"
 #include "image/egui_image_std.h"
 
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
 #include "image/egui_image_svg.h"
 #endif
 
@@ -74,11 +74,11 @@
 #include "image/egui_image_file.h"
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 #include "image/egui_image_rle.h"
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
 #include "image/egui_image_qoi.h"
 #endif
 

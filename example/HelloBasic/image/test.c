@@ -157,7 +157,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&viewpage));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void set_swipe_left_action(egui_sim_action_t *p_action, uint16_t interval_ms)
 {
     p_action->type = EGUI_SIM_ACTION_SWIPE;

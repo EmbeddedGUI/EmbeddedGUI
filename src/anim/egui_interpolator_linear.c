@@ -5,7 +5,7 @@
 #include "egui_interpolator_linear.h"
 #include "core/egui_common.h"
 #include "core/egui_api.h"
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 
 egui_float_t egui_interpolator_linear_get_interpolation(egui_interpolator_t *self, egui_float_t input)
 {

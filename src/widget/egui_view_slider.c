@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_slider.h"
@@ -8,8 +8,8 @@
 #include "egui_view_linear_value_helper.h"
 #include "style/egui_theme.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 static uint8_t egui_view_slider_get_max_value(const egui_view_slider_t *local)
@@ -270,7 +270,7 @@ void egui_view_slider_on_draw(egui_view_t *self)
     egui_color_t knob_color = knob_style ? knob_style->bg_color : local->thumb_color;
 
     // Background (Grey)
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_canvas_draw_round_rectangle_fill(canvas, track_draw_x, metrics.track_y, track_draw_width, metrics.track_height, metrics.track_radius, track_color,
                                               EGUI_ALPHA_100);
@@ -284,7 +284,7 @@ void egui_view_slider_on_draw(egui_view_t *self)
     active_width = thumb_x - track_draw_x;
     if (active_width > 0)
     {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         egui_canvas_draw_round_rectangle_fill(canvas, track_draw_x, metrics.track_y, active_width, metrics.track_height, metrics.track_radius, fill_color,
                                               EGUI_ALPHA_100);
 #else
@@ -294,7 +294,7 @@ void egui_view_slider_on_draw(egui_view_t *self)
     }
 
     // Draw thumb circle
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_canvas_draw_circle_fill_hq(canvas, thumb_x, thumb_y, metrics.knob_radius, knob_color, EGUI_ALPHA_100);
         // Draw a subtle border around the knob for visibility on same-color backgrounds

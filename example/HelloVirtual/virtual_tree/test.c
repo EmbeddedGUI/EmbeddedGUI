@@ -177,7 +177,7 @@ static egui_view_virtual_tree_t tree_view;
 static tree_demo_context_t tree_demo_ctx;
 static egui_core_t *s_core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t runtime_drag_reverse;
 static uint8_t recording_click_verify_retry;
@@ -1759,7 +1759,7 @@ void test_init_ui(egui_core_t *core)
     tree_demo_reset_model();
     s_core = core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     runtime_drag_reverse = 0;
     recording_click_verify_retry = 0U;
@@ -1837,7 +1837,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&toolbar_card));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)

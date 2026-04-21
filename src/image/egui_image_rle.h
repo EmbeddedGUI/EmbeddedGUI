@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 
 typedef struct
 {
@@ -35,7 +35,7 @@ struct egui_image_rle
 void egui_image_rle_init(egui_image_t *self, const void *res);
 void egui_image_rle_release_frame_cache(egui_core_t *core);
 
-#endif /* EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE */
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE */
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

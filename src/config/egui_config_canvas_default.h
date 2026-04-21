@@ -30,8 +30,8 @@ extern "C" {
  * When 1, keep the extra clip pointer used by scroll/list/viewport style widgets.
  * Disable only when the application never relies on nested clip regions.
  */
-#ifndef EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
-#define EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE 1
+#ifndef EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
+#define EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP 1
 #endif
 
 /**
@@ -40,8 +40,8 @@ extern "C" {
  * EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE.
  * Disable only when the application never registers extra circle info.
  */
-#ifndef EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE
-#define EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE 1
+#ifndef EGUI_CONFIG_FUNCTION_CANVAS_SPEC_CIRCLE_INFO
+#define EGUI_CONFIG_FUNCTION_CANVAS_SPEC_CIRCLE_INFO 1
 #endif
 
 /* ---- Circle/Arc default algorithm ---- */
@@ -66,11 +66,11 @@ extern "C" {
  * Automatically enables shadow and gradient dithering when active.
  * Default: 0 (off) - zero overhead when disabled.
  */
-#ifndef EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#define EGUI_CONFIG_WIDGET_ENHANCED_DRAW 0
+#ifndef EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#define EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW 0
 #endif
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW && !EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW && !EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
 #undef EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW 1
 #endif
@@ -128,7 +128,7 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING 0
 #endif
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW && !EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW && !EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
 #undef EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
 #define EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING 1
 #endif
@@ -190,18 +190,6 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
 #define EGUI_CONFIG_FUNCTION_FONT_FORMAT_8 0
-#endif
-
-/**
- * Font cache options.
- * When 1, build ASCII (0~127) direct lookup table for O(1) glyph access.
- * Allocates ~140 B heap + 8 B BSS on first use, persists across frames.
- * When 0, all ASCII characters use optimized binary search with multi-level cache.
- * Default: 0 (disabled) to save RAM. Enable for pure English UI applications.
- * Performance gain: ~10-20% for pure English UI, ~1-2% for Chinese UI.
- */
-#ifndef EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE
-#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 0
 #endif
 
 /**

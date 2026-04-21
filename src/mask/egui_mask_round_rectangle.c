@@ -6,7 +6,7 @@
 #include "image/egui_image_std.h"
 #include "core/egui_common.h"
 #include "core/egui_api.h"
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 

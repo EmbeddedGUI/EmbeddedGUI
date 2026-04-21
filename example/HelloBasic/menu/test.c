@@ -5,7 +5,7 @@
 
 static egui_view_menu_t menu_1;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 #endif
 
@@ -38,7 +38,7 @@ EGUI_VIEW_MENU_PARAMS_INIT(menu_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CO
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
 
@@ -51,7 +51,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&menu_1));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)

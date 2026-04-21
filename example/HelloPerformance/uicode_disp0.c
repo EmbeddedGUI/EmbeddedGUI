@@ -16,7 +16,7 @@ static egui_core_t *s_core;
 #define EGUI_PERF_CAPTURE_BENCHMARK_ONLY 0
 #endif
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -67,7 +67,7 @@ static int egui_view_test_performance_is_qoi_test_mode(int test_mode);
 static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test_mode);
 static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_index);
 static int egui_view_test_performance_get_perf_capture_test_mode(int scene_index);
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void egui_view_test_performance_show_test_mode(int test_mode);
 static int egui_view_test_performance_get_recording_test_mode(int action_index);
 #if EGUI_PORT == EGUI_PORT_TYPE_PC
@@ -740,7 +740,7 @@ static void egui_view_test_performance_set_test_mode(int test_mode)
         return;
     }
 
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
     if (egui_view_test_performance_is_qoi_test_mode(test_view.test_mode) && !egui_view_test_performance_is_qoi_test_mode(test_mode))
     {
         egui_image_qoi_release_checkpoints(s_core);
@@ -1012,7 +1012,7 @@ void uicode_disp0_init(egui_core_t *core)
     // For test performance, use manual refresh screen.
     egui_core_stop_auto_refresh_screen(core);
 
-#if !EGUI_CONFIG_RECORDING_TEST
+#if !EGUI_CONFIG_FUNCTION_RECORDING_TEST
     ui_timer.callback = egui_view_test_performance_timer_callback;
     egui_view_start_timer(EGUI_VIEW_OF(&test_view), &ui_timer, 100, 0);
 #endif
@@ -1023,7 +1023,7 @@ egui_core_t *uicode_get_core(void)
     return s_core;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void egui_view_test_performance_show_test_mode(int test_mode)
 {
     egui_core_stop_auto_refresh_screen(s_core);

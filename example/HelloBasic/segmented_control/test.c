@@ -15,7 +15,7 @@ static const char *segment_icons_compact[] = {EGUI_ICON_MS_VISIBILITY, EGUI_ICON
 static const char *segments_disabled[] = {"Heart", "Star", "Lock", "Done"};
 static const char *segment_icons_disabled[] = {EGUI_ICON_MS_HEART, EGUI_ICON_MS_STAR, EGUI_ICON_MS_LOCK, EGUI_ICON_MS_DONE};
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 #endif
 
@@ -30,7 +30,7 @@ static void on_segment_changed(egui_view_t *self, uint8_t index)
     EGUI_LOG_INF("Segment changed: %d\r\n", index);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static int resolve_segment_gap(int content_width, uint8_t count, int gap)
 {
     if (count <= 1)
@@ -111,7 +111,7 @@ static void get_segment_center(egui_view_t *view, uint8_t count, uint8_t index, 
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
 
@@ -175,7 +175,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)

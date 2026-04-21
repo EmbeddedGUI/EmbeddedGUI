@@ -166,7 +166,7 @@ static egui_view_card_t strip_overlay_dot;
 static strip_demo_context_t strip_demo_ctx;
 static egui_core_t *s_core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_click_verify_retry;
 static uint8_t recording_mutation_verify_retry;
@@ -1678,7 +1678,7 @@ void test_init_ui(egui_core_t *core)
     strip_demo_ctx.last_clicked_index = STRIP_INVALID_INDEX;
     strip_demo_reset_scene_model(STRIP_SCENE_GALLERY);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     recording_click_verify_retry = 0U;
     recording_mutation_verify_retry = 0U;
@@ -1781,7 +1781,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&toolbar_card));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)

@@ -6,7 +6,7 @@
 #include "core/egui_api.h"
 #include "mask/egui_mask_image.h"
 
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
 
 /*
  * QOI (Quite OK Image) format opcodes
@@ -834,7 +834,7 @@ static void egui_image_qoi_decode_row_rgb565(egui_canvas_t *canvas, const egui_i
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 static void egui_image_qoi_decode_pixels_rgb565_opaque_partial(egui_canvas_t *canvas, const egui_image_qoi_info_t *info, uint8_t *pixel_buf,
                                                                uint16_t pixel_count)
 {
@@ -959,7 +959,7 @@ static void egui_image_qoi_decode_pixels_rgb565_opaque_partial(egui_canvas_t *ca
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 static void egui_image_qoi_decode_pixels_rgb565_partial(egui_canvas_t *canvas, const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf,
                                                         uint16_t pixel_count)
 {
@@ -1186,7 +1186,7 @@ static void egui_image_qoi_decode_row_external(egui_canvas_t *canvas, const egui
     qoi_state.run = run;
 }
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 static void egui_image_qoi_decode_pixels_rgb565_external_partial(egui_canvas_t *canvas, const egui_image_qoi_info_t *info, uint8_t *pixel_buf,
                                                                  uint8_t *alpha_buf, uint16_t pixel_count)
 {
@@ -1335,7 +1335,7 @@ static void egui_image_qoi_decode_row(egui_canvas_t *canvas, const egui_image_qo
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 static void egui_image_qoi_decode_pixels_rgb565_partial_any(egui_canvas_t *canvas, const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf,
                                                             uint16_t pixel_count)
 {
@@ -1774,10 +1774,10 @@ static void egui_image_qoi_blend_masked_rgb565_image_row(egui_canvas_t *canvas, 
 #endif
 }
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 static int egui_image_qoi_can_use_tail_row_cache(const egui_image_qoi_info_t *info, egui_dim_t img_col_start, egui_dim_t count)
 {
-    return EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE && info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 && img_col_start >= 0 && count > 0 &&
+    return EGUI_IMAGE_CODEC_FAST_DRAW_TAIL_ROW_CACHE_ENABLED && info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 && img_col_start >= 0 && count > 0 &&
            ((uint32_t)img_col_start + (uint32_t)count) < info->width &&
            egui_image_decode_limit_tail_cache_cols((uint16_t)(info->width - (uint16_t)(img_col_start + count))) > 0;
 }
@@ -2150,7 +2150,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_canvas_t *c
     int use_direct_fast_copy = 0;
     int use_direct_fast_alpha8 = 0;
     int use_direct_masked_alpha8 = 0;
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     int use_row_cache = 0;
     int use_tail_row_cache = 0;
     uint16_t cache_col_start = 0;
@@ -2221,7 +2221,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_canvas_t *c
     }
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     if (egui_image_decode_cache_is_full_image_hit(core, (const void *)info))
     {
         egui_image_qoi_blend_cached_rows(canvas, info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, 0, fast_dst_row, fast_dst_stride,
@@ -2354,7 +2354,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_canvas_t *c
             cache_col_count = 0;
         }
     }
-#endif /* EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE */
+#endif /* EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED */
 
     /* If PFB requests rows before current state, try checkpoint restore.
      * QOI is sequential — cannot seek backwards without full re-decode. */
@@ -2383,7 +2383,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_canvas_t *c
     for (egui_dim_t row = img_y_start; row < img_y_end; row++)
     {
         egui_dim_t blend_img_col_start = img_col_start;
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
         uint8_t *pixel_buf;
         uint8_t *alpha_buf;
 
@@ -2411,7 +2411,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_canvas_t *c
         {
             goto cleanup;
         }
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
         if (use_row_cache && use_tail_row_cache)
         {
             uint16_t row_in_band = (uint16_t)row - (uint16_t)img_y_start;
@@ -2458,7 +2458,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_canvas_t *c
 
         qoi_state.current_row++;
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
         if (use_direct_fast_copy || use_direct_fast_alpha8)
         {
             fast_dst_row += fast_dst_stride;
@@ -2543,7 +2543,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_canvas_t *c
         screen_y++;
     }
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     /* Mark this row band as cached for subsequent horizontal tiles */
     if (use_row_cache)
     {
@@ -2553,7 +2553,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_canvas_t *c
 #endif
 
 cleanup:
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     if (row_alpha_scratch != NULL)
     {
         egui_free(core, row_alpha_scratch);
@@ -2619,4 +2619,4 @@ void egui_image_qoi_release_frame_cache(egui_core_t *core)
     egui_image_qoi_release_checkpoints(core);
 }
 
-#endif /* EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE */
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI */

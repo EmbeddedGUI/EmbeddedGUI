@@ -5,7 +5,7 @@
 #include "egui_interpolator_bounce.h"
 #include "core/egui_common.h"
 #include "core/egui_api.h"
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 
 static egui_float_t bounce(egui_float_t t)
 {

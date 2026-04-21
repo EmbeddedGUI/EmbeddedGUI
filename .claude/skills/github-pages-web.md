@@ -192,11 +192,11 @@ demos.forEach(function(d) {
 
 `porting/emscripten/build.mk` 中固定了：
 ```makefile
-COMMON_FLAGS += -DEGUI_CONFIG_RECORDING_TEST=0
+COMMON_FLAGS += -DEGUI_CONFIG_FUNCTION_RECORDING_TEST=0
 ```
 
 **WASM demo 不会自动播放操作序列**，用户直接用鼠标/触摸与 canvas 交互。
-- `egui_port_get_recording_action()` 函数在 uicode.c 中可以存在（由 `#if EGUI_CONFIG_RECORDING_TEST` 包裹），**不影响 WASM 构建**
+- `egui_port_get_recording_action()` 函数在 uicode.c 中可以存在（由 `#if EGUI_CONFIG_FUNCTION_RECORDING_TEST` 包裹），**不影响 WASM 构建**
 - 无需为 WASM 单独实现交互逻辑，SDL 输入事件由 Emscripten 自动转发
 
 ### Canvas 尺寸

@@ -1,9 +1,9 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_divider.h"
 #include "core/egui_core.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 
 void egui_view_divider_set_color(egui_view_t *self, egui_color_t color)
 {
@@ -24,7 +24,7 @@ void egui_view_divider_on_draw(egui_view_t *self)
     egui_region_t region;
     egui_view_get_work_region(self, &region);
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(local->color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {

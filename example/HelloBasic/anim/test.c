@@ -177,7 +177,7 @@ void test_init_ui(egui_core_t *core)
     egui_animation_start(EGUI_ANIM_OF(&anim_set));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

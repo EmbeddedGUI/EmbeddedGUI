@@ -7,7 +7,7 @@
 #include "widget/egui_view_chart_pie.h"
 #include "widget/egui_view_checkbox.h"
 #include "widget/egui_view_circular_progress_bar.h"
-#include "core/egui_canvas_compact.h"
+#include "canvas/egui_canvas_compact.h"
 #include "widget/egui_view_gauge.h"
 #include "widget/egui_view_image_button.h"
 #include "widget/egui_view_radio_button.h"

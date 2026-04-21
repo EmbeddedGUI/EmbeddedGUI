@@ -119,7 +119,7 @@ python scripts/release_check.py --keep-going
 - **Per-app OBJDIR**：`output/obj/{APP}/`，切换应用无需 clean
 - **资源自动生成**：`make all` 检测到 `resource/` 目录时自动调用资源生成
 - **资源缓存**：存在 `app_egui_resource_merge.bin` 时跳过生成，用 `resource_refresh` 强制重新生成
-- **Recording 模式**：`app_egui_config.h` 中 `EGUI_CONFIG_RECORDING_TEST=1` 启用录制测试
+- **Recording 模式**：`app_egui_config.h` 中 `EGUI_CONFIG_FUNCTION_RECORDING_TEST=1` 启用录制测试
 
 ## 调试策略
 

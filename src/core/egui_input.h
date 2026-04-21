@@ -27,7 +27,7 @@ struct egui_input
     uint8_t motion_pool_data_storage[EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT][MROUND(sizeof(egui_motion_event_t))];
 #endif
 
-#if EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
+#if EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
     egui_velocity_tracker_t velocity_tracker;
 #endif
 

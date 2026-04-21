@@ -1,10 +1,10 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_chart_scatter.h"
 #include "core/egui_core.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
@@ -169,7 +169,7 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
     {
         const egui_chart_series_t *series = &ab->series[s];
         uint8_t r = point_radius;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {
                 {.position = 0, .color = color_light},
@@ -203,7 +203,7 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
             {
                 continue;
             }
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             egui_canvas_draw_circle_fill_gradient(canvas, px, py, r, &grad);
 #else
             egui_canvas_draw_circle_fill(canvas, px, py, r, series->color, EGUI_ALPHA_100);

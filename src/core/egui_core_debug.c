@@ -1,7 +1,7 @@
 #include <string.h>
 
 #include "egui_api.h"
-#include "egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "egui_core.h"
 #include "egui_core_internal.h"
 #include "resource/egui_resource.h"

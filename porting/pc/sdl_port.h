@@ -154,7 +154,7 @@ extern egui_display_driver_t *egui_port_create_sub_display(egui_core_t *core, in
 
 #endif
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 
 /**

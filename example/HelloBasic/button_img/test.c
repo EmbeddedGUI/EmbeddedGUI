@@ -20,7 +20,7 @@ EGUI_BACKGROUND_IMAGE_STATIC_CONST_INIT(bg_button, &bg_button_params);
 // View params
 EGUI_VIEW_BUTTON_PARAMS_INIT_SIMPLE(button_1_params, 0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, NULL);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t button_click_count;
 
@@ -39,7 +39,7 @@ static void report_runtime_failure(const char *message)
 static void button_click_cb(egui_view_t *self)
 {
     (void)self;
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     button_click_count++;
 #endif
     EGUI_LOG_INF("Clicked\n");
@@ -47,7 +47,7 @@ static void button_click_cb(egui_view_t *self)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     button_click_count = 0;
 #endif
@@ -68,7 +68,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&button_1), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

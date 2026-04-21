@@ -1,7 +1,7 @@
 #ifndef _EGUI_ANIMATION_H_
 #define _EGUI_ANIMATION_H_
 
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "core/egui_region.h"
 #include "core/egui_timer.h"
 #include "utils/egui_slist.h"

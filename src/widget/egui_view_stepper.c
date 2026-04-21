@@ -1,10 +1,10 @@
-﻿#include "egui_view_stepper.h"
+#include "egui_view_stepper.h"
 #include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 void egui_view_page_indicator_on_draw_dot(egui_view_t *self);
@@ -173,7 +173,7 @@ static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
 
         if (i < indicator->current_index)
         {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             {
                 egui_color_t badge_light = egui_rgb_mix(active_color, EGUI_COLOR_WHITE, 60);
                 egui_gradient_stop_t badge_stops[2] = {
@@ -213,7 +213,7 @@ static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
         {
             egui_dim_t inner_radius = EGUI_MAX(node_radius / 3, 2);
             egui_canvas_draw_circle_basic(canvas, cx, center_y, node_radius, 2, active_color, indicator->alpha);
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             egui_canvas_draw_circle_fill_hq(canvas, cx, center_y, inner_radius, active_color, indicator->alpha);
 #else
             egui_canvas_draw_circle_fill_basic(canvas, cx, center_y, inner_radius, active_color, indicator->alpha);
@@ -222,7 +222,7 @@ static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
         else
         {
             egui_dim_t pending_radius = EGUI_MAX(node_radius / 3, 2);
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             egui_canvas_draw_circle_fill_hq(canvas, cx, center_y, pending_radius, inactive_color, indicator->alpha);
 #else
             egui_canvas_draw_circle_fill_basic(canvas, cx, center_y, pending_radius, inactive_color, indicator->alpha);

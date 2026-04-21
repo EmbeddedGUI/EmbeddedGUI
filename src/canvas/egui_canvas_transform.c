@@ -1,15 +1,15 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
-#include "egui_canvas.h"
-#include "egui_api.h"
-#include "egui_core.h"
-#include "egui_canvas_transform_cache.h"
+#include "canvas/egui_canvas.h"
+#include "core/egui_api.h"
+#include "core/egui_core.h"
+#include "canvas/egui_canvas_transform_cache.h"
 #include "image/egui_image_std.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
-#include "egui_trig_lut.h"
+#include "core/egui_trig_lut.h"
 
 static int32_t transform_sin_q15(int32_t deg)
 {
@@ -476,9 +476,6 @@ static int image_transform_get_alpha_row_bytes(int16_t w, uint8_t alpha_type)
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-#define EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES  EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
-#define EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
-
 typedef struct
 {
     const egui_image_std_info_t *info;
@@ -600,7 +597,7 @@ static const uint16_t *image_transform_get_external_data_row(egui_canvas_t *canv
     uint16_t *pixels;
 
     if (source == NULL || source->info == NULL || row < 0 || row >= source->info->height || source->data_row_bytes == 0 ||
-        source->data_row_bytes > EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES)
+        source->data_row_bytes > EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES)
     {
         return NULL;
     }
@@ -609,7 +606,7 @@ static const uint16_t *image_transform_get_external_data_row(egui_canvas_t *canv
 
     if (cache->row_bytes != source->data_row_bytes || cache->rows_per_chunk == 0)
     {
-        cache->rows_per_chunk = EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES / source->data_row_bytes;
+        cache->rows_per_chunk = EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES / source->data_row_bytes;
         if (cache->rows_per_chunk == 0)
         {
             cache->rows_per_chunk = 1;
@@ -653,7 +650,7 @@ static const uint8_t *image_transform_get_external_alpha_row(egui_canvas_t *canv
     uint8_t *bytes;
 
     if (source == NULL || source->info == NULL || source->info->alpha_buf == NULL || row < 0 || row >= source->info->height || source->alpha_row_bytes == 0 ||
-        source->alpha_row_bytes > EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES)
+        source->alpha_row_bytes > EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES)
     {
         return NULL;
     }
@@ -662,7 +659,7 @@ static const uint8_t *image_transform_get_external_alpha_row(egui_canvas_t *canv
 
     if (cache->row_bytes != source->alpha_row_bytes || cache->rows_per_chunk == 0)
     {
-        cache->rows_per_chunk = EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES / source->alpha_row_bytes;
+        cache->rows_per_chunk = EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES / source->alpha_row_bytes;
         if (cache->rows_per_chunk == 0)
         {
             cache->rows_per_chunk = 1;
@@ -718,7 +715,7 @@ __EGUI_STATIC_INLINE__ uint16_t image_transform_read_rgb565_external(egui_canvas
 __EGUI_STATIC_INLINE__ void image_transform_fetch_bilinear_rgb565_external(egui_canvas_t *canvas, const image_transform_external_source_t *source, int32_t x,
                                                                            int32_t y, uint16_t *d00, uint16_t *d01, uint16_t *d10, uint16_t *d11)
 {
-    uint32_t rows_per_chunk = image_transform_external_rows_per_chunk(EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES, source->data_row_bytes);
+    uint32_t rows_per_chunk = image_transform_external_rows_per_chunk(EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES, source->data_row_bytes);
     const uint16_t *row0 = NULL;
     const uint16_t *row1 = NULL;
 
@@ -1049,7 +1046,7 @@ static inline uint8_t image_transform_sample_alpha_bilinear_fast(const uint8_t *
 static inline uint8_t image_transform_sample_alpha_bilinear_external(egui_canvas_t *canvas, const image_transform_external_source_t *source, int32_t x,
                                                                      int32_t y, uint8_t fx, uint8_t fy)
 {
-    uint32_t rows_per_chunk = image_transform_external_rows_per_chunk(EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES, source->alpha_row_bytes);
+    uint32_t rows_per_chunk = image_transform_external_rows_per_chunk(EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES, source->alpha_row_bytes);
     const uint8_t *row0 = NULL;
     const uint8_t *row1 = NULL;
 
@@ -1633,10 +1630,6 @@ typedef struct
 
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES 0
-#endif
-
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE
-#define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE 1
 #endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -2499,7 +2492,7 @@ typedef struct
     egui_mask_t *mask; /* canvas mask for per-row color overlay (gradient support) */
 } text_transform_ctx_t;
 
-#if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
 #define g_text_transform_prepare_cache (core->text.text_transform_prepare_cache)
 #endif
 
@@ -2513,7 +2506,7 @@ static int text_transform_prepare(egui_canvas_t *canvas, int16_t text_w, int16_t
                                   egui_alpha_t alpha, text_transform_ctx_t *ctx)
 {
     egui_core_t *core = canvas->core;
-#if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     text_transform_prepare_cache_t *cache = &g_text_transform_prepare_cache;
 #else
     text_transform_prepare_cache_t local_cache = {0};
@@ -2648,7 +2641,7 @@ static int text_transform_prepare(egui_canvas_t *canvas, int16_t text_w, int16_t
 #define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES 32
 #endif
 
-#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
 #define g_text_transform_layout_cache (core->text.text_transform_layout_cache)
 #endif
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
@@ -2674,7 +2667,7 @@ static void text_transform_release_layout_cache(egui_core_t *core)
         g_text_transform_layout_lines = NULL;
     }
 
-#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     egui_api_memset(&g_text_transform_layout_cache, 0, sizeof(g_text_transform_layout_cache));
 #endif
     g_text_transform_layout_capacity = 0;
@@ -2812,7 +2805,7 @@ void egui_canvas_transform_release_frame_cache(egui_canvas_t *self)
     image_transform_release_external_row_cache(core);
 #endif
 
-#if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     egui_api_memset(&g_text_transform_prepare_cache, 0, sizeof(g_text_transform_prepare_cache));
 #endif
     text_transform_release_layout_cache(core);
@@ -2987,7 +2980,7 @@ static int text_transform_prepare_layout(egui_canvas_t *canvas, const egui_font_
     int build_count;
     int needed;
     int line_needed;
-#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     text_transform_layout_cache_t *cache = &g_text_transform_layout_cache;
 #else
     text_transform_layout_cache_t local_cache = {0};
@@ -3029,7 +3022,7 @@ static int text_transform_prepare_layout(egui_canvas_t *canvas, const egui_font_
                                               &cache->line_count, line_space);
     if (build_count < 0)
     {
-#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
         egui_api_memset(cache, 0, sizeof(*cache));
 #endif
         return -1;
@@ -3898,7 +3891,7 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
         return;
     }
 
-#if EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     /* Lightweight dimension cache: avoid per-tile get_str_size string walk.
      * Only 12 bytes static, independent of text content/font size. */
     egui_core_t *core = canvas->core;

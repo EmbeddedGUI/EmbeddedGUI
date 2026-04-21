@@ -625,69 +625,74 @@
               <FilePath>..\..\..\src\background\egui_background_image.c</FilePath>
             </File>
             <File>
+              <FileName>egui_canvas.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_bezier.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_bezier.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_circle_hq.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_circle_hq.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_compact.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_compact.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_ellipse.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_ellipse.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_gradient.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_gradient.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_line.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_line.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_line_hq.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_line_hq.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_polygon.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_polygon.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_transform.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_transform.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_triangle.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\canvas\egui_canvas_triangle.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_api.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_api.c</FilePath>
             </File>
             <File>
-              <FileName>egui_canvas.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_bezier.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_bezier.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_circle_hq.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_circle_hq.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_compact.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_compact.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_ellipse.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_ellipse.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_gradient.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_gradient.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_line.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_line.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_line_hq.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_line_hq.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_polygon.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_polygon.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_transform.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_transform.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_canvas_triangle.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_canvas_triangle.c</FilePath>
-            </File>
-            <File>
               <FileName>egui_common.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_common.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core.c</FilePath>
             </File>
             <File>
               <FileName>egui_core_activity.c</FileName>
@@ -713,11 +718,6 @@
               <FileName>egui_core_dirty.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_core_dirty.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core.c</FilePath>
             </File>
             <File>
               <FileName>egui_core_key.c</FileName>

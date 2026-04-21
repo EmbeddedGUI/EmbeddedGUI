@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -126,7 +126,7 @@ static egui_view_button_t mode_buttons[3];
 static egui_view_grid_view_t grid_view;
 static grid_view_demo_context_t grid_view_demo_ctx;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 #endif
 
@@ -182,7 +182,7 @@ static grid_view_demo_item_t *grid_view_demo_get_item(uint32_t index)
     return &grid_view_demo_ctx.items[index];
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static grid_view_demo_item_t *grid_view_demo_find_item_by_stable_id_internal(uint32_t stable_id)
 {
     uint32_t index;
@@ -1012,7 +1012,7 @@ static void grid_view_demo_action_click_cb(egui_view_t *self)
     }
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -1219,7 +1219,7 @@ void test_init_ui(egui_core_t *core)
 
     grid_view_demo_reset_model();
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0U;
 #endif
 

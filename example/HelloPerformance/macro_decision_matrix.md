@@ -22,13 +22,12 @@
 | `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8` | `1` | `0` | benchmark 能力 | 保留 | clean perf 仍覆盖 `IMAGE/RESIZE/ROTATE_565_8` 与 `EXTERN_*_565_8` |
 | `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8` | `1` | `0` | benchmark 能力 | 保留 | clean perf 仍覆盖 `MASK_IMAGE_QOI_8_*` / `MASK_IMAGE_RLE_8_*` |
 | `EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE` | `1` | `0` | benchmark 能力 | 保留 | clean perf 仍有 `62` 个 `EXTERN_*` 场景；详见 `benchmark_capability_retention.md` |
-| `EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE` | `1` | `0` | benchmark 能力 | 保留 | clean perf 仍有 `22` 个 `*QOI*` 场景；详见 `benchmark_capability_retention.md` |
-| `EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE` | `1` | `0` | benchmark 能力 | 保留 | clean perf 仍有 `22` 个 `*RLE*` 场景；详见 `benchmark_capability_retention.md` |
-| `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE` | `1` | `0` | decode/heap 行为 | 保留 | `row-cache off` 会让 QOI/RLE 热点出现 `+1800% ~ +3600%` 级回退；详见 `codec_heap_override_retention.md` |
+| `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI` | `1` | `0` | benchmark 能力 | 保留 | clean perf 仍有 `22` 个 `*QOI*` 场景；详见 `benchmark_capability_retention.md` |
+| `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE` | `1` | `0` | benchmark 能力 | 保留 | clean perf 仍有 `22` 个 `*RLE*` 场景；详见 `benchmark_capability_retention.md` |
+| `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW` | `1`（历史 low-RAM 模式 `2`） | `0` | decode/heap 行为 | 保留 | `1 -> 0` 会让 internal tiled `QOI/RLE` 热点出现 `+111% ~ +634%` 回退；`2` 相比 `1` 可再换来约 `2304B` heap 峰值收益，但需额外 `text +9976B`；详见 `codec_heap_override_retention.md` |
 | `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE` | 当前默认 `2`（历史对比 `4`） | `2` | decode/heap 行为 | 保留默认 | 当前完整 A/B 显示 `2 -> 4` 仅 `text +108B`，`239` perf 场景无 `>=10%` 波动，runtime/unit 等价；它已上收为框架默认值，主要约束约 `7680B` decode heap 上界 |
 | `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE` | 当前 shipped 固定 `0`（历史 public 实验值 `1`） | `0` | decode/heap 行为 | 已删分叉 | 当前完整 A/B 无 perf/runtime/unit 差异，`1` 仅额外回收 `text -132B, bss -8B`；收益低于 1KB 门槛，已从 public 配置面移除并直接固定 shipped 路径，详见 `codec_heap_override_retention.md` |
 | `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT` | 当前 shipped 固定 `2`（历史 public 实验值 `0`） | `2` | decode/heap 行为 | 已删分叉 | 当前完整 A/B 显示 `2 -> 0` 只回收 `text -276B, bss -8B`，但 `20` 个 QOI 场景回退 `+110% ~ +911%`；收益低于 1KB 门槛，已从 public 配置面移除并直接固定 shipped 路径，详见 `codec_heap_override_retention.md` |
-| `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE` | 历史实验值 `1`（当前默认 `0`） | `0` | decode/heap 行为 | 保留 | `2026-04-05` 当前 recheck 显示：`1` 侧 `text +9976B`，但 `0` 侧会让 `40` 个 `QOI/RLE` 压缩图场景出现 `+16.2% ~ +189.9%` 回退；它已不是当前 active override，但仍是高优先级 codec policy 候选 |
 | `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS` | 当前 shipped 固定 `0`（历史 public 实验值 `184/176/144/96`） | `0` | decode/heap 行为 | 已删分叉 | 更窄 tail cap 没有任何 code-size 收益，且历史 A/B 显示 `184/176` 仍回退 `+45% ~ +66%`，`144/96` 直接退化到数倍；当前仓内也无 shipped 依赖，因此已从 public 配置面移除并直接固定 shipped 路径 |
 | `EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE` | 当前 shipped 固定 `1`（历史 public 实验值 `0`） | `1` | decode/heap 行为 | 已删分叉 | 当前完整 A/B 显示 `1 -> 0` 只回收 `text -64B`，但完整 `239` 场景无 `>=10%` 波动，runtime/unit 等价；收益低于 1KB 门槛，已从 public 配置面移除并直接固定 shipped 路径 |
 | `EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE` | 当前 shipped 固定 `0`（历史 public 实验值 `1`） | `0` | decode/heap 行为 | 已删分叉 | 当前完整 A/B 显示 `0 -> 1` 会带来 `text +780B`，并让 `10` 个 `QOI RGB565` 场景回退 `+10.4% ~ +52.2%`；收益低于 1KB 门槛，已从 public 配置面移除并直接固定 shipped 路径 |

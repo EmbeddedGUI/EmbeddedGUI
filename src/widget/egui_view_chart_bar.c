@@ -1,10 +1,10 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_chart_bar.h"
 #include "core/egui_core.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
@@ -123,7 +123,7 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
         {
             continue;
         }
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {
                 {.position = 0, .color = color_light},
@@ -174,7 +174,7 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
                 continue;
             }
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             egui_canvas_draw_rectangle_fill_gradient(canvas, bar_x, bar_top, bar_width, bar_h, &grad);
 #else
             egui_canvas_draw_rectangle_fill(canvas, bar_x, bar_top, bar_width, bar_h, series->color, EGUI_ALPHA_100);

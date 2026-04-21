@@ -72,7 +72,7 @@ for (y = 0; y < pfb_height_count; y++)
 
 ## Canvas API
 
-Canvas 是所有绘制操作的统一接口，定义在 `src/core/egui_canvas.h`。所有坐标均为屏幕绝对坐标，Canvas 内部自动处理与 PFB 块的裁剪和坐标转换。
+Canvas 是所有绘制操作的统一接口，定义在 `src/canvas/egui_canvas.h`。所有坐标均为屏幕绝对坐标，Canvas 内部自动处理与 PFB 块的裁剪和坐标转换。
 
 ### Canvas 结构体
 

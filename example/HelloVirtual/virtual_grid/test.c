@@ -1400,7 +1400,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&toolbar_card));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t grid_demo_match_visible_card(egui_view_t *self, const egui_view_virtual_grid_slot_t *slot, const egui_view_virtual_grid_entry_t *entry,
                                             egui_view_t *item_view, void *context)
 {

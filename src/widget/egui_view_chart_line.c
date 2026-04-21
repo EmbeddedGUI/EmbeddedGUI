@@ -1,6 +1,6 @@
-﻿#include "egui_view_chart_line.h"
+#include "egui_view_chart_line.h"
 #include "core/egui_core.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 
 // ============== Line Drawing ==============
 
@@ -273,7 +273,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
         uint8_t marker_start = 0;
         uint8_t marker_end = 0;
         uint8_t has_visible_range = 0;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {
                 {.position = 0, .color = color_light},
@@ -308,7 +308,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
             {
                 egui_dim_t px = egui_view_chart_line_map_x_fast(series->points[0].x, plot_x, plot_w_span, view_x_min, range_x);
                 egui_dim_t py = egui_view_chart_line_map_y_fast(series->points[0].y, plot_y, plot_h_span, view_y_min, range_y);
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
                 egui_canvas_draw_circle_fill_gradient(canvas, px, py, local->point_radius, &grad);
 #else
                 egui_canvas_draw_circle_fill(canvas, px, py, local->point_radius, series->color, EGUI_ALPHA_100);
@@ -397,7 +397,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                 {
                     continue;
                 }
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
                 egui_canvas_draw_circle_fill_gradient(canvas, px, py, local->point_radius, &grad);
 #else
                 egui_canvas_draw_circle_fill(canvas, px, py, local->point_radius, series->color, EGUI_ALPHA_100);

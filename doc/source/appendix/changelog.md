@@ -57,7 +57,7 @@
 ## [Visual Enhancement] - 2025
 
 ### Added
-- `EGUI_CONFIG_WIDGET_ENHANCED_DRAW` 渐变绘制模式
+- `EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW` 渐变绘制模式
 - 控件视觉增强 Phase 1-5：覆盖 button、switch、slider、progress_bar、checkbox、card、radio_button、toggle_button、led、notification_badge、page_indicator、button_matrix、combobox、textinput、window、menu、mini_calendar、circular_progress_bar、arc_slider、gauge、activity_ring、spinner、chart_pie、chart_bar、chart_scatter、chart_line、analog_clock、compass、roller、tab_bar、textblock、image_button、divider
 - Dithering 防色带 + 3-stop 高光渐变 + 边框描边 + 阴影效果
 - 控件尺寸统一：XS/S/M/L 四档 + GridLayout 2 列布局

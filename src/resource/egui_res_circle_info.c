@@ -1,6 +1,6 @@
 
 
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 
 // clang-format off
 

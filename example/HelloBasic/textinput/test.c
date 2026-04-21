@@ -44,7 +44,7 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_button, &bg_btn_params);
 
 static char result_str[64] = "";
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_cursor_verify_retry;
 #endif
@@ -95,7 +95,7 @@ static void textinput_focus_changed(egui_view_t *self, int is_focused)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     recording_cursor_verify_retry = 0;
 #endif
@@ -182,7 +182,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&container), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)

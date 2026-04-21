@@ -165,7 +165,7 @@ static egui_view_virtual_viewport_t viewport_1;
 static demo_virtual_viewport_context_t viewport_context;
 static egui_core_t *s_core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_mutation_verify_retry;
 #endif
@@ -2017,7 +2017,7 @@ static void demo_init_chip_button(egui_view_button_t *button, egui_dim_t x, egui
     egui_view_set_on_click_listener(EGUI_VIEW_OF(button), listener);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -2100,7 +2100,7 @@ void test_init_ui(egui_core_t *core)
     viewport_context.last_clicked_index = DEMO_INVALID_INDEX;
     demo_reset_scene(DEMO_SCENE_FEED);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     recording_mutation_verify_retry = 0U;
 #endif
@@ -2180,7 +2180,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&toolbar_card));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

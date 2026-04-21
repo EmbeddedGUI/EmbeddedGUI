@@ -5,7 +5,7 @@
 
 static egui_view_list_t list_1;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t list_click_count;
 static int last_clicked_index;
@@ -26,7 +26,7 @@ EGUI_VIEW_LIST_PARAMS_INIT(list_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CO
 
 static void list_item_click_cb(egui_view_t *self, uint8_t index)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     (void)self;
     list_click_count++;
     last_clicked_index = index;
@@ -38,7 +38,7 @@ static void list_item_click_cb(egui_view_t *self, uint8_t index)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     list_click_count = 0;
     last_clicked_index = -1;
@@ -67,7 +67,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&list_1));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

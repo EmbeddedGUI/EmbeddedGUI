@@ -1,7 +1,7 @@
-﻿#include "egui_view_canvas_viewport.h"
+#include "egui_view_canvas_viewport.h"
 #include "core/egui_core.h"
 
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "egui_view_arc_slider.h"
 #include "egui_view_chart_axis.h"
 #include "egui_view_list.h"

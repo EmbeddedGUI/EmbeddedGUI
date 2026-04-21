@@ -5,7 +5,7 @@
 #include "egui_interpolator_anticipate_overshoot.h"
 #include "core/egui_common.h"
 #include "core/egui_api.h"
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 
 void egui_interpolator_anticipate_overshoot_tension_set(egui_interpolator_t *self, egui_float_t tension)
 {

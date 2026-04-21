@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_combobox.h"
@@ -7,8 +7,8 @@
 #include "resource/egui_resource.h"
 #include "core/egui_core.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 static const egui_font_t *egui_view_combobox_get_icon_font(egui_dim_t area_size)
@@ -539,7 +539,7 @@ void egui_view_combobox_on_draw(egui_view_t *self)
 
     if (local->is_expanded)
     {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t color_light = egui_rgb_mix(bg_color, EGUI_COLOR_WHITE, 80);
             egui_gradient_stop_t stops[2] = {
@@ -564,7 +564,7 @@ void egui_view_combobox_on_draw(egui_view_t *self)
     }
     else
     {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t color_light = egui_rgb_mix(bg_color, EGUI_COLOR_WHITE, 80);
             egui_gradient_stop_t stops[2] = {

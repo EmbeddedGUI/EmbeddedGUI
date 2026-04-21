@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_arc_slider.h"
@@ -7,8 +7,8 @@
 #include "utils/egui_fixmath.h"
 #include "egui_view_circle_dirty.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -198,7 +198,7 @@ void egui_view_arc_slider_on_draw(egui_view_t *self)
     // Background track arc
     int16_t bg_start = local->start_angle;
     int16_t bg_end = local->start_angle + local->sweep_angle;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_gradient_stop_t bg_stops[2] = {
                 {.position = 0, .color = local->track_color},
@@ -220,7 +220,7 @@ void egui_view_arc_slider_on_draw(egui_view_t *self)
     int16_t progress_end = local->start_angle + (int16_t)((int32_t)local->sweep_angle * local->value / 100);
     if (local->value > 0)
     {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t color_light = egui_rgb_mix(local->active_color, EGUI_COLOR_WHITE, 80);
             egui_gradient_stop_t stops[2] = {
@@ -251,7 +251,7 @@ void egui_view_arc_slider_on_draw(egui_view_t *self)
     egui_dim_t thumb_x = center_x + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(thumb_track_radius), cos_val));
     egui_dim_t thumb_y = center_y + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(thumb_track_radius), sin_val));
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(local->thumb_color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {

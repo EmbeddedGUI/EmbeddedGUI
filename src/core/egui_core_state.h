@@ -71,10 +71,10 @@ typedef struct egui_core_image_state
     image_transform_external_alpha_row_slot_t image_transform_external_alpha_row_cache;
 #endif
     egui_image_decode_cache_storage_t image_decode_cache;
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
     egui_image_qoi_cache_t image_qoi_cache;
 #endif
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
     egui_image_rle_cache_t image_rle_cache;
 #endif
 } egui_core_image_state_t;
@@ -99,7 +99,7 @@ typedef struct egui_core_debug_state
 typedef struct egui_core_text_state
 {
     egui_font_std_code_lookup_cache_t font_std_code_lookup_cache;
-#if EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE
+#if EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED
     egui_font_std_ascii_lookup_cache_t *font_std_ascii_lookup_cache;
 #endif
 #if EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED
@@ -114,10 +114,10 @@ typedef struct egui_core_text_state
     egui_font_std_draw_prefix_cache_t font_std_draw_prefix_cache[EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS];
     uint32_t font_std_draw_prefix_cache_stamp;
 #endif
-#if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     text_transform_prepare_cache_t text_transform_prepare_cache;
 #endif
-#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     text_transform_layout_cache_t text_transform_layout_cache;
 #endif
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE

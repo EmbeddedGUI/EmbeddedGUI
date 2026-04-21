@@ -3,7 +3,7 @@
 #include "egui_image_file.h"
 #include "egui_image_std.h"
 #include "core/egui_api.h"
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "core/egui_core.h"
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE

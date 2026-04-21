@@ -1,12 +1,12 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_activity_ring.h"
 #include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 static uint8_t egui_view_activity_ring_get_ring_geometry(egui_view_t *self, egui_view_activity_ring_t *local, uint8_t ring_index, egui_dim_t *center_x,
@@ -254,7 +254,7 @@ void egui_view_activity_ring_on_draw(egui_view_t *self)
 
         // Background arc (full 360)
         // In Enhanced mode use ring fill so geometry matches the progress ring fill below
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_gradient_stop_t bg_stops[2] = {
                     {.position = 0, .color = local->ring_bg_colors[i]},
@@ -276,7 +276,7 @@ void egui_view_activity_ring_on_draw(egui_view_t *self)
         if (local->values[i] > 0)
         {
             int16_t draw_end_angle = draw_start_angle + (int16_t)((uint32_t)local->values[i] * 360 / 100);
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             {
                 egui_color_t color_light = egui_rgb_mix(local->ring_colors[i], EGUI_COLOR_WHITE, 80);
                 egui_gradient_stop_t stops[2] = {

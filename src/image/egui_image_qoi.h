@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
 
 typedef struct
 {
@@ -36,7 +36,7 @@ void egui_image_qoi_init(egui_image_t *self, const void *res);
 void egui_image_qoi_release_frame_cache(egui_core_t *core);
 void egui_image_qoi_release_checkpoints(egui_core_t *core);
 
-#endif /* EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE */
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI */
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

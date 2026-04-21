@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -239,7 +239,7 @@ static egui_view_virtual_stage_t showcase_stage_view;
 static egui_view_keyboard_t showcase_keyboard_view;
 static egui_timer_t showcase_anim_timer;
 static uint8_t showcase_force_english_text;
-#if EGUI_CONFIG_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
 static const char *showcase_parity_frame_label_pending;
 #endif
 static egui_region_t showcase_scratch_dirty_backup[EGUI_CONFIG_DIRTY_AREA_COUNT];
@@ -248,7 +248,7 @@ static egui_dim_t showcase_draw_origin_x;
 static egui_dim_t showcase_draw_origin_y;
 static egui_view_t *showcase_find_live_view(uint32_t stable_id);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t showcase_recording_verify_retry;
 static int showcase_recording_verify_retry_index = -1;
@@ -932,7 +932,7 @@ static const char **showcase_get_list_items(void)
 
 static uint8_t showcase_get_list_item_count(void)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #if EGUI_SHOWCASE_PARITY_RECORDING
     return 4U;
 #else
@@ -2216,7 +2216,7 @@ static void showcase_anim_cb(egui_timer_t *timer)
     showcase_notify_animated_nodes();
 }
 
-#if EGUI_CONFIG_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
 static void showcase_request_parity_snapshot(const char *label)
 {
     showcase_parity_frame_label_pending = label;
@@ -2925,7 +2925,7 @@ void test_init_ui(egui_core_t *core)
     showcase_apply_default_state();
     showcase_init_nodes();
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0U;
 #endif
 
@@ -2939,7 +2939,7 @@ void test_init_ui(egui_core_t *core)
     EGUI_VIEW_OF(&showcase_scratch_host)->api->calculate_layout(EGUI_VIEW_OF(&showcase_scratch_host));
 
 #if EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
-    if (!EGUI_CONFIG_RECORDING_TEST)
+    if (!EGUI_CONFIG_FUNCTION_RECORDING_TEST)
     {
         egui_view_canvas_panner_set_offset(EGUI_VIEW_OF(&showcase_root), SHOWCASE_DIRTY_ANIM_FOCUS_X, SHOWCASE_DIRTY_ANIM_FOCUS_Y);
     }
@@ -2971,7 +2971,7 @@ void test_init_ui(egui_core_t *core)
     EGUI_VIEW_VIRTUAL_STAGE_INVALIDATE(&showcase_stage_view);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #if EGUI_SHOWCASE_PARITY_RECORDING && EGUI_PORT == EGUI_PORT_TYPE_PC
 const char *egui_port_get_recording_frame_label(void)
 {

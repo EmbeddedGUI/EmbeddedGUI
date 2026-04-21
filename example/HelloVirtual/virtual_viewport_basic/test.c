@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -66,7 +66,7 @@ typedef struct basic_item basic_item_t;
 typedef struct basic_button_row basic_button_row_t;
 typedef struct basic_slider_row basic_slider_row_t;
 typedef struct basic_viewport_context basic_viewport_context_t;
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 typedef struct basic_visible_summary basic_visible_summary_t;
 #endif
 
@@ -109,7 +109,7 @@ struct basic_viewport_context
     uint32_t jump_cursor;
 };
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 struct basic_visible_summary
 {
     uint32_t first_index;
@@ -127,7 +127,7 @@ static egui_view_virtual_viewport_t viewport_view;
 static basic_viewport_context_t basic_ctx;
 static egui_core_t *s_core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_select_verify_retry;
 static uint8_t recording_patch_verify_retry;
@@ -264,7 +264,7 @@ static void basic_init_items(void)
     basic_ctx.jump_cursor = 0U;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t basic_visible_item_visitor(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot, const egui_view_virtual_viewport_entry_t *entry,
                                           egui_view_t *item_view, void *context)
 {
@@ -655,7 +655,7 @@ static uint8_t basic_adapter_should_keep_alive(void *adapter_context, egui_view_
     return stable_id == basic_ctx.selected_id;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -905,7 +905,7 @@ void test_init_ui(egui_core_t *core)
     memset(&basic_ctx, 0, sizeof(basic_ctx));
     basic_init_items();
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     recording_select_verify_retry = 0U;
     recording_patch_verify_retry = 0U;

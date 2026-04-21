@@ -13,12 +13,12 @@ extern "C" {
 
 #define EGUI_IMAGE_DECODE_SINGLE_ROW_PIXEL_MAX_BYTES (EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE)
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 #define EGUI_IMAGE_DECODE_ROW_CACHE_PIXEL_MAX_BYTES (EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE)
 #define EGUI_IMAGE_DECODE_ROW_CACHE_ALPHA_MAX_BYTES (EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH)
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 #define EGUI_IMAGE_DECODE_CAPACITY_CAN_USE_16BIT                                                                                                               \
     ((EGUI_IMAGE_DECODE_SINGLE_ROW_PIXEL_MAX_BYTES <= 0xFFFFu) && (EGUI_IMAGE_DECODE_ROW_CACHE_PIXEL_MAX_BYTES <= 0xFFFFu) &&                                  \
      (EGUI_IMAGE_DECODE_ROW_CACHE_ALPHA_MAX_BYTES <= 0xFFFFu))
@@ -64,13 +64,13 @@ typedef struct
 
 typedef struct
 {
-#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if !EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     uint8_t *row_pixel_buf;
     egui_image_decode_capacity_t row_pixel_buf_capacity;
 #endif
     uint8_t *row_alpha_buf;
     egui_image_decode_capacity_t row_alpha_buf_capacity;
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     uint8_t *row_cache_pixel;
     uint8_t *row_cache_alpha;
     egui_image_decode_cache_state_t cache_state;
@@ -82,7 +82,7 @@ typedef struct
 #endif
 } egui_image_decode_cache_storage_t;
 
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
 typedef uint16_t egui_image_qoi_row_index_t;
 #define EGUI_IMAGE_QOI_ROW_INDEX_MAX UINT16_MAX
 
@@ -119,7 +119,7 @@ typedef struct
 } egui_image_qoi_cache_t;
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 typedef struct
 {
     const egui_image_rle_info_t *info;

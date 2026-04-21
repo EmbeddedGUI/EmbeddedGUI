@@ -19,7 +19,7 @@
 ```bash
 make clean
 make all APP=HelloBasic APP_SUB=slider PORT=pc \
-  USER_CFLAGS="-DEGUI_CONFIG_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH=1 -DEGUI_CONFIG_DEBUG_REFRESH_DELAY=40"
+  USER_CFLAGS="-DEGUI_CONFIG_FUNCTION_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH=1 -DEGUI_CONFIG_DEBUG_REFRESH_DELAY=40"
 
 output/main.exe output/app_egui_resource_merge.bin \
   --record runtime_check_output/debug_dirty_slider 10 8 --headless
@@ -27,7 +27,7 @@ output/main.exe output/app_egui_resource_merge.bin \
 
 关键点：
 
-- `EGUI_CONFIG_RECORDING_TEST=1` 让示例里的录制动作自动跑起来，方便稳定复现交互
+- `EGUI_CONFIG_FUNCTION_RECORDING_TEST=1` 让示例里的录制动作自动跑起来，方便稳定复现交互
 - `--record <dir> <fps> <duration>` 会把 PNG 帧保存到目录里
 - `--headless` 适合 CI、远程环境和批量抓图
 
@@ -38,7 +38,7 @@ output/main.exe output/app_egui_resource_merge.bin \
 ```bash
 make clean
 make all APP=HelloBasic APP_SUB=slider PORT=pc \
-  USER_CFLAGS="-DEGUI_CONFIG_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_PFB_REFRESH=1 -DEGUI_CONFIG_DEBUG_REFRESH_DELAY=40"
+  USER_CFLAGS="-DEGUI_CONFIG_FUNCTION_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_PFB_REFRESH=1 -DEGUI_CONFIG_DEBUG_REFRESH_DELAY=40"
 ```
 
 ### 看脏区范围
@@ -46,7 +46,7 @@ make all APP=HelloBasic APP_SUB=slider PORT=pc \
 ```bash
 make clean
 make all APP=HelloBasic APP_SUB=slider PORT=pc \
-  USER_CFLAGS="-DEGUI_CONFIG_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH=1 -DEGUI_CONFIG_DEBUG_REFRESH_DELAY=40"
+  USER_CFLAGS="-DEGUI_CONFIG_FUNCTION_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH=1 -DEGUI_CONFIG_DEBUG_REFRESH_DELAY=40"
 ```
 
 ### 看触摸轨迹
@@ -54,7 +54,7 @@ make all APP=HelloBasic APP_SUB=slider PORT=pc \
 ```bash
 make clean
 make all APP=HelloBasic APP_SUB=slider PORT=pc \
-  USER_CFLAGS="-DEGUI_CONFIG_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_TOUCH_TRACE=1"
+  USER_CFLAGS="-DEGUI_CONFIG_FUNCTION_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_TOUCH_TRACE=1"
 ```
 
 ### 看实时运行信息

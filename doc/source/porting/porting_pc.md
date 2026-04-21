@@ -177,7 +177,7 @@ PC 模拟器支持录制截图序列，用于 runtime check 和 GIF 生成：
 启用录制测试：
 
 ```c
-#define EGUI_CONFIG_RECORDING_TEST 1
+#define EGUI_CONFIG_FUNCTION_RECORDING_TEST 1
 ```
 
 应用可以实现：

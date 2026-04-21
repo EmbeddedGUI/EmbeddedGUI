@@ -6,7 +6,7 @@
 #include "core/egui_api.h"
 #include "mask/egui_mask_image.h"
 
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 
 /*
  * RLE control byte format (compatible with LVGL RLE):
@@ -719,7 +719,7 @@ static uint32_t egui_image_rle_decompress_row(egui_canvas_t *canvas, const uint8
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 static void egui_image_rle_fill_blocks(uint8_t *dst, const uint8_t *block, uint16_t count, uint8_t blk_size)
 {
     if (count == 0)
@@ -1328,10 +1328,10 @@ static void egui_image_rle_blend_masked_rgb565_image_row(egui_canvas_t *canvas, 
 #endif
 }
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 static int egui_image_rle_can_use_tail_row_cache(const egui_image_rle_info_t *info, egui_dim_t img_col_start, egui_dim_t count, int has_alpha)
 {
-    return EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE && info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 &&
+    return EGUI_IMAGE_CODEC_FAST_DRAW_TAIL_ROW_CACHE_ENABLED && info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 &&
            (!has_alpha || info->alpha_type == EGUI_IMAGE_ALPHA_TYPE_8) && img_col_start >= 0 && count > 0 &&
            ((uint32_t)img_col_start + (uint32_t)count) < info->width &&
            egui_image_decode_limit_tail_cache_cols((uint16_t)(info->width - (uint16_t)(img_col_start + count))) > 0;
@@ -1712,7 +1712,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_canvas_t *c
     int use_masked_opaque = 0;
     int use_masked_alpha8 = 0;
     int use_direct_fast_copy = 0;
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     int use_row_cache = 0;
     int use_tail_row_cache = 0;
     uint16_t cache_col_start = 0;
@@ -1791,7 +1791,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_canvas_t *c
     }
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     if (egui_image_decode_cache_is_full_image_hit(core, (const void *)info))
     {
         egui_image_rle_blend_cached_rows(canvas, draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, 0, data_blk_size, alpha_row_bytes,
@@ -1888,7 +1888,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_canvas_t *c
             cache_col_count = 0;
         }
     }
-#endif /* EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE */
+#endif /* EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED */
 
     /* If PFB requests rows before current state, try checkpoint restore */
     if ((uint16_t)img_y_start < rle_state.current_row)
@@ -1923,7 +1923,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_canvas_t *c
     for (egui_dim_t row = img_y_start; row < img_y_end; row++)
     {
         egui_dim_t blend_img_col_start = img_col_start;
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
         uint8_t *pixel_buf;
         uint8_t *alpha_buf;
 
@@ -1951,7 +1951,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_canvas_t *c
         {
             goto cleanup;
         }
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
         if (use_row_cache && use_tail_row_cache)
         {
             uint16_t row_in_band = (uint16_t)row - (uint16_t)img_y_start;
@@ -1998,7 +1998,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_canvas_t *c
 
         rle_state.current_row++;
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
         if (use_direct_fast_copy)
         {
             fast_dst_row += fast_dst_stride;
@@ -2077,7 +2077,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_canvas_t *c
         screen_y++;
     }
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     /* Mark this row band as cached for subsequent horizontal tiles */
     if (use_row_cache)
     {
@@ -2087,7 +2087,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_canvas_t *c
 #endif
 
 cleanup:
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
     if (row_alpha_scratch != NULL)
     {
         egui_free(core, row_alpha_scratch);
@@ -2156,4 +2156,4 @@ void egui_image_rle_release_frame_cache(egui_core_t *core)
 #endif
 }
 
-#endif /* EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE */
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE */

@@ -1,4 +1,4 @@
-﻿#include "egui_view_gauge.h"
+#include "egui_view_gauge.h"
 #include "core/egui_core.h"
 #include "core/egui_common.h"
 #include "resource/egui_resource.h"
@@ -6,8 +6,8 @@
 #include "egui_view_circle_dirty.h"
 #include "egui_view_ring_text_basic.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 typedef uint8_t (*egui_view_gauge_get_text_region_fn)(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r,
@@ -338,7 +338,7 @@ void egui_view_gauge_on_draw(egui_view_t *self)
     // Background arc (full sweep)
     int16_t bg_start = local->start_angle;
     int16_t bg_end = local->start_angle + local->sweep_angle;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_gradient_stop_t bg_stops[2] = {
                 {.position = 0, .color = local->bk_color},
@@ -360,7 +360,7 @@ void egui_view_gauge_on_draw(egui_view_t *self)
     int16_t progress_end = local->start_angle + (int16_t)((int32_t)local->sweep_angle * local->value / 100);
     if (local->value > 0)
     {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t color_light = egui_rgb_mix(local->progress_color, EGUI_COLOR_WHITE, 80);
             egui_gradient_stop_t stops[2] = {
@@ -416,7 +416,7 @@ void egui_view_gauge_on_draw(egui_view_t *self)
     }
 
     // Center dot decoration
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(local->needle_color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {

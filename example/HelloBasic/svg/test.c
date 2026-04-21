@@ -589,7 +589,7 @@ void test_init_ui(egui_core_t *core)
     egui_timer_start_timer(core, &hero_timer, HELLO_SVG_FRAME_MS, HELLO_SVG_FRAME_MS);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #if EGUI_PORT == EGUI_PORT_TYPE_PC
 const char *egui_port_get_recording_frame_label(void)
 {

@@ -10,8 +10,8 @@
   - `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8`
   - `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8`
   - `EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE`
-  - `EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE`
-  - `EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE`
+  - `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI`
+  - `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE`
 - 这组宏的作用是定义 HelloPerformance 要覆盖哪些 benchmark workload，不是 small static-RAM cleanup 的候选。
 
 ## 本次支撑报告
@@ -98,7 +98,7 @@
 - 这个宏定义的是“是否保留外部资源 benchmark 维度”，不是 SRAM 小优化。
 - 处理结论：保留。
 
-### `EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE`
+### `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI`
 
 - 当前 perf 报告中有 `22` 个 `*QOI*` 场景。
 - 代表项：
@@ -109,7 +109,7 @@
 - 关闭后 QOI benchmark 族会整体消失。
 - 处理结论：保留。
 
-### `EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE`
+### `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE`
 
 - 当前 perf 报告中有 `22` 个 `*RLE*` 场景。
 - 代表项：

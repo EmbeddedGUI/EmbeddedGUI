@@ -167,7 +167,7 @@ if (egui_canvas_is_region_active(&icon_screen_region))
 
 ```bash
 make all APP=HelloBasic APP_SUB=textinput PORT=pc \
-  USER_CFLAGS="-DEGUI_CONFIG_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_DIRTY_REGION_STATS=1"
+  USER_CFLAGS="-DEGUI_CONFIG_FUNCTION_RECORDING_TEST=1 -DEGUI_CONFIG_DEBUG_DIRTY_REGION_STATS=1"
 ```
 
 ### 2. 录制运行日志

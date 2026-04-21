@@ -4,7 +4,7 @@
 #include "uicode_disp0.h"
 #include "app_egui_resource_generate.h"
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -174,7 +174,7 @@ static uint8_t active_layer = 2;
 static egui_view_button_t btn_lang;
 static uint8_t is_chinese = 0;
 
-#if EGUI_CONFIG_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
 static const char *showcase_parity_frame_label_pending;
 #endif
 
@@ -393,7 +393,7 @@ static void on_textinput_focus_changed(egui_view_t *self, int is_focused)
     egui_view_invalidate(self);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
 static void showcase_request_parity_snapshot(const char *label)
 {
     showcase_parity_frame_label_pending = label;
@@ -1508,7 +1508,7 @@ void uicode_disp0_init(egui_core_t *core)
 // ============================================================================
 // Recording actions for runtime verification
 // ============================================================================
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #if EGUI_SHOWCASE_PARITY_RECORDING && EGUI_PORT == EGUI_PORT_TYPE_PC
 const char *egui_port_get_recording_frame_label(void)
 {

@@ -1,10 +1,10 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_analog_clock.h"
 #include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 #include "utils/egui_fixmath.h"
 
 static void egui_view_analog_clock_add_hand_dirty_region(egui_region_t *dirty_region, egui_dim_t cx, egui_dim_t cy, int16_t angle_deg, egui_dim_t length,
@@ -250,7 +250,7 @@ void egui_view_analog_clock_on_draw(egui_view_t *self)
     }
 
     // Center dot
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_dim_t dot_r = EGUI_MAX(radius / 10, 3);
         egui_color_t color_light = egui_rgb_mix(local->hour_color, EGUI_COLOR_WHITE, 80);

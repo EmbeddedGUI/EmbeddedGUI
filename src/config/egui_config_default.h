@@ -366,16 +366,16 @@ extern "C" {
  * Enable QOI (Quite OK Image) codec for compressed image decoding.
  * QOI supports RGB565 and RGB32 formats with optional alpha.
  */
-#ifndef EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
-#define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE 0
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
+#define EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI 0
 #endif
 
 /**
  * Enable RLE (Run-Length Encoding) codec for compressed image decoding.
  * RLE supports RGB565, RGB32 and GRAY8 formats with optional alpha.
  */
-#ifndef EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
-#define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE 0
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
+#define EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE 0
 #endif
 
 /**
@@ -383,8 +383,8 @@ extern "C" {
  * The runtime SVG path delegates parsing and rasterization to the
  * vendored PlutoSVG/PlutoVG stack.
  */
-#ifndef EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
-#define EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE 0
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
+#define EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG 0
 #endif
 
 /*
@@ -453,8 +453,8 @@ extern "C" {
  * Enable auto-click simulation during GIF recording for demo purposes.
  * Each app can define custom click positions by implementing egui_port_get_recording_click().
  */
-#ifndef EGUI_CONFIG_RECORDING_TEST
-#define EGUI_CONFIG_RECORDING_TEST 0
+#ifndef EGUI_CONFIG_FUNCTION_RECORDING_TEST
+#define EGUI_CONFIG_FUNCTION_RECORDING_TEST 0
 #endif
 
 /* Ends C function definitions when using C++ */

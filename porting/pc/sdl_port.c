@@ -501,7 +501,7 @@ static int g_recording_snapshot_settle_ms = 0;
 static uint32_t g_recording_clock_anchor_real_ms = 0;
 static uint32_t g_recording_clock_anchor_scaled_ms = 0;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 // Auto-action simulation for recording
 static uint32_t g_recording_last_action_time = 0;
 static int g_recording_action_index = 0;
@@ -537,7 +537,7 @@ extern bool VT_Mouse_Get_Point(int16_t *x, int16_t *y);
 void snap_shot(const char *file_name);
 static void recording_save_frame(void);
 static void sdl_port_present_frame(void);
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void recording_simulate_action(void);
 static uint32_t recording_calc_frame_hash(void);
 static void recording_request_snapshot_internal(bool block_actions);
@@ -1335,7 +1335,7 @@ void VT_sdl_refresh_task(void)
     }
 
     // Simulate user interaction and save frame if recording is enabled
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     recording_simulate_action();
 #endif
     recording_save_frame();
@@ -1711,7 +1711,7 @@ void recording_init(const char *output_dir, int fps, int duration_sec)
     g_recording_clock_anchor_real_ms = 0;
     g_recording_clock_anchor_scaled_ms = 0;
     // g_recording_speed is set separately via recording_set_speed()
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     g_recording_last_action_time = 0;
     g_recording_action_index = 0;
     g_recording_drag_in_progress = false;
@@ -1785,7 +1785,7 @@ void recording_set_snapshot_settle_ms(int settle_ms)
 
 void recording_set_snapshot_stability(int stable_cycles, int max_wait_ms)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     recording_lock();
     if (stable_cycles >= 0)
     {
@@ -1816,7 +1816,7 @@ static void recording_request_snapshot_internal(bool block_actions)
     recording_lock();
     if (g_recording_enabled)
     {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
         g_recording_snapshot_requested = true;
         g_recording_snapshot_blocks_actions = block_actions;
         g_recording_snapshot_request_time = sdl_get_system_timestamp_ms_raw();
@@ -1839,7 +1839,7 @@ void sdl_port_set_headless(bool headless)
     g_sdl_headless = headless;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 void egui_port_notify_frame_render_complete(void)
 {
     recording_lock();
@@ -1852,7 +1852,7 @@ void egui_port_notify_frame_render_complete(void)
 }
 #endif
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 /**
  * Weak function for apps to define custom actions during recording.
  * Override this function in your app to customize simulation behavior.
@@ -2166,7 +2166,7 @@ static void recording_simulate_action(void)
         recording_request_snapshot_internal(false);
     }
 }
-#endif // EGUI_CONFIG_RECORDING_TEST
+#endif // EGUI_CONFIG_FUNCTION_RECORDING_TEST
 
 static void recording_do_save_frame(void)
 {
@@ -2182,7 +2182,7 @@ static void recording_do_save_frame(void)
         snap_shot_extra_display(d, extra_filename);
     }
 #endif
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     const char *frame_name = NULL;
     const char *windows_frame_name = NULL;
     frame_name = strrchr(filename, '/');
@@ -2211,7 +2211,7 @@ static void recording_save_frame(void)
     }
 
     uint32_t now = sdl_get_system_timestamp_ms();
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     uint32_t real_now = sdl_get_system_timestamp_ms_raw();
 #endif
 
@@ -2220,7 +2220,7 @@ static void recording_save_frame(void)
     {
         g_recording_start_time = now;
         g_recording_last_frame_time = now;
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
         g_recording_start_real_time = real_now;
         // In recording-test mode, wait for the first stable rendered frame
         // instead of saving the uninitialized backbuffer as frame_0000.
@@ -2232,7 +2232,7 @@ static void recording_save_frame(void)
     }
 
     // Check if recording finished (timeout safety)
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     if ((real_now - g_recording_start_real_time) >= (uint32_t)g_recording_duration_ms)
 #else
     if ((now - g_recording_start_time) >= (uint32_t)g_recording_duration_ms)
@@ -2246,7 +2246,7 @@ static void recording_save_frame(void)
         return;
     }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     // Snapshot-driven frame capture: save when requested by user code or auto-fallback
     recording_lock();
     if (g_recording_snapshot_requested)

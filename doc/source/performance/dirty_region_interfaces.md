@@ -104,7 +104,7 @@ egui_view_invalidate_region(self, &dirty_region);
 
 入口：`egui_canvas_is_region_active(const egui_region_t *region)`
 
-实现位置：`src/core/egui_canvas.h`
+实现位置：`src/canvas/egui_canvas.h`
 
 前面的接口解决的是“哪些区域加入 dirty list”，但这还不够。
 

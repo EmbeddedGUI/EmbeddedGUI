@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_switch.h"
@@ -7,8 +7,8 @@
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #include "shadow/egui_shadow.h"
 #endif
 
@@ -110,7 +110,7 @@ static void egui_view_switch_draw_track_and_thumb(egui_view_t *self, const egui_
         track_radius = region->size.width / 2;
     }
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t track_top = egui_rgb_mix(track_color, EGUI_COLOR_WHITE, 40);
         egui_color_t track_bottom = egui_rgb_mix(track_color, EGUI_COLOR_BLACK, 40);
@@ -274,7 +274,7 @@ void egui_view_switch_init(egui_view_t *self, egui_core_t *core)
     local->alpha = EGUI_ALPHA_100;
     self->is_clickable = true;
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     /* No default shadow - let theme control shadows */
 #endif
 

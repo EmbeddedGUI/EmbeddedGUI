@@ -154,7 +154,7 @@ void uicode_disp0_init(egui_core_t *core)
     uicode_page_smarthome_on_enter();
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static int recording_page_index = 0;
 
 static void recording_switch_to_next_page(void)

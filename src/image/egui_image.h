@@ -1,7 +1,7 @@
 #ifndef _EGUI_IMAGE_H_
 #define _EGUI_IMAGE_H_
 
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus

@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
@@ -7,8 +7,8 @@
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
@@ -164,7 +164,7 @@ void egui_view_window_on_draw(egui_view_t *self)
     egui_view_get_work_region(self, &region);
 
     // Draw header background
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(local->header_color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {

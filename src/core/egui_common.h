@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "egui_predefs.h"
-#include "egui_config.h"
+#include "config/egui_config.h"
 #include "egui_typedef.h"
 #include "egui_oop.h"
 #include "utils/egui_fixmath.h"

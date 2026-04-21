@@ -1758,7 +1758,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&toolbar_card));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 typedef struct section_demo_visible_search_context
 {
     uint32_t min_section_index;

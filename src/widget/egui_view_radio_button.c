@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_radio_button.h"
@@ -7,8 +7,8 @@
 #include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 static const egui_font_t *egui_view_radio_button_get_text_font(const egui_view_radio_button_t *local)
@@ -280,7 +280,7 @@ static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use
         {
             // Draw inner filled circle (about 50% of outer radius)
             egui_dim_t inner_radius = outer_radius * 5 / 10;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             {
                 egui_color_t dot_light = egui_rgb_mix(fill_color, EGUI_COLOR_WHITE, 80);
                 egui_gradient_stop_t dot_stops[2] = {

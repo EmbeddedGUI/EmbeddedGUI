@@ -2,9 +2,9 @@
 
 调试宏主要分布在两个配置头里：
 
-- `src/core/egui_config_debug_default.h`
+- `src/config/egui_config_debug_default.h`
 
-- `src/core/egui_config_default.h`
+- `src/config/egui_config_default.h`
 
 推荐优先在 `app_egui_config.h` 或 `USER_CFLAGS` 里覆盖，不要直接改默认头文件。
 

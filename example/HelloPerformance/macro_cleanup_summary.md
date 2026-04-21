@@ -32,15 +32,13 @@
 | `EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT` | 删除 override | `138a317` |
 | `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE` | 回退到默认 | `02d08af` |
 | `EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT` | 删除 override | `bbd2dbf` |
-| `EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE` | 删除 override | `9cb9bee` |
+| `EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER` | 删除 override | `9cb9bee` |
 | `EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX` | 删除 override | `10330c2` |
 | `EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE` | 回退到默认 | `69c492e` |
-| `EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE` | 回退到默认 | `a70be3d` |
-| `EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE` | 回退到默认 | `4187a09` |
+| `EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP` | 回退到默认 | `a70be3d` |
+| `EGUI_CONFIG_FUNCTION_CANVAS_SPEC_CIRCLE_INFO` | 回退到默认 | `4187a09` |
 | `EGUI_CONFIG_DIRTY_AREA_COUNT` | 回退到默认 | `34d1b02` |
-| `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE` | 回退到默认 | `4fb0a86` |
-| `EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE` | 删除 override | `18bed4f` |
-| `EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE` | 删除 override | `6fbab6c` |
+| `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW` | 合并 prepare/layout/dim cache 语义后回退到默认并删除旧 override | `4fb0a86` / `18bed4f` / `6fbab6c` |
 | `EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE` | 删除 override | `6b7cf77` |
 | `EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS` | 删除 override | `8f33b3f` |
 | `EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS` | 删除 override | `a1d51d2` |
@@ -66,11 +64,11 @@
 - `2026-04-06` 当前主线复核后，`EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE` 已从 public 配置面移除，并直接固定 shipped 路径 `1`；保留默认 `1` 的结论仍成立，因为历史 `1 -> 0` 只回收 `text -92B, bss -16B`，却会让完整 `239` 场景出现 `20` 个 `>=10%` 的 RLE 主路径回退。
 - `2026-04-06` 当前主线复核后，`EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE` 已从 public 配置面移除，但实现侧仍暂留 shipped=`1` 的条件策略；保留默认 `1` 的结论仍成立，因为历史 `1 -> 0` 虽能回收 `bss -1040B`，却会带来 `text +816B`，并让 external / tiled RLE 路径出现 `+2.7% ~ +6.2%` 的局部回退。
 - `2026-04-05` 当前主线重跑确认：`EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE` 不应再被写成 `HelloPerformance=1`；`0 -> 1` 虽然能把单个活动 `QOI decode state` 从约 `404B` 压到 `212B`，额外节省 `192B heap`，但会引入 `text +780B`，并让完整 `239` 场景里的 `10` 个 `>=10%` 回退全部集中在 `QOI RGB565` 主路径：`IMAGE_QOI_565 / MASK_IMAGE_QOI_NO_MASK +52.2%`、`MASK_IMAGE_QOI_ROUND_RECT +50.3%`、`MASK_IMAGE_QOI_CIRCLE +49.2%`、`EXTERN_IMAGE_QOI_565 / EXTERN_MASK_IMAGE_QOI_NO_MASK +19.3%`、`EXTERN_MASK_IMAGE_QOI_IMAGE +10.4%`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 仍在噪声内，runtime `241/241`、unit `688/688` 全等，因此 shipped/default 继续保持 `0`，`1` 不再作为推荐 low-RAM 值。
-- `2026-04-05` 当前主线重跑确认：`EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE` 不应再被写成当前 `HelloPerformance` 默认值 `1`；真实 shipped/default 仍是 `0`，`1` 只是历史实验值。`1 -> 0` 虽然能避免 `text +9976B`，且 `data / bss` 不变，runtime `241/241`、unit `688/688` 也全等，但完整 `239` 场景里会出现 `40` 个 `>=10%` 回退，集中在 `QOI/RLE` 压缩图主路径：`EXTERN_IMAGE_QOI_565 / EXTERN_MASK_IMAGE_QOI_NO_MASK +189.9%`、`IMAGE_QOI_565 / MASK_IMAGE_QOI_NO_MASK +168.2%`、`EXTERN_IMAGE_RLE_565 / EXTERN_MASK_IMAGE_RLE_NO_MASK +141.3%`、`IMAGE_RLE_565 / MASK_IMAGE_RLE_NO_MASK +121.3%`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 仍是 `+0.0%`，因此这颗宏现在应被记录成“历史实验值 `1`（当前默认 `0`）且仍是高优先级 codec policy 候选”，而不是简单弱化成失效历史注脚。
-- `2026-04-05` 当前主线重跑确认：`EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE` 继续保留 `HelloPerformance=1` 仍成立；`1 -> 0` 虽然能拿到 `text -5108B, data -12B, bss -8B`，runtime `241/241`、unit `688/688` 也全等，但完整 `239` 场景里仍有 `4` 个 `>=10%` 回退，集中在 internal tiled codec 热点：`IMAGE_TILED_QOI_565_0 +633.6%`、`IMAGE_TILED_RLE_565_0 +202.8%`、`IMAGE_TILED_QOI_565_8 +175.8%`、`IMAGE_TILED_RLE_565_8 +111.0%`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 保持在噪声内，因此这颗 override 仍不适合回退到框架默认 `0`。
+- `2026-04-05` 当前主线重跑确认：`EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=1` 继续作为 `HelloPerformance` shipped override 保留仍成立；`1 -> 0` 虽然能拿到 `text -5108B, data -12B, bss -8B`，runtime `241/241`、unit `688/688` 也全等，但完整 `239` 场景里仍有 `4` 个 `>=10%` 回退，集中在 internal tiled codec 热点：`IMAGE_TILED_QOI_565_0 +633.6%`、`IMAGE_TILED_RLE_565_0 +202.8%`、`IMAGE_TILED_QOI_565_8 +175.8%`、`IMAGE_TILED_RLE_565_8 +111.0%`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 保持在噪声内，因此这颗 override 仍不适合回退到框架默认 `0`。
+- `2026-04-05` 当前主线重跑确认：`EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=2` 应被视为历史 low-RAM tail-row 模式，而不是当前 shipped 默认。`2` 相比 `1` 会额外引入 `text +9976B`，但能换来约 `2304B` heap 峰值收益；若回到 `1`，完整 `239` 场景里会出现 `40` 个 `>=10%` 回退，集中在 `QOI/RLE` 压缩图主路径：`EXTERN_IMAGE_QOI_565 / EXTERN_MASK_IMAGE_QOI_NO_MASK +189.9%`、`IMAGE_QOI_565 / MASK_IMAGE_QOI_NO_MASK +168.2%`、`EXTERN_IMAGE_RLE_565 / EXTERN_MASK_IMAGE_RLE_NO_MASK +141.3%`、`IMAGE_RLE_565 / MASK_IMAGE_RLE_NO_MASK +121.3%`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 仍是 `+0.0%`，因此这颗模式值应记录成“历史 low-RAM 候选”，而不是失效注脚。
 - `2026-04-06` 当前主线复核后，`EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS` 已从 public 配置面移除，并直接固定 shipped 路径 `0`。这颗宏没有任何 code-size 收益可言，而历史更窄 cap `184/176/144/96` 会让当前 `240px` / `PFB_WIDTH=48` 横向 walk 下的 QOI/RLE alpha 热点出现 `+45% ~ +66%` 乃至数倍回退；当前仓内也没有真实 shipped override，因此不再继续保留 public 入口。
 - `2026-04-06` 当前主线复核后，`EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT` 已从 public 配置面移除，并直接固定 shipped 路径 `0`；保留默认 `0` 的结论仍成立，因为历史 `0 -> 1` 仅回收 `data -20B`，却会带来 `text +200B`，完整 `239` 场景 perf、runtime `241/241`、unit `688/688` 全等。
-- `2026-04-05` 当前主线重跑确认：`EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE` 保持默认 `0` 仍成立；`0 -> 1` 会带来 `text +1392B`，但无任何 `>=10%` 回退，并在 `TEXT_GRADIENT / TEXT_RECT / TEXT_ROTATE_NONE` 上带来 `-11.2% ~ -11.6%` 改善；runtime `241/241`、unit `688/688` 全等。
+- `2026-04-05` 当前主线重跑确认：`EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 当前保留框架默认 `1` 仍成立；如果继续升到 `2` 打开 ASCII 直查表，会带来 `text +1392B`，但无任何 `>=10%` 回退，并在 `TEXT_GRADIENT / TEXT_RECT / TEXT_ROTATE_NONE` 上带来 `-11.2% ~ -11.6%` 改善；runtime `241/241`、unit `688/688` 全等。
 - `2026-04-06` 当前主线复核后，`EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT` 已从 public 配置面移除，并直接固定 shipped 路径 `0`；保留默认 `0` 的结论仍成立，因为历史 `0 -> 1` 的静态 `text/data/bss`、完整 `239` 场景 perf、runtime `241/241`、unit `688/688` 全部完全相同。若后续要重新证明它值得单独存在，仍需补运行期 heap 量化。
 - `2026-04-06` 当前主线复核后，`EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE` 已从 public 配置面移除，并直接固定 shipped 路径 `0`；保留默认 `0` 的结论仍成立，因为历史 `0 -> 1` 会带来 `text +488B`，完整 `239` 场景无任何 `>=10%` 回退或 `<=-10%` 改善，只有 `TEXT_ROTATE_NONE / TEXT_RECT / EXTERN_TEXT_RECT / TEXT_RECT_GRADIENT` 出现 `+3.8% ~ +5.7%` 级波动；runtime `241/241`、unit `688/688` 全等。
 - `2026-04-05` 当前主线重跑确认：`EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS / EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS` 保持默认 `0 / 0` 仍成立；`0 / 0 -> 64 / 2` 会带来 `text +1816B, bss +2616B`，并在完整 `239` 场景里同时出现 `TEXT +18.8%`、`EXTERN_TEXT +15.7%` 回退，以及 `EXTERN_TEXT_RECT -32.2%`、`TEXT_GRADIENT -14.2%`、`TEXT_RECT -12.4%`、`TEXT_ROTATE_NONE -11.4%` 改善；runtime `241/241`、unit `688/688` 全等。
@@ -114,13 +112,13 @@
   - `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8`
   - `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8`
   - `EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE`
-  - `EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE`
-  - `EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE`
+  - `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI`
+  - `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE`
   - 这组 benchmark workload 开关的现行依据见 `benchmark_capability_retention.md`
 - heap/decode 行为宏：
-  - `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE`
+  - `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW`
   - `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE`
-  - `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE`
+  - `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=2`（历史 low-RAM tail-row 模式）
   - 这组 codec/decode override 的现行依据见 `codec_heap_override_retention.md`
 - 可选 low-RAM stack/transient-heap 策略块：
   - `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT`

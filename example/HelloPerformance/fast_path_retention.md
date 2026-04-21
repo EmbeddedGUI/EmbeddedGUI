@@ -20,7 +20,7 @@
 - 本文保留了大量历史 A/B、优先级结论和“值得保留的实验记录”，但它们不等于当前主线仍公开暴露的 `EGUI_CONFIG_*` 集合。
 - 当前主线已经没有继续挂在 shared default 头里的公共 fast-path 宏。
 - 当前框架侧已经不再保留公开 `EGUI_CONFIG_*` fast-path/perf-opt 入口。
-- 当前仍保留的示例局部 override 兼容入口只有 `EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE` 与 `EGUI_CONFIG_CIRCLE_FILL_BASIC`。
+- 当前仍保留的示例局部 override 兼容入口只有 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 与 `EGUI_CONFIG_CIRCLE_FILL_BASIC`。
 - 像 `EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_SEGMENT_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_ROW_BLEND_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_IMAGE_FAST_PATH_ENABLE`、`EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE`、`EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE`、`EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_BLEND_FAST_PATH_ENABLE`、`EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE`、`EGUI_CONFIG_IMAGE_STD_ROW_OVERLAY_ALPHA8_FAST_PATH_ENABLE` 这类名字，本文里继续保留的是 A/B 证据和优先级结论；当前主线实现已经把它们收成 private policy，不再建议应用侧继续把它们当公开配置依赖。
 - `EGUI_CONFIG_IMAGE_STD_ROW_OVERLAY_NON_RGB565_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_ROW_PARTIAL_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_ROW_INSIDE_FAST_PATH_ENABLE` 这 4 个名字虽然历史上保留过应用侧 bridge，但当前仓内已经没有真实配置继续依赖，主线实现也已经把 bridge 收回。
 - 上面这 2 个保留名字现在都只是应用局部 override，而不是框架级共享默认 fast-path 配置。
@@ -4555,7 +4555,7 @@
 | `shadow d_sq -> alpha LUT` 策略 | `egui_shadow_draw_corner` 当前约 `1980B`；本质是 stack/LUT 上限策略，不是常规小项目 code-size 宏 | `256 -> 64` 时 `SHADOW_ROUND 6.306 -> 4.949 (-21.5%)`，其它锚点基本不动 | 继续放 `app_egui_config.h` 尾部 `#if 0` low-RAM 块，默认不打开 |
 | round-rect / circle `PFB_HEIGHT` row cache | 已有历史结论：关闭后 `text -708B`、`static RAM -16B` | 关闭后无 `>5%` 回退，且 `MASK_IMAGE_QOI_8_ROUND_RECT`、`MASK_IMAGE_RLE_8_ROUND_RECT` 还变快 | 已处理完，默认关闭，不再作为 active override |
 | `alpha opaque slots` | `HelloPerformance text -156B, bss -40B`；关闭后不再缓存 RGB565+alpha source 是否全 opaque 的探测结果 | 完整 `239` 场景 `ge10=0 / le10=1`，只有 `EXTERN_IMAGE_RESIZE_TILED_565_8 -11.4%` 这一处 `<=-10%` 改善；但 runtime `4 vs 0` 仍有 `8` 帧真实像素差，`4 vs 4 repeat` 控制组 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | current shipped/default 继续保持实现私有默认 `4`；由于 `4 -> 0` 只回收 `text -156B, bss -40B`，远低于 1KB 门槛，而且 `0` 路径不再 render-equivalent，这颗宏已从 public 配置面内收，只保留历史 A/B 记录 |
-| `IMAGE_CODEC_ROW_CACHE_ENABLE` | 主要影响 heap，不是 small-project code-size toggle | `row-cache off` 会把 QOI/RLE 热点打到 `+1800% ~ +3600%` 量级 | 保留 |
+| `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW` | 主要影响 heap，不是 small-project code-size toggle | 切到 `0` 会把 QOI/RLE 热点打到 `+1800% ~ +3600%` 量级 | 保留 |
 
 ### 矩阵补充
 
@@ -4748,7 +4748,7 @@
   - `CIRCLE` / `ROUND_RECTANGLE`：继续保留 `EGUI_CONFIG_CIRCLE_FILL_BASIC` 这颗示例局部 override，只给 `HelloPerformance` 打开，不再写入共享默认头。
   - `canvas masked-fill`：当前最值得暴露给 size-first 项目的顺序已经比较清楚，优先是 `EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE`，其次是 `EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_SEGMENT_FAST_PATH_ENABLE`，第三档是 `EGUI_CONFIG_CANVAS_MASK_FILL_ROW_PARTIAL_FAST_PATH_ENABLE`，第四档是更保守的 `EGUI_CONFIG_CANVAS_MASK_FILL_ROW_INSIDE_FAST_PATH_ENABLE`；其中 `ROW_RANGE`、`CIRCLE_SEGMENT`、`ROW_PARTIAL` 与 `ROW_INSIDE` 都已在 `2026-04-05` current-mainline 下补齐完整 `239` 场景 perf、`241` 帧 runtime 和 `688` 项 unit，全量保持等价。再往后才是 `MASK_FILL_IMAGE`、`ROW_BLEND`，以及会明确牺牲 circle masked-fill 热点的父宏 `MASK_FILL_CIRCLE`。`visible-range` 调用侧 split 已证伪，`text` 不减反增 `+1552B`；`shape umbrella` 也已证伪，当前树最终 ELF `+0B`；`MASK_FILL_IMAGE` 往下再拆出来的 `IMAGE_SCALE child` 也只剩 `-196B`。这三条都不再继续保留新宏。
   - `canvas masked-fill round-rect child`：继续保留宏即可，但当前收益只有 `876B`，已经不属于这轮优先回收对象。
-  - `TEXT`：`EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE` 仍作为示例局部 override 存在，但关闭后的性能回退远超 `<10%`，不能作为 size-first 默认关闭候选。
+  - `TEXT`：`EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 仍作为示例局部 override 存在，但关闭后的性能回退远超 `<10%`，不能作为 size-first 默认关闭候选。
   - `TEXT` 继续细拆后，`EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE` 已经满足基础优先场景的阈值，可作为更局部的 size-first 实验开关。
   - `IMAGE_565` / `EXTERN_IMAGE_565`：`EGUI_CONFIG_IMAGE_STD_FAST_DRAW_ENABLE` 太粗，只适合作为实验型 size-first 开关，不能默认关闭。
   - `IMAGE_565` / `EXTERN_IMAGE_565` 继续细拆后，`EGUI_CONFIG_IMAGE_STD_FAST_DRAW_ALPHA_ENABLE` 已经满足基础优先场景阈值，可作为“只牺牲 alpha direct draw”的更局部实验开关。
@@ -4798,7 +4798,7 @@
   - `std image fast draw main switch`
   - `std image fast resize fast path`
   - `image mask circle / round-rect fast path（整条）`
-  - `IMAGE_CODEC_ROW_CACHE_ENABLE`
+  - `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW`
   - 都需要保留。
 - 其中 `alpha opaque slots` 已按同一规则内收到实现私有默认 `4`：它不是值得继续保留 public 宏名的项，只是 shipped 行为仍保持不变。
 - 已经证明确实“可以继续细拆成实验宏”的项里：

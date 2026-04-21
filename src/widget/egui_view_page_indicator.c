@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_page_indicator.h"
@@ -6,8 +6,8 @@
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_page_indicator_t);
@@ -99,7 +99,7 @@ void egui_view_page_indicator_on_draw_dot(egui_view_t *self)
     {
         egui_dim_t cx = start_x + i * (dot_diameter + local->dot_spacing);
         egui_color_t color = (i == local->current_index) ? local->active_color : local->inactive_color;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         if (i == local->current_index)
         {
             egui_color_t dot_light = egui_rgb_mix(color, EGUI_COLOR_WHITE, 80);

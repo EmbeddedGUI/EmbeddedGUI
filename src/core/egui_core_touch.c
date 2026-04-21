@@ -1,6 +1,6 @@
 #include "egui_core_touch.h"
 
-#include "egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "egui_core.h"
 
 void egui_core_touch_init(egui_core_t *core)

@@ -168,8 +168,8 @@ RLE 也表现优秀（-82%），主要受益于大面积连续相同像素的重
 在应用的 `app_egui_config.h` 中添加：
 
 ```c
-#define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE 1  /* 启用 QOI */
-#define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE 1  /* 启用 RLE */
+#define EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI 1  /* 启用 QOI */
+#define EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE 1  /* 启用 RLE */
 ```
 
 在 `app_resource_config.json` 的图像条目中指定 `compress` 字段：

@@ -10,7 +10,7 @@ EGUI_VIEW_MINI_CALENDAR_PARAMS_INIT(calendar_params, 10, 10, 220, 220, 2026, 2, 
 static uint8_t selected_count;
 static uint8_t last_selected_day;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 #endif
 
@@ -23,7 +23,7 @@ static void on_date_selected(egui_view_t *self, uint8_t day)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
 #endif
     selected_count = 0;
@@ -38,7 +38,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&calendar), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t days_in_month(uint16_t year, uint8_t month)
 {
     static const uint8_t days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};

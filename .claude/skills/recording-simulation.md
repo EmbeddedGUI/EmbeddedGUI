@@ -9,7 +9,7 @@ This skill explains how to add input simulation (clicks, drags, swipes) to Embed
 
 ## Overview
 
-When recording GIF demos with `EGUI_CONFIG_RECORDING_TEST=1`, you can simulate user interactions automatically. The system supports:
+When recording GIF demos with `EGUI_CONFIG_FUNCTION_RECORDING_TEST=1`, you can simulate user interactions automatically. The system supports:
 
 - **Click**: Single tap at a position
 - **Drag**: Touch down, move, touch up (slow, smooth)
@@ -21,19 +21,19 @@ When recording GIF demos with `EGUI_CONFIG_RECORDING_TEST=1`, you can simulate u
 ### 1. Enable Recording Test in `app_egui_config.h`
 
 ```c
-#define EGUI_CONFIG_RECORDING_TEST 1
+#define EGUI_CONFIG_FUNCTION_RECORDING_TEST 1
 ```
 
 ### 2. Include Header and Implement Actions in `uicode.c`
 
 ```c
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
 // ... view definitions ...
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     if (action_index >= 3) return false;  // Stop after 3 actions
@@ -167,11 +167,11 @@ EGUI_SIM_VIEW_CENTER_Y(&my_button)
 For simple cases with predefined actions:
 
 ```c
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static const egui_sim_action_t actions[] = {
@@ -196,7 +196,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 For actions that depend on view positions:
 
 ```c
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     int btn_x, btn_y;
@@ -257,4 +257,4 @@ python scripts/recording/gif_recorder.py --app HelloSimple --duration 8 --fps 15
 |------|-------------|
 | `src/core/egui_input_simulator.h` | Action types, helper macros, and `recording_request_snapshot()` declaration |
 | `porting/pc/sdl_port.c` | Simulation execution logic and `recording_request_snapshot()` implementation |
-| `src/core/egui_config_default.h` | `EGUI_CONFIG_RECORDING_TEST` macro |
+| `src/config/egui_config_default.h` | `EGUI_CONFIG_FUNCTION_RECORDING_TEST` macro |

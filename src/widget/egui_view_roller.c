@@ -1,9 +1,9 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_roller.h"
 #include "core/egui_core.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 #include "widget/egui_view_group.h"
 #include "resource/egui_resource.h"
 
@@ -68,7 +68,7 @@ void egui_view_roller_on_draw(egui_view_t *self)
     // Draw highlight background for center row
     egui_dim_t center_row_index = local->visible_count / 2;
     egui_dim_t highlight_y = region.location.y + center_row_index * item_height;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(local->highlight_color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {

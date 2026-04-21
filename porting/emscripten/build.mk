@@ -17,7 +17,7 @@ EGUI_CODE_SRC_FILES += \
 COMMON_FLAGS += -DEGUI_PORT_PC=1
 
 # Disable recording test for web builds
-COMMON_FLAGS += -DEGUI_CONFIG_RECORDING_TEST=0
+COMMON_FLAGS += -DEGUI_CONFIG_FUNCTION_RECORDING_TEST=0
 
 # Emscripten compiler - prefer the repo-local emsdk install when present,
 # otherwise fall back to environment variables or plain emcc in PATH.

@@ -125,7 +125,7 @@ def compile_app_for_parity(app: str, app_sub: str | None, bits64: bool, jobs: in
         f"APP={app}",
         "PORT=pc",
         "COMPILE_DEBUG=",
-        "USER_CFLAGS=-DEGUI_CONFIG_RECORDING_TEST=1 -DEGUI_SHOWCASE_PARITY_RECORDING=1",
+        "USER_CFLAGS=-DEGUI_CONFIG_FUNCTION_RECORDING_TEST=1 -DEGUI_SHOWCASE_PARITY_RECORDING=1",
         f"OUTPUT_PATH={build_output_dir.as_posix()}",
         f"APP_OBJ_SUFFIX={build_obj_suffix_for(app, app_sub, bits64)}",
     ]

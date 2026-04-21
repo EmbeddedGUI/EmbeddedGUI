@@ -1,4 +1,4 @@
-﻿#include <assert.h>
+#include <assert.h>
 #include <string.h>
 
 #include "egui_view_mini_calendar.h"
@@ -9,8 +9,8 @@
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 static uint8_t days_in_month(uint16_t year, uint8_t month)
@@ -230,7 +230,7 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
     egui_dim_t header_h = h / 8;
     egui_dim_t cell_h = (h - header_h * 2) / 6;
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(local->bg_color, EGUI_COLOR_WHITE, 40);
         egui_gradient_stop_t stops[2] = {
@@ -309,7 +309,7 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
 
         if (d == local->today_day)
         {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             {
                 egui_color_t color_light = egui_rgb_mix(local->today_color, EGUI_COLOR_WHITE, 80);
                 egui_gradient_stop_t stops[2] = {

@@ -13,7 +13,7 @@ extern "C" {
 
 void egui_image_decode_release_frame_cache(egui_core_t *core);
 
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI || EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 
 /* Shared row decode buffers.
  * Pixel buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE bytes.
@@ -25,7 +25,7 @@ uint8_t *egui_image_decode_get_row_pixel_buf(egui_core_t *core, uint8_t bytes_pe
 uint8_t *egui_image_decode_get_opaque_alpha_row(egui_core_t *core, egui_dim_t count);
 uint8_t *egui_image_decode_get_row_alpha_scratch(egui_core_t *core, uint16_t alpha_row_bytes);
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#if EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED
 /*
  * Row-band decode cache: PFB_HEIGHT rows of decoded pixel + alpha data.
  * Depending on the caller, the cache may hold the whole row band or only the
@@ -91,7 +91,7 @@ static inline int egui_image_decode_cache_is_full_image_hit(egui_core_t *core, c
     return core->image.image_decode_cache.cache_state.mode == EGUI_IMAGE_DECODE_CACHE_MODE_FULL_IMAGE &&
            core->image.image_decode_cache.cache_state.image_info == image_info;
 }
-#endif /* EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE */
+#endif /* EGUI_IMAGE_CODEC_FAST_DRAW_ROW_CACHE_ENABLED */
 
 #if EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES > 0
 int egui_image_decode_persistent_cache_prepare(egui_core_t *core, uint16_t img_width, uint16_t img_height, uint8_t bytes_per_pixel, uint16_t alpha_row_bytes);
@@ -125,7 +125,7 @@ void egui_image_decode_blend_row_clipped(egui_canvas_t *canvas, egui_dim_t scree
 void egui_image_decode_blend_row(egui_canvas_t *canvas, egui_dim_t img_x, egui_dim_t img_y, uint16_t row, uint16_t img_width, uint8_t data_type,
                                  uint8_t alpha_type, int has_alpha, const uint8_t *pixel_buf, const uint8_t *alpha_buf);
 
-#endif /* EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE */
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI || EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE */
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

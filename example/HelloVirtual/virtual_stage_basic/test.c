@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -114,7 +114,7 @@ static egui_view_virtual_stage_t basic_stage_view;
 static basic_stage_context_t basic_ctx;
 static egui_core_t *s_core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_initial_verify_retry;
 static uint8_t recording_pump_verify_retry;
@@ -876,7 +876,7 @@ void test_init_ui(egui_core_t *core)
     s_core = core;
 
     memset(&basic_ctx, 0, sizeof(basic_ctx));
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0U;
     recording_initial_verify_retry = 0U;
     recording_pump_verify_retry = 0U;
@@ -904,7 +904,7 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&basic_root));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static bool basic_schedule_verify_wait(egui_sim_action_t *p_action, uint8_t *retry_counter)
 {
     if (*retry_counter >= BASIC_STAGE_VERIFY_RETRY_MAX)

@@ -6,7 +6,7 @@
 
 #include "egui_api.h"
 #include "egui_core.h"
-#include "egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "egui_display_driver.h"
 #include "egui_platform.h"
 

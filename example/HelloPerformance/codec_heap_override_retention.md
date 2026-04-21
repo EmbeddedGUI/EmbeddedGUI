@@ -3,9 +3,9 @@
 ## 范围
 
 - 本文记录当前仍保留为 shipped override 或 low-RAM 条件实验值的 codec/decode 宏：
-  - `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE`
+  - `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=1`（当前 shipped full row-band）
   - `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE`
-  - `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE`
+  - `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=2`（历史 low-RAM tail-row）
 - 这些宏控制的是瞬时 decode heap 形态和 codec 行为，不是本轮 small static-RAM cleanup 的 `<100B static RAM` 候选。
 - 下文仍保留已经内收的 QOI / RLE checkpoint、decode-state 与 external-window policy 宏历史 A/B 记录，用来说明为什么它们不再暴露 public 配置入口。
 
@@ -19,7 +19,7 @@
 
 ## 宏结论
 
-### `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE`
+### `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW`（模式 1：full row-band）
 
 - `2026-03-28` 已做 `row-cache off` A/B。
 - 结果不是“小代价可去宏管理”，而是默认路径直接崩坏：
@@ -31,8 +31,8 @@
     - `EXTERN_IMAGE_QOI_565 18.747 -> 589.348 (+3044%)`
     - `EXTERN_IMAGE_RLE_565 4.647 -> 91.420 (+1867%)`
 - `2026-04-05` 按当前主线重新做完整 A/B：
-  - on：`EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE=1`（当前 `HelloPerformance` shipped override）
-  - off：`EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE=0`（框架默认）
+  - on：`EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=1`（当前 `HelloPerformance` shipped override）
+  - off：`EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=0`（框架默认）
 - size
   - `HelloPerformance` 链接结果：`text 2055380 -> 2050272`、`data 72 -> 60`、`bss 3832 -> 3824`
   - 即 `1 -> 0` 会带来 `text -5108B, data -12B, bss -8B`
@@ -55,7 +55,7 @@
   - `HelloUnitTest` on / off 都是 `688/688 passed`
 - 处理结论：
   - 当前主线下，`row cache off` 已不再像早期基线那样把整条 codec 主线打穿，但它仍会稳定打穿 internal tiled `QOI/RLE` 热点
-  - 因此 `HelloPerformance` 继续保留 `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE=1`
+  - 因此 `HelloPerformance` 继续保留 `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=1`
   - 同时保留 `#ifndef` 外部覆盖入口，用于后续 codec policy A/B
 
 ### `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE`
@@ -92,7 +92,7 @@
 
 ### `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE`（已内收）
 
-- `docs/low_ram_config_macros.md` 已说明此宏依赖 `IMAGE_CODEC_ROW_CACHE_ENABLE=1`，作用是复用现有 row-cache 的 alpha 缓冲头部，而不是再单独保留一份不透明 alpha 参考行。
+- `docs/low_ram_config_macros.md` 已说明此宏依赖 `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW>=1`，作用是复用现有 row-cache 的 alpha 缓冲头部，而不是再单独保留一份不透明 alpha 参考行。
 - 先纠正当前 shipped 关系：
   - 框架默认值是 `0`
   - `HelloPerformance` 当前 shipped 配置也直接继承这个默认值
@@ -165,23 +165,23 @@
   - `2026-04-06` 起，框架 public 入口也已内收，当前实现私有默认值固定为 `2`
   - 历史实验值 `0` 当前只额外换来 `text -276B, bss -8B`，但会打穿整条 QOI draw 主路径；由于收益低于 1KB 门槛，它现在只保留为历史 A/B 记录，不再作为当前外部入口
 
-### `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE`
+### `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW`（模式 2：tail-row low-RAM）
 
 - `2026-03-28` 的历史基线已经验证过它确实能改写 codec heap 形态：
   - whole-run heap peak `11616B -> 10032B`，减少 `1584B`
   - `static RAM` 仅 `+8B`
   - 当时最坏已验证 perf 为 `IMAGE_RLE_565_8 +8.35%`
 - 但到 `2026-04-05` 再按当前主线做完整 recheck A/B 时，需要先纠正一个前提：
-  - 这颗宏现在并不是 `HelloPerformance` shipped 默认
+  - 这颗模式值现在并不是 `HelloPerformance` shipped 默认
   - `example/HelloPerformance/app_egui_config.h` 里的旧 low-RAM codec override 块仍在 `#if 0` 下面
   - 因此当前真实对比应是：
-    - on：`EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=1`（历史实验值）
-    - off：`EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=0`（当前默认）
+    - on：`EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=2`（历史 low-RAM 实验值）
+    - off：`EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=1`（当前 shipped full row-band）
 - size
   - `HelloPerformance` 链接结果：`text 2055380 -> 2065356`，即开启后 `text +9976B`
   - 最终 ELF `data / bss` 不变
 - perf
-  - 当前默认 `0` 相比历史实验值 `1`，完整 `239` 场景里有 `40` 个 `>=10%` 回退，`<=-10%` 改善为 `0`
+  - 当前 shipped `1` 相比历史实验值 `2`，完整 `239` 场景里有 `40` 个 `>=10%` 回退，`<=-10%` 改善为 `0`
   - 基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 都是 `+0.0%`
   - 回退全部集中在 `QOI/RLE` 压缩图主路径及其 masked 变体：
     - `IMAGE_QOI_565 +168.2%`
@@ -201,9 +201,9 @@
     - `frame_0240.png 619EA7069DAC066ABA1A27113EAC475C9B13391BCCD078D03CBFBB113F576EA2`
   - `HelloUnitTest` on / off 都是 `688/688 passed`
 - 处理结论：
-  - 这颗宏不能再写成“当前默认就是 1”
-  - 但它也不是已经失效的旧 low-RAM 思路：在当前实现里，`1` 仍是会显著改善 `QOI/RLE` 热点吞吐的高杠杆 codec policy 宏
-  - 因此保持 `#ifndef` 外部覆盖入口，并把它从“当前默认”改写成“历史实验值 1（当前默认 0）”；如果未来要重新审 codec policy，优先级应高于已经被证明不划算的 `QOI_COMPACT_RGB565_INDEX`
+  - 这颗模式值不能再写成“当前默认就是 2”
+  - 但它也不是已经失效的旧 low-RAM 思路：在当前实现里，`2` 仍是会显著压低 codec heap 峰值的高杠杆 codec policy 模式
+  - 因此保持 `#ifndef` 外部覆盖入口，并把它改写成“历史实验值 2（当前 shipped 为 1）”；如果未来要重新审 codec policy，优先级应高于已经被证明不划算的 `QOI_COMPACT_RGB565_INDEX`
 
 ### `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE`（已内收）
 
@@ -322,7 +322,7 @@
 - 这 8 个宏都属于 HelloPerformance 的 codec/decode heap 调参入口。
 - 它们的主要影响面是 heap 峰值、codec 行缓存形态和压缩图热点性能，而不是 `<100B` 的固定 static RAM。
 - 因此本轮不把这些项统一改成“默认打开后移除宏管理”；但对收益低于 1KB 门槛、且当前仓内没有真实 shipped 依赖的微型入口，继续按同一规则内收到实现私有常量。
-- 额外补充：`2026-04-05` 当前主线重跑后，`EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE` 当前 shipped/default 仍是 `0`。虽然开启 `1` 会带来 `text +9976B`，但关闭到默认值 `0` 会让完整 `239` 场景中的 `40` 个 `QOI/RLE` 压缩图热点出现 `+16.2% ~ +189.9%` 回退，因此它仍应保留为高优先级 codec policy 候选，而不是被降格成“已失效的旧 low-RAM 宏”。
+- 额外补充：`2026-04-05` 当前主线重跑后，`EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW` 的两个模式值都仍有意义：`1` 是当前 shipped 的 full row-band 模式，`2` 是历史 low-RAM tail-row 模式。虽然 `2` 会带来 `text +9976B`，但回退到 `1` 会让完整 `239` 场景中的 `40` 个 `QOI/RLE` 压缩图热点出现 `+16.2% ~ +189.9%` 回退，因此它仍应保留为高优先级 codec policy 候选，而不是被降格成“已失效的旧 low-RAM 宏”。
 - 额外补充：`2026-04-06` 起，`EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE` 也已从 public 配置面内收。历史 `0` 虽然能稳定回收 `bss -1040B`，但会带来 `text +816B`，且 tiled / external RLE 路径存在 `+2.7% ~ +6.2%` 的局部回退，因此当前只保留历史 A/B 记录。
 - 额外补充：`2026-04-06` 起，`EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT` 也已从 public 配置面内收。历史 `0` 虽然还能回收 `text -276B, bss -8B`，但完整 `239` 场景会出现 `20` 个 `>=10%` 的 QOI 主路径回退，峰值 `+911.4%`，因此当前只保留历史 A/B 记录。
 - 额外补充：`2026-04-06` 起，`EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS` 也已从 public 配置面内收。它没有任何 code-size 收益可言，历史更窄 cap `184/176/144/96` 反而会打破当前 `240px` 图宽、`PFB_WIDTH=48` 横向 walk 下的 tail 覆盖条件，让 QOI/RLE alpha 热点出现 `+45% ~ +66%` 乃至数倍回退，因此当前只保留历史 A/B 记录。

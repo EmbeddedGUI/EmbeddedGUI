@@ -45,7 +45,7 @@ SYNC_GROUPS = [
         "group_name": "EmbeddedGUI",
         "scan_base_dir": "src",
         "scan_subdirs": [
-            "anim", "app", "background", "core", "font", "image",
+            "anim", "app", "background", "canvas", "core", "font", "image",
             "mask", "resource", "shadow", "style", "utils", "widget",
         ],
         "keil_prefix": r"..\..\..\src",

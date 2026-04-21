@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -73,7 +73,7 @@ typedef struct section_list_basic_section section_list_basic_section_t;
 typedef struct section_list_basic_header_view section_list_basic_header_view_t;
 typedef struct section_list_basic_item_view section_list_basic_item_view_t;
 typedef struct section_list_basic_context section_list_basic_context_t;
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 typedef struct section_list_basic_visible_summary section_list_basic_visible_summary_t;
 #endif
 
@@ -137,7 +137,7 @@ struct section_list_basic_context
     uint32_t jump_target_id;
 };
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 struct section_list_basic_visible_summary
 {
     uint32_t first_stable_id;
@@ -159,7 +159,7 @@ static egui_view_virtual_section_list_t section_list_view;
 static section_list_basic_context_t section_list_basic_ctx;
 static egui_core_t *s_core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_click_verify_retry;
 static uint8_t recording_jump_verify_retry;
@@ -259,7 +259,7 @@ static section_list_basic_section_t *section_list_basic_get_section(uint32_t sec
     return &section_list_basic_ctx.sections[section_index];
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static const section_list_basic_section_t *section_list_basic_get_section_const(uint32_t section_index)
 {
     if (section_index >= SECTION_LIST_BASIC_SECTION_COUNT)
@@ -283,7 +283,7 @@ static section_list_basic_item_t *section_list_basic_get_item(uint32_t section_i
     return &section->items[item_index];
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static const section_list_basic_item_t *section_list_basic_get_item_const(uint32_t section_index, uint32_t item_index)
 {
     const section_list_basic_section_t *section = section_list_basic_get_section_const(section_index);
@@ -367,7 +367,7 @@ static int32_t section_list_basic_measure_item_height_by_item(const section_list
     return item != NULL && item->detail ? SECTION_LIST_BASIC_ITEM_DETAIL_H : SECTION_LIST_BASIC_ITEM_H;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint32_t section_list_basic_get_total_visible_entries(void)
 {
     uint32_t section_index;
@@ -421,7 +421,7 @@ static void section_list_basic_reset_model(void)
     }
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t section_list_basic_visible_entry_visitor(egui_view_t *self, const egui_view_virtual_section_list_slot_t *slot,
                                                         const egui_view_virtual_section_list_entry_t *entry, egui_view_t *entry_view, void *context)
 {
@@ -1206,7 +1206,7 @@ static uint8_t section_list_basic_ds_should_keep_item_alive(void *context, egui_
     return stable_id == section_list_basic_ctx.selected_item_id;
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -1511,7 +1511,7 @@ void test_init_ui(egui_core_t *core)
     section_list_basic_reset_model();
     s_core = core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0U;
     recording_click_verify_retry = 0U;
     recording_jump_verify_retry = 0U;

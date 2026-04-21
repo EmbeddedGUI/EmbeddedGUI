@@ -103,7 +103,7 @@ void uicode_disp0_init(egui_core_t *core)
     uicode_disp0_init_ui(core);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     if (action_index >= 3)

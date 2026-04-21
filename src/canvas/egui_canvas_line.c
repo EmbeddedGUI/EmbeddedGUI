@@ -1,4 +1,4 @@
-﻿#include "egui_canvas.h"
+#include "canvas/egui_canvas.h"
 
 /**
  * @brief Improved line drawing with Wu's anti-aliasing and correct thick line rendering.

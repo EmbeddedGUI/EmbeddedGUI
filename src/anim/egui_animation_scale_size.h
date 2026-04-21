@@ -2,7 +2,7 @@
 #define _EGUI_ANIMATION_SCALE_SIZE_H_
 
 #include "egui_animation.h"
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "core/egui_region.h"
 #include "core/egui_timer.h"
 #include "utils/egui_slist.h"

@@ -5,7 +5,7 @@
 #include "egui_background_color.h"
 #include "core/egui_common.h"
 #include "core/egui_api.h"
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 
 void egui_background_color_on_draw(egui_background_t *self, egui_canvas_t *canvas, egui_region_t *region, const void *param)
 {

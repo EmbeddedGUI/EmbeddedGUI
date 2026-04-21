@@ -18,7 +18,7 @@
 - **Static data source**: `output/main.map` input sections from repo-side `src/` + `example/` objects
 - **Static size scope**: Map input sections from repo-side `src/` + `example/` objects only; exclude toolchain libraries, `driver/`, `porting/`; `ram_bytes` excludes `PFB`, and `pfb_bytes` still comes from each case-local `main.map` `.bss.pfb_area`.
 - **Runtime measure**: `qemu-system-arm -machine mps2-an385 -cpu cortex-m3 -icount shift=0`
-- **Runtime flags**: `-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1`
+- **Runtime flags**: `-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_FUNCTION_RECORDING_TEST=1`
 - **Heap peak definition**: `max(idle_peak, interaction_total_peak)`
 - **Stack peak definition**: qemu 侧保留栈区的 watermark 高水位统计
 

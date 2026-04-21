@@ -5,7 +5,7 @@
 #include "egui_view_test_performance.h"
 #include "egui.h"
 
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 #include "mask/egui_mask_gradient.h"
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
@@ -16,14 +16,14 @@
 #include "mask/egui_mask_round_rectangle.h"
 #include "mask/egui_mask_image.h"
 
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
 #include "image/egui_image_qoi.h"
 #endif
 
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 #include "image/egui_image_rle.h"
 #endif
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
 #include "image/egui_image_svg.h"
 #endif
 
@@ -72,7 +72,7 @@
 #endif
 #endif
 
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
 #ifndef PERF_SVG_PFB_TILED_RESIZE_STEP
 #define PERF_SVG_PFB_TILED_RESIZE_STEP 96
 #endif
@@ -160,7 +160,7 @@ static const file_image_stack_config_t s_perf_file_image_stack_config = {
 };
 #endif
 
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
 typedef enum
 {
     PERF_SVG_SOURCE_KIND_INTERNAL = 0,
@@ -1335,7 +1335,7 @@ static void perf_prepare_file_image_scene(egui_view_t *self, int test_mode)
 }
 #endif
 
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
 static int perf_is_svg_mode(int test_mode)
 {
     switch (test_mode)
@@ -2787,7 +2787,7 @@ static void egui_view_test_performance_test_triangle_fill_double(egui_view_t *se
 // ============================================================================
 // Compressed image tests (QOI)
 // ============================================================================
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
 
 // Compressed image resource name macros (QOI)
 #define EGUI_TEST_PERF_QOI_IMAGE_NAME_0   egui_res_image_test_perf_240_qoi_rgb565_0
@@ -2983,12 +2983,12 @@ static void egui_view_test_performance_test_extern_mask_image_qoi_8_image(egui_v
 }
 #endif
 
-#endif // EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#endif // EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
 
 // ============================================================================
 // Compressed image tests (RLE)
 // ============================================================================
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 
 // Compressed image resource name macros (RLE)
 #define EGUI_TEST_PERF_RLE_IMAGE_NAME_0   egui_res_image_test_perf_240_rle_rgb565_0
@@ -3184,7 +3184,7 @@ static void egui_view_test_performance_test_extern_mask_image_rle_8_image(egui_v
 }
 #endif
 
-#endif // EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#endif // EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 
 // ============================================================================
 // on_draw dispatch
@@ -3200,7 +3200,7 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         perf_release_file_image_scene();
     }
 #endif
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
     if (!perf_is_svg_mode(view->test_mode))
     {
         perf_release_svg_scene();
@@ -3951,7 +3951,7 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         break;
 
         // Compressed image tests (QOI)
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565:
         egui_view_test_performance_test_image_qoi_565(self);
         break;
@@ -4038,10 +4038,10 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         egui_view_test_performance_test_extern_mask_image_qoi_8_image(self);
         break;
 #endif
-#endif // EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#endif // EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
 
         // Compressed image tests (RLE)
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RLE_565:
         egui_view_test_performance_test_image_rle_565(self);
         break;
@@ -4128,7 +4128,7 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         egui_view_test_performance_test_extern_mask_image_rle_8_image(self);
         break;
 #endif
-#endif // EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#endif // EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
 
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL:
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
@@ -4162,13 +4162,13 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED:
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
         perf_draw_svg_scene(self, view->test_mode);
 #endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE:
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
         perf_draw_svg_scene(self, view->test_mode);
 #endif
         break;
@@ -4469,9 +4469,9 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_CIRCLE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_IMAGE:
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
-#elif EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#elif EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
         return test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565 && test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565_8 &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_NO_MASK &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_ROUND_RECT &&
@@ -4508,9 +4508,9 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_8_CIRCLE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_8_IMAGE:
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
-#elif EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#elif EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
         return test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565 && test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565_8 &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_NO_MASK &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_ROUND_RECT &&
@@ -4537,14 +4537,14 @@ int egui_view_test_performance_is_enabled(int test_mode)
 #endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE:
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
         return 1;
 #else
         return 0;
 #endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE:
-#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
 #else
         return 0;

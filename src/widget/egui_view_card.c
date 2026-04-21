@@ -1,12 +1,12 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_card.h"
 #include "core/egui_core.h"
 #include "style/egui_theme.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #include "shadow/egui_shadow.h"
 #endif
 
@@ -63,7 +63,7 @@ void egui_view_card_on_draw(egui_view_t *self)
     egui_dim_t border_width = (style && (style->flags & EGUI_STYLE_PROP_BORDER)) ? style->border_width : local->border_width;
 
     // Draw filled background
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_canvas_draw_round_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, bg, alpha);
     }
@@ -118,7 +118,7 @@ void egui_view_card_init(egui_view_t *self, egui_core_t *core)
     local->bg_alpha = EGUI_ALPHA_100;
     local->bg_color_custom = 0;
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         const egui_theme_t *theme = egui_theme_get(egui_view_get_core(self));
         const egui_widget_style_desc_t *desc = theme ? theme->card : NULL;

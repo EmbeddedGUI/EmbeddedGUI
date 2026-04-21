@@ -1,12 +1,12 @@
-﻿#include "egui_view_notification_badge.h"
+#include "egui_view_notification_badge.h"
 #include "core/egui_core.h"
 #include "core/egui_api.h"
 #include "egui_view_icon_font.h"
 #include "egui_view_notification_badge_internal.h"
 #include "resource/egui_resource.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 static char *egui_view_notification_badge_append_uint(char *cursor, char *end, uint16_t value)
@@ -83,7 +83,7 @@ void egui_view_notification_badge_draw_background(egui_canvas_t *canvas, const e
 
     if (use_circle)
     {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t badge_light = egui_rgb_mix(badge_color, EGUI_COLOR_WHITE, 80);
             egui_gradient_stop_t badge_stops[2] = {
@@ -109,7 +109,7 @@ void egui_view_notification_badge_draw_background(egui_canvas_t *canvas, const e
 
     {
         egui_dim_t round_radius = h / 2;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t badge_light = egui_rgb_mix(badge_color, EGUI_COLOR_WHITE, 80);
             egui_gradient_stop_t badge_stops[2] = {

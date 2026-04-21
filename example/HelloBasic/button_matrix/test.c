@@ -16,7 +16,7 @@ static const char *btn_icons[] = {
 
 EGUI_VIEW_BUTTON_MATRIX_PARAMS_INIT(btn_matrix_params, 10, 10, 220, 220, 3, 8);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t clicked_count;
 static uint8_t last_clicked_index;
@@ -59,7 +59,7 @@ static void on_btn_click(egui_view_t *self, uint8_t btn_index)
     }
 
     (void)name;
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     clicked_count++;
     last_clicked_index = btn_index;
 #endif
@@ -68,7 +68,7 @@ static void on_btn_click(egui_view_t *self, uint8_t btn_index)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     clicked_count = 0;
     last_clicked_index = 0xFF;
@@ -88,7 +88,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&btn_matrix), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

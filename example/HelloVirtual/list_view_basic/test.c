@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -60,7 +60,7 @@ static egui_view_list_view_t list_view;
 static list_view_basic_context_t list_view_basic_ctx;
 static egui_core_t *s_core;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 #endif
 
@@ -307,7 +307,7 @@ static void list_view_basic_combo_selected_cb(egui_view_t *self, uint8_t index)
     egui_view_list_view_notify_item_changed_by_stable_id(EGUI_VIEW_OF(&list_view), entry.stable_id);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -480,7 +480,7 @@ void test_init_ui(egui_core_t *core)
 
     list_view_basic_init_items();
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0U;
 #endif
 

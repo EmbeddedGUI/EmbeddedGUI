@@ -233,7 +233,7 @@ static egui_canvas_t *demo_stage_canvas(void)
 #define egui_canvas_draw_text(...)                 egui_canvas_draw_text(demo_stage_canvas(), __VA_ARGS__)
 #define egui_canvas_draw_text_in_rect(...)         egui_canvas_draw_text_in_rect(demo_stage_canvas(), __VA_ARGS__)
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_zone_verify_retry;
 #endif
@@ -4694,7 +4694,7 @@ static void demo_status_timer_cb(egui_timer_t *timer)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     recording_zone_verify_retry = 0U;
 #endif
@@ -4748,12 +4748,12 @@ void test_init_ui(egui_core_t *core)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&demo_root));
 
     egui_timer_init_timer(&status_timer, NULL, demo_status_timer_cb);
-#if !EGUI_CONFIG_RECORDING_TEST
+#if !EGUI_CONFIG_FUNCTION_RECORDING_TEST
     egui_timer_start_timer(core, &status_timer, DEMO_STATUS_TIMER_MS, DEMO_STATUS_TIMER_MS);
 #endif
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)

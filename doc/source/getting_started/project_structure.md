@@ -33,6 +33,7 @@ EmbeddedGUI/
 src/
 |-- egui.h                  # 统一头文件，包含所有模块
 |-- build.mk                # 源码构建模块定义
+|-- config/                 # 编译期配置系统
 |-- core/                   # 核心框架
 |-- widget/                 # UI 控件
 |-- anim/                   # 动画系统
@@ -71,9 +72,6 @@ src/
 | `egui_touch_driver.c/h` | 触摸驱动接口 |
 | `egui_display_driver.c/h` | 显示驱动接口 |
 | `egui_theme.c/h` | 主题系统 |
-| `egui_config.h` | 编译期配置 |
-| `egui_config_default.h` | 主屏基础默认配置 |
-| `egui_config_multi_default.h` | 多屏默认配置 |
 | `egui_region.c/h` | 区域计算 (脏矩形) |
 | `egui_scroller.c/h` | 滚动物理引擎 |
 | `egui_velocity_tracker.c/h` | 速度追踪器 (惯性滑动) |
@@ -82,6 +80,21 @@ src/
 | `egui_oop.h` | OOP 辅助宏 (类型转换) |
 | `egui_typedef.h` | 基础类型定义 |
 | `egui_api.c/h` | 通用 API 函数 |
+
+### config/ -- 配置系统
+
+配置模块提供编译期默认配置与功能分组默认值：
+
+| 文件 | 说明 |
+|------|------|
+| `egui_config.h` | 配置入口，汇总各类默认配置头 |
+| `egui_config_default.h` | 主屏基础默认配置 |
+| `egui_config_multi_default.h` | 多屏默认配置 |
+| `egui_config_canvas_default.h` | Canvas 默认配置 |
+| `egui_config_fast_path_default.h` | 快路径默认配置 |
+| `egui_config_widget_default.h` | 控件默认配置 |
+| `egui_config_theme_default.h` | 主题默认配置 |
+| `egui_config_debug_default.h` | 调试默认配置 |
 
 ### widget/ -- UI 控件
 

@@ -4,7 +4,7 @@ EmbeddedGUI 的配置系统基于 C 预处理器宏，通过 `app_egui_config.h`
 
 ## 配置机制
 
-配置入口是 `src/core/egui_config.h`，当前加载顺序如下：
+配置入口是 `src/config/egui_config.h`，当前加载顺序如下：
 
 ```
 egui_config.h
@@ -39,8 +39,8 @@ egui_config.h
 
 多屏相关默认值不再全部放在 `egui_config_default.h` 中，而是拆分为：
 
-- `src/core/egui_config_default.h`：主屏基础默认值
-- `src/core/egui_config_multi_default.h`：多屏默认值
+- `src/config/egui_config_default.h`：主屏基础默认值
+- `src/config/egui_config_multi_default.h`：多屏默认值
 
 多屏默认头当前提供：
 
@@ -173,7 +173,7 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR  1
 
 // 增强绘制模式（渐变填充，自动启用阴影和渐变）
-#define EGUI_CONFIG_WIDGET_ENHANCED_DRAW        0
+#define EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW        0
 
 // 软件旋转（90/270 度需要额外缓冲区）
 #define EGUI_CONFIG_SOFTWARE_ROTATION           0
@@ -231,7 +231,7 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 #define EGUI_CONFIG_PARAM_TOAST_DEFAULT_SHOW_TIME  1000
 
 // 录制测试模式（自动点击模拟）
-#define EGUI_CONFIG_RECORDING_TEST  0
+#define EGUI_CONFIG_FUNCTION_RECORDING_TEST  0
 ```
 
 ## 代码体积优化
@@ -331,14 +331,14 @@ PFB 内存：32 * 16 * 2 * 1 = 1024 字节
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH       1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH 1
 #define EGUI_CONFIG_MAX_FPS              60
-#define EGUI_CONFIG_WIDGET_ENHANCED_DRAW 1     // 渐变+阴影
+#define EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW 1     // 渐变+阴影
 ```
 
 PFB 内存：480 * 34 * 2 * 3 = 97920 字节（约 96KB）
 
 ## 相关文件
 
-- `src/core/egui_config.h` - 配置入口
-- `src/core/egui_config_default.h` - 主屏基础默认配置
-- `src/core/egui_config_multi_default.h` - 多屏默认配置
+- `src/config/egui_config.h` - 配置入口
+- `src/config/egui_config_default.h` - 主屏基础默认配置
+- `src/config/egui_config_multi_default.h` - 多屏默认配置
 - `example/*/app_egui_config.h` - 各示例的配置文件

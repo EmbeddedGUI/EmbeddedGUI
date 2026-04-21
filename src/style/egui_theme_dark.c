@@ -1,5 +1,5 @@
 #include "egui_theme.h"
-#include "core/egui_config.h"
+#include "config/egui_config.h"
 #include "shadow/egui_shadow.h"
 
 /* Dark theme color tokens */

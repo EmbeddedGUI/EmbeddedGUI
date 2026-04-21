@@ -18,9 +18,9 @@
 - `scripts/perf_analysis/code_perf_check.py`
 - `src/core/egui_core.c`
 - `src/core/egui_api.h`
-- `src/core/egui_canvas.c`
-- `src/core/egui_config_default.h`
-- `src/core/egui_config_debug_default.h`
+- `src/canvas/egui_canvas.c`
+- `src/config/egui_config_default.h`
+- `src/config/egui_config_debug_default.h`
 - `src/resource/egui_res_circle_info.c`
 - `perf_output/perf_report.md`
 

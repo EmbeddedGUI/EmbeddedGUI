@@ -102,7 +102,7 @@ static uint8_t s_stress_running;
 static uint8_t s_activity_anim_enabled = 1U;
 static uint8_t s_dialog_anim_enabled = 1U;
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t s_runtime_fail_reported;
 static uint8_t s_recording_activity_wait_done;
 static uint8_t s_recording_dialog_wait_done;
@@ -157,7 +157,7 @@ static void uicode_show_status_toast(egui_activity_t *activity, const char *text
     }
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void uicode_report_runtime_failure(const char *message)
 {
     if (s_runtime_fail_reported)
@@ -177,7 +177,7 @@ static void uicode_verify_stress_settled(void)
         return;
     }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     if (egui_core_dialog_get(s_core) != NULL)
     {
         uicode_report_runtime_failure("stress scenario left dialog open");
@@ -388,7 +388,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     s_stress_running = 0U;
     s_activity_anim_enabled = 1U;
     s_dialog_anim_enabled = 1U;
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     s_runtime_fail_reported = 0U;
     s_recording_activity_wait_done = 0U;
     s_recording_dialog_wait_done = 0U;
@@ -447,7 +447,7 @@ void uicode_disp0_init(egui_core_t *core)
     uicode_disp0_init_ui(core);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static egui_activity_test_t *uicode_get_current_activity_test(void)
 {
     return (egui_activity_test_t *)uicode_get_current_activity();

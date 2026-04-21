@@ -285,8 +285,8 @@ EGUI_CODE_INCLUDE += $(EGUI_APP_PATH)/my_module
 
 框架默认配置现在分成两层：
 
-- `src/core/egui_config_default.h`：主屏基础默认值
-- `src/core/egui_config_multi_default.h`：多屏默认值，例如 `EGUI_CONFIG_MAX_DISPLAY_COUNT`、`EGUI_CONFIG_SCEEN_1_*`、`EGUI_CONFIG_PFB_1_*`
+- `src/config/egui_config_default.h`：主屏基础默认值
+- `src/config/egui_config_multi_default.h`：多屏默认值，例如 `EGUI_CONFIG_MAX_DISPLAY_COUNT`、`EGUI_CONFIG_SCEEN_1_*`、`EGUI_CONFIG_PFB_1_*`
 
 应用的 `app_egui_config.h` 会先于这些默认头被包含，因此可以覆盖任意配置项。
 

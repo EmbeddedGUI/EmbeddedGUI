@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_checkbox.h"
@@ -8,8 +8,8 @@
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #include "shadow/egui_shadow.h"
 #endif
 
@@ -223,7 +223,7 @@ static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_ico
     if (local->is_checked)
     {
         // Draw filled box background
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         {
             egui_color_t grad_top =
                     (style && (style->flags & EGUI_STYLE_PROP_BG_COLOR)) ? egui_rgb_mix(fill_color, EGUI_COLOR_WHITE, 30) : EGUI_THEME_PRIMARY_LIGHT;
@@ -264,7 +264,7 @@ static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_ico
             egui_dim_t y3 = box_y + box_size * 3 / 10;
             egui_dim_t stroke = EGUI_MAX(box_size / 8, 1);
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             {
                 egui_dim_t check_pts[] = {x1, y1, x2, y2, x3, y3};
                 egui_canvas_draw_polyline_round_cap_hq(canvas, check_pts, 3, stroke, check_color, local->alpha);
@@ -381,7 +381,7 @@ void egui_view_checkbox_init(egui_view_t *self, egui_core_t *core)
     local->on_checked_changed = NULL;
     self->is_clickable = true;
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         static const egui_shadow_t checkbox_shadow = {
                 .width = EGUI_THEME_SHADOW_WIDTH_SM,

@@ -1,7 +1,7 @@
 #ifndef _EGUI_VIEW_ICON_FONT_H_
 #define _EGUI_VIEW_ICON_FONT_H_
 
-#include "core/egui_config.h"
+#include "config/egui_config.h"
 #include "font/egui_font.h"
 #include "resource/egui_resource.h"
 

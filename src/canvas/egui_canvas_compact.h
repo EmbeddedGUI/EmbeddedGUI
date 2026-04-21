@@ -1,7 +1,7 @@
 #ifndef _EGUI_CANVAS_COMPACT_H_
 #define _EGUI_CANVAS_COMPACT_H_
 
-#include "egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "font/egui_font.h"
 
 #ifdef __cplusplus

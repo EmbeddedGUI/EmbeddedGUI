@@ -26,9 +26,6 @@ const uint8_t egui_image_alpha_type_size_table[] = {
         8, /* EGUI_IMAGE_ALPHA_TYPE_8 */
 };
 
-#define EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES  EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
-#define EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
-
 int egui_image_std_get_linear_src_x_segment(const egui_dim_t *src_x_map, egui_dim_t start, egui_dim_t end, egui_dim_t *src_x_start)
 {
     if (src_x_start == NULL || start >= end)
@@ -134,7 +131,7 @@ uint16_t *egui_image_std_get_shared_external_data_cache(egui_core_t *core)
 {
     if (g_egui_image_std_shared_external_data_cache == NULL)
     {
-        g_egui_image_std_shared_external_data_cache = (uint16_t *)egui_malloc(core, (int)EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES);
+        g_egui_image_std_shared_external_data_cache = (uint16_t *)egui_malloc(core, (int)EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES);
     }
     return g_egui_image_std_shared_external_data_cache;
 }
@@ -143,7 +140,7 @@ uint8_t *egui_image_std_get_shared_external_alpha_cache(egui_core_t *core)
 {
     if (g_egui_image_std_shared_external_alpha_cache == NULL)
     {
-        g_egui_image_std_shared_external_alpha_cache = (uint8_t *)egui_malloc(core, (int)EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES);
+        g_egui_image_std_shared_external_alpha_cache = (uint8_t *)egui_malloc(core, (int)EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES);
     }
     return g_egui_image_std_shared_external_alpha_cache;
 }
@@ -201,13 +198,13 @@ static int egui_image_std_prepare_external_alpha_row_persistent_cache_range_rows
 
     EGUI_UNUSED(min_rows_per_chunk);
 
-    if (data_row_size > EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES || alpha_row_size > EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES)
+    if (data_row_size > EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES || alpha_row_size > EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES)
     {
         return 0;
     }
 
-    data_rows = EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES / data_row_size;
-    alpha_rows = EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES / alpha_row_size;
+    data_rows = EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES / data_row_size;
+    alpha_rows = EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES / alpha_row_size;
     base_rows_per_chunk = (data_rows < alpha_rows) ? data_rows : alpha_rows;
     rows_per_chunk = base_rows_per_chunk;
     if ((uint32_t)image->height < rows_per_chunk)
@@ -364,12 +361,12 @@ static int egui_image_std_prepare_external_data_row_persistent_cache_range_rows(
 
     EGUI_UNUSED(min_rows_per_chunk);
 
-    if (data_row_size > EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES)
+    if (data_row_size > EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES)
     {
         return 0;
     }
 
-    base_rows_per_chunk = EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES / data_row_size;
+    base_rows_per_chunk = EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES / data_row_size;
     rows_per_chunk = base_rows_per_chunk;
     if ((uint32_t)image->height < rows_per_chunk)
     {
@@ -6195,12 +6192,12 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_external_alpha_is_all_opaque(eg
     uint32_t chunk_rows;
     int is_all_opaque = 1;
 
-    if (alpha_row_size == 0 || alpha_row_size > EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES)
+    if (alpha_row_size == 0 || alpha_row_size > EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES)
     {
         return 0;
     }
 
-    chunk_rows = (uint32_t)(EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES / alpha_row_size);
+    chunk_rows = (uint32_t)(EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES / alpha_row_size);
 
     if (chunk_rows == 0)
     {
@@ -8979,10 +8976,10 @@ void egui_image_std_init(egui_image_t *self, const void *res)
 
 void egui_image_std_release_frame_cache(egui_core_t *core)
 {
-#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_QOI
     egui_image_qoi_release_frame_cache(core);
 #endif
-#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#if EGUI_CONFIG_FUNCTION_IMAGE_CODEC_RLE
     egui_image_rle_release_frame_cache(core);
 #endif
     egui_image_decode_release_frame_cache(core);

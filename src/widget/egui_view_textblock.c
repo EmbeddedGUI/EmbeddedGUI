@@ -1,11 +1,11 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 #include "egui_view_textblock.h"
 #include "core/egui_core.h"
 #include "core/egui_api.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 
@@ -778,7 +778,7 @@ draw_cursor:
                 egui_dim_t bar_x = self->region.size.width - EGUI_THEME_SCROLLBAR_THICKNESS - margin;
                 egui_dim_t bar_y = margin + thumb_y;
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
                 {
                     egui_color_t color_light = egui_rgb_mix(EGUI_THEME_SCROLLBAR_COLOR, EGUI_COLOR_WHITE, 80);
                     egui_gradient_stop_t stops[2] = {
@@ -832,7 +832,7 @@ draw_cursor:
                 egui_dim_t bar_x = margin + thumb_x;
                 egui_dim_t bar_y = self->region.size.height - EGUI_THEME_SCROLLBAR_THICKNESS - margin;
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
                 {
                     egui_color_t color_light = egui_rgb_mix(EGUI_THEME_SCROLLBAR_COLOR, EGUI_COLOR_WHITE, 80);
                     egui_gradient_stop_t stops[2] = {

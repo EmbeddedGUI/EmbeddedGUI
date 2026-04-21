@@ -99,7 +99,7 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
     motion_event->scroll_delta = 0;
 #endif
 
-#if EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
+#if EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
     egui_velocity_tracker_add_motion(&egui_input_info.velocity_tracker, motion_event);
 #endif
     if (!is_reused)
@@ -148,7 +148,7 @@ int egui_input_add_motion_multi(egui_core_t *core, uint8_t type, uint8_t pointer
     motion_event->location2.y = y2;
     motion_event->scroll_delta = 0;
 
-#if EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
+#if EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
     egui_velocity_tracker_add_motion(&egui_input_info.velocity_tracker, motion_event);
 #endif
     if (!is_reused)
@@ -188,7 +188,7 @@ int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t
 
 egui_float_t egui_input_get_velocity_x(egui_core_t *core)
 {
-#if !EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
+#if !EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
     return 0;
 #else
     return egui_input_info.velocity_tracker.velocity_x;
@@ -197,7 +197,7 @@ egui_float_t egui_input_get_velocity_x(egui_core_t *core)
 
 egui_float_t egui_input_get_velocity_y(egui_core_t *core)
 {
-#if !EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
+#if !EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
     return 0;
 #else
     return egui_input_info.velocity_tracker.velocity_y;
@@ -294,7 +294,7 @@ void egui_input_init(egui_core_t *core)
                      sizeof(egui_motion_event_t));
 
     egui_slist_init(&egui_input_info.motion_list);
-#if EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
+#if EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
     egui_velocity_tracker_init(&egui_input_info.velocity_tracker);
 #endif
     core->touch.prev_pressed = 0;

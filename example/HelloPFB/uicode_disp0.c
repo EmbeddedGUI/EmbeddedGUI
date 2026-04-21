@@ -240,7 +240,7 @@ void uicode_disp0_init(egui_core_t *core)
     egui_view_start_timer(EGUI_VIEW_OF(&label_vertical), &egui_test_refresh_timer, 1000, 3000);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 // Recording actions: wait and observe timer-driven PFB refresh tests
 // Timer period is 3000ms, so waits must match to capture different states
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)

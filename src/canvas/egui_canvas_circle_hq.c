@@ -1,5 +1,5 @@
-﻿#include "egui_canvas.h"
-#include "egui_api.h"
+#include "canvas/egui_canvas.h"
+#include "core/egui_api.h"
 #include "utils/egui_fixmath.h"
 
 /**

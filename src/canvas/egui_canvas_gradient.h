@@ -1,7 +1,7 @@
-﻿#ifndef _EGUI_CANVAS_GRADIENT_H_
+#ifndef _EGUI_CANVAS_GRADIENT_H_
 #define _EGUI_CANVAS_GRADIENT_H_
 
-#include "egui_common.h"
+#include "core/egui_common.h"
 #include "image/egui_image.h"
 
 /* Set up for C function definitions, even when using C++ */

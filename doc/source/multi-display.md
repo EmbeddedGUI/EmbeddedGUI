@@ -111,8 +111,8 @@ PC 多屏应用推荐通过这个钩子返回额外屏幕描述。每个 descrip
 
 多屏默认配置分为两层：
 
-- 单屏默认值位于 `src/core/egui_config_default.h`
-- 多屏补充值位于 `src/core/egui_config_multi_default.h`
+- 单屏默认值位于 `src/config/egui_config_default.h`
+- 多屏补充值位于 `src/config/egui_config_multi_default.h`
 
 当前常用宏如下：
 

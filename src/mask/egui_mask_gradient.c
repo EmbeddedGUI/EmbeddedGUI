@@ -3,8 +3,8 @@
 #include "egui_mask_gradient.h"
 #include "core/egui_common.h"
 #include "core/egui_api.h"
-#include "core/egui_canvas.h"
-#include "core/egui_canvas_gradient.h"
+#include "canvas/egui_canvas.h"
+#include "canvas/egui_canvas_gradient.h"
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 

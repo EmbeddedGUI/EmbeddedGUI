@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_progress_bar.h"
@@ -7,8 +7,8 @@
 #include "egui_view_linear_value_helper.h"
 #include "style/egui_theme.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+#include "canvas/egui_canvas_gradient.h"
 #endif
 
 void egui_view_progress_bar_set_on_progress_listener(egui_view_t *self, egui_view_on_progress_changed_listener_t listener)
@@ -125,7 +125,7 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     egui_color_t prog = fill_style ? fill_style->bg_color : local->progress_color;
 
     // draw background (thin rounded track)
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_canvas_draw_round_rectangle_fill(canvas, metrics.start_x, metrics.track_y, metrics.usable_width, metrics.track_height, metrics.track_radius, bk,
                                               EGUI_ALPHA_100);
@@ -139,7 +139,7 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     progress_width = (egui_dim_t)((uint32_t)metrics.usable_width * local->process / 100);
     if (progress_width > 0)
     {
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
         egui_canvas_draw_round_rectangle_fill(canvas, metrics.start_x, metrics.track_y, progress_width, metrics.track_height, metrics.track_radius, prog,
                                               EGUI_ALPHA_100);
 #else

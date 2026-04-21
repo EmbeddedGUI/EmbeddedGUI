@@ -1,7 +1,7 @@
 #ifndef _EGUI_CANVAS_FILL_AA_INTERNAL_H_
 #define _EGUI_CANVAS_FILL_AA_INTERNAL_H_
 
-#include "egui_canvas.h"
+#include "canvas/egui_canvas.h"
 
 enum
 {

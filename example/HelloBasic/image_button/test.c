@@ -25,7 +25,7 @@ EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_m_params, 0, 0, 84, 84, NULL);
 // Size L (96x96)
 EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_l_params, 0, 0, 96, 96, NULL);
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t image_button_click_counts[4];
 
@@ -43,7 +43,7 @@ static void report_runtime_failure(const char *message)
 
 static void image_button_click_cb(egui_view_t *self)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     if (self == EGUI_VIEW_OF(&imgbtn_xs))
     {
         image_button_click_counts[0]++;
@@ -68,7 +68,7 @@ static void image_button_click_cb(egui_view_t *self)
 
 void test_init_ui(egui_core_t *core)
 {
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     memset(image_button_click_counts, 0, sizeof(image_button_click_counts));
 #endif
@@ -127,7 +127,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_layout_user_root(EGUI_VIEW_OF(&grid), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

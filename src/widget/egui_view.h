@@ -3,7 +3,7 @@
 
 #include "core/egui_region.h"
 #include "utils/egui_dlist.h"
-#include "core/egui_canvas.h"
+#include "canvas/egui_canvas.h"
 #include "core/egui_timer.h"
 #include "core/egui_motion_event.h"
 #include "background/egui_background.h"

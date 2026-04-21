@@ -1,8 +1,8 @@
 #ifndef _EGUI_CANVAS_H_
 #define _EGUI_CANVAS_H_
 
-#include "egui_common.h"
-#include "egui_region.h"
+#include "core/egui_common.h"
+#include "core/egui_region.h"
 #include "mask/egui_mask.h"
 #include "mask/egui_mask_circle.h"
 #include "mask/egui_mask_round_rectangle.h"
@@ -46,13 +46,13 @@ struct egui_canvas
 
     egui_mask_t *mask; // current mask for alpha blending
 
-#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
+#if EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
     // Optional extra clip region in screen coordinates (used by scroll views to clip children).
     // When set, egui_canvas_calc_work_region also intersects with this region.
     const egui_region_t *extra_clip_region;
 #endif
 
-#if EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE
+#if EGUI_CONFIG_FUNCTION_CANVAS_SPEC_CIRCLE_INFO
     uint16_t res_circle_info_count_spec;
     const egui_circle_info_t *res_circle_info_spec_arr;
 #endif
@@ -96,7 +96,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_clear_mask(egui_canvas_t *self)
  */
 __EGUI_STATIC_INLINE__ void egui_canvas_set_extra_clip(egui_canvas_t *self, const egui_region_t *clip_region)
 {
-#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
+#if EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
     self->extra_clip_region = clip_region;
 #else
     EGUI_UNUSED(clip_region);
@@ -105,14 +105,14 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_extra_clip(egui_canvas_t *self, cons
 
 __EGUI_STATIC_INLINE__ void egui_canvas_clear_extra_clip(egui_canvas_t *self)
 {
-#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
+#if EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
     self->extra_clip_region = NULL;
 #endif
 }
 
 __EGUI_STATIC_INLINE__ const egui_region_t *egui_canvas_get_extra_clip(egui_canvas_t *self)
 {
-#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
+#if EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
     return self->extra_clip_region;
 #else
     return NULL;
@@ -1132,7 +1132,7 @@ egui_region_t *egui_canvas_get_base_view_work_region(egui_canvas_t *self);
 egui_region_t *egui_canvas_get_pfb_region(egui_canvas_t *self);
 int egui_canvas_is_region_active(egui_canvas_t *self, const egui_region_t *region);
 
-#include "egui_canvas_gradient.h"
+#include "canvas/egui_canvas_gradient.h"
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

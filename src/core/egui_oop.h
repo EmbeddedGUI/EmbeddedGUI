@@ -10,7 +10,7 @@
  * Compatible with C99 standard.
  */
 
-#include "egui_config.h"
+#include "config/egui_config.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus

@@ -3,7 +3,7 @@
 
 #include "egui_view_test.h"
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
 
@@ -19,7 +19,7 @@ void uicode_disp0_init(egui_core_t *core)
     egui_view_invalidate(EGUI_VIEW_OF(&perf_scene));
 }
 
-#if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;

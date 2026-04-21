@@ -12,16 +12,15 @@
 
 ## 1. 先看结论
 
-当前真正建议用户关注的，主要只有 6 个共享配置宏：
+当前真正建议用户关注的，主要只有 5 个共享配置宏：
 
 - `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE`
-- `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE`
-- `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE`
+- `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW`
 - `EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES`
 - `EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES`
 - `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE`
 
-这 6 个配置还保留着，是因为它们现在仍然在表达明确的产品取舍：
+这 5 个配置还保留着，是因为它们现在仍然在表达明确的产品取舍：
 
 - decode heap 上界
 - 压缩图片主路径策略
@@ -36,16 +35,15 @@
 | 宏 | 当前默认 | 主要作用 | 典型代价 / 收益 | 什么时候考虑调整 |
 | --- | --- | --- | --- | --- |
 | `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE` | `2` | 限制 decode 阶段的单像素 scratch 上界 | `2 -> 4` 约 `text +108B`，完整 `239` 场景无明显性能波动 | 只有当资源格式或解码路径确实需要更高像素 scratch 时再调大；一般保持默认 |
-| `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE` | 框架默认 `0` | 控制压缩图片是否启用 row cache | 关闭可少约 `text -5108B`，但 internal tiled `QOI/RLE` 热点会回退 `+111% ~ +634%` | 项目大量使用 internal tiled `QOI/RLE` 时，优先做 A/B；否则保持默认即可 |
-| `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE` | `0` | 决定是否为压缩图片的 tail-row 保留更完整的 cache | 打开约 `text +9976B`，但可明显改善 `40` 个 `QOI/RLE` 热点，改善范围对应历史回退约 `+16.2% ~ +189.9%` | 只有当压缩图片热点很重要，且能接受接近 `10KB` ROM 成本时再考虑打开 |
+| `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW` | `0` | 控制压缩图片 fast draw 的 3 档模式：`0=关闭`，`1=full row-band`，`2=tail-row low-RAM` | `0 -> 1` 会额外引入约 `text +5108B`，但能避免 internal tiled `QOI/RLE` 热点 `+111% ~ +634%` 回退；`1 -> 2` 会再引入约 `text +9976B`，换来约 `2304B` 峰值 heap 收益 | 项目有压缩图片热点时，先做 `0/1` A/B；如果还要继续压峰值 heap，再评估 `1/2` |
 | `EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES` | `0` | 给 codec 整图 persistent cache 预留预算 | `0 -> 5000` 约 `text +2948B, bss +24B`；历史上只有 `IMAGE_TILED_QOI_565_0` 有明显改善 `-13.1%` | 只在你已经确认 codec 热点集中在少量重复资源，且愿意为此付出额外 ROM/BSS 时再调大 |
 | `EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES` | `0` | 给 external image persistent cache 预留预算 | `0 -> 5000` 约 `text +948B, bss +40B`；部分 external tiled/resize 场景改善 `-32.6% ~ -61.6%` | 项目大量使用 external image，且更关心这些场景的吞吐时可考虑调大 |
 | `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE` | `1024` | 控制 external RLE 的窗口大小，也就是一块直接的 SRAM 预算 | `1024 -> 64` 约 `text +96B, bss -1024B`，但 external RLE 主路径回退 `+17.5% ~ +21.8%` | 只在 SRAM 非常紧张，且可以接受 external RLE 明显变慢时再缩小 |
 
-### 这 6 个配置怎么理解
+### 这 5 个配置怎么理解
 
 - `MAX_PIXEL_SIZE` 主要是 heap 上界问题，不是典型 fast-path 开关。
-- `ROW_CACHE_ENABLE` 和 `TAIL_ROW_CACHE_ENABLE` 影响的是压缩图片主路径，应当用真实场景来做 A/B。
+- `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW` 同时收口了“是否启用 row cache”和“是否切到 tail-row low-RAM 路径”两个决策，应该按 `0 / 1 / 2` 三档做真实场景 A/B。
 - 两个 `*_PERSISTENT_CACHE_MAX_BYTES` 更像“预算项”，不是“应该默认打开的优化项”。
 - `RLE_EXTERNAL_CACHE_WINDOW_SIZE` 是最直接的 SRAM 换性能入口。
 
@@ -55,7 +53,7 @@
 
 | 名字 | 用途 | 对用户的建议 |
 | --- | --- | --- |
-| `EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE` | 示例或模板里用来做文字路径 A/B | 普通项目不要额外发散使用；历史上关闭虽可省约 `8328B` 代码，但文本热点会回退 `+27% ~ +465%` |
+| `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 示例或模板里用来做文字路径 A/B；`1` 为基础 fast draw，`2` 额外打开 ASCII 直查表 | 普通项目不要额外发散使用；历史上 `1 -> 0` 虽可省约 `8328B` 代码，但文本热点会回退 `+27% ~ +465%` |
 | `EGUI_CONFIG_CIRCLE_FILL_BASIC` | `HelloPerformance` 的 benchmark 局部入口 | 只在 benchmark 或定向实验里使用；普通产品配置不用关注 |
 
 如果你是在复制 `tiny_rom` / `basic_ui` 这类模板配置，看到 `APP_EGUI_*` 名字是正常的；但它们只代表模板或示例的局部选择，不代表框架统一推荐接口。
@@ -100,9 +98,9 @@
 
 优先做这几件事：
 
-- 保持 `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=0`
+- 保持 `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=0`
 - 保持两个 `*_PERSISTENT_CACHE_MAX_BYTES=0`
-- 只有在压缩图片热点确实存在时，才评估 `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE`
+- 只有在压缩图片热点确实存在时，才评估 `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW`
 
 不要做的事：
 
@@ -126,14 +124,14 @@
 
 优先看：
 
-- `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE`
-- `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE`
+- `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW`
 - `EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES`
 
 适用场景：
 
 - 项目里有明显的 `QOI/RLE` 压缩图片热点
 - 尤其是 internal tiled scene
+- 先确认 `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW=1` 是否已经足够；只有在还要继续压峰值 heap 时，再评估 `=2`
 
 ### 5.4 如果你优先要 external image 性能
 
