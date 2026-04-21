@@ -1,6 +1,0 @@
-#ifndef _FILE_IMAGE_DECODER_STB_H_
-#define _FILE_IMAGE_DECODER_STB_H_
-
-#include "third_party/file_image/decoder_stb.h"
-
-#endif /* _FILE_IMAGE_DECODER_STB_H_ */

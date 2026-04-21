@@ -1,6 +1,0 @@
-#ifndef _FILE_IMAGE_DECODER_TJPGD_STREAM_H_
-#define _FILE_IMAGE_DECODER_TJPGD_STREAM_H_
-
-#include "third_party/file_image/decoder_tjpgd_stream.h"
-
-#endif /* _FILE_IMAGE_DECODER_TJPGD_STREAM_H_ */
