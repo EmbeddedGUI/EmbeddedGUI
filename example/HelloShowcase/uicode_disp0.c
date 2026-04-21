@@ -1488,6 +1488,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_HIDDEN_Y);
     egui_view_set_size(EGUI_VIEW_OF(&wg_keyboard), EGUI_CONFIG_SCEEN_WIDTH, SHOWCASE_KEYBOARD_HEIGHT);
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&wg_keyboard), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    egui_view_keyboard_set_icon_font(EGUI_VIEW_OF(&wg_keyboard), EGUI_FONT_ICON_MS_20);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&wg_keyboard));
 
     // Register focus listener on textinput to show/hide keyboard
@@ -1668,6 +1669,14 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 12:
         EGUI_SIM_SET_WAIT(p_action, 600);
+        return true;
+    case 13:
+        // Click textinput to show keyboard
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &wg_textinput, 500);
+        return true;
+    case 14:
+        recording_request_snapshot();
+        EGUI_SIM_SET_WAIT(p_action, 500);
         return true;
     default:
         return false;

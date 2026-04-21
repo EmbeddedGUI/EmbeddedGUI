@@ -510,6 +510,8 @@ input {
     grid-template-columns: minmax(260px, var(--sidebar-width)) minmax(0, 1fr);
     gap: 18px;
     min-height: calc(100vh - 56px);
+    min-height: calc(100dvh - 56px);
+    align-items: start;
     padding: 28px 20px;
 }
 
@@ -526,6 +528,12 @@ input {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    position: sticky;
+    top: 28px;
+    height: calc(100vh - 56px);
+    height: calc(100dvh - 56px);
+    max-height: calc(100vh - 56px);
+    max-height: calc(100dvh - 56px);
 }
 
 .sidebar-header {
@@ -875,6 +883,10 @@ input {
     }
 
     .sidebar-shell {
+        position: static;
+        top: auto;
+        height: auto;
+        max-height: none;
         min-height: 320px;
     }
 }

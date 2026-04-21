@@ -2961,6 +2961,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_set_position(EGUI_VIEW_OF(&showcase_keyboard_view), 0, SHOWCASE_KEYBOARD_Y);
     egui_view_set_size(EGUI_VIEW_OF(&showcase_keyboard_view), EGUI_CONFIG_SCEEN_WIDTH, SHOWCASE_KEYBOARD_HEIGHT);
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&showcase_keyboard_view), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    egui_view_keyboard_set_icon_font(EGUI_VIEW_OF(&showcase_keyboard_view), EGUI_FONT_ICON_MS_20);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&showcase_keyboard_view));
 
 #if !EGUI_SHOWCASE_PARITY_RECORDING
