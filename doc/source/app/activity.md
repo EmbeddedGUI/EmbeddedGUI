@@ -56,7 +56,9 @@ struct egui_activity
     uint8_t state;                  // 当前状态
     uint8_t is_need_finish;         // 是否需要销毁
 
-    egui_view_group_t root_view;    // Activity 的根视图容器
+    egui_core_t *core;              // Activity 所属的 core
+
+    egui_view_root_group_t root_view; // Activity 的根视图容器
 
     const egui_activity_api_t *api; // 虚函数表
 };

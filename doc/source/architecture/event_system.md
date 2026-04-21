@@ -18,7 +18,7 @@ egui_polling_work(core)
     +-- egui_input_key_dispatch_work(core)   // 3. 处理键盘输入队列
 ```
 
-对应源码（`src/core/egui_core_runtime.c`）：
+对应源码（`src/core/egui_core.c`）：
 
 ```c
 void egui_polling_work(egui_core_t *core)
@@ -128,7 +128,7 @@ root_view_group.dispatch_touch_event(event)
     +-- 遍历子视图（从后往前，即 Z 轴最高的优先）
     |     +-- 命中测试：event 坐标是否在子视图区域内
     |     +-- child.dispatch_touch_event(event)
-    |           |-- on_touch_listener 优先处理
+    |           |-- api->on_touch 优先处理（可通过 override API 覆写）
     |           |-- on_touch_event 默认处理
     |
     +-- 无子视图消费 -> group.on_touch_event(event)
@@ -195,7 +195,7 @@ int egui_input_add_key(uint8_t type, uint8_t key_code,
 3. 无焦点时，事件分发到根视图组
 4. ENTER 键在 clickable 视图上触发点击
 
-## 点击监听器和触摸监听器
+## 点击监听器和触摸回调
 
 ### 点击监听器
 
@@ -210,11 +210,13 @@ static void on_my_button_click(egui_view_t *self)
 egui_view_set_on_click_listener(EGUI_VIEW_OF(&my_button), on_my_button_click);
 ```
 
-### 触摸监听器
+### 触摸回调覆写
 
-需要处理原始触摸事件时使用，优先级高于默认的 `on_touch_event`：
+需要处理原始触摸事件时，可通过 `egui_view_override_api_on_touch()` 复制并覆写当前 view API 的 `on_touch` 回调；该回调优先于默认的 `on_touch_event` 执行：
 
 ```c
+static egui_view_api_t my_view_touch_api;
+
 static int on_my_view_touch(egui_view_t *self, egui_motion_event_t *event)
 {
     switch (event->type)
@@ -232,7 +234,7 @@ static int on_my_view_touch(egui_view_t *self, egui_motion_event_t *event)
     return 0;  // 返回 0 表示不消费，继续默认处理
 }
 
-egui_view_set_on_touch_listener(EGUI_VIEW_OF(&my_view), on_my_view_touch);
+egui_view_override_api_on_touch(EGUI_VIEW_OF(&my_view), &my_view_touch_api, on_my_view_touch);
 ```
 
 ## 输入相关配置

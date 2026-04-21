@@ -25,7 +25,7 @@
 - ROM-First 风格/主题系统核心实现（`egui_style.h/c`）
 - 风格过渡动画：颜色、透明度、尺寸插值
 - 主题风格系统集成到 6 个核心控件
-- HelloStyleDemo 示例：4 个主题演示页面（Dashboard、Settings、Charts、Widgets）
+- HelloStyleDemo 示例：4 个主题演示页面（Smart Home、Music、Dashboard、Watch）
 - 字体资源增强：度数符号与 Material 图标字体支持
 
 ### Fixed

@@ -6,14 +6,14 @@
 - Runtime target: `qemu-system-arm -machine mps2-an385 -cpu cortex-m3`
 - Scope: `HelloBasic/*`, `HelloSimple`, `HelloPerformance`, `HelloShowcase`, `HelloStyleDemo`, `HelloVirtual(virtual_stage_showcase)`
 - Static size scope: Map input sections from repo-side `src/` + `example/` objects only; exclude toolchain libraries, `driver/`, `porting/`; `ram_bytes` excludes `PFB`, and `pfb_bytes` still comes from each case-local `main.map` `.bss.pfb_area`.
-- Successful apps: 68
+- Successful apps: 67
 - Failed apps: 0
 
 ## Overview
 
 - Smallest Code: **HelloBasic(divider)** (12464 bytes)
 - Largest Code: **HelloPerformance** (292604 bytes)
-- Smallest RAM: **HelloBasic(thermostat)** (94 bytes)
+- Smallest RAM: **HelloBasic(button_img)** (94 bytes)
 - Largest RAM: **HelloBasic(svg)** (37761 bytes)
 - Smallest Heap Peak: **HelloBasic(compass)** (0 bytes)
 - Largest Heap Peak: **HelloPerformance** (5060 bytes)
@@ -39,7 +39,6 @@
 | HelloBasic(file_image) | 73092 | 17247 | 2341 | 4800 | 32 | 32 | 32 | 32 | 1080 | 1 | 90339 |
 | HelloBasic(gauge) | 39212 | 6712 | 444 | 4800 | 0 | 0 | 0 | 0 | 1344 | 1 | 45924 |
 | HelloBasic(card) | 31460 | 9561 | 1052 | 4800 | 0 | 0 | 0 | 0 | 1152 | 1 | 41021 |
-| HelloBasic(thermostat) | 29432 | 46624 | 94 | 6400 | 0 | 0 | 0 | 0 | 1208 | 6 | 76056 |
 | HelloBasic(mask) | 84436 | 43794 | 560 | 4800 | 0 | 44 | 0 | 44 | 4072 | 1 | 128230 |
 | HelloBasic(svg) | 46416 | 14635 | 37761 | 4800 | 0 | 0 | 0 | 0 | 8192 | 7 | 61051 |
 | HelloBasic(lyric_scroller) | 39060 | 9760 | 541 | 4800 | 0 | 0 | 0 | 0 | 1136 | 3 | 48820 |

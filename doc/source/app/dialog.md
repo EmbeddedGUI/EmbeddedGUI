@@ -49,8 +49,10 @@ struct egui_dialog
     uint8_t is_need_finish;             // 是否需要关闭
     uint8_t is_cancel_on_touch_outside; // 点击外部是否关闭
 
-    egui_view_group_t root_view;        // 遮罩层（全屏）
-    egui_view_group_t user_root_view;   // 内容区域
+    egui_core_t *core;                  // Dialog 所属的 core
+
+    egui_view_root_group_t root_view;      // 遮罩层（全屏）
+    egui_view_root_group_t user_root_view; // 内容区域
 
     egui_activity_t *bind_activity;     // 绑定的 Activity
 

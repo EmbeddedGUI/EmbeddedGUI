@@ -26,22 +26,25 @@ make all APP=HelloStyleDemo
 | APP 值 | 说明 |
 |--------|------|
 | `HelloSimple` | 最简单的入门示例 |
-| `HelloBasic` | 基础控件演示集合（60 个子应用，需配合 `APP_SUB`） |
+| `HelloBasic` | 基础控件演示集合（62 个子应用，需配合 `APP_SUB`） |
 | `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合（19 个子应用，需配合 `APP_SUB`） |
 | `HelloCustomWidgets` | 已迁移到独立仓库 `EmbeddedGUI_Widgets`，主仓不再本地构建 |
 | `HelloActivity` | Activity 生命周期演示 |
-| `HelloAPP` | 多 Activity 应用 |
+| `HelloAPP` | 基于 `egui_page_base_t` 的多页面应用 |
 | `HelloCanvas` | 画布绘图 API 演示 |
 | `HelloChart` | 图表控件演示 |
 | `HelloEasyPage` | 简易分页应用 |
 | `HelloGradient` | 渐变效果演示 |
 | `HelloLayer` | Layer 机制演示 |
+| `HelloMultiDisplay` | 主屏和副屏同为 240x320，演示多屏 Activity 切换与副屏独立输入 |
+| `HelloMultiDisplayHetero` | 主屏 240x320，副屏 128x64，演示异构副屏状态面板和跨屏状态联动 |
 | `HelloPerformance` | 性能测试基准 |
 | `HelloPFB` | PFB 机制演示 |
 | `HelloResourceManager` | 资源管理器示例 |
 | `HelloShowcase` | 综合展示示例 |
 | `HelloSizeAnalysis` | 体积分析 probe / 配置模板集合（需配合 `APP_SUB`） |
 | `HelloStyleDemo` | 样式和主题演示 |
+| `HelloSVGSpec` | SVG 规范对比基座 |
 | `HelloTest` | 功能测试 |
 | `HelloUnitTest` | 单元测试 |
 | `HelloViewPageAndScroll` | 分页和滚动组合 |
@@ -50,7 +53,7 @@ make all APP=HelloStyleDemo
 
 `APP_SUB` 适用于 `HelloBasic`、`HelloVirtual` 和 `HelloSizeAnalysis` 这类多子应用示例：
 
-- `HelloBasic`: 基础控件演示，当前包含 60 个子应用
+- `HelloBasic`: 基础控件演示，当前包含 62 个子应用
 - `HelloVirtual`: virtual/list/grid/stage 示例，当前包含 19 个子应用
 - `HelloSizeAnalysis`: probe / preset 目录集合，通常配合 `PORT=qemu`
 

@@ -35,6 +35,7 @@ src/
 |-- build.mk                # 源码构建模块定义
 |-- config/                 # 编译期配置系统
 |-- core/                   # 核心框架
+|-- canvas/                 # 画布绘制引擎
 |-- widget/                 # UI 控件
 |-- anim/                   # 动画系统
 |-- font/                   # 字体渲染
@@ -56,14 +57,6 @@ src/
 | 文件 | 说明 |
 |------|------|
 | `egui_core.c/h` | 框架主循环，驱动渲染和事件处理 |
-| `egui_canvas.c/h` | 画布绘制引擎，支持基本图形、抗锯齿等 |
-| `egui_canvas_circle_hq.c` | 高质量抗锯齿圆形渲染 |
-| `egui_canvas_line.c/line_hq.c` | 直线和高质量抗锯齿直线 |
-| `egui_canvas_bezier.c` | 贝塞尔曲线渲染 |
-| `egui_canvas_gradient.c/h` | 渐变色渲染 |
-| `egui_canvas_polygon.c` | 多边形渲染 |
-| `egui_canvas_triangle.c` | 三角形渲染 |
-| `egui_canvas_ellipse.c` | 椭圆渲染 |
 | `egui_pfb_manager.c/h` | PFB (局部帧缓冲) 管理器 |
 | `egui_timer.c/h` | 定时器系统 |
 | `egui_input.c/h` | 输入事件处理 |
@@ -71,7 +64,6 @@ src/
 | `egui_key_event.c/h` | 按键事件 |
 | `egui_touch_driver.c/h` | 触摸驱动接口 |
 | `egui_display_driver.c/h` | 显示驱动接口 |
-| `egui_theme.c/h` | 主题系统 |
 | `egui_region.c/h` | 区域计算 (脏矩形) |
 | `egui_scroller.c/h` | 滚动物理引擎 |
 | `egui_velocity_tracker.c/h` | 速度追踪器 (惯性滑动) |
@@ -80,6 +72,10 @@ src/
 | `egui_oop.h` | OOP 辅助宏 (类型转换) |
 | `egui_typedef.h` | 基础类型定义 |
 | `egui_api.c/h` | 通用 API 函数 |
+
+### canvas/ -- 画布绘制引擎
+
+画布相关实现位于 `src/canvas/`，包含 `egui_canvas.c/h`、`egui_canvas_line.c`、`egui_canvas_line_hq.c`、`egui_canvas_circle_hq.c`、`egui_canvas_gradient.c/h`、`egui_canvas_bezier.c`、`egui_canvas_polygon.c`、`egui_canvas_triangle.c`、`egui_canvas_ellipse.c` 和 `egui_canvas_transform.c` 等文件，用于基础图元、抗锯齿、渐变与变换渲染。
 
 ### config/ -- 配置系统
 
@@ -143,6 +139,10 @@ src/
 
 提供圆形遮罩、圆角矩形遮罩、渐变遮罩和图片遮罩，用于实现圆角图片、异形裁剪等效果。
 
+### style/ -- 样式系统
+
+样式与主题相关实现位于 `src/style/`，包含 `egui_style.c/h`、`egui_style_transition.c/h`、`egui_theme.c/h`、`egui_theme_dark.c` 和 `egui_theme_light.c`。
+
 ### utils/ -- 工具函数
 
 | 文件 | 说明 |
@@ -160,22 +160,25 @@ src/
 | 示例 | 说明 |
 |------|------|
 | `HelloSimple` | 最简单的入门示例 (标签 + 按钮) |
-| `HelloBasic` | 基础控件演示集合，当前包含 60 个子应用 |
+| `HelloBasic` | 基础控件演示集合，当前包含 62 个子应用 |
 | `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合，当前包含 19 个子应用 |
 | `HelloCustomWidgets` | 已迁移到独立仓库 `EmbeddedGUI_Widgets` |
 | `HelloActivity` | Activity 生命周期和页面管理 |
-| `HelloAPP` | 多 Activity 应用示例 |
+| `HelloAPP` | 基于 `egui_page_base_t` 的多页面应用示例 |
 | `HelloCanvas` | 画布绘图 API 演示 |
 | `HelloChart` | 图表控件演示 |
 | `HelloEasyPage` | 简易分页应用 |
 | `HelloGradient` | 渐变效果演示 |
 | `HelloLayer` | Layer 机制演示 |
+| `HelloMultiDisplay` | 主屏和副屏同为 240x320，演示多屏 Activity 切换与副屏独立输入 |
+| `HelloMultiDisplayHetero` | 主屏 240x320，副屏 128x64，演示异构副屏状态面板和跨屏状态联动 |
 | `HelloPFB` | PFB 机制演示 |
 | `HelloPerformance` | 性能测试基准 |
 | `HelloResourceManager` | 资源管理器示例 |
 | `HelloShowcase` | 综合展示示例 |
 | `HelloSizeAnalysis` | 体积分析 probe / 配置模板集合 |
 | `HelloStyleDemo` | 样式和主题演示 |
+| `HelloSVGSpec` | SVG 规范对比基座 |
 | `HelloTest` | 功能测试 |
 | `HelloUnitTest` | 单元测试 |
 | `HelloViewPageAndScroll` | 分页和滚动组合 |

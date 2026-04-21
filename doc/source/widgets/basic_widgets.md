@@ -27,7 +27,7 @@ View 作为基类不单独展示，其能力通过子控件体现。
 | `egui_view_set_alpha(self, alpha)` | 设置透明度 |
 | `egui_view_set_background(self, background)` | 设置背景 |
 | `egui_view_set_on_click_listener(self, listener)` | 设置点击回调 |
-| `egui_view_set_on_touch_listener(self, listener)` | 设置触摸回调 |
+| `egui_view_override_api_on_touch(self, api, listener)` | 复制并覆写 `on_touch` 回调 |
 | `egui_view_set_padding(self, left, right, top, bottom)` | 设置内边距 |
 | `egui_view_set_padding_all(self, padding)` | 设置统一内边距 |
 | `egui_view_set_margin(self, left, right, top, bottom)` | 设置外边距 |

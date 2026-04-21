@@ -166,7 +166,7 @@
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
 | `egui_view_set_on_click_listener(self, listener)` | 设置点击监听器 | egui_view.h |
-| `egui_view_set_on_touch_listener(self, listener)` | 设置触摸监听器 | egui_view.h |
+| `egui_view_override_api_on_touch(self, api, listener)` | 复制并覆写 view API 的 `on_touch` 回调 | egui_view.h |
 | `egui_view_dispatch_touch_event(self, event)` | 分发触摸事件 | egui_view.h |
 | `egui_view_on_touch_event(self, event)` | 触摸事件回调 | egui_view.h |
 | `egui_view_on_intercept_touch_event(self, event)` | 拦截触摸事件 | egui_view.h |
@@ -178,7 +178,7 @@
 |------|------|--------|
 | `egui_view_dispatch_key_event(self, event)` | 分发按键事件 | egui_view.h |
 | `egui_view_on_key_event(self, event)` | 按键事件回调 | egui_view.h |
-| `egui_view_set_on_key_listener(self, listener)` | 设置按键监听器 | egui_view.h |
+| `egui_view_override_api_on_key(self, api, listener)` | 复制并覆写 view API 的 `on_key` 回调 | egui_view.h |
 
 ### 焦点支持（需启用 EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS）
 
@@ -188,7 +188,7 @@
 | `egui_view_get_focusable(self)` | 获取可聚焦状态 | egui_view.h |
 | `egui_view_request_focus(self)` | 请求焦点 | egui_view.h |
 | `egui_view_clear_focus(self)` | 清除焦点 | egui_view.h |
-| `egui_view_set_on_focus_change_listener(self, l)` | 设置焦点变化监听器 | egui_view.h |
+| `egui_view_override_api_on_focus_changed(self, api, listener)` | 复制并覆写 view API 的 `on_focus_changed` 回调 | egui_view.h |
 
 ### 图层支持（需启用 EGUI_CONFIG_FUNCTION_SUPPORT_LAYER）
 

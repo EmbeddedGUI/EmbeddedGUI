@@ -188,7 +188,7 @@ void egui_view_draw(egui_view_t *self)
 | API | 说明 |
 |-----|------|
 | `egui_view_set_on_click_listener(self, cb)` | 设置点击回调 |
-| `egui_view_set_on_touch_listener(self, cb)` | 设置触摸回调 |
+| `egui_view_override_api_on_touch(self, api, cb)` | 复制并覆写 `on_touch` 回调 |
 | `egui_view_set_clickable(self, v)` | 设置是否可点击 |
 | `egui_view_set_enable(self, v)` | 设置是否启用 |
 | `egui_view_invalidate(self)` | 标记需要重绘 |
