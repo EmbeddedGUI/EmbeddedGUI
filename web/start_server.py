@@ -8,9 +8,20 @@ Usage:
 import argparse
 import pathlib
 import sys
+import time
 import webbrowser
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+
+class NoCacheHTTPRequestHandler(SimpleHTTPRequestHandler):
+    """Disable browser caching for local preview to avoid stale web shells."""
+
+    def end_headers(self) -> None:
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,6 +47,7 @@ def main() -> int:
         return 1
 
     url = f"http://localhost:{port}"
+    open_url = f"{url}/?__fresh={int(time.time())}"
 
     print("========================================")
     print("  EmbeddedGUI Web Demos")
@@ -48,11 +60,11 @@ def main() -> int:
 
     if not args.no_browser:
         try:
-            webbrowser.open(url)
+            webbrowser.open(open_url)
         except Exception:
             pass
 
-    handler = partial(SimpleHTTPRequestHandler, directory=str(web_dir))
+    handler = partial(NoCacheHTTPRequestHandler, directory=str(web_dir))
     try:
         with ThreadingHTTPServer(("0.0.0.0", port), handler) as server:
             server.serve_forever()

@@ -291,6 +291,12 @@
             var initialTarget = getWidgetQueryTarget();
             if (initialTarget && demoMap[initialTarget]) {
                 loadDemo(initialTarget);
+                return;
+            }
+
+            var defaultTarget = demoMap["HelloBasic_button"] ? "HelloBasic_button" : (basicDemos[0] && basicDemos[0].name);
+            if (defaultTarget) {
+                loadDemo(defaultTarget);
             }
         }
 
