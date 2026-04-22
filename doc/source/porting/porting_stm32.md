@@ -1,43 +1,71 @@
-﻿# STM32 绉绘
+# STM32 移植
 
-鏈枃妗ｄ粙缁?EmbeddedGUI 鍦?STM32G0 绯诲垪 MCU 涓婄殑绉绘瀹炵幇锛屼娇鐢?SPI 鎺ュ彛椹卞姩 ST7789 LCD 灞忓箷锛孎T6336 瑙︽懜鎺у埗鍣ㄣ€?
+本文档介绍 EmbeddedGUI 在 STM32G0 系列 MCU 上的移植实现，当前基于 SPI 接口驱动 ST7789 LCD 屏幕，并通过 FT6336 提供触摸输入。
 
-## 纭欢閰嶇疆
+## 硬件配置
 
-鍙傝€冨钩鍙帮細STM32G0B0RE
+参考平台：`STM32G0B0RE`
 
-| 缁勪欢 | 鍨嬪彿/鎺ュ彛 | 璇存槑 |
+| 组件 | 型号/接口 | 说明 |
 |------|----------|------|
 | MCU | STM32G0B0RE | Cortex-M0+, 64MHz, 128KB Flash, 144KB RAM |
-| LCD | ST7789 | 240x320, RGB565, SPI 鎺ュ彛 |
-| 瑙︽懜 | FT6336 | 鐢靛瑙︽懜, I2C 鎺ュ彛 |
+| LCD | ST7789 | 240x320, RGB565, SPI 接口 |
+| 触摸 | FT6336 | 电容触摸，I2C 接口 |
 
-## 鏂囦欢缁撴瀯
+## 文件结构
 
-```
+```text
 porting/stm32g0/
-鈹溾攢鈹€ Porting/
-鈹?  鈹溾攢鈹€ egui_port_mcu.c    # Display/Platform Driver 娉ㄥ唽
-鈹?  鈹溾攢鈹€ port_main.c        # 涓诲惊鐜叆鍙?
-鈹?  鈹溾攢鈹€ port_main.h        # 涓诲惊鐜ご鏂囦欢
-鈹?  鈹溾攢鈹€ app_lcd.c          # LCD 搴旂敤灞傦紙瑙︽懜杞銆丏MA 鍥炶皟锛?
-鈹?  鈹溾攢鈹€ app_lcd.h          # LCD 搴旂敤灞傚ご鏂囦欢
-鈹?  鈹溾攢鈹€ lcd_st7789.c       # ST7789 SPI 椹卞姩
-鈹?  鈹溾攢鈹€ lcd_st7789.h       # ST7789 椹卞姩澶存枃浠?
-鈹?  鈹溾攢鈹€ tc_ft6336.c        # FT6336 瑙︽懜椹卞姩
-鈹?  鈹斺攢鈹€ tc_ft6336.h        # FT6336 椹卞姩澶存枃浠?
-鈹溾攢鈹€ GCC/
-鈹?  鈹斺攢鈹€ Makefile.base      # GCC 鏋勫缓瑙勫垯
-鈹溾攢鈹€ STM32G0B0RETX_FLASH.ld # 閾炬帴鑴氭湰
-鈹溾攢鈹€ build.mk               # 鏋勫缓妯″潡瀹氫箟
-鈹斺攢鈹€ app_egui_config.h      # 閰嶇疆瑕嗙洊锛堝湪 example 鐩綍涓嬶級
+├── Porting/
+│   ├── egui_port_mcu.c    # Platform / LCD / Touch 初始化与注册
+│   ├── port_main.c        # 主循环入口
+│   └── port_main.h        # 主循环头文件
+├── GCC/
+│   └── Makefile.base      # GCC 构建规则
+├── MDK-ARM/
+│   └── proj_stm32g0.uvprojx
+├── STM32G0B0RETX_FLASH.ld # 链接脚本
+├── STM32G0B0RETX_RAM.ld   # RAM 链接脚本
+└── build.mk               # 构建模块定义
 ```
 
-## SPI 灞忓箷椹卞姩
+## 主流程概览
 
-### Display Driver 娉ㄥ唽
+当前 `stm32g0` port 的主流程位于 `port_main.c`，典型顺序如下：
 
-`egui_port_mcu.c` 涓敞鍐?Display Driver锛?
+```c
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
+static egui_core_t core;
+
+void port_main(void)
+{
+    egui_init(&core, egui_pfb);
+    egui_port_init(&core);
+    egui_display_driver_register(&core, egui_port_get_display_driver());
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    egui_port_register_touch_driver(&core);
+#endif
+    uicode_disp0_init(&core);
+    egui_screen_on(&core);
+
+    while (1)
+    {
+        egui_polling_work(&core);
+    }
+}
+```
+
+如果只是单屏场景，上述流程已经足够。若后续需要多屏、异构分辨率或统一化初始化流程，建议改用 `egui_display_setup_t + egui_setup_display()`。
+
+## Display Driver 注册
+
+`egui_port_mcu.c` 中主要完成三件事：
+
+1. 注册 `platform`
+2. 初始化 LCD / Touch HAL 驱动
+3. 准备并导出 `egui_display_driver_t`
+
+当前 `stm32g0` 已不再手写一层 `draw_area(core, ...)` 转发。像素输出桥接由 `egui_hal_lcd_register()` 自动完成，板级代码主要补充亮度和旋转能力。
 
 ```c
 static void port_display_set_brightness(egui_core_t *core, uint8_t level)
@@ -76,22 +104,22 @@ static void port_display_set_rotation(egui_core_t *core, egui_display_rotation_t
 }
 ```
 
-褰撳墠 `stm32g0` 绀轰緥鍏ュ彛鐨勫疄闄呴『搴忔槸锛歚egui_init(&core, egui_pfb)` 鈫?`egui_port_init(&core)` 鈫?`egui_display_driver_register()` 鈫?鍙€?`egui_port_register_touch_driver()` 鈫?`uicode_disp0_init()` 鈫?`egui_screen_on(&core)`銆傝嫢瑕佹柊寤哄灞忔垨寮傛瀯鍒嗚鲸鐜?port锛屽缓璁敼鐢?`egui_display_setup_t + egui_setup_display()` 鐨勭粺涓€鍏ュ彛銆?
-褰撳墠 `stm32g0` port 涓嶅啀鑷繁瀹炵幇涓€灞?`draw_area(core, ...)` 杞彂锛涘儚绱犲啓鍏ユˉ鎺ョ敱 `egui_hal_lcd_register()` 鑷姩瀹屾垚锛屾澘绾т唬鐮佷富瑕佽ˉ鍏呬寒搴︺€佹棆杞瓑鑳藉姏銆?
-鍚屾椂鏀寔鍚屾鍜屽紓姝ワ紙DMA锛変袱绉嶄紶杈撴ā寮忋€?
+这套结构同时支持同步和异步（DMA）两种传输模式。
 
-### ST7789 SPI 閫氫俊
+## SPI 屏幕通信
 
-鍏稿瀷鐨?SPI LCD 鍐欏叆娴佺▼锛?
+典型的 SPI LCD 写入流程如下：
 
-1. 璁剧疆鍒楀湴鍧€鑼冨洿锛圕ASET 鍛戒护锛?
-2. 璁剧疆琛屽湴鍧€鑼冨洿锛圧ASET 鍛戒护锛?
-3. 鍙戦€佸啓鍐呭瓨鍛戒护锛圧AMWR锛?
-4. 閫氳繃 SPI 鍙戦€佸儚绱犳暟鎹?
+1. 设置列地址范围（`CASET`）
+2. 设置行地址范围（`RASET`）
+3. 发送写内存命令（`RAMWR`）
+4. 通过 SPI 持续发送像素数据
 
-## SysTick 瀹氭椂鍣?
+ST7789 的驱动初始化由 `egui_lcd_st7789_init()` 完成，底层 SPI IO 通过 `egui_panel_io_spi_t` 适配。
 
-Platform Driver 浣跨敤 HAL 搴撶殑 SysTick 鎻愪緵姣鏃堕棿鎴筹細
+## SysTick 定时器
+
+平台时间基准来自 HAL 的 SysTick：
 
 ```c
 static uint32_t mcu_get_tick_ms(void)
@@ -105,18 +133,17 @@ static void mcu_delay(uint32_t ms)
 }
 ```
 
-`HAL_GetTick()` 鍩轰簬 SysTick 涓柇锛屾瘡 1ms 閫掑涓€娆★紝涓哄姩鐢汇€佸畾鏃跺櫒鍜岃緭鍏ヨ秴鏃舵彁渚涙椂闂村熀鍑嗐€?
+`HAL_GetTick()` 每 `1ms` 递增一次，用于动画、定时器和输入超时等逻辑。
 
-## DMA 寮傛浼犺緭
+## DMA 异步传输
 
-### 鍩烘湰鍘熺悊
+### 基本原理
 
-SPI DMA 浼犺緭鍏佽 CPU 鍦ㄦ暟鎹紶杈撴湡闂寸户缁墽琛屽叾浠栦换鍔★紙濡傛覆鏌撲笅涓€涓?PFB 鍧楋級銆?
+启用 SPI DMA 后，CPU 可以在数据发送期间继续渲染下一个 PFB 分块，从而提高整体吞吐。
 
-### PFB 缂撳啿鍖烘竻闆跺姞閫?
+### PFB 缓冲区清零加速
 
-閫氳繃 `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1` 娉ㄥ唽 `memset_fast` 鍚庯紝
-鍙互鎶婂唴閮?`egui_api_memset()` / `egui_api_pfb_clear()` 鐨勯浂濉厖鍒嗘敮鎺ュ埌 DMA锛?
+当配置 `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1` 时，可以注册平台自定义 `memset_fast`。当前 `stm32g0` 支持在清零 PFB 时改走 DMA：
 
 ```c
 #if APP_EGUI_CONFIG_USE_DMA_TO_RESET_PFB_BUFFER
@@ -137,14 +164,14 @@ static void mcu_memset_fast(void *s, int c, int n)
 #endif
 ```
 
-杩欐牱鍙互淇濊瘉锛?
+这样可以保证：
 
-- `c == 0` 鏃惰蛋 DMA 娓呴浂锛屾敹鐩婃渶澶?
-- 闈為浂濉厖鍊兼椂鍥為€€鍒版爣鍑?`memset`锛岃涔変繚鎸佸畬鏁?
+- `c == 0` 时使用 DMA 清零，收益最大
+- 非零填充值时回退到标准 `memset`，语义不变
 
-### 鍙岀紦鍐?+ DMA
+### 多缓冲 + DMA
 
-`app_lcd.c` 瀹炵幇浜嗗弻缂撳啿鏈哄埗锛屽湪 DMA 浼犺緭褰撳墠 PFB 鏃跺垏鎹㈠埌澶囩敤缂撳啿鍖猴細
+当前多缓冲已经由 `core` 内部的 `egui_pfb_manager_t` 统一管理，不再由应用层手动切换“主 / 备份 PFB 指针”。主流程只需要把编译期声明的 PFB 数组交给 `egui_init()`：
 
 ```c
 EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
@@ -153,12 +180,10 @@ static egui_core_t core;
 void port_main(void)
 {
     egui_init(&core, egui_pfb);
-    // egui_init() 浼氭妸缂栬瘧鏈熷０鏄庣殑鎵€鏈?PFB buffer 涓€娆℃€т氦缁?core
 }
 ```
 
-褰撳墠澶氱紦鍐插凡缁忕敱 core 鍐呴儴鐨?`egui_pfb_manager_t` 缁熶竴绠＄悊锛屼笉鍐嶉€氳繃搴旂敤灞傛墜鍔ㄥ垏鎹⑩€滀富 / 澶囦唤 PFB 鎸囬拡鈥濄€?
-SPI DMA 浼犺緭瀹屾垚涓柇鍥炶皟锛?
+DMA 发送完成后，需要在中断回调中通知 core 推进 PFB 队列：
 
 ```c
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
@@ -170,29 +195,15 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 }
 ```
 
-### 澶氱紦鍐茬幆褰㈤槦鍒?
+## 触摸输入
 
-`port_main.c` 鏀寔鏈€澶?4 涓?PFB 缂撳啿鍖虹殑鐜舰闃熷垪锛?
+### FT6336 触摸驱动
 
-```c
-EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
-static egui_core_t core;
-
-void port_main(void)
-{
-    egui_init(&core, egui_pfb);
-    // egui_init() 浼氭妸缂栬瘧鏈熷０鏄庣殑鎵€鏈?PFB buffer 涓€娆℃€т氦缁?core
-}
-```
-
-## 瑙︽懜杈撳叆
-
-### FT6336 瑙︽懜椹卞姩
-
-閫氳繃 I2C 璇诲彇瑙︽懜鍧愭爣锛屽湪 `app_lcd.c` 涓疆璇㈠鐞嗭細
+当前移植不再由应用层手写触摸轮询转 `motion event`，而是通过 HAL touch driver 统一注册到指定 `core`：
 
 ```c
 static egui_hal_touch_driver_t s_touch_driver;
+
 void egui_port_register_touch_driver(egui_core_t *core)
 {
     egui_hal_touch_config_t touch_config = {
@@ -207,59 +218,47 @@ void egui_port_register_touch_driver(egui_core_t *core)
 }
 ```
 
-当前实现说明：
+FT6336 的 `INT / RST` 管脚仍由底层 port 提供，但触摸数据上报已经统一封装在 HAL touch driver 内部，应用层无需再自己转换成 motion event。
 
-FT6336 鐨?INT / RST 绠¤剼浠嶇敱搴曞眰 port 鎻愪緵锛屼絾瑙︽懜涓婃姤宸茬粡鐢?HAL touch driver 缁熶竴澶勭悊锛屼笉鍐嶉渶瑕佸簲鐢ㄥ眰鑷繁杞骞惰浆鎴?motion event銆?
-## 涓诲惊鐜?
+## 典型资源占用
 
-```c
-void port_main(void)
-{
-    egui_init(&core, egui_pfb);
-    egui_port_init(&core);
-    egui_display_driver_register(&core, egui_port_get_display_driver());
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    egui_port_register_touch_driver(&core);
-#endif
-    uicode_disp0_init(&core);
-    egui_screen_on(&core);
+基于 `STM32G0B0RE + RGB565 + PFB 30x40` 的典型占用大致如下：
 
-    while (1)
-    {
-        egui_polling_work(&core);
-    }
-}
-```
-
-## 鍏稿瀷璧勬簮鍗犵敤
-
-鍩轰簬 STM32G0B0RE锛孯GB565锛孭FB 30x40 鐨勫吀鍨嬪崰鐢細
-
-| 椤圭洰 | 澶у皬 |
+| 项目 | 大小 |
 |------|------|
-| 鏍稿績妗嗘灦浠ｇ爜 | ~5-8KB Flash |
-| PFB 缂撳啿鍖?| 2,400B RAM锛堝崟缂撳啿锛?|
-| 姣忎釜鎺т欢瀹炰緥 | ~50-200B RAM |
-| 瀛椾綋璧勬簮锛?6px, 4-bit锛?| ~2-10KB Flash锛堝彇鍐充簬瀛楃鏁帮級 |
-| 鍥剧墖璧勬簮 | 鍙栧喅浜庡昂瀵稿拰鏍煎紡 |
+| 核心框架代码 | ~5-8KB Flash |
+| PFB 缓冲区 | 2,400B RAM（单缓冲） |
+| 每个控件实例 | ~50-200B RAM |
+| 字体资源（16px, 4-bit） | ~2-10KB Flash（取决于字符数） |
+| 图片资源 | 取决于尺寸和格式 |
 
-## 鏋勫缓鍛戒护
+## 构建方式
 
 ```bash
-# 浣跨敤 GCC 宸ュ叿閾炬瀯寤?
+# 使用 GCC 工具链构建
 make all APP=HelloSimple PORT=stm32g0
 
-# 浣跨敤绌哄钩鍙帮紙浠呭垎鏋愬ぇ灏忥紝涓嶅惈纭欢椹卞姩锛?
-# 鎵撳紑 Keil 宸ョ▼
+# 使用 Keil 工程
 # porting/stm32g0/MDK-ARM/proj_stm32g0.uvprojx
 ```
 
-## 涓柇浼樺厛绾?
+如果只是做尺寸分析或纯编译检查，优先使用仓库统一的脚本和空平台方案，不建议直接依赖 STM32 硬件工程。
 
-寤鸿鐨勪腑鏂紭鍏堢骇閰嶇疆锛?
+## 中断优先级建议
 
-| 涓柇 | 浼樺厛绾?| 璇存槑 |
+| 中断 | 优先级 | 说明 |
 |------|--------|------|
-| SysTick | 鏈€楂?| 淇濊瘉鏃堕棿鎴冲噯纭?|
-| SPI DMA | 涓?| DMA 浼犺緭瀹屾垚鍥炶皟 |
-| GPIO EXTI锛堣Е鎽革級 | 浣?| 瑙︽懜涓柇涓嶉渶瑕佸疄鏃跺搷搴?|
+| SysTick | 高 | 保证时间基准准确 |
+| SPI DMA | 中 | DMA 传输完成回调 |
+| GPIO EXTI（触摸） | 低 | 触摸中断通常不要求极低延迟 |
+
+## 小结
+
+当前 `stm32g0` 移植的关键特点是：
+
+1. 使用 `egui_hal_lcd_register()` 自动桥接显示驱动
+2. 使用 `egui_hal_touch_register()` 统一绑定触摸驱动
+3. 主流程采用 `egui_init(&core, egui_pfb)` + 手动注册 display / touch 的单屏模式
+4. 多缓冲和 DMA flush 由 core 内部 PFB 管理器统一协调
+
+如果后续扩展到多屏或更复杂平台，建议以仓库根目录下的 `porting/PORTING_GUIDE.md` 为准，逐步迁移到 `egui_setup_display()` 方案。
