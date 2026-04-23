@@ -3,6 +3,16 @@
 
 #include "egui_view_gridlayout.h"
 
+/**
+ * @file egui_view_gridlayout.c
+ * @brief Fixed-column grid container that places children row by row.
+ *
+ * The gridlayout keeps its policy small and explicit: visible children are
+ * distributed in append order, each column gets the same width, and each row
+ * advances by the tallest child assigned to that row.
+ */
+
+/** Update the column count, normalizing zero to one column. */
 void egui_view_gridlayout_set_col_count(egui_view_t *self, uint8_t col_count)
 {
     EGUI_LOCAL_INIT(egui_view_gridlayout_t);
@@ -13,12 +23,14 @@ void egui_view_gridlayout_set_col_count(egui_view_t *self, uint8_t col_count)
     local->col_count = col_count;
 }
 
+/** Store an alignment hint for the grid layout. */
 void egui_view_gridlayout_set_align_type(egui_view_t *self, uint8_t align_type)
 {
     EGUI_LOCAL_INIT(egui_view_gridlayout_t);
     local->align_type = align_type;
 }
 
+/** Place visible children into equal-width columns and row-height buckets. */
 void egui_view_gridlayout_layout_childs(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_gridlayout_t);
@@ -51,22 +63,24 @@ void egui_view_gridlayout_layout_childs(egui_view_t *self)
 
         uint8_t col = index % local->col_count;
 
-        // Start a new row
+        // Start a new row whenever the current item wraps back to column zero.
         if (col == 0 && index > 0)
         {
             row_y += row_max_h;
             row_max_h = 0;
         }
 
-        // Center child within the cell horizontally
+        // Include margins in the occupied cell footprint so spacing remains consistent.
         egui_dim_t child_w = child->region.size.width + child->margin.left + child->margin.right;
         egui_dim_t child_h = child->region.size.height + child->margin.top + child->margin.bottom;
 
+        // The current helper centers each child horizontally inside its column cell.
         egui_dim_t child_x = col * cell_w + (cell_w - child_w) / 2 + child->margin.left;
         egui_dim_t child_y = row_y + child->margin.top;
 
         egui_view_set_position(child, child_x, child_y);
 
+        // Track the tallest child in the row so the next row starts below it.
         if (child_h > row_max_h)
         {
             row_max_h = child_h;
@@ -76,6 +90,7 @@ void egui_view_gridlayout_layout_childs(egui_view_t *self)
     }
 }
 
+/** Initialize the grid container with a stock two-column layout. */
 void egui_view_gridlayout_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_gridlayout_t);
@@ -89,6 +104,7 @@ void egui_view_gridlayout_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_gridlayout");
 }
 
+/** Apply geometry, column count, and alignment hint from one parameter block. */
 void egui_view_gridlayout_apply_params(egui_view_t *self, const egui_view_gridlayout_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_gridlayout_t);
@@ -101,6 +117,7 @@ void egui_view_gridlayout_apply_params(egui_view_t *self, const egui_view_gridla
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the gridlayout before applying params. */
 void egui_view_gridlayout_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_gridlayout_params_t *params)
 {
     egui_view_gridlayout_init(self, core);

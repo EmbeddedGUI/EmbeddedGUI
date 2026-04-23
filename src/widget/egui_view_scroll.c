@@ -6,6 +6,19 @@
 #include "font/egui_font.h"
 #include "core/egui_input.h"
 
+/**
+ * @file egui_view_scroll.c
+ * @brief Vertical scroll view with an inner linear container and fling support.
+ *
+ * The outer scroll widget stays fixed as
+ * the viewport. Its single internal
+ * container is moved vertically to reveal different child rows, while touch
+ * handling decides when to intercept drags
+ * and `egui_scroller_t` drives any
+ * inertial motion after release.
+ */
+
+/** Add one caller-owned child into the internal scrolling container. */
 void egui_view_scroll_add_child(egui_view_t *self, egui_view_t *child)
 {
     EGUI_LOCAL_INIT(egui_view_scroll_t);
@@ -13,6 +26,7 @@ void egui_view_scroll_add_child(egui_view_t *self, egui_view_t *child)
     egui_view_group_add_child((egui_view_t *)&local->container, child);
 }
 
+/** Relayout the internal linear container after its child set changes. */
 void egui_view_scroll_layout_childs(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_scroll_t);
@@ -20,6 +34,15 @@ void egui_view_scroll_layout_childs(egui_view_t *self)
     egui_view_linearlayout_layout_childs((egui_view_t *)&local->container);
 }
 
+/**
+ * @brief Move the inner container by one signed Y delta, clamping to valid bounds.
+ *
+ * Negative deltas move content upward to reveal lower items.
+ * Positive deltas
+ * move content downward toward the top. When a boundary is reached, the helper
+ * snaps the container back into range and stops any running
+ * fling animation.
+ */
 void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
 {
     EGUI_LOCAL_INIT(egui_view_scroll_t);
@@ -88,11 +111,12 @@ void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
 }
 
 /**
- * Fling the scroll view
+ * @brief Start inertial scrolling from the latest release velocity.
  *
  * @param velocity_y The initial velocity in the Y direction. Positive
- *                  numbers mean that the finger/curor is moving down the screen,
- *                  which means we want to scroll towards the top.
+ * numbers
+ * mean the pointer moved down the screen, so content should glide
+ * back toward the top.
  */
 void egui_view_scroll_fling(egui_view_t *self, egui_float_t velocity_y)
 {
@@ -134,6 +158,7 @@ void egui_view_scroll_fling(egui_view_t *self, egui_float_t velocity_y)
     }
 }
 
+/** Resize the viewport and keep the inner container width locked to it. */
 void egui_view_scroll_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height)
 {
     EGUI_LOCAL_INIT(egui_view_scroll_t);
@@ -147,6 +172,7 @@ void egui_view_scroll_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t h
     egui_view_invalidate(self);
 }
 
+/** Advance any active fling animation and apply its next container offset step. */
 void egui_view_scroll_compute_scroll(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_scroll_t);
@@ -165,6 +191,7 @@ void egui_view_scroll_compute_scroll(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/** Promote the current gesture to dragging once it moves past touch slop. */
 void egui_view_scroll_check_begin_dragged(egui_view_t *self, egui_dim_t delta)
 {
     EGUI_LOCAL_INIT(egui_view_scroll_t);
@@ -184,6 +211,14 @@ void egui_view_scroll_check_begin_dragged(egui_view_t *self, egui_dim_t delta)
     }
 }
 
+/**
+ * @brief Decide whether the scroll view should intercept the current touch stream.
+ *
+ * Interception starts when the user drags far enough vertically,
+ * when an
+ * existing fling is interrupted and should immediately become a drag, or when
+ * the optional scrollbar thumb is grabbed directly.
+ */
 int egui_view_scroll_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_scroll_t);
@@ -202,6 +237,7 @@ int egui_view_scroll_on_intercept_touch_event(egui_view_t *self, egui_motion_eve
             egui_dim_t bar_area_start = self->region.size.width - EGUI_THEME_SCROLLBAR_TOUCH_WIDTH;
             if (local_x >= bar_area_start)
             {
+                // Only begin direct thumb dragging when content actually overflows the viewport.
                 egui_view_t *container = (egui_view_t *)&local->container;
                 if (container->region.size.height > self->region.size.height)
                 {
@@ -265,6 +301,7 @@ int egui_view_scroll_on_intercept_touch_event(egui_view_t *self, egui_motion_eve
     return local->is_begin_dragged;
 }
 
+/** Handle drag scrolling, fling handoff, and optional direct scrollbar dragging. */
 int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     // EGUI_LOG_DBG("egui_view_scroll_on_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
@@ -288,6 +325,7 @@ int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *even
                 egui_dim_t track_length = view_height - 2 * margin;
                 if (track_length > 0)
                 {
+                    // Map thumb travel on the visual track back into logical content offset.
                     egui_dim_t thumb_length = (egui_dim_t)(((int32_t)track_length * view_height) / content_height);
                     if (thumb_length < EGUI_THEME_SCROLLBAR_MIN_LENGTH)
                     {
@@ -389,6 +427,7 @@ int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *even
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+/** Enable or disable the optional right-side scrollbar overlay. */
 void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
 {
     EGUI_LOCAL_INIT(egui_view_scroll_t);
@@ -399,6 +438,7 @@ void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
     }
 }
 
+/** Draw the clipped scroll content first, then the optional scrollbar overlay. */
 void egui_view_scroll_draw(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -429,7 +469,7 @@ void egui_view_scroll_draw(egui_view_t *self)
         return;
     }
 
-    // Calculate scroll offset (container.y is negative when scrolled down)
+    // Convert the shifted container origin back into a positive logical scroll offset.
     egui_dim_t scroll_offset = -container->region.location.y;
     if (scroll_offset < 0)
     {
@@ -471,7 +511,7 @@ void egui_view_scroll_draw(egui_view_t *self)
         }
     }
 
-    // Re-establish canvas work region for scrollbar drawing
+    // Re-establish canvas state because the scrollbar is drawn in viewport coordinates, not child-content coordinates.
     egui_alpha_t alpha = egui_canvas_get_alpha(canvas);
     egui_canvas_clear_mask(canvas);
     egui_canvas_mix_alpha(canvas, self->alpha);
@@ -490,6 +530,7 @@ void egui_view_scroll_draw(egui_view_t *self)
     egui_canvas_set_alpha(canvas, alpha);
 }
 #else
+/** Stub used when scrollbar support is compiled out. */
 void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
 {
     (void)self;
@@ -497,6 +538,7 @@ void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
 
+/** API table for the vertical scroll view widget. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_scroll_t) = {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
         .dispatch_touch_event = egui_view_group_dispatch_touch_event,
@@ -524,6 +566,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_scroll_t) = {
 #endif
 };
 
+/** Initialize the scroll view, its inner linear container, and fling state. */
 void egui_view_scroll_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_scroll_t);
@@ -539,6 +582,7 @@ void egui_view_scroll_init(egui_view_t *self, egui_core_t *core)
     local->is_begin_dragged = 0;
 
     egui_view_linearlayout_init((egui_view_t *)&local->container, core);
+    // The inner container is the real parent for caller-added children and grows vertically with layout.
     egui_view_set_position((egui_view_t *)&local->container, 0, 0);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->container, 0);
     egui_view_linearlayout_set_auto_width((egui_view_t *)&local->container, 1);
@@ -556,6 +600,7 @@ void egui_view_scroll_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_scroll");
 }
 
+/** Apply one region-only parameter block to an already initialized scroll view. */
 void egui_view_scroll_apply_params(egui_view_t *self, const egui_view_scroll_params_t *params)
 {
     self->region = params->region;
@@ -563,6 +608,7 @@ void egui_view_scroll_apply_params(egui_view_t *self, const egui_view_scroll_par
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the scroll view before applying params. */
 void egui_view_scroll_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_scroll_params_t *params)
 {
     egui_view_scroll_init(self, core);

@@ -3,6 +3,19 @@
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
+/**
+ * @file egui_view_segmented_control.c
+ * @brief Single-choice segmented control with shared track, touch, and key navigation.
+ *
+ * Reading notes:
+ * -
+ * layout first resolves one padded content track and then distributes segment widths evenly;
+ * - drawing paints the outer frame, active segment, press
+ * overlay, and finally per-segment content;
+ * - touch and key handlers both funnel selection changes through the same setter.
+ */
+
+/** Resolve the icon font, falling back to an automatically sized built-in font. */
 static const egui_font_t *egui_view_segmented_control_get_icon_font(egui_view_segmented_control_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
@@ -13,6 +26,7 @@ static const egui_font_t *egui_view_segmented_control_get_icon_font(egui_view_se
     return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
+/** Clamp the borrowed segment count to the fixed storage capacity. */
 static uint8_t egui_view_segmented_control_clamp_count(uint8_t count)
 {
     if (count > EGUI_VIEW_SEGMENTED_CONTROL_MAX_SEGMENTS)
@@ -25,21 +39,35 @@ static uint8_t egui_view_segmented_control_clamp_count(uint8_t count)
 typedef struct egui_view_segmented_control_layout egui_view_segmented_control_layout_t;
 struct egui_view_segmented_control_layout
 {
+    /* Work region available to the widget after parent clipping and padding. */
     egui_region_t region;
+    /* Effective number of visible segments after clamping. */
     uint8_t count;
+    /* Active index clamped into `[0, count)`. */
     uint8_t active_index;
+    /* Horizontal inset between outer frame and inner segment track. */
     egui_dim_t padding;
+    /* Gap inserted between neighboring segments. */
     egui_dim_t gap;
+    /* Left edge of the inner segment track. */
     egui_dim_t content_x;
+    /* Top edge of the inner segment track. */
     egui_dim_t content_y;
+    /* Width of the inner segment track after padding. */
     egui_dim_t content_width;
+    /* Height of the inner segment track after padding. */
     egui_dim_t content_height;
+    /* Corner radius of the outer frame. */
     egui_dim_t outer_radius;
+    /* Corner radius used by the active segment fill. */
     egui_dim_t segment_radius;
+    /* Left edge of each segment inside the track. */
     egui_dim_t segment_x[EGUI_VIEW_SEGMENTED_CONTROL_MAX_SEGMENTS];
+    /* Width of each segment after even distribution. */
     egui_dim_t segment_width[EGUI_VIEW_SEGMENTED_CONTROL_MAX_SEGMENTS];
 };
 
+/** Build one cached layout description reused by drawing and hit testing. */
 static bool egui_view_segmented_control_build_layout(egui_view_t *self, egui_view_segmented_control_t *local, egui_view_segmented_control_layout_t *layout)
 {
     egui_view_get_work_region(self, &layout->region);
@@ -88,6 +116,7 @@ static bool egui_view_segmented_control_build_layout(egui_view_t *self, egui_vie
     egui_dim_t base_width = available_width / layout->count;
     egui_dim_t remainder = available_width % layout->count;
     egui_dim_t cursor_x = layout->content_x;
+    /* Spread leftover pixels from integer division across the leading segments. */
     uint8_t i;
     for (i = 0; i < layout->count; i++)
     {
@@ -117,6 +146,7 @@ static bool egui_view_segmented_control_build_layout(egui_view_t *self, egui_vie
     return true;
 }
 
+/** Draw one segment's icon and text content centered within its assigned region. */
 static void egui_view_segmented_control_draw_segment_content(egui_canvas_t *canvas, egui_view_segmented_control_t *local, const egui_region_t *segment_region,
                                                              const char *icon, const char *text, egui_color_t color)
 {
@@ -142,6 +172,7 @@ static void egui_view_segmented_control_draw_segment_content(egui_canvas_t *canv
             egui_region_t text_region;
             egui_region_t content_region = *segment_region;
 
+            /* Keep a small inset so icon/text do not visually stick to the segment border. */
             if (content_region.size.width > 4)
             {
                 content_region.location.x += 2;
@@ -214,6 +245,7 @@ static void egui_view_segmented_control_draw_segment_content(egui_canvas_t *canv
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/** Resolve which segment owns a local pointer position inside the control. */
 static uint8_t egui_view_segmented_control_get_hit_index(egui_view_t *self, egui_dim_t local_x, egui_dim_t local_y)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -247,6 +279,7 @@ static uint8_t egui_view_segmented_control_get_hit_index(egui_view_t *self, egui
 static int egui_view_segmented_control_on_key_event(egui_view_t *self, egui_key_event_t *event);
 #endif
 
+/** Borrow a new segment label array and clamp the active index into range. */
 void egui_view_segmented_control_set_segments(egui_view_t *self, const char **segment_texts, uint8_t segment_count)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -269,6 +302,7 @@ void egui_view_segmented_control_set_segments(egui_view_t *self, const char **se
     egui_view_invalidate(self);
 }
 
+/** Borrow an optional icon array parallel to the current segment label array. */
 void egui_view_segmented_control_set_segment_icons(egui_view_t *self, const char **segment_icons)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -281,6 +315,7 @@ void egui_view_segmented_control_set_segment_icons(egui_view_t *self, const char
     egui_view_invalidate(self);
 }
 
+/** Update the active segment and notify listeners only when the value changes. */
 void egui_view_segmented_control_set_current_index(egui_view_t *self, uint8_t index)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -300,12 +335,14 @@ void egui_view_segmented_control_set_current_index(egui_view_t *self, uint8_t in
     egui_view_invalidate(self);
 }
 
+/** Return the currently active segment index. */
 uint8_t egui_view_segmented_control_get_current_index(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
     return local->current_index;
 }
 
+/** Store the callback fired after the active segment changes. */
 void egui_view_segmented_control_set_on_segment_changed_listener(egui_view_t *self, egui_view_on_segment_changed_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -316,6 +353,7 @@ void egui_view_segmented_control_set_on_segment_changed_listener(egui_view_t *se
     local->on_segment_changed = listener;
 }
 
+/** Override the background color of the outer segmented-control track. */
 void egui_view_segmented_control_set_bg_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -327,6 +365,7 @@ void egui_view_segmented_control_set_bg_color(egui_view_t *self, egui_color_t co
     egui_view_invalidate(self);
 }
 
+/** Override the highlight background color of the active segment. */
 void egui_view_segmented_control_set_selected_bg_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -338,6 +377,7 @@ void egui_view_segmented_control_set_selected_bg_color(egui_view_t *self, egui_c
     egui_view_invalidate(self);
 }
 
+/** Override the text and icon color used by inactive segments. */
 void egui_view_segmented_control_set_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -349,6 +389,7 @@ void egui_view_segmented_control_set_text_color(egui_view_t *self, egui_color_t 
     egui_view_invalidate(self);
 }
 
+/** Override the text and icon color used by the active segment. */
 void egui_view_segmented_control_set_selected_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -360,6 +401,7 @@ void egui_view_segmented_control_set_selected_text_color(egui_view_t *self, egui
     egui_view_invalidate(self);
 }
 
+/** Override the border color of the outer frame and optional separators. */
 void egui_view_segmented_control_set_border_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -371,6 +413,7 @@ void egui_view_segmented_control_set_border_color(egui_view_t *self, egui_color_
     egui_view_invalidate(self);
 }
 
+/** Change the rounded corner radius of the outer frame and active segment fill. */
 void egui_view_segmented_control_set_corner_radius(egui_view_t *self, uint8_t radius)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -382,6 +425,7 @@ void egui_view_segmented_control_set_corner_radius(egui_view_t *self, uint8_t ra
     egui_view_invalidate(self);
 }
 
+/** Change the gap inserted between neighboring segments. */
 void egui_view_segmented_control_set_segment_gap(egui_view_t *self, uint8_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -393,6 +437,7 @@ void egui_view_segmented_control_set_segment_gap(egui_view_t *self, uint8_t gap)
     egui_view_invalidate(self);
 }
 
+/** Change the horizontal inset between the outer frame and segment track. */
 void egui_view_segmented_control_set_horizontal_padding(egui_view_t *self, uint8_t padding)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -404,6 +449,7 @@ void egui_view_segmented_control_set_horizontal_padding(egui_view_t *self, uint8
     egui_view_invalidate(self);
 }
 
+/** Override the font used for segment labels. */
 void egui_view_segmented_control_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -415,6 +461,7 @@ void egui_view_segmented_control_set_font(egui_view_t *self, const egui_font_t *
     egui_view_invalidate(self);
 }
 
+/** Override the icon font used by segments that show glyph strings. */
 void egui_view_segmented_control_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -427,6 +474,7 @@ void egui_view_segmented_control_set_icon_font(egui_view_t *self, const egui_fon
     egui_view_invalidate(self);
 }
 
+/** Change the vertical spacing between one icon and one label inside a segment. */
 void egui_view_segmented_control_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -439,6 +487,7 @@ void egui_view_segmented_control_set_icon_text_gap(egui_view_t *self, egui_dim_t
     egui_view_invalidate(self);
 }
 
+/** Draw the shared track, active segment, press overlay, and per-segment content. */
 void egui_view_segmented_control_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -477,12 +526,14 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
         focus_color = egui_rgb_mix(focus_color, EGUI_THEME_DISABLED, EGUI_ALPHA_50);
     }
 
+    /* Paint the shared outer track before the active segment fill. */
     egui_canvas_draw_round_rectangle_fill(canvas, layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
                                           layout.outer_radius, base_bg, local->alpha);
 
     egui_canvas_draw_round_rectangle(canvas, layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
                                      layout.outer_radius, 1, border_color, local->alpha);
 
+    /* The selected segment is drawn as an inset rounded rectangle inside the track. */
     egui_dim_t selected_x = layout.segment_x[layout.active_index];
     egui_dim_t selected_width = layout.segment_width[layout.active_index];
     egui_canvas_draw_round_rectangle_fill(canvas, selected_x, layout.content_y, selected_width, layout.content_height, layout.segment_radius, selected_bg,
@@ -503,6 +554,7 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
 
     if (is_enabled && local->pressed_index < layout.count)
     {
+        /* Press feedback overlays the touched segment without changing the stored selection yet. */
         egui_dim_t pressed_x = layout.segment_x[local->pressed_index];
         egui_dim_t pressed_width = layout.segment_width[local->pressed_index];
         egui_color_t pressed_color = EGUI_THEME_PRESS_OVERLAY;
@@ -520,6 +572,7 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
         uint8_t i;
         for (i = 1; i < layout.count; i++)
         {
+            /* When segments touch, separators preserve the visual split between choices. */
             egui_dim_t separator_x = layout.segment_x[i] - 1;
             egui_canvas_draw_rectangle_fill(canvas, separator_x, layout.content_y + 2, 1, layout.content_height - 4, separator_color, local->alpha);
         }
@@ -552,6 +605,7 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/** Convert pointer press, move, and release into temporary press state plus selection commits. */
 static int egui_view_segmented_control_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -606,6 +660,7 @@ static int egui_view_segmented_control_on_touch_event(egui_view_t *self, egui_mo
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+/** Support left/right style navigation for focus-driven segmented controls. */
 static int egui_view_segmented_control_on_key_event(egui_view_t *self, egui_key_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -673,6 +728,7 @@ static int egui_view_segmented_control_on_key_event(egui_view_t *self, egui_key_
 }
 #endif
 
+/* Use default view hooks except for segmented-control drawing and input handling. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_segmented_control_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -694,6 +750,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_segmented_control_t) = 
 #endif
 };
 
+/** Initialize default colors, spacing, fonts, and focus behavior for one control. */
 void egui_view_segmented_control_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_segmented_control_t);
@@ -725,6 +782,7 @@ void egui_view_segmented_control_init(egui_view_t *self, egui_core_t *core)
 #endif
 }
 
+/** Apply region and borrowed segment metadata from one parameter block. */
 void egui_view_segmented_control_apply_params(egui_view_t *self, const egui_view_segmented_control_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -744,6 +802,7 @@ void egui_view_segmented_control_apply_params(egui_view_t *self, const egui_view
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that chains segmented-control init and params. */
 void egui_view_segmented_control_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_segmented_control_params_t *params)
 {
     egui_view_segmented_control_init(self, core);

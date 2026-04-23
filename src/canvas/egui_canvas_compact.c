@@ -62,6 +62,13 @@ static const uint8_t egui_canvas_compact_number_glyphs[12][EGUI_CANVAS_COMPACT_N
         {0x7, 0x5, 0x7, 0x5, 0x7}, {0x7, 0x5, 0x7, 0x1, 0x7}, {0x0, 0x2, 0x7, 0x2, 0x0}, {0x5, 0x1, 0x2, 0x4, 0x5},
 };
 
+/**
+ * @brief Look up one compact text glyph, uppercasing ASCII letters first.
+ *
+ * Unsupported printable ASCII falls back to `?`, while non-printable bytes
+ * are
+ * rejected so callers can report that the string is not representable.
+ */
 static const egui_canvas_compact_glyph_t *egui_canvas_compact_text_get_glyph(char ch)
 {
     uint8_t code = (uint8_t)ch;
@@ -87,6 +94,9 @@ static const egui_canvas_compact_glyph_t *egui_canvas_compact_text_get_glyph(cha
     return NULL;
 }
 
+/**
+ * @brief Look up one compact number glyph from the numeric preset table.
+ */
 static const uint8_t *egui_canvas_compact_number_get_glyph(char ch)
 {
     if (ch >= '0' && ch <= '9')
@@ -107,6 +117,9 @@ static const uint8_t *egui_canvas_compact_number_get_glyph(char ch)
     return NULL;
 }
 
+/**
+ * @brief Resolve a character into the common bitmap-glyph view used below.
+ */
 static uint8_t egui_canvas_compact_bitmap_get_glyph(egui_canvas_compact_bitmap_kind_t kind, char ch, egui_canvas_compact_bitmap_glyph_t *glyph)
 {
     if (glyph == NULL)
@@ -142,6 +155,9 @@ static uint8_t egui_canvas_compact_bitmap_get_glyph(egui_canvas_compact_bitmap_k
     }
 }
 
+/**
+ * @brief Return the inter-glyph gap after scaling for the selected bitmap set.
+ */
 static egui_dim_t egui_canvas_compact_bitmap_get_gap(egui_canvas_compact_bitmap_kind_t kind, egui_dim_t scale, egui_dim_t glyph_count)
 {
     if (glyph_count <= 1)
@@ -157,6 +173,13 @@ static egui_dim_t egui_canvas_compact_bitmap_get_gap(egui_canvas_compact_bitmap_
     return EGUI_MAX(1, scale - 1);
 }
 
+/**
+ * @brief Measure the built-in compact bitmap text/number layout.
+ *
+ * The algorithm first sums raw glyph widths in bitmap units, then derives one
+ *
+ * uniform integer scale that fits both width and height constraints.
+ */
 static uint8_t egui_canvas_compact_bitmap_measure_internal(egui_canvas_compact_bitmap_kind_t kind, const char *text, egui_dim_t max_width,
                                                            egui_dim_t max_height, egui_canvas_compact_bitmap_layout_t *layout)
 {
@@ -213,6 +236,9 @@ static uint8_t egui_canvas_compact_bitmap_measure_internal(egui_canvas_compact_b
     return 1;
 }
 
+/**
+ * @brief Paint one compact bitmap glyph by expanding set bits into fillrects.
+ */
 static void egui_canvas_compact_bitmap_draw_glyph(egui_canvas_t *self, const egui_canvas_compact_bitmap_glyph_t *glyph, egui_dim_t x, egui_dim_t y,
                                                   egui_dim_t scale, egui_color_t color, egui_alpha_t alpha)
 {
@@ -234,6 +260,9 @@ static void egui_canvas_compact_bitmap_draw_glyph(egui_canvas_t *self, const egu
     }
 }
 
+/**
+ * @brief Check whether every character in the string has a compact bitmap glyph.
+ */
 static uint8_t egui_canvas_compact_bitmap_is_supported(egui_canvas_compact_bitmap_kind_t kind, const char *text)
 {
     egui_canvas_compact_bitmap_glyph_t glyph;
@@ -256,6 +285,13 @@ static uint8_t egui_canvas_compact_bitmap_is_supported(egui_canvas_compact_bitma
     return 1;
 }
 
+/**
+ * @brief Measure with an optional font override.
+ *
+ * When a real font is provided, the function delegates to the font backend.
+ * Otherwise it measures
+ * against the built-in compact bitmap tables.
+ */
 static uint8_t egui_canvas_compact_bitmap_measure_with_font_internal(egui_canvas_compact_bitmap_kind_t kind, const egui_font_t *font, const char *text,
                                                                      egui_dim_t max_width, egui_dim_t max_height, egui_dim_t *out_width, egui_dim_t *out_height)
 {
@@ -307,6 +343,9 @@ static uint8_t egui_canvas_compact_bitmap_measure_with_font_internal(egui_canvas
     return 1;
 }
 
+/**
+ * @brief Draw the built-in compact bitmap string inside a target region.
+ */
 static uint8_t egui_canvas_compact_bitmap_draw_internal(egui_canvas_t *self, egui_canvas_compact_bitmap_kind_t kind, const char *text,
                                                         const egui_region_t *region, uint8_t align_type, egui_color_t color, egui_alpha_t alpha)
 {
@@ -366,6 +405,9 @@ static uint8_t egui_canvas_compact_bitmap_draw_internal(egui_canvas_t *self, egu
     return 1;
 }
 
+/**
+ * @brief Draw with an optional font override, falling back to compact bitmaps.
+ */
 static uint8_t egui_canvas_compact_bitmap_draw_with_font_internal(egui_canvas_t *self, egui_canvas_compact_bitmap_kind_t kind, const egui_font_t *font,
                                                                   const char *text, const egui_region_t *region, uint8_t align_type, egui_dim_t line_space,
                                                                   uint8_t use_line_space, egui_color_t color, egui_alpha_t alpha)
@@ -393,17 +435,26 @@ static uint8_t egui_canvas_compact_bitmap_draw_with_font_internal(egui_canvas_t 
     return egui_canvas_compact_bitmap_draw_internal(self, kind, text, region, align_type, color, alpha);
 }
 
+/**
+ * @brief Return whether the string fits the built-in compact text glyph set.
+ */
 uint8_t egui_canvas_compact_text_is_supported(const char *text)
 {
     return egui_canvas_compact_bitmap_is_supported(EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, text);
 }
 
+/**
+ * @brief Measure a string with the built-in compact text bitmap set.
+ */
 uint8_t egui_canvas_compact_text_measure(const char *text, egui_dim_t max_width, egui_dim_t max_height, egui_canvas_compact_text_layout_t *layout)
 {
     return egui_canvas_compact_bitmap_measure_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, text, max_width, max_height,
                                                        (egui_canvas_compact_bitmap_layout_t *)layout);
 }
 
+/**
+ * @brief Measure text with either a caller font or the built-in compact set.
+ */
 uint8_t egui_canvas_compact_text_measure_with_font(const egui_font_t *font, const char *text, egui_dim_t max_width, egui_dim_t max_height,
                                                    egui_dim_t *out_width, egui_dim_t *out_height)
 {
@@ -411,12 +462,18 @@ uint8_t egui_canvas_compact_text_measure_with_font(const egui_font_t *font, cons
                                                                  out_height);
 }
 
+/**
+ * @brief Draw the built-in compact text bitmap set inside a region.
+ */
 uint8_t egui_canvas_compact_text_draw(egui_canvas_t *self, const char *text, const egui_region_t *region, uint8_t align_type, egui_color_t color,
                                       egui_alpha_t alpha)
 {
     return egui_canvas_compact_bitmap_draw_internal(self, EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, text, region, align_type, color, alpha);
 }
 
+/**
+ * @brief Draw text with either a caller font or the built-in compact set.
+ */
 uint8_t egui_canvas_compact_text_draw_with_font(egui_canvas_t *self, const egui_font_t *font, const char *text, const egui_region_t *region, uint8_t align_type,
                                                 egui_dim_t line_space, uint8_t use_line_space, egui_color_t color, egui_alpha_t alpha)
 {
@@ -424,17 +481,26 @@ uint8_t egui_canvas_compact_text_draw_with_font(egui_canvas_t *self, const egui_
                                                               use_line_space, color, alpha);
 }
 
+/**
+ * @brief Return whether the string fits the built-in compact number glyph set.
+ */
 uint8_t egui_canvas_compact_number_is_supported(const char *text)
 {
     return egui_canvas_compact_bitmap_is_supported(EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, text);
 }
 
+/**
+ * @brief Measure a string with the built-in compact number bitmap set.
+ */
 uint8_t egui_canvas_compact_number_measure(const char *text, egui_dim_t max_width, egui_dim_t max_height, egui_canvas_compact_number_layout_t *layout)
 {
     return egui_canvas_compact_bitmap_measure_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, text, max_width, max_height,
                                                        (egui_canvas_compact_bitmap_layout_t *)layout);
 }
 
+/**
+ * @brief Measure numbers with either a caller font or the built-in compact set.
+ */
 uint8_t egui_canvas_compact_number_measure_with_font(const egui_font_t *font, const char *text, egui_dim_t max_width, egui_dim_t max_height,
                                                      egui_dim_t *out_width, egui_dim_t *out_height)
 {
@@ -442,11 +508,17 @@ uint8_t egui_canvas_compact_number_measure_with_font(const egui_font_t *font, co
                                                                  out_height);
 }
 
+/**
+ * @brief Draw centered compact number glyphs inside a region.
+ */
 uint8_t egui_canvas_compact_number_draw(egui_canvas_t *self, const char *text, const egui_region_t *region, egui_color_t color, egui_alpha_t alpha)
 {
     return egui_canvas_compact_bitmap_draw_internal(self, EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, text, region, EGUI_ALIGN_CENTER, color, alpha);
 }
 
+/**
+ * @brief Draw centered numbers with either a caller font or the compact set.
+ */
 uint8_t egui_canvas_compact_number_draw_with_font(egui_canvas_t *self, const egui_font_t *font, const char *text, const egui_region_t *region,
                                                   egui_color_t color, egui_alpha_t alpha)
 {
@@ -454,6 +526,9 @@ uint8_t egui_canvas_compact_number_draw_with_font(egui_canvas_t *self, const egu
                                                               alpha);
 }
 
+/**
+ * @brief Draw a regular line plus filled-circle end caps as a compact fallback.
+ */
 void egui_canvas_draw_line_round_cap_compact(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width,
                                              egui_color_t color, egui_alpha_t alpha)
 {

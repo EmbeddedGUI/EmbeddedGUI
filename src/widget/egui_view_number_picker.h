@@ -9,31 +9,34 @@
 extern "C" {
 #endif
 
+/** Listener fired after the picker value changes. */
 typedef void (*egui_view_on_number_changed_listener_t)(egui_view_t *self, int16_t value);
 
+/** Three-zone number picker with increment button, value label, and decrement button. */
 typedef struct egui_view_number_picker egui_view_number_picker_t;
 struct egui_view_number_picker
 {
     egui_view_t base;
 
-    egui_view_on_number_changed_listener_t on_value_changed;
-    int16_t value;
-    int16_t min_value;
-    int16_t max_value;
-    int16_t step;
-    egui_alpha_t alpha;
-    egui_color_t text_color;
-    egui_color_t button_color;
-    const egui_font_t *font;
-    const char *icon_inc;
-    const char *icon_dec;
-    const egui_font_t *icon_font;
-    char text_buf[8];
-    int8_t pressed_zone; /* 0=none, 1=top zone pressed, -1=bottom zone pressed */
+    egui_view_on_number_changed_listener_t on_value_changed; /* Notified after a real value change. */
+    int16_t value;                                           /* Current displayed value. */
+    int16_t min_value;                                       /* Lower clamp bound. */
+    int16_t max_value;                                       /* Upper clamp bound. */
+    int16_t step;                                            /* Amount added or subtracted per button press. */
+    egui_alpha_t alpha;                                      /* Shared text/icon alpha. */
+    egui_color_t text_color;                                 /* Middle value text color. */
+    egui_color_t button_color;                               /* Divider and arrow icon color. */
+    const egui_font_t *font;                                 /* Font for the numeric value. */
+    const char *icon_inc;                                    /* Glyph drawn in the top increment zone. */
+    const char *icon_dec;                                    /* Glyph drawn in the bottom decrement zone. */
+    const egui_font_t *icon_font;                            /* Optional icon font override, auto-picked when NULL. */
+    char text_buf[8];                                        /* Small formatting buffer for the current value string. */
+    int8_t pressed_zone;                                     /* 0=none, 1=top zone pressed, -1=bottom zone pressed. */
 };
 
 // ============== NumberPicker Params ==============
 typedef struct egui_view_number_picker_params egui_view_number_picker_params_t;
+/** Construction-time parameters for a number picker. */
 struct egui_view_number_picker_params
 {
     egui_region_t region;
@@ -45,17 +48,28 @@ struct egui_view_number_picker_params
 #define EGUI_VIEW_NUMBER_PICKER_PARAMS_INIT(_name, _x, _y, _w, _h, _val, _min, _max)                                                                           \
     static const egui_view_number_picker_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .value = (_val), .min_value = (_min), .max_value = (_max)}
 
+/** Apply a number-picker parameter block after initialization. */
 void egui_view_number_picker_apply_params(egui_view_t *self, const egui_view_number_picker_params_t *params);
+/** Initialize a number picker and immediately apply its parameter block. */
 void egui_view_number_picker_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_number_picker_params_t *params);
 
+/** Register the callback fired when the current value changes. */
 void egui_view_number_picker_set_on_value_changed_listener(egui_view_t *self, egui_view_on_number_changed_listener_t listener);
+/** Set the current value. The value is clamped to the active min/max range and notifies the change listener on real changes. */
 void egui_view_number_picker_set_value(egui_view_t *self, int16_t value);
+/** Return the current picker value. */
 int16_t egui_view_number_picker_get_value(egui_view_t *self);
+/** Update the allowed range and clamp the current value if needed. */
 void egui_view_number_picker_set_range(egui_view_t *self, int16_t min_value, int16_t max_value);
+/** Set the increment/decrement step used by the top and bottom buttons. */
 void egui_view_number_picker_set_step(egui_view_t *self, int16_t step);
+/** Override the icon glyphs shown in the increment and decrement areas. */
 void egui_view_number_picker_set_button_icons(egui_view_t *self, const char *icon_inc, const char *icon_dec);
+/** Override the icon font used for the increment and decrement glyphs. */
 void egui_view_number_picker_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Default draw hook used by the number-picker API table. */
 void egui_view_number_picker_on_draw(egui_view_t *self);
+/** Initialize the three-zone number-picker widget. */
 void egui_view_number_picker_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

@@ -1,13 +1,28 @@
 #include "canvas/egui_canvas.h"
 
 /**
- * @brief Improved line drawing with Wu's anti-aliasing and correct thick line rendering.
+ * @brief Line drawing helpers shared by the public canvas line APIs.
  *
- * For thin lines (stroke_width == 1): Wu's anti-aliased line algorithm.
- * For thick lines (stroke_width > 1): Parallel line scanning perpendicular to the line direction.
- * Horizontal and vertical lines are optimized to use fillrect directly.
+ * The implementation chooses one of three paths:
+ * - Axis-aligned lines become
+ * filled rectangles for the cheapest possible draw.
+ * - Single-pixel lines use Wu-style anti-aliasing for smooth diagonals.
+ * - Thick lines are rasterized by
+ * scanning a bounding box and measuring the
+ *   perpendicular distance to the segment center line.
+ *
+ * This split keeps common cases fast while still
+ * producing predictable joins
+ * and edge coverage for thicker strokes.
  */
 
+/**
+ * @brief Blend directly into the current PFB row when no mask is active.
+ *
+ * This bypasses the generic point API and is used inside the thick-line inner
+
+ * * loop where every extra branch matters.
+ */
 __EGUI_STATIC_INLINE__ void egui_canvas_line_blend_direct(egui_canvas_t *self, egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
     if (alpha == 0)
@@ -25,6 +40,13 @@ __EGUI_STATIC_INLINE__ void egui_canvas_line_blend_direct(egui_canvas_t *self, e
     }
 }
 
+/**
+ * @brief Integer square root used by the thick-line scan conversion path.
+ *
+ * The code only needs an approximate line length for range estimation, so
+ * the
+ * classic bit-by-bit integer square root is a good fit and avoids float cost.
+ */
 static uint16_t egui_canvas_line_isqrt32(uint32_t n)
 {
     uint32_t result = 0;
@@ -52,6 +74,21 @@ static uint16_t egui_canvas_line_isqrt32(uint32_t n)
     return (uint16_t)result;
 }
 
+/**
+ * @brief Rasterize a thick segment by scanning pixels around the line body.
+ *
+ * The algorithm walks a clipped bounding box row by row, evaluates each
+ * pixel
+ * against the infinite line using the cross product, then turns that distance
+ * into anti-aliased coverage for the stroke body. When @p round_cap is
+ * true,
+ * the two endpoints are extended with circular caps; otherwise the segment is
+ * clipped to the projected start/end range to create butt caps.
+ *
+ *
+ * This helper is the workhorse for thick public lines and for internal segment
+ * drawing used by polylines and bezier flattening.
+ */
 static void egui_canvas_draw_thick_line_scan(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width,
                                              egui_color_t color, egui_alpha_t alpha, int round_cap)
 {
@@ -267,14 +304,16 @@ static void egui_canvas_draw_thick_line_scan(egui_canvas_t *self, egui_dim_t x1,
 }
 
 /**
- * \brief           Draw line from point 1 to point 2 with anti-aliasing
- * \param[in]       x1: Line start X position
- * \param[in]       y1: Line start Y position
- * \param[in]       x2: Line end X position
- * \param[in]       y2: Line end Y position
- * \param[in]       stroke_width: Width of the line
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw an anti-aliased line between two points.
+ *
+ * Reading tip:
+ * - Vertical and horizontal lines use fill rectangles because anti-aliasing is
+
+ * *   unnecessary and the stroke bounds are trivial.
+ * - Thin non-axis-aligned lines use Wu's line algorithm.
+ * - Thick lines delegate to the scan-based
+ * helper above, which also supports
+ *   round end caps.
  */
 void egui_canvas_draw_line(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
                            egui_alpha_t alpha)
@@ -415,9 +454,13 @@ void egui_canvas_draw_line(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, eg
 }
 
 /**
- * \brief           Draw thick line segment with butt caps (no endpoint extension).
- *                  Used internally by bezier curves to avoid joint artifacts.
- *                  Pixels outside the projection range [0, line_len] are skipped.
+ * @brief Draw a segment with butt caps instead of the rounded public default.
+ *
+ * This is mainly used by polygon edges, polylines, and flattened bezier
+ * pieces
+ * where extending the ends would create visible bulges at joints. The helper
+ * reuses the same scan conversion code as thick lines but disables cap
+ * growth.
  */
 void egui_canvas_draw_line_segment(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
                                    egui_alpha_t alpha)

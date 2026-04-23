@@ -14,6 +14,7 @@ struct egui_interpolator_bounce
     egui_interpolator_t base;
 };
 
+/** Initialize a bounce interpolator that ends with one or more diminishing rebounds. */
 void egui_interpolator_bounce_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

@@ -16,6 +16,19 @@
 #include "egui_view_viewpage_cache.h"
 #include "egui_view_virtual_viewport.h"
 
+/**
+ * @file egui_view_canvas_panner.c
+ * @brief Group-based canvas panner for oversized logical content.
+ *
+ * The panner keeps its children as direct
+ * descendants, but temporarily shifts
+ * layout into a larger logical canvas and clips drawing back to the visible
+ * viewport. Touch handling also cooperates
+ * with nested draggable widgets so the
+ * panner only steals gestures on axes that children do not already consume.
+ */
+
+/* Minimum pointer travel before the panner turns a touch sequence into a drag. */
 #define EGUI_VIEW_CANVAS_PANNER_TOUCH_SLOP 5
 
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_arc_slider_t);
@@ -33,22 +46,26 @@ extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_virtual_viewport
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_axis_t);
 #endif
 
+/** Return the logical canvas width, never smaller than the viewport width. */
 static egui_dim_t egui_view_canvas_panner_get_effective_canvas_width(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     return local->canvas_width > self->region.size.width ? local->canvas_width : self->region.size.width;
 }
 
+/** Return the logical canvas height, never smaller than the viewport height. */
 static egui_dim_t egui_view_canvas_panner_get_effective_canvas_height(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     return local->canvas_height > self->region.size.height ? local->canvas_height : self->region.size.height;
 }
 
+/** Return the furthest valid horizontal pan offset. */
 static egui_dim_t egui_view_canvas_panner_get_max_offset_x(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     egui_dim_t canvas_width = egui_view_canvas_panner_get_effective_canvas_width(self, local);
     return canvas_width > self->region.size.width ? (egui_dim_t)(canvas_width - self->region.size.width) : 0;
 }
 
+/** Return the furthest valid vertical pan offset. */
 static egui_dim_t egui_view_canvas_panner_get_max_offset_y(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     egui_dim_t canvas_height = egui_view_canvas_panner_get_effective_canvas_height(self, local);
@@ -56,17 +73,20 @@ static egui_dim_t egui_view_canvas_panner_get_max_offset_y(egui_view_t *self, eg
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/** Check whether the logical canvas is currently scrollable on either axis. */
 static uint8_t egui_view_canvas_panner_can_pan(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     return egui_view_canvas_panner_get_max_offset_x(self, local) > 0 || egui_view_canvas_panner_get_max_offset_y(self, local) > 0;
 }
 
+/** Detect containers that should be searched recursively during drag hit testing. */
 static uint8_t egui_view_canvas_panner_is_group_like(egui_view_t *view)
 {
     return view != NULL && view->api != NULL && view->api->request_layout == egui_view_group_request_layout;
 }
 #endif
 
+/** Clamp the stored pan offset to the current scrollable range. */
 static void egui_view_canvas_panner_clamp_offset(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     egui_dim_t max_offset_x = egui_view_canvas_panner_get_max_offset_x(self, local);
@@ -91,6 +111,7 @@ static void egui_view_canvas_panner_clamp_offset(egui_view_t *self, egui_view_ca
     }
 }
 
+/** Update the PFB scan direction so redraw prefers the newly exposed edge first. */
 static void egui_view_canvas_panner_update_scan_hint(egui_view_t *self, egui_dim_t old_offset_x, egui_dim_t old_offset_y, egui_dim_t new_offset_x,
                                                      egui_dim_t new_offset_y)
 {
@@ -100,6 +121,7 @@ static void egui_view_canvas_panner_update_scan_hint(egui_view_t *self, egui_dim
     egui_view_set_pfb_scan_direction(self, reverse_x, reverse_y);
 }
 
+/** Request a layout pass and redraw after the visible viewport changes. */
 static void egui_view_canvas_panner_request_viewport_refresh(egui_view_t *self)
 {
     egui_view_request_layout(self);
@@ -107,6 +129,7 @@ static void egui_view_canvas_panner_request_viewport_refresh(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/* Bitmask describing which drag axes a widget or gesture can consume. */
 enum
 {
     EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_NONE = 0,
@@ -115,6 +138,7 @@ enum
     EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_BOTH = EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_HORIZONTAL | EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_VERTICAL,
 };
 
+/** Return the drag axes that the panner itself can currently handle. */
 static uint8_t egui_view_canvas_panner_get_self_drag_axis_mask(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     uint8_t axis_mask = EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_NONE;
@@ -131,6 +155,7 @@ static uint8_t egui_view_canvas_panner_get_self_drag_axis_mask(egui_view_t *self
     return axis_mask;
 }
 
+/** Report the axis consumed by a nested scroll widget, if any. */
 static uint8_t egui_view_canvas_panner_get_scroll_drag_axis_mask(egui_view_t *view, egui_view_scroll_t *scroll)
 {
     egui_view_t *container = EGUI_VIEW_OF(&scroll->container);
@@ -143,6 +168,7 @@ static uint8_t egui_view_canvas_panner_get_scroll_drag_axis_mask(egui_view_t *vi
     return EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_NONE;
 }
 
+/** Report the axis consumed by a nested viewpage widget. */
 static uint8_t egui_view_canvas_panner_get_viewpage_drag_axis_mask(egui_view_t *view, egui_view_viewpage_t *viewpage)
 {
     egui_view_t *container = EGUI_VIEW_OF(&viewpage->container);
@@ -155,6 +181,7 @@ static uint8_t egui_view_canvas_panner_get_viewpage_drag_axis_mask(egui_view_t *
     return EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_NONE;
 }
 
+/** Report the axis consumed by a cached viewpage widget. */
 static uint8_t egui_view_canvas_panner_get_viewpage_cache_drag_axis_mask(egui_view_t *view, egui_view_viewpage_cache_t *viewpage_cache)
 {
     egui_view_t *container = EGUI_VIEW_OF(&viewpage_cache->container);
@@ -167,6 +194,7 @@ static uint8_t egui_view_canvas_panner_get_viewpage_cache_drag_axis_mask(egui_vi
     return EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_NONE;
 }
 
+/** Report every axis currently reachable by a nested tileview page graph. */
 static uint8_t egui_view_canvas_panner_get_tileview_drag_axis_mask(egui_view_tileview_t *tileview)
 {
     uint8_t axis_mask = EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_NONE;
@@ -196,6 +224,7 @@ static uint8_t egui_view_canvas_panner_get_tileview_drag_axis_mask(egui_view_til
     return axis_mask;
 }
 
+/** Report the scroll axis consumed by a nested virtual viewport. */
 static uint8_t egui_view_canvas_panner_get_virtual_viewport_drag_axis_mask(egui_view_virtual_viewport_t *virtual_viewport)
 {
     if (virtual_viewport->logical_extent <= virtual_viewport->viewport_extent)
@@ -207,6 +236,7 @@ static uint8_t egui_view_canvas_panner_get_virtual_viewport_drag_axis_mask(egui_
                                                                                               : EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_VERTICAL;
 }
 
+/** Report the scroll axes consumed by a textblock with internal scrolling enabled. */
 static uint8_t egui_view_canvas_panner_get_textblock_drag_axis_mask(egui_view_t *view, egui_view_textblock_t *textblock)
 {
     egui_dim_t content_width = view->region.size.width - (view->padding.left + view->padding.right);
@@ -239,6 +269,7 @@ static uint8_t egui_view_canvas_panner_get_textblock_drag_axis_mask(egui_view_t 
     return axis_mask;
 }
 
+/** Map one concrete widget type to the drag axes it can reasonably claim. */
 static uint8_t egui_view_canvas_panner_get_drag_axis_mask_for_view(egui_view_t *view)
 {
     const egui_view_api_t *api = view != NULL ? view->api : NULL;
@@ -308,11 +339,13 @@ static uint8_t egui_view_canvas_panner_get_drag_axis_mask_for_view(egui_view_t *
     return EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_NONE;
 }
 
+/** Collapse a motion vector into the dominant gesture axis. */
 static uint8_t egui_view_canvas_panner_get_gesture_axis_mask(egui_dim_t delta_x, egui_dim_t delta_y)
 {
     return EGUI_ABS(delta_x) > EGUI_ABS(delta_y) ? EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_HORIZONTAL : EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_VERTICAL;
 }
 
+/** Walk the hit subtree from front to back and find the first child drag axis under the touch point. */
 static uint8_t egui_view_canvas_panner_resolve_hit_drag_axis_mask(egui_view_t *view, egui_dim_t screen_x, egui_dim_t screen_y)
 {
     if (view == NULL || !view->is_enable || !view->is_visible || view->is_gone)
@@ -345,11 +378,13 @@ static uint8_t egui_view_canvas_panner_resolve_hit_drag_axis_mask(egui_view_t *v
     return egui_view_canvas_panner_get_drag_axis_mask_for_view(view);
 }
 
+/** Return the cached child-drag capability for the current gesture. */
 static uint8_t egui_view_canvas_panner_get_child_drag_axis_mask(egui_view_canvas_panner_t *local)
 {
     return local->is_drag_target_resolved ? local->child_drag_axis_mask : EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_NONE;
 }
 
+/** Resolve and cache which child under the initial touch point can consume dragging. */
 static uint8_t egui_view_canvas_panner_resolve_child_drag_target(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     if (!local->is_drag_target_resolved)
@@ -361,6 +396,7 @@ static uint8_t egui_view_canvas_panner_resolve_child_drag_target(egui_view_t *se
     return egui_view_canvas_panner_get_child_drag_axis_mask(local);
 }
 
+/** Reset drag-tracking state at the beginning of a touch sequence. */
 static void egui_view_canvas_panner_prepare_touch(egui_view_canvas_panner_t *local, const egui_motion_event_t *event)
 {
     local->down_x = event->location.x;
@@ -373,6 +409,7 @@ static void egui_view_canvas_panner_prepare_touch(egui_view_canvas_panner_t *loc
     local->is_dragging = 0;
 }
 
+/** Promote the current gesture to dragging once it moves past touch slop. */
 static void egui_view_canvas_panner_check_begin_dragged(egui_view_canvas_panner_t *local, const egui_motion_event_t *event)
 {
     egui_dim_t delta_x = event->location.x - local->down_x;
@@ -389,6 +426,7 @@ static void egui_view_canvas_panner_check_begin_dragged(egui_view_canvas_panner_
     }
 }
 
+/** Apply one drag step by shifting the pan offset opposite to pointer motion. */
 static void egui_view_canvas_panner_apply_drag(egui_view_t *self, egui_view_canvas_panner_t *local, const egui_motion_event_t *event)
 {
     egui_dim_t delta_x = event->location.x - local->last_x;
@@ -415,6 +453,14 @@ static void egui_view_canvas_panner_apply_drag(egui_view_t *self, egui_view_canv
     }
 }
 
+/**
+ * @brief Decide whether the panner should intercept a touch stream from its children.
+ *
+ * The panner only takes over when the gesture axis matches one of
+ * its own
+ * scrollable axes and does not overlap a draggable child under the original hit
+ * position.
+ */
 static int egui_view_canvas_panner_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
@@ -482,6 +528,7 @@ static int egui_view_canvas_panner_on_intercept_touch_event(egui_view_t *self, e
     }
 }
 
+/** Handle touch events once the panner itself owns the gesture stream. */
 static int egui_view_canvas_panner_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
@@ -519,6 +566,7 @@ static int egui_view_canvas_panner_on_touch_event(egui_view_t *self, egui_motion
 }
 #endif
 
+/** Layout children inside the larger logical canvas while preserving the viewport clip. */
 static void egui_view_canvas_panner_calculate_layout(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
@@ -529,6 +577,7 @@ static void egui_view_canvas_panner_calculate_layout(egui_view_t *self)
     egui_view_canvas_panner_clamp_offset(self, local);
 
     viewport_region_screen = self->region_screen;
+    // Temporarily shift the root screen region into canvas coordinates so child layout sees the logical origin.
     self->region_screen.location.x = (egui_dim_t)(viewport_region_screen.location.x - local->offset_x);
     self->region_screen.location.y = (egui_dim_t)(viewport_region_screen.location.y - local->offset_y);
     self->region_screen.size.width = egui_view_canvas_panner_get_effective_canvas_width(self, local);
@@ -543,6 +592,7 @@ static void egui_view_canvas_panner_calculate_layout(egui_view_t *self)
     self->region_screen = viewport_region_screen;
 }
 
+/** Draw the child subtree while clipping it back to the visible viewport rectangle. */
 static void egui_view_canvas_panner_draw(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -556,6 +606,7 @@ static void egui_view_canvas_panner_draw(egui_view_t *self)
         active_clip = &clip_region;
     }
 
+    // Clip child drawing to the viewport even though layout happens in a larger logical canvas.
     egui_canvas_set_extra_clip(canvas, active_clip);
     egui_view_group_draw(self);
 
@@ -569,6 +620,7 @@ static void egui_view_canvas_panner_draw(egui_view_t *self)
     }
 }
 
+/** API table for the group-based canvas panner widget. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_canvas_panner_t) = {
         .dispatch_touch_event = egui_view_group_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -591,6 +643,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_canvas_panner_t) = {
 #endif
 };
 
+/** Apply one parameter block that sets both viewport geometry and logical canvas size. */
 void egui_view_canvas_panner_apply_params(egui_view_t *self, const egui_view_canvas_panner_params_t *params)
 {
     if (params == NULL)
@@ -603,12 +656,14 @@ void egui_view_canvas_panner_apply_params(egui_view_t *self, const egui_view_can
     egui_view_canvas_panner_set_canvas_size(self, params->canvas_width, params->canvas_height);
 }
 
+/** Convenience helper that initializes the panner before applying its parameters. */
 void egui_view_canvas_panner_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_canvas_panner_params_t *params)
 {
     egui_view_canvas_panner_init(self, core);
     egui_view_canvas_panner_apply_params(self, params);
 }
 
+/** Update the logical canvas size, clamp offsets, and refresh the visible viewport. */
 void egui_view_canvas_panner_set_canvas_size(egui_view_t *self, egui_dim_t canvas_width, egui_dim_t canvas_height)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
@@ -633,18 +688,21 @@ void egui_view_canvas_panner_set_canvas_size(egui_view_t *self, egui_dim_t canva
     egui_view_canvas_panner_request_viewport_refresh(self);
 }
 
+/** Return the current effective canvas width after viewport fallback is applied. */
 egui_dim_t egui_view_canvas_panner_get_canvas_width(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
     return egui_view_canvas_panner_get_effective_canvas_width(self, local);
 }
 
+/** Return the current effective canvas height after viewport fallback is applied. */
 egui_dim_t egui_view_canvas_panner_get_canvas_height(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
     return egui_view_canvas_panner_get_effective_canvas_height(self, local);
 }
 
+/** Set the absolute pan offset, clamping it into range and refreshing if it changed. */
 void egui_view_canvas_panner_set_offset(egui_view_t *self, egui_dim_t offset_x, egui_dim_t offset_y)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
@@ -664,24 +722,28 @@ void egui_view_canvas_panner_set_offset(egui_view_t *self, egui_dim_t offset_x, 
     egui_view_canvas_panner_request_viewport_refresh(self);
 }
 
+/** Shift the current pan offset by a relative delta. */
 void egui_view_canvas_panner_scroll_by(egui_view_t *self, egui_dim_t delta_x, egui_dim_t delta_y)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
     egui_view_canvas_panner_set_offset(self, (egui_dim_t)(local->offset_x + delta_x), (egui_dim_t)(local->offset_y + delta_y));
 }
 
+/** Return the current horizontal pan offset. */
 egui_dim_t egui_view_canvas_panner_get_offset_x(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
     return local->offset_x;
 }
 
+/** Return the current vertical pan offset. */
 egui_dim_t egui_view_canvas_panner_get_offset_y(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
     return local->offset_y;
 }
 
+/** Initialize the panner with zero offsets and stock drag-threshold state. */
 void egui_view_canvas_panner_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_canvas_panner_t);
@@ -689,6 +751,7 @@ void egui_view_canvas_panner_init(egui_view_t *self, egui_core_t *core)
     egui_view_group_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_canvas_panner_t);
 
+    // Start with a viewport-sized logical canvas until the caller expands it explicitly.
     local->canvas_width = 0;
     local->canvas_height = 0;
     local->offset_x = 0;

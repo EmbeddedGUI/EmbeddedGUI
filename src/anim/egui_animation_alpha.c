@@ -5,6 +5,12 @@
 #include "widget/egui_view.h"
 #include "core/egui_api.h"
 
+/**
+ * @file egui_animation_alpha.c
+ * @brief Alpha animation that linearly fades one target view between two opacity values.
+ */
+
+/** Start hook for alpha animation. The parameters are borrowed, so no extra setup is required beyond validation. */
 void egui_animation_alpha_on_start(egui_animation_t *self)
 {
     EGUI_LOCAL_INIT(egui_animation_alpha_t);
@@ -14,6 +20,7 @@ void egui_animation_alpha_on_start(egui_animation_t *self)
     }
 }
 
+/** Interpolate one alpha value from the configured range and apply it to the target view. */
 void egui_animation_alpha_on_update(egui_animation_t *self, egui_float_t fraction)
 {
     EGUI_LOCAL_INIT(egui_animation_alpha_t);
@@ -22,6 +29,7 @@ void egui_animation_alpha_on_update(egui_animation_t *self, egui_float_t fractio
     egui_view_set_alpha(self->target_view, value);
 }
 
+/** Bind the borrowed parameter block used by this alpha animation instance. */
 void egui_animation_alpha_params_set(egui_animation_alpha_t *self, const egui_animation_alpha_params_t *params)
 {
     self->params = params;
@@ -33,13 +41,9 @@ const egui_animation_api_t egui_animation_alpha_t_api_table = {
         .on_update = egui_animation_alpha_on_update,
 };
 
+/** Initialize an alpha animation and replace the base callbacks with the fade-specific implementation. */
 void egui_animation_alpha_init(egui_animation_t *self)
 {
-    EGUI_LOCAL_INIT(egui_animation_alpha_t);
-    // call super init.
     egui_animation_init(self);
-    // update api.
     self->api = &egui_animation_alpha_t_api_table;
-
-    // init local data.
 }

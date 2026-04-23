@@ -1,6 +1,11 @@
 #ifndef _EGUI_KEY_EVENT_H_
 #define _EGUI_KEY_EVENT_H_
 
+/**
+ * @file egui_key_event.h
+ * @brief Keyboard-style input events and the fixed key-code mapping used by the core.
+ */
+
 #include "egui_common.h"
 #include "utils/egui_slist.h"
 
@@ -9,15 +14,17 @@
 extern "C" {
 #endif
 
+/** High-level key-event phases queued by the input layer. */
 enum egui_key_event_type
 {
-    EGUI_KEY_EVENT_NONE = 0,
-    EGUI_KEY_EVENT_ACTION_DOWN,
-    EGUI_KEY_EVENT_ACTION_UP,
-    EGUI_KEY_EVENT_ACTION_LONG_PRESS,
-    EGUI_KEY_EVENT_ACTION_REPEAT,
+    EGUI_KEY_EVENT_NONE = 0,          // unused/default event slot
+    EGUI_KEY_EVENT_ACTION_DOWN,       // key became pressed
+    EGUI_KEY_EVENT_ACTION_UP,         // key was released
+    EGUI_KEY_EVENT_ACTION_LONG_PRESS, // long-press state reported by the port or simulator
+    EGUI_KEY_EVENT_ACTION_REPEAT,     // auto-repeat event while the key remains held
 };
 
+/** Stable logical key codes understood by widgets, focus traversal, and text input helpers. */
 enum egui_key_code
 {
     EGUI_KEY_CODE_NONE = 0,
@@ -91,31 +98,33 @@ enum egui_key_code
     EGUI_KEY_CODE_EXCLAMATION = 69,
     EGUI_KEY_CODE_QUESTION = 70,
 
-    EGUI_KEY_CODE_MAX = 127,
+    EGUI_KEY_CODE_MAX = 127, // highest code reserved by the current fixed mapping
 };
 
 #ifndef EGUI_KEY_EVENT_T_DEFINED
 #define EGUI_KEY_EVENT_T_DEFINED
 typedef struct egui_key_event egui_key_event_t;
 #endif
+/** One queued keyboard event stored in the per-core key FIFO. */
 struct egui_key_event
 {
-    egui_snode_t node;
+    egui_snode_t node; // intrusive list node used by the core's queued key list
 
-    uint8_t type;     // enum egui_key_event_type
-    uint8_t key_code; // enum egui_key_code
-    uint8_t is_shift : 1;
-    uint8_t is_ctrl : 1;
-    uint8_t reserved : 6;
-    uint32_t timestamp;
+    uint8_t type;         // enum egui_key_event_type
+    uint8_t key_code;     // enum egui_key_code
+    uint8_t is_shift : 1; // non-zero when Shift was held for this event
+    uint8_t is_ctrl : 1;  // non-zero when Ctrl was held for this event
+    uint8_t reserved : 6; // reserved for future modifier bits
+    uint32_t timestamp;   // event timestamp in milliseconds
 };
 
 /**
- * Convert key event to printable ASCII character.
- * Returns 0 if the key is not printable.
+ * Convert one key event to printable ASCII when possible.
+ * Digits, letters, space, and selected punctuation are supported; unsupported keys return `0`.
  */
 char egui_key_event_to_char(const egui_key_event_t *event);
 
+/** Return a short debug string such as `DOWN` or `REPEAT` for one key-event type. */
 const char *egui_key_event_type_string(uint8_t type);
 
 /* Ends C function definitions when using C++ */

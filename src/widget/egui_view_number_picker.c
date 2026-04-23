@@ -7,6 +7,11 @@
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
+/*
+ * The number picker splits its work region into three vertical zones:
+ * increment button, current value, and decrement button.
+ */
+
 static const egui_font_t *egui_view_number_picker_get_icon_font(egui_view_number_picker_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
@@ -14,6 +19,7 @@ static const egui_font_t *egui_view_number_picker_get_icon_font(egui_view_number
         return local->icon_font;
     }
 
+    // Fall back to an icon font that roughly matches the available button area.
     return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
@@ -28,6 +34,7 @@ static void egui_view_number_picker_get_zone_region(egui_view_t *self, int8_t zo
     zone_region->location.x = region.location.x;
     zone_region->size.width = region.size.width;
 
+    // zone > 0 = increment area, zone == 0 = value area, zone < 0 = decrement area.
     if (zone > 0)
     {
         zone_region->location.y = region.location.y;
@@ -47,6 +54,7 @@ static void egui_view_number_picker_get_zone_region(egui_view_t *self, int8_t zo
 
 static void egui_view_number_picker_local_region_to_screen(egui_view_t *self, const egui_region_t *local_region, egui_region_t *screen_region)
 {
+    // Canvas visibility checks use screen coordinates, while drawing still uses work-region coordinates.
     screen_region->location.x = self->region_screen.location.x + local_region->location.x;
     screen_region->location.y = self->region_screen.location.y + local_region->location.y;
     screen_region->size.width = local_region->size.width;
@@ -57,6 +65,7 @@ static void egui_view_number_picker_invalidate_zone(egui_view_t *self, int8_t zo
 {
     egui_region_t zone_region;
 
+    // Most state transitions only affect one third of the control, so redraw that slice only.
     egui_view_number_picker_get_zone_region(self, zone, &zone_region);
     egui_view_invalidate_region(self, &zone_region);
 }
@@ -85,6 +94,7 @@ void egui_view_number_picker_set_value(egui_view_t *self, int16_t value)
         {
             local->on_value_changed(self, value);
         }
+        // The numeric text lives in the middle zone, so only that area needs refresh.
         egui_view_number_picker_invalidate_zone(self, 0);
     }
 }
@@ -100,7 +110,7 @@ void egui_view_number_picker_set_range(egui_view_t *self, int16_t min_value, int
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
     local->min_value = min_value;
     local->max_value = max_value;
-    // Clamp current value
+    // Keep the current state valid when callers shrink the accepted range.
     if (local->value < min_value)
     {
         local->value = min_value;
@@ -164,7 +174,7 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
     w = top_rect.size.width;
     third_h = top_rect.size.height;
 
-    // Horizontal divider lines between sections (subtle, semi-transparent)
+    // Divider lines make the three interaction zones legible without drawing heavy borders.
     {
         egui_dim_t margin = 8;
         egui_dim_t div1_y = mid_rect.location.y;
@@ -256,6 +266,7 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
         egui_region_t zone_region;
         const egui_region_t *dirty_ptr = NULL;
 
+        // Only the top and bottom thirds are clickable; the middle value display is read-only.
         local->pressed_zone = hit_zone;
         if (hit_zone != 0)
         {
@@ -272,6 +283,7 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
         {
             egui_region_t zone_region;
 
+            // Preserve normal button behavior: moving outside cancels the pressed visual state.
             egui_view_number_picker_get_zone_region(self, local->pressed_zone, &zone_region);
             egui_view_set_pressed_with_region(self, should_press, &zone_region);
         }
@@ -299,7 +311,7 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
 
         if (hit_zone == 1)
         {
-            // Top area: increment
+            // Releasing inside the same top zone commits an increment step.
             int16_t new_val = local->value + local->step;
             if (new_val > local->max_value)
             {
@@ -309,7 +321,7 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
         }
         else if (hit_zone == -1)
         {
-            // Bottom area: decrement
+            // Releasing inside the same bottom zone commits a decrement step.
             int16_t new_val = local->value - local->step;
             if (new_val < local->min_value)
             {
@@ -367,12 +379,12 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_number_picker_t) = {
 void egui_view_number_picker_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_number_picker_t);
-    // call super init.
+    // Initialize the base view before installing widget-specific handlers.
     egui_view_init(self, core);
-    // update api.
+    // Replace generic view callbacks with number-picker behavior.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_number_picker_t);
 
-    // init local data.
+    // Defaults produce a ready-to-use 0..100 picker with arrow icons.
     local->on_value_changed = NULL;
     local->value = 0;
     local->min_value = 0;

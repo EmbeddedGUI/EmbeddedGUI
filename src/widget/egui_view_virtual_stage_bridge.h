@@ -11,21 +11,25 @@ extern "C" {
 
 typedef struct egui_view_virtual_stage_array_bridge egui_view_virtual_stage_array_bridge_t;
 
+/** Small helper bundle that keeps a reusable array adapter next to its setup block. */
 struct egui_view_virtual_stage_array_bridge
 {
     egui_view_virtual_stage_array_adapter_t adapter;
     egui_view_virtual_stage_array_setup_t setup;
 };
 
+/** Convenience params macro when you want to choose `live_slot_limit` explicitly. */
 #define EGUI_VIEW_VIRTUAL_STAGE_PARAMS_INIT_WITH_LIMIT(_name, _x, _y, _w, _h, _live_slot_limit)                                                                \
     static const egui_view_virtual_stage_params_t _name = {                                                                                                    \
             .region = {{(_x), (_y)}, {(_w), (_h)}},                                                                                                            \
             .live_slot_limit = (_live_slot_limit),                                                                                                             \
     }
 
+/** Screen-sized params helper with an explicit live-slot limit. */
 #define EGUI_VIEW_VIRTUAL_STAGE_PARAMS_INIT_SCREEN_WITH_LIMIT(_name, _live_slot_limit)                                                                         \
     EGUI_VIEW_VIRTUAL_STAGE_PARAMS_INIT_WITH_LIMIT(_name, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, _live_slot_limit)
 
+/** Declare one static array bridge that can be applied to multiple stage instances over time. */
 #define EGUI_VIEW_VIRTUAL_STAGE_ARRAY_BRIDGE_INIT(_name, _params, _node_source, _ops, _user_context)                                                           \
     static egui_view_virtual_stage_array_bridge_t _name = {                                                                                                    \
             .setup =                                                                                                                                           \
@@ -37,6 +41,7 @@ struct egui_view_virtual_stage_array_bridge
                     },                                                                                                                                         \
     }
 
+/** Minimal ops helper for static scenes that only create, bind, destroy, and optionally custom-draw nodes. */
 #define EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_SIMPLE_INIT(_name, _create_view, _destroy_view, _bind_view, _draw_node)                                              \
     static const egui_view_virtual_stage_array_ops_t _name = {                                                                                                 \
             .create_view = (_create_view),                                                                                                                     \
@@ -45,6 +50,7 @@ struct egui_view_virtual_stage_array_bridge
             .draw_node = (_draw_node),                                                                                                                         \
     }
 
+/** Const variant of `EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_SIMPLE_INIT`. */
 #define EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_SIMPLE_CONST_INIT(_name, _create_view, _destroy_view, _bind_view, _draw_node)                                        \
     const egui_view_virtual_stage_array_ops_t _name = {                                                                                                        \
             .create_view = (_create_view),                                                                                                                     \
@@ -53,6 +59,7 @@ struct egui_view_virtual_stage_array_bridge
             .draw_node = (_draw_node),                                                                                                                         \
     }
 
+/** Ops helper for interactive nodes that also participate in hit testing and keepalive decisions. */
 #define EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_INTERACTIVE_INIT(_name, _create_view, _destroy_view, _bind_view, _draw_node, _hit_test, _should_keep_alive)          \
     static const egui_view_virtual_stage_array_ops_t _name = {                                                                                                 \
             .create_view = (_create_view),                                                                                                                     \
@@ -63,6 +70,7 @@ struct egui_view_virtual_stage_array_bridge
             .should_keep_alive = (_should_keep_alive),                                                                                                         \
     }
 
+/** Const variant of `EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_INTERACTIVE_INIT`. */
 #define EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_INTERACTIVE_CONST_INIT(_name, _create_view, _destroy_view, _bind_view, _draw_node, _hit_test, _should_keep_alive)    \
     const egui_view_virtual_stage_array_ops_t _name = {                                                                                                        \
             .create_view = (_create_view),                                                                                                                     \
@@ -73,6 +81,7 @@ struct egui_view_virtual_stage_array_bridge
             .should_keep_alive = (_should_keep_alive),                                                                                                         \
     }
 
+/** Ops helper for nodes that also persist view state across recycling. */
 #define EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_STATEFUL_INIT(_name, _create_view, _destroy_view, _bind_view, _save_state, _restore_state, _draw_node, _hit_test,    \
                                                         _should_keep_alive)                                                                                    \
     static const egui_view_virtual_stage_array_ops_t _name = {                                                                                                 \
@@ -86,6 +95,7 @@ struct egui_view_virtual_stage_array_bridge
             .should_keep_alive = (_should_keep_alive),                                                                                                         \
     }
 
+/** Const variant of `EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_STATEFUL_INIT`. */
 #define EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_STATEFUL_CONST_INIT(_name, _create_view, _destroy_view, _bind_view, _save_state, _restore_state, _draw_node,         \
                                                               _hit_test, _should_keep_alive)                                                                   \
     const egui_view_virtual_stage_array_ops_t _name = {                                                                                                        \
@@ -157,21 +167,26 @@ struct egui_view_virtual_stage_array_bridge
                                                                        _items, _item_type, _desc_member, _create_view, _destroy_view, _bind_view, _save_state, \
                                                                        _restore_state, _draw_node, _hit_test, _should_keep_alive, _user_context)
 
+/** Apply a bridge declared with `EGUI_VIEW_VIRTUAL_STAGE_ARRAY_BRIDGE_INIT`. */
 static inline void egui_view_virtual_stage_apply_array_bridge(egui_view_t *self, egui_view_virtual_stage_array_bridge_t *bridge)
 {
     egui_view_virtual_stage_apply_array_setup(self, &bridge->adapter, &bridge->setup);
 }
 
+/** Initialize a stage directly from a bridge declared with `EGUI_VIEW_VIRTUAL_STAGE_ARRAY_BRIDGE_INIT`. */
 static inline void egui_view_virtual_stage_init_with_array_bridge(egui_view_t *self, egui_core_t *core, egui_view_virtual_stage_array_bridge_t *bridge)
 {
     egui_view_virtual_stage_init_with_array_setup(self, core, &bridge->adapter, &bridge->setup);
 }
 
+/** Cast a concrete stage pointer to the generic `egui_view_t *` API. */
 #define EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage) EGUI_VIEW_OF(_stage)
 
+/** Apply a bridge to a concrete `egui_view_virtual_stage_t *` variable. */
 #define EGUI_VIEW_VIRTUAL_STAGE_APPLY_ARRAY_BRIDGE(_stage, _bridge)                                                                                            \
     egui_view_virtual_stage_apply_array_bridge(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_bridge))
 
+/** Initialize a concrete `egui_view_virtual_stage_t *` from a bridge. */
 #define EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(_stage, _core, _bridge)                                                                                      \
     egui_view_virtual_stage_init_with_array_bridge(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_core), (_bridge))
 
@@ -203,6 +218,7 @@ static inline void egui_view_virtual_stage_init_with_array_bridge(egui_view_t *s
 #define EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES(_stage, _stable_ids)                                                                                              \
     egui_view_virtual_stage_notify_nodes_changed(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_stable_ids), EGUI_ARRAY_SIZE(_stable_ids))
 
+/** Notify a literal stable-id list without declaring a temporary array yourself. */
 #define EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_IDS(_stage, ...)                                                                                                        \
     do                                                                                                                                                         \
     {                                                                                                                                                          \
@@ -214,6 +230,7 @@ static inline void egui_view_virtual_stage_init_with_array_bridge(egui_view_t *s
 #define EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES_BOUNDS(_stage, _stable_ids)                                                                                       \
     egui_view_virtual_stage_notify_nodes_bounds_changed(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_stable_ids), EGUI_ARRAY_SIZE(_stable_ids))
 
+/** Notify literal stable ids whose bounds changed. */
 #define EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_BOUNDS_IDS(_stage, ...)                                                                                                 \
     do                                                                                                                                                         \
     {                                                                                                                                                          \
@@ -224,6 +241,7 @@ static inline void egui_view_virtual_stage_init_with_array_bridge(egui_view_t *s
 
 #define EGUI_VIEW_VIRTUAL_STAGE_PIN(_stage, _stable_id) egui_view_virtual_stage_pin_node(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_stable_id))
 
+/** Pin a literal stable-id list without declaring a temporary array yourself. */
 #define EGUI_VIEW_VIRTUAL_STAGE_PIN_IDS(_stage, ...)                                                                                                           \
     do                                                                                                                                                         \
     {                                                                                                                                                          \
@@ -237,6 +255,7 @@ static inline void egui_view_virtual_stage_init_with_array_bridge(egui_view_t *s
 
 #define EGUI_VIEW_VIRTUAL_STAGE_UNPIN(_stage, _stable_id) egui_view_virtual_stage_unpin_node(EGUI_VIEW_VIRTUAL_STAGE_AS_VIEW(_stage), (_stable_id))
 
+/** Unpin a literal stable-id list without declaring a temporary array yourself. */
 #define EGUI_VIEW_VIRTUAL_STAGE_UNPIN_IDS(_stage, ...)                                                                                                         \
     do                                                                                                                                                         \
     {                                                                                                                                                          \

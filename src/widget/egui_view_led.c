@@ -9,6 +9,19 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_led.c
+ * @brief Circular status indicator with optional timer-driven blinking.
+ *
+ * Learning path:
+ * - state changes try to invalidate only the circular lamp area,
+ * - a widget-owned timer toggles the on or off state when blinking,
+ * - attach and detach control whether the blink timer is actually running.
+ */
+
+/**
+ * @brief Compute the smallest dirty region that fully covers the lamp circle.
+ */
 static uint8_t egui_view_led_get_dirty_region(egui_view_t *self, egui_region_t *dirty_region)
 {
     egui_region_t region;
@@ -40,6 +53,9 @@ static uint8_t egui_view_led_get_dirty_region(egui_view_t *self, egui_region_t *
     return egui_region_is_empty(dirty_region) ? 0 : 1;
 }
 
+/**
+ * @brief Invalidate only the indicator circle when possible.
+ */
 static void egui_view_led_invalidate_indicator(egui_view_t *self)
 {
     egui_region_t dirty_region;
@@ -54,6 +70,9 @@ static void egui_view_led_invalidate_indicator(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Timer callback that flips the LED state during blinking.
+ */
 static void egui_view_led_blink_callback(egui_timer_t *timer)
 {
     egui_view_led_t *local = (egui_view_led_t *)timer->user_data;
@@ -61,6 +80,9 @@ static void egui_view_led_blink_callback(egui_timer_t *timer)
     egui_view_led_invalidate_indicator((egui_view_t *)local);
 }
 
+/**
+ * @brief Start or stop the blink timer based on widget state and attachment.
+ */
 static void egui_view_led_update_blink_timer(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -83,12 +105,18 @@ static void egui_view_led_update_blink_timer(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Resume blinking when the widget becomes attached to a window.
+ */
 static void egui_view_led_on_attach_to_window(egui_view_t *self)
 {
     egui_view_on_attach_to_window(self);
     egui_view_led_update_blink_timer(self);
 }
 
+/**
+ * @brief Stop the blink timer before normal detach processing.
+ */
 static void egui_view_led_on_detach_from_window(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -97,6 +125,9 @@ static void egui_view_led_on_detach_from_window(egui_view_t *self)
     egui_view_on_detach_from_window(self);
 }
 
+/**
+ * @brief Force the indicator into the lit state.
+ */
 void egui_view_led_set_on(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -107,6 +138,9 @@ void egui_view_led_set_on(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Force the indicator into the unlit state.
+ */
 void egui_view_led_set_off(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -117,6 +151,9 @@ void egui_view_led_set_off(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Toggle the current lit or unlit state immediately.
+ */
 void egui_view_led_toggle(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -124,6 +161,9 @@ void egui_view_led_toggle(egui_view_t *self)
     egui_view_led_invalidate_indicator(self);
 }
 
+/**
+ * @brief Enable blinking and update the timer schedule.
+ */
 void egui_view_led_set_blink(egui_view_t *self, uint16_t period_ms)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -132,6 +172,9 @@ void egui_view_led_set_blink(egui_view_t *self, uint16_t period_ms)
     egui_view_led_update_blink_timer(self);
 }
 
+/**
+ * @brief Disable blinking while keeping the current visual state.
+ */
 void egui_view_led_stop_blink(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -139,6 +182,9 @@ void egui_view_led_stop_blink(egui_view_t *self)
     egui_view_led_update_blink_timer(self);
 }
 
+/**
+ * @brief Replace the colors used by the lit and unlit fill paths.
+ */
 void egui_view_led_set_colors(egui_view_t *self, egui_color_t on_color, egui_color_t off_color)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -147,6 +193,9 @@ void egui_view_led_set_colors(egui_view_t *self, egui_color_t on_color, egui_col
     egui_view_led_invalidate_indicator(self);
 }
 
+/**
+ * @brief Draw the LED border and inner fill circle.
+ */
 void egui_view_led_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -219,6 +268,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_led_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the LED with default theme colors and a blink timer.
+ */
 void egui_view_led_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_led_t);
@@ -241,6 +293,9 @@ void egui_view_led_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_led");
 }
 
+/**
+ * @brief Apply geometry and initial on or off state from one parameter block.
+ */
 void egui_view_led_apply_params(egui_view_t *self, const egui_view_led_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -252,6 +307,9 @@ void egui_view_led_apply_params(egui_view_t *self, const egui_view_led_params_t 
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains LED init and params.
+ */
 void egui_view_led_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_led_params_t *params)
 {
     egui_view_led_init(self, core);

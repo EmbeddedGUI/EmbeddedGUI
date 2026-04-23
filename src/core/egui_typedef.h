@@ -1,48 +1,60 @@
 #ifndef _EGUI_TYPEDEF_H_
 #define _EGUI_TYPEDEF_H_
 
+/**
+ * @file egui_typedef.h
+ * @brief Central forward declarations shared across core modules.
+ *
+ * This header contains only lightweight type declarations so other headers can refer to core objects without pulling in full struct definitions and creating
+ * circular include dependencies.
+ */
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* Animation subsystem */
 typedef struct egui_animation egui_animation_t;
-
 typedef struct egui_interpolator egui_interpolator_t;
 
+/* Page and transient scene objects */
 typedef struct egui_activity egui_activity_t;
 typedef struct egui_page_base egui_page_base_t;
-
 typedef struct egui_dialog egui_dialog_t;
-
 typedef struct egui_toast egui_toast_t;
 typedef struct egui_toast_std egui_toast_std_t;
 
+/* Visual assets */
 typedef struct egui_background egui_background_t;
-
-typedef int egui_base_t;
-
+typedef int egui_base_t; // saved platform interrupt state or other small platform tokens
 typedef struct egui_font egui_font_t;
 typedef struct egui_font_std egui_font_std_t;
-
 typedef struct egui_image egui_image_t;
 typedef struct egui_mask egui_mask_t;
+
+/* Core runtime and view tree */
 typedef struct egui_core egui_core_t;
 typedef struct egui_view egui_view_t;
 typedef struct egui_view_group egui_view_group_t;
 
+/* Rendering helpers */
 typedef struct egui_canvas egui_canvas_t;
 typedef struct egui_shadow egui_shadow_t;
 
+/* Geometry and diagnostics */
 typedef struct egui_location egui_location_t;
 typedef struct egui_size egui_size_t;
 typedef struct egui_region egui_region_t;
 typedef struct egui_mem_monitor egui_mem_monitor_t;
 
+/* Shared guard because `egui_key_event.h` also forward-declares this type. */
 #ifndef EGUI_KEY_EVENT_T_DEFINED
 #define EGUI_KEY_EVENT_T_DEFINED
 typedef struct egui_key_event egui_key_event_t;
 #endif
+
+/* Input, platform, and display backends */
 typedef struct egui_focus_manager egui_focus_manager_t;
 
 typedef struct egui_display_driver egui_display_driver_t;

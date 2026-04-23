@@ -1,13 +1,16 @@
 #include "canvas/egui_canvas.h"
 
 /**
- * @brief Polygon and polyline drawing with scanline fill and SDF anti-aliasing.
+ * @brief Polygon fill, outline, and polyline helpers.
  *
- * Fill uses scanline + edge table with even-odd rule.
- * Anti-aliasing uses signed-distance-field (SDF) perpendicular to each edge,
- * matching the triangle fill approach for smooth edges at all angles.
- * Outline/polyline delegates to egui_canvas_draw_line(canvas, ) for each edge.
- * Maximum vertex count limited to EGUI_CANVAS_POLYGON_MAX_VERTICES.
+ * Filled polygons reuse the same general idea as the triangle renderer:
+ * scanline intersections
+ * identify solid spans, while SDF-based edge distance
+ * is used only in a narrow band near the boundary for smooth anti-aliasing.
+ *
+ * Outlines and polylines
+ * are assembled from butt-capped line segments so the
+ * joins stay tight instead of growing rounded endpoints at every vertex.
  */
 
 #ifndef EGUI_CANVAS_POLYGON_MAX_VERTICES
@@ -15,10 +18,8 @@
 #endif
 
 /**
- * @brief Intersection record: x position + originating edge index.
- */
-/**
- * @brief Integer square root (bit-by-bit) for edge length computation.
+ * @brief Integer square root used when turning edge cross products into a
+ *        normalized coverage estimate.
  */
 static uint32_t polygon_isqrt(uint32_t n)
 {
@@ -49,7 +50,11 @@ static uint32_t polygon_isqrt(uint32_t n)
 }
 
 /**
- * @brief Simple insertion sort for intersection records (max 16 elements).
+ * @brief Sort scanline intersections together with the edge that produced them.
+ *
+ * The vertex count is intentionally small, so insertion sort keeps the
+ * code
+ * compact and predictable.
  */
 static void sort_polygon_intersections(egui_float_t *x_arr, uint8_t *edge_idx_arr, int count)
 {
@@ -70,16 +75,17 @@ static void sort_polygon_intersections(egui_float_t *x_arr, uint8_t *edge_idx_ar
 }
 
 /**
- * @brief Compute SDF-based alpha for a pixel relative to one polygon edge.
+ * @brief Convert the signed distance to one polygon edge into pixel coverage.
  *
  * The signed distance from pixel center (px, py) to the edge line gives
  * smooth coverage independent of edge angle.
  *   cross = edx * (py - ey) - edy * (px - ex)
  *   d = sign * cross / len
  *
- * Uses a 1.5-pixel-wide AA zone (d in [-0.75, +0.75]) for smoother edges,
- * especially on near-45-degree edges where the standard 1-pixel zone
- * produces visible stepping.
+ * This polygon variant deliberately uses a slightly wider AA band than the
+ * triangle renderer. The wider ramp reduces visible stepping on long oblique
+ *
+ * edges without changing the interior fill rule.
  *
  * @return alpha value (0 = fully outside, EGUI_ALPHA_100 = fully inside)
  */
@@ -112,6 +118,10 @@ __EGUI_STATIC_INLINE__ egui_alpha_t polygon_edge_alpha(int32_t cross, int32_t si
     return (egui_alpha_t)alpha_val;
 }
 
+/**
+ * @brief Blend directly into a destination pixel when the caller already knows
+ *        clipping and masking are satisfied.
+ */
 __EGUI_STATIC_INLINE__ void polygon_blend_direct(egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
     if (alpha == 0)
@@ -129,6 +139,11 @@ __EGUI_STATIC_INLINE__ void polygon_blend_direct(egui_color_t *dst, egui_color_t
     }
 }
 
+/**
+ * @brief Fill a contiguous interior span directly in the current PFB tile.
+ *
+ * This is the fast path for polygon rows when no mask is active.
+ */
 __EGUI_STATIC_INLINE__ void polygon_fill_direct_span(egui_canvas_t *self, egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t x_start, egui_dim_t x_end,
                                                      egui_color_t color, egui_alpha_t alpha)
 {
@@ -154,11 +169,15 @@ __EGUI_STATIC_INLINE__ void polygon_fill_direct_span(egui_canvas_t *self, egui_c
 }
 
 /**
- * \brief           Draw filled polygon with SDF anti-aliased edges
- * \param[in]       points: Array of vertex coordinates [x0,y0,x1,y1,...], flat array
- * \param[in]       count: Number of vertices (not coordinate count)
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw a filled polygon using even-odd scanline filling plus SDF edges.
+ *
+ * Reading tip:
+ * - Each scanline collects edge intersections into small
+ * local arrays.
+ * - Sorted pairs define the solid interior spans under the even-odd rule.
+ * - A direct-PFB fast path is used when no mask is active, while
+ * masked draws
+ *   fall back to `egui_canvas_draw_point` so the canvas mask remains honored.
  */
 void egui_canvas_draw_polygon_fill(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_color_t color, egui_alpha_t alpha)
 {
@@ -243,7 +262,7 @@ void egui_canvas_draw_polygon_fill(egui_canvas_t *self, const egui_dim_t *points
     egui_dim_t scan_y_start = EGUI_MAX(min_y, work_y_start);
     egui_dim_t scan_y_end = EGUI_MIN(max_y, work_y_end - 1);
 
-    // Intersection buffer with edge tracking
+    // Per-row intersections plus the edge index for the associated SDF lookup.
     egui_float_t intersection_x[EGUI_CANVAS_POLYGON_MAX_VERTICES];
     uint8_t intersection_edge_idx[EGUI_CANVAS_POLYGON_MAX_VERTICES];
     int use_direct_pfb = (self->mask == NULL) ? 1 : 0;
@@ -480,12 +499,11 @@ void egui_canvas_draw_polygon_fill(egui_canvas_t *self, const egui_dim_t *points
 }
 
 /**
- * \brief           Draw polygon outline
- * \param[in]       points: Array of vertex coordinates [x0,y0,x1,y1,...], flat array
- * \param[in]       count: Number of vertices
- * \param[in]       stroke_width: Width of the outline
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw a closed polygon outline by connecting each vertex pair.
+ *
+ * `egui_canvas_draw_line_segment` is used instead of the public line helper so
+
+ * * thick outlines keep butt caps at the joins.
  */
 void egui_canvas_draw_polygon(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
@@ -502,12 +520,12 @@ void egui_canvas_draw_polygon(egui_canvas_t *self, const egui_dim_t *points, uin
 }
 
 /**
- * \brief           Draw polyline (open polygon, does not close)
- * \param[in]       points: Array of vertex coordinates [x0,y0,x1,y1,...], flat array
- * \param[in]       count: Number of vertices
- * \param[in]       stroke_width: Width of the line
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw an open polyline without connecting the last vertex back to the first.
+ *
+ * For thick strokes the function also fills a tiny cross-shaped
+ * patch at every
+ * internal joint. That patch hides single-pixel AA pinholes left by separate
+ * butt-capped segment rasterization.
  */
 void egui_canvas_draw_polyline(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {

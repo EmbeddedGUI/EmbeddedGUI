@@ -1,11 +1,14 @@
 #include "canvas/egui_canvas.h"
 
 /**
- * @brief Bezier curve drawing using De Casteljau adaptive subdivision.
+ * @brief Quadratic and cubic bezier helpers based on adaptive subdivision.
  *
- * Recursively subdivides the curve until segments are flat enough,
- * then draws each segment as a line. Anti-aliasing is provided by
- * the underlying egui_canvas_draw_line(canvas, ).
+ * The curve is recursively flattened until the local control polygon is
+ * close
+ * enough to the chord, then each leaf segment is delegated to the line drawer.
+ * This keeps the public API small while reusing the already
+ * well-tested line
+ * rasterizers for anti-aliasing and thick strokes.
  */
 
 #ifndef EGUI_CANVAS_BEZIER_MAX_DEPTH
@@ -19,9 +22,11 @@
 #endif
 
 /**
- * @brief Recursive quadratic bezier subdivision.
- * P0 = (x0, y0), Control = (cx, cy), P1 = (x1, y1)
- * Uses De Casteljau algorithm at t=0.5 to split.
+ * @brief Recursively flatten a quadratic bezier with De Casteljau splitting.
+ *
+ * Once the control point is close enough to the chord midpoint, the
+ * current
+ * piece is considered flat and emitted as a straight line segment.
  */
 static void bezier_quad_recursive(egui_canvas_t *self, egui_dim_t x0, egui_dim_t y0, egui_dim_t cx, egui_dim_t cy, egui_dim_t x1, egui_dim_t y1,
                                   egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha, int depth)
@@ -72,13 +77,11 @@ static void bezier_quad_recursive(egui_canvas_t *self, egui_dim_t x0, egui_dim_t
 }
 
 /**
- * \brief           Draw quadratic bezier curve (1 control point)
- * \param[in]       x0, y0: Start point
- * \param[in]       cx, cy: Control point
- * \param[in]       x1, y1: End point
- * \param[in]       stroke_width: Width of the curve
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw a quadratic bezier curve.
+ *
+ * The public entry only performs a conservative bounding-box rejection before
+ * handing the real work to the
+ * recursive splitter.
  */
 void egui_canvas_draw_bezier_quad(egui_canvas_t *self, egui_dim_t x0, egui_dim_t y0, egui_dim_t cx, egui_dim_t cy, egui_dim_t x1, egui_dim_t y1,
                                   egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
@@ -100,8 +103,12 @@ void egui_canvas_draw_bezier_quad(egui_canvas_t *self, egui_dim_t x0, egui_dim_t
 }
 
 /**
- * @brief Recursive cubic bezier subdivision.
- * P0 = (x0, y0), C0 = (cx0, cy0), C1 = (cx1, cy1), P1 = (x1, y1)
+ * @brief Recursively flatten a cubic bezier with De Casteljau splitting.
+ *
+ * The flatness test compares both control points against the end-point chord.
+
+ * * When the curve piece is flat enough, the segment is delegated to the line
+ * renderer instead of carrying a separate curve-specific rasterizer.
  */
 static void bezier_cubic_recursive(egui_canvas_t *self, egui_dim_t x0, egui_dim_t y0, egui_dim_t cx0, egui_dim_t cy0, egui_dim_t cx1, egui_dim_t cy1,
                                    egui_dim_t x1, egui_dim_t y1, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha, int depth)
@@ -156,14 +163,11 @@ static void bezier_cubic_recursive(egui_canvas_t *self, egui_dim_t x0, egui_dim_
 }
 
 /**
- * \brief           Draw cubic bezier curve (2 control points)
- * \param[in]       x0, y0: Start point
- * \param[in]       cx0, cy0: First control point
- * \param[in]       cx1, cy1: Second control point
- * \param[in]       x1, y1: End point
- * \param[in]       stroke_width: Width of the curve
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw a cubic bezier curve.
+ *
+ * As with the quadratic variant, the public wrapper only performs bounding-box
+ * rejection and then delegates to
+ * the recursive subdivision helper.
  */
 void egui_canvas_draw_bezier_cubic(egui_canvas_t *self, egui_dim_t x0, egui_dim_t y0, egui_dim_t cx0, egui_dim_t cy0, egui_dim_t cx1, egui_dim_t cy1,
                                    egui_dim_t x1, egui_dim_t y1, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)

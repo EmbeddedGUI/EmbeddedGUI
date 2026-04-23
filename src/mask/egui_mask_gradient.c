@@ -8,6 +8,14 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 
+/**
+ * @brief Blend the gradient overlay into one point that is being drawn.
+ *
+ * This mask does not clip geometry. Instead, it behaves like a color filter:
+ *
+ * sample the gradient at the pixel position, then mix that color over the
+ * original draw color while leaving the pixel alpha untouched.
+ */
 void egui_mask_gradient_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     EGUI_LOCAL_INIT(egui_mask_gradient_t);
@@ -51,6 +59,14 @@ void egui_mask_gradient_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y
     /* alpha is intentionally NOT modified: shape AA and image transparency are preserved */
 }
 
+/**
+ * @brief Try to collapse a whole row into one blended color.
+ *
+ * Only vertical linear gradients qualify, because every pixel in a scanline
+ * shares the
+ * same gradient sample. Other gradient types vary across x, so the
+ * caller must fall back to per-pixel processing.
+ */
 int egui_mask_gradient_blend_row_color(egui_mask_t *self, egui_dim_t y, egui_color_t *color)
 {
     EGUI_LOCAL_INIT(egui_mask_gradient_t);
@@ -90,6 +106,14 @@ int egui_mask_gradient_blend_row_color(egui_mask_t *self, egui_dim_t y, egui_col
     return 1;
 }
 
+/**
+ * @brief Expose the row overlay color and alpha when the mask is uniform per row.
+ *
+ * This is another optimization hook for vertical linear gradients. It
+ * lets the
+ * canvas ask for "the overlay that applies to this row" without touching every
+ * pixel individually.
+ */
 int egui_mask_gradient_get_row_overlay(egui_mask_t *self, egui_dim_t y, egui_color_t *overlay_color, egui_alpha_t *overlay_alpha)
 {
     EGUI_LOCAL_INIT(egui_mask_gradient_t);
@@ -138,6 +162,13 @@ const egui_mask_api_t egui_mask_gradient_t_api_table = {
         .mask_get_row_overlay = egui_mask_gradient_get_row_overlay,
 };
 
+/**
+ * @brief Initialize the gradient overlay mask and clear its small row cache.
+ *
+ * The cache stores the last sampled row color for vertical linear
+ * gradients, so
+ * repeated row queries can skip a fresh gradient lookup.
+ */
 void egui_mask_gradient_init(egui_mask_t *self)
 {
     EGUI_LOCAL_INIT(egui_mask_gradient_t);
@@ -149,12 +180,18 @@ void egui_mask_gradient_init(egui_mask_t *self)
     local->cached_key = -32768; /* sentinel: won't match any valid coordinate */
 }
 
+/**
+ * @brief Attach the gradient description used by this overlay mask.
+ */
 void egui_mask_gradient_set_gradient(egui_mask_t *self, const egui_gradient_t *gradient)
 {
     EGUI_LOCAL_INIT(egui_mask_gradient_t);
     local->gradient = gradient;
 }
 
+/**
+ * @brief Set how strongly the sampled gradient color replaces the draw color.
+ */
 void egui_mask_gradient_set_overlay_alpha(egui_mask_t *self, egui_alpha_t overlay_alpha)
 {
     EGUI_LOCAL_INIT(egui_mask_gradient_t);

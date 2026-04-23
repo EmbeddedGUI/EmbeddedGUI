@@ -12,10 +12,20 @@
 #include "egui_view_group.h"
 #endif
 
+/**
+ * @file egui_view_chart_axis.c
+ * @brief Shared axis-chart base widget that bridges `egui_view_t` and chart helpers.
+ *
+ * Line, scatter, and bar charts all inherit this layer. It owns the common
+ * axis-base state, forwards zoom gestures, and wraps subclass data drawing with
+ * background, axes, clipping, and legend rendering.
+ */
+
 // ============== Zoom / Touch Handling ==============
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
 
+/** Forward touch gestures to the shared chart-axis zoom and pan helper. */
 int egui_view_chart_axis_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -27,6 +37,12 @@ int egui_view_chart_axis_on_touch_event(egui_view_t *self, egui_motion_event_t *
 
 // ============== Unified on_draw ==============
 
+/**
+ * @brief Draw the shared chart chrome, then dispatch subclass data rendering.
+ *
+ * The subclass `draw_data` callback receives plot-area coordinates relative to
+ * the temporary clip region rather than full-view coordinates.
+ */
 void egui_view_chart_axis_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -39,19 +55,18 @@ void egui_view_chart_axis_on_draw(egui_view_t *self)
         return;
     }
 
-    // 1. Draw background
+    // 1. Fill the widget background before any chart chrome is drawn.
     egui_canvas_draw_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, local->ab.bg_color, EGUI_ALPHA_100);
 
-    // 2. Calculate plot area (in view-local coordinates)
+    // 2. Reserve space for axes, labels, and legend inside the widget work region.
     egui_region_t plot_area;
     egui_chart_calc_plot_area(&local->ab, &region, &plot_area);
 
-    // 3. Draw axes (in view-local coordinate system)
+    // 3. Draw shared axis chrome in the widget-local coordinate system.
     egui_chart_draw_axes(canvas, &local->ab, &region, &plot_area);
 
-    // 4. Set clip region for data drawing
-    //    Inset by 1px from axes so data never overlaps axis lines.
-    //    egui_canvas_calc_work_region changes the coordinate system to clip-local.
+    // 4. Clip data drawing to the plot interior, inset by 1px from the axis lines.
+    // `egui_canvas_calc_work_region` switches subsequent drawing into clip-local coordinates.
     egui_region_t clip;
     clip.location.x = plot_area.location.x + 1 + self->region_screen.location.x;
     clip.location.y = plot_area.location.y + 1 + self->region_screen.location.y;
@@ -59,13 +74,13 @@ void egui_view_chart_axis_on_draw(egui_view_t *self)
     clip.size.height = plot_area.size.height - 2;
     egui_canvas_calc_work_region(canvas, &clip);
 
-    // 5. Call draw_data virtual function (with clip-local coordinates)
+    // 5. Let the subclass render data in plot-local coordinates when any clipped work remains.
     if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
     {
         const egui_view_chart_axis_api_t *api = (const egui_view_chart_axis_api_t *)self->api;
         if (api->draw_data)
         {
-            // Convert plot_area to clip-local coordinates
+            // Inside the clip, the plot origin becomes `(0, 0)` for the subclass callback.
             egui_region_t clip_plot_area;
             clip_plot_area.location.x = 0;
             clip_plot_area.location.y = 0;
@@ -75,10 +90,10 @@ void egui_view_chart_axis_on_draw(egui_view_t *self)
         }
     }
 
-    // 6. Restore clip
+    // 6. Restore the widget screen-space clip before drawing outer chrome again.
     egui_canvas_calc_work_region(canvas, &self->region_screen);
 
-    // 7. Draw legend
+    // 7. Draw legend after data so it stays outside the plot clip.
     if (local->ab.draw_legend_series != NULL)
     {
         local->ab.draw_legend_series(canvas, &local->ab, &region, &plot_area);
@@ -87,6 +102,7 @@ void egui_view_chart_axis_on_draw(egui_view_t *self)
 
 // ============== API Table ==============
 
+/** Base API table used by axis-chart subclasses that plug in their own `draw_data` callback. */
 const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_axis_t) = {
         .base =
                 {
@@ -114,18 +130,19 @@ const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_axis_t
 
 // ============== Init ==============
 
+/** Initialize the shared axis-chart base widget and install stock chart defaults. */
 void egui_view_chart_axis_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_chart_axis_t);
 
-    // Initialize base view
+    // Initialize the inherited view shell first.
     egui_view_init(self, core);
     self->api = (const egui_view_api_t *)&EGUI_VIEW_API_TABLE_NAME(egui_view_chart_axis_t);
 
-    // Initialize axis base with defaults
+    // Populate the shared axis/chart state with default colors and axis configuration.
     egui_chart_axis_base_init_defaults(&local->ab);
 
-    // clip margin
+    // Subclasses may store their preferred data clip expansion here.
     local->clip_margin = 0;
 
     egui_view_set_view_name(self, "egui_view_chart_axis");
@@ -133,6 +150,7 @@ void egui_view_chart_axis_init(egui_view_t *self, egui_core_t *core)
 
 // ============== Apply Params ==============
 
+/** Apply only the shared chart base geometry from one parameter block. */
 void egui_view_chart_axis_apply_params(egui_view_t *self, const egui_view_chart_axis_params_t *params)
 {
     egui_view_set_position(self, params->region.location.x, params->region.location.y);
@@ -141,6 +159,7 @@ void egui_view_chart_axis_apply_params(egui_view_t *self, const egui_view_chart_
 
 // ============== Unified Setters ==============
 
+/** Borrow the caller-owned series array and invalidate the widget. */
 void egui_view_chart_axis_set_series(egui_view_t *self, const egui_chart_series_t *series, uint8_t count)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -149,6 +168,7 @@ void egui_view_chart_axis_set_series(egui_view_t *self, const egui_chart_series_
     egui_view_invalidate(self);
 }
 
+/** Update the X-axis numeric range and reset the zoom viewport on multi-touch builds. */
 void egui_view_chart_axis_set_axis_x(egui_view_t *self, int16_t min_val, int16_t max_val, int16_t tick_step)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -162,6 +182,7 @@ void egui_view_chart_axis_set_axis_x(egui_view_t *self, int16_t min_val, int16_t
     egui_view_invalidate(self);
 }
 
+/** Update the Y-axis numeric range and reset the zoom viewport on multi-touch builds. */
 void egui_view_chart_axis_set_axis_y(egui_view_t *self, int16_t min_val, int16_t max_val, int16_t tick_step)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -175,6 +196,7 @@ void egui_view_chart_axis_set_axis_y(egui_view_t *self, int16_t min_val, int16_t
     egui_view_invalidate(self);
 }
 
+/** Copy a full X-axis config block and keep categorical drawing mode in sync with it. */
 void egui_view_chart_axis_set_axis_x_config(egui_view_t *self, const egui_chart_axis_config_t *config)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -187,6 +209,7 @@ void egui_view_chart_axis_set_axis_x_config(egui_view_t *self, const egui_chart_
     egui_view_invalidate(self);
 }
 
+/** Copy a full Y-axis config block and reset the live Y viewport when zoom is enabled. */
 void egui_view_chart_axis_set_axis_y_config(egui_view_t *self, const egui_chart_axis_config_t *config)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -198,6 +221,7 @@ void egui_view_chart_axis_set_axis_y_config(egui_view_t *self, const egui_chart_
     egui_view_invalidate(self);
 }
 
+/** Toggle legend rendering by either wiring in the shared legend helper or disabling it. */
 void egui_view_chart_axis_set_legend_pos(egui_view_t *self, uint8_t pos)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -206,6 +230,7 @@ void egui_view_chart_axis_set_legend_pos(egui_view_t *self, uint8_t pos)
     egui_view_invalidate(self);
 }
 
+/** Update the shared background, axis, grid, and text colors. */
 void egui_view_chart_axis_set_colors(egui_view_t *self, egui_color_t bg, egui_color_t axis, egui_color_t grid, egui_color_t text)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -216,6 +241,7 @@ void egui_view_chart_axis_set_colors(egui_view_t *self, egui_color_t bg, egui_co
     egui_view_invalidate(self);
 }
 
+/** Install the font used by shared chart labels and legend text. */
 void egui_view_chart_axis_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -223,6 +249,7 @@ void egui_view_chart_axis_set_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+/** Store one subclass-provided clip-margin hint alongside the shared axis base state. */
 void egui_view_chart_axis_set_clip_margin(egui_view_t *self, egui_dim_t margin)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -234,6 +261,7 @@ void egui_view_chart_axis_set_clip_margin(egui_view_t *self, egui_dim_t margin)
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
 
+/** Enable or disable shared chart zoom, resetting the live viewport when disabled. */
 void egui_view_chart_axis_set_zoom_enabled(egui_view_t *self, uint8_t enabled)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -248,6 +276,7 @@ void egui_view_chart_axis_set_zoom_enabled(egui_view_t *self, uint8_t enabled)
     egui_view_invalidate(self);
 }
 
+/** Zoom both axes inward through the shared axis-base helper. */
 void egui_view_chart_axis_zoom_in(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -259,6 +288,7 @@ void egui_view_chart_axis_zoom_in(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/** Zoom both axes outward through the shared axis-base helper. */
 void egui_view_chart_axis_zoom_out(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -270,6 +300,7 @@ void egui_view_chart_axis_zoom_out(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/** Restore both axes to the configured full viewport. */
 void egui_view_chart_axis_zoom_reset(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -280,6 +311,7 @@ void egui_view_chart_axis_zoom_reset(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/** Zoom only the X axis inward. */
 void egui_view_chart_axis_zoom_in_x(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -291,6 +323,7 @@ void egui_view_chart_axis_zoom_in_x(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/** Zoom only the X axis outward. */
 void egui_view_chart_axis_zoom_out_x(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -302,6 +335,7 @@ void egui_view_chart_axis_zoom_out_x(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/** Restore only the X viewport to the configured full axis range. */
 void egui_view_chart_axis_zoom_reset_x(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -310,6 +344,7 @@ void egui_view_chart_axis_zoom_reset_x(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/** Zoom only the Y axis inward. */
 void egui_view_chart_axis_zoom_in_y(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -321,6 +356,7 @@ void egui_view_chart_axis_zoom_in_y(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/** Zoom only the Y axis outward. */
 void egui_view_chart_axis_zoom_out_y(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
@@ -332,6 +368,7 @@ void egui_view_chart_axis_zoom_out_y(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/** Restore only the Y viewport to the configured full axis range. */
 void egui_view_chart_axis_zoom_reset_y(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);

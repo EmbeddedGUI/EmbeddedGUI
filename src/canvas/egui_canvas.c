@@ -57,16 +57,33 @@ static const uint8_t arc_edge_smoothstep_alpha_lut[385] = {
         252, 252, 252, 252, 252, 253, 253, 253, 253, 253, 253, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 255,
 };
 
+/**
+ * @brief Read sine(angle) from the shared trig LUT and convert it to Q15.
+ */
 __EGUI_STATIC_INLINE__ uint16_t egui_canvas_arc_get_sin_q15(int16_t angle)
 {
     return (uint16_t)egui_trig_float_to_q15(egui_trig_sin_lut[angle]);
 }
 
+/**
+ * @brief Read cosine(angle) from the shared trig LUT and convert it to Q15.
+ *
+ * The LUT stores sine values, so cosine is obtained through the phase
+ * shift.
+ */
 __EGUI_STATIC_INLINE__ uint16_t egui_canvas_arc_get_cos_q15(int16_t angle)
 {
     return (uint16_t)egui_trig_float_to_q15(egui_trig_sin_lut[90 - angle]);
 }
 
+/**
+ * @brief Multiply a positive value by cot(angle) with 0/90-degree saturation.
+ *
+ * Arc scan conversion frequently needs `value / tan(angle)` while staying
+ * in
+ * integer math. Returning a saturated limit for the degenerate angles keeps the
+ * later callers simple.
+ */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_arc_mul_cot_limit(egui_canvas_t *self, egui_dim_t value, int16_t angle)
 {
     if (angle <= 0)
@@ -81,6 +98,12 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_arc_mul_cot_limit(egui_canvas_t *s
     return (egui_dim_t)(((int32_t)value * arc_cot_q8_lut[angle]) >> ARC_INT_Q8_SHIFT);
 }
 
+/**
+ * @brief Q8 variant of the cotangent helper used by arc edge calculations.
+ *
+ * The return value indicates whether a valid non-negative result was
+ * produced.
+ */
 __EGUI_STATIC_INLINE__ int egui_canvas_arc_mul_cot_q8_nonnegative(egui_canvas_t *self, egui_dim_t value, int16_t angle, int32_t *result_q8)
 {
     if (result_q8 == NULL)
@@ -102,11 +125,22 @@ __EGUI_STATIC_INLINE__ int egui_canvas_arc_mul_cot_q8_nonnegative(egui_canvas_t 
     return 1;
 }
 
+/**
+ * @brief Lookup the anti-alias transition scale for the current arc angle.
+ */
 __EGUI_STATIC_INLINE__ int32_t egui_canvas_arc_get_transition_over_cos_q8(egui_canvas_t *self, int16_t angle)
 {
     return arc_transition_over_cos_q8_lut[angle];
 }
 
+/**
+ * @brief Draw a single pixel in base-view coordinates.
+ *
+ * This is the most primitive canvas write path. It applies the optional mask,
+ * mixes the
+ * caller alpha with the canvas alpha, clips against the current work
+ * region, and finally writes into the active PFB tile.
+ */
 void egui_canvas_draw_point(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
 
@@ -146,6 +180,13 @@ void egui_canvas_draw_point(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egu
     }
 }
 
+/**
+ * @brief Fill a contiguous color buffer with one solid color.
+ *
+ * This helper is used by many rectangle and span paths. The 16-bit build uses
+ * word
+ * packing to reduce the number of stores.
+ */
 void egui_canvas_fill_color_buffer(egui_color_int_t *dst, uint32_t count, egui_color_t color)
 {
     if (count == 0)
@@ -200,6 +241,14 @@ void egui_canvas_fill_color_buffer(egui_color_int_t *dst, uint32_t count, egui_c
 #endif
 }
 
+/**
+ * @brief Fill a rectangle after clipping it to the active work region.
+ *
+ * If no mask is active the function takes a fast direct-memory path. When a
+ *
+ * mask exists, it delegates to the masked rectangle helper so each pixel still
+ * honors the mask result.
+ */
 void egui_canvas_draw_fillrect(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t xSize, egui_dim_t ySize, egui_color_t color, egui_alpha_t alpha)
 {
 
@@ -236,6 +285,13 @@ void egui_canvas_draw_fillrect(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, 
     }
 }
 
+/**
+ * @brief Find precomputed circle coverage metadata for the requested radius.
+ *
+ * Small radii come from the built-in table. Larger or custom radii can be
+
+ * * supplied at runtime through `egui_canvas_register_spec_circle_info`.
+ */
 const egui_circle_info_t *egui_canvas_get_circle_item(egui_canvas_t *self, egui_dim_t r)
 {
 
@@ -264,6 +320,13 @@ const egui_circle_info_t *egui_canvas_get_circle_item(egui_canvas_t *self, egui_
     return NULL;
 }
 
+/**
+ * @brief Clamp a requested round-rectangle radius to the drawable geometry.
+ *
+ * The returned radius never exceeds half of the shorter side minus the
+ * center
+ * strip that still needs to exist between the rounded corners.
+ */
 static egui_dim_t egui_canvas_clamp_round_radius(egui_canvas_t *self, egui_dim_t radius, egui_dim_t width, egui_dim_t height)
 {
     egui_dim_t max_radius;
@@ -287,21 +350,33 @@ static egui_dim_t egui_canvas_clamp_round_radius(egui_canvas_t *self, egui_dim_t
     return radius;
 }
 
+/**
+ * @brief Detect the round-rectangle case that is exactly equivalent to a circle.
+ */
 __EGUI_STATIC_INLINE__ int egui_canvas_round_rect_is_circle_case(egui_canvas_t *self, egui_dim_t width, egui_dim_t height, egui_dim_t radius)
 {
     return (radius > 0 && width == height && (((radius << 1) + 2) == width));
 }
 
+/**
+ * @brief Return whether the encoded corner type belongs to the left side.
+ */
 __EGUI_STATIC_INLINE__ int egui_canvas_circle_corner_is_left(egui_canvas_t *self, int type)
 {
     return (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM);
 }
 
+/**
+ * @brief Return whether the encoded corner type belongs to the top side.
+ */
 __EGUI_STATIC_INLINE__ int egui_canvas_circle_corner_is_top(egui_canvas_t *self, int type)
 {
     return (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP);
 }
 
+/**
+ * @brief Convert a screen-space Y coordinate into the row index inside a corner table.
+ */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_row_index(egui_canvas_t *self, int type, const egui_region_t *region, egui_dim_t radius,
                                                                           egui_dim_t screen_y)
 {
@@ -313,6 +388,9 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_row_index(egui_c
     return region->location.y + radius - 1 - screen_y;
 }
 
+/**
+ * @brief Convert a local corner column interval back into screen-space X coordinates.
+ */
 __EGUI_STATIC_INLINE__ void egui_canvas_circle_corner_col_range_to_screen_x(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t radius, int type,
                                                                             egui_dim_t col_start, egui_dim_t col_end, egui_dim_t *screen_x_start,
                                                                             egui_dim_t *screen_x_end)
@@ -329,6 +407,9 @@ __EGUI_STATIC_INLINE__ void egui_canvas_circle_corner_col_range_to_screen_x(egui
     }
 }
 
+/**
+ * @brief Convert one screen-space X coordinate into the matching local corner column.
+ */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_screen_x_to_col(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t radius, int type,
                                                                             egui_dim_t screen_x)
 {
@@ -340,6 +421,13 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_screen_x_to_col(egui
     return center_x + radius - screen_x;
 }
 
+/**
+ * @brief Find the first potentially visible column for one corner-table row.
+ *
+ * The helper uses both the direct row entry and its mirrored counterpart
+ * so the
+ * same precomputed quarter-circle data can be reused across the whole corner.
+ */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_visible_boundary(egui_canvas_t *self, egui_dim_t row_in_corner, const egui_circle_info_t *info,
                                                                                  const egui_circle_item_t *items)
 {
@@ -375,6 +463,13 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_visible_boundary
     return left_boundary;
 }
 
+/**
+ * @brief Find the first fully opaque column for one corner-table row.
+ *
+ * Values to the left of the returned boundary still need per-pixel alpha,
+ *
+ * while values to the right can be treated as solid coverage.
+ */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_opaque_boundary(egui_canvas_t *self, egui_dim_t row_in_corner, const egui_circle_info_t *info,
                                                                                 const egui_circle_item_t *items)
 {
@@ -424,6 +519,9 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_opaque_boundary(
     return left_boundary;
 }
 
+/**
+ * @brief Return the opaque-threshold column stored in one circle-table item.
+ */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_opaque_threshold(egui_canvas_t *self, const egui_circle_item_t *items, egui_dim_t index)
 {
     return (egui_dim_t)items[index].start_offset + (egui_dim_t)items[index].valid_count;
@@ -441,6 +539,9 @@ typedef struct
     int sign_y;
 } egui_canvas_corner_bounds_t;
 
+/**
+ * @brief Initialize the raw screen-space region occupied by one circle corner.
+ */
 static void egui_canvas_circle_corner_init_region(egui_canvas_t *self, egui_canvas_corner_bounds_t *bounds, egui_dim_t center_x, egui_dim_t center_y,
                                                   egui_dim_t radius, int type)
 {
@@ -461,6 +562,13 @@ static void egui_canvas_circle_corner_init_region(egui_canvas_t *self, egui_canv
     }
 }
 
+/**
+ * @brief Clip one circle corner to the current work region and derive local bounds.
+ *
+ * The resulting indices let later draw code iterate only the
+ * visible rows and
+ * columns instead of scanning the full quarter circle.
+ */
 static int egui_canvas_circle_corner_get_bounds(egui_canvas_t *self, egui_dim_t radius, int type, egui_canvas_corner_bounds_t *bounds)
 {
     egui_dim_t diff_x;
@@ -513,6 +621,13 @@ static int egui_canvas_circle_corner_get_bounds(egui_canvas_t *self, egui_dim_t 
     return 1;
 }
 
+/**
+ * @brief Draw one horizontal span directly into the current PFB row.
+ *
+ * This helper is used only after clipping and masking decisions have already
+ *
+ * been made, so it can focus purely on memory writes and alpha blending.
+ */
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_row_span(egui_canvas_t *self, egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t clip_x_start,
                                                              egui_dim_t clip_x_end, egui_dim_t seg_x_start, egui_dim_t seg_x_end, egui_color_t color,
                                                              egui_alpha_t alpha)
@@ -539,6 +654,9 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_row_span(egui_canvas_t *self
     }
 }
 
+/**
+ * @brief Blend one pixel directly into the destination buffer.
+ */
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_pixel(egui_canvas_t *self, egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
     if (alpha == 0)
@@ -556,6 +674,9 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_pixel(egui_canvas_t *self, e
     }
 }
 
+/**
+ * @brief Draw one vertical span directly into the current PFB tile.
+ */
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_vertical_span(egui_canvas_t *self, egui_color_t *pfb, egui_dim_t pfb_width, egui_dim_t pfb_ofs_x,
                                                                   egui_dim_t pfb_ofs_y, egui_dim_t clip_x_start, egui_dim_t clip_x_end, egui_dim_t clip_y_start,
                                                                   egui_dim_t clip_y_end, egui_dim_t screen_x, egui_dim_t seg_y_start, egui_dim_t seg_y_end,
@@ -598,6 +719,13 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_vertical_span(egui_canvas_t 
     }
 }
 
+/**
+ * @brief Draw a rectangle directly into the current PFB tile row by row.
+ *
+ * Higher-level shape renderers use this helper once they know the draw does
+ *
+ * not need mask processing.
+ */
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_rect(egui_canvas_t *self, egui_color_t *pfb, egui_dim_t pfb_width, egui_dim_t pfb_ofs_x,
                                                          egui_dim_t pfb_ofs_y, egui_dim_t clip_x_start, egui_dim_t clip_x_end, egui_dim_t clip_y_start,
                                                          egui_dim_t clip_y_end, egui_dim_t rect_x, egui_dim_t rect_y, egui_dim_t rect_width,
@@ -625,6 +753,16 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_rect(egui_canvas_t *self, eg
     }
 }
 
+/**
+ * @brief Blend one anti-aliased edge interval of a quarter-circle stroke.
+ *
+ * For one scan row of the outer quarter circle, this helper walks the
+ * partial
+ * coverage zone near the ring boundary. If the corresponding inner circle is
+ * already fully opaque at a pixel, that pixel is skipped so only the
+ * visible
+ * stroke rim remains.
+ */
 static void egui_canvas_draw_circle_corner_stroke_edge_direct_row(egui_canvas_t *self, egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t clip_x_start,
                                                                   egui_dim_t clip_x_end, egui_dim_t center_x, egui_dim_t radius, int type, egui_dim_t row_index,
                                                                   egui_dim_t stroke_width, egui_dim_t col_start, egui_dim_t col_end,
@@ -702,6 +840,19 @@ static void egui_canvas_draw_circle_corner_stroke_edge_direct_row(egui_canvas_t 
     }
 }
 
+/**
+ * @brief Fast direct-PFB rasterization for a quarter-circle outline.
+ *
+ * Each visible row is split into:
+ * - an anti-aliased outer edge,
+ * - a fully
+ * solid middle span,
+ * - an anti-aliased inner edge where the hollow center begins.
+ *
+ * This avoids per-pixel API calls when no mask is active, which is the
+ * common
+ * path for rounded borders and circle outlines.
+ */
 static void egui_canvas_draw_circle_corner_direct_stroke(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t radius, egui_dim_t stroke_width, int type,
                                                          egui_color_t color, egui_alpha_t alpha, const egui_region_t *region,
                                                          const egui_region_t *region_intersect, const egui_circle_info_t *info,
@@ -920,6 +1071,14 @@ static void egui_canvas_draw_circle_corner_direct_stroke(egui_canvas_t *self, eg
 }
 
 #if defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) && EGUI_CONFIG_CIRCLE_FILL_BASIC
+/**
+ * @brief Fast direct-PFB fill path for one quarter circle.
+ *
+ * The precomputed quarter-circle table provides the anti-aliased edge pixels.
+ * Past the
+ * last fractional pixel in each row, the function emits horizontal or
+ * vertical solid spans, and finally fills the remaining inner square block.
+ */
 static void egui_canvas_draw_circle_corner_fill_direct(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int type,
                                                        egui_color_t color, egui_alpha_t alpha, const egui_circle_info_t *info, egui_dim_t row_start,
                                                        egui_dim_t row_end, egui_dim_t col_start, egui_dim_t col_end, egui_dim_t iter_start, egui_dim_t iter_end,
@@ -1130,6 +1289,18 @@ static void egui_canvas_draw_circle_corner_fill_direct(egui_canvas_t *self, egui
 }
 #endif
 
+/**
+ * @brief Draw a filled quarter circle using the precomputed circle table.
+ *
+ * Reading tip:
+ * - The function first clips the requested corner against the
+ * current work
+ *   region and resolves the circle metadata for the radius.
+ * - On builds with `EGUI_CONFIG_CIRCLE_FILL_BASIC`, a fast direct-PFB path is
+ *
+ * used whenever masking is not required.
+ * - Otherwise it falls back to the older point/line based implementation.
+ */
 void egui_canvas_draw_circle_corner_fill(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int type, egui_color_t color,
                                          egui_alpha_t alpha)
 {
@@ -1650,6 +1821,13 @@ void egui_canvas_draw_circle_corner_fill(egui_canvas_t *self, egui_dim_t center_
 }
 
 #if defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) && EGUI_CONFIG_CIRCLE_FILL_BASIC
+/**
+ * @brief Blend one circle-edge row directly into the current PFB row.
+ *
+ * This helper is used by the full-circle fill routine once it has already
+ *
+ * derived the visible X interval for the current row.
+ */
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_direct_row(egui_canvas_t *self, egui_color_t *dst_row, egui_dim_t pfb_ofs_x,
                                                                                egui_dim_t clip_x_start, egui_dim_t clip_x_end, egui_dim_t base_x,
                                                                                egui_dim_t screen_x_start, egui_dim_t screen_x_end, egui_dim_t row_index,
@@ -1691,6 +1869,13 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_direct_row(e
     }
 }
 
+/**
+ * @brief Mask-aware variant of the circle-edge row helper.
+ *
+ * It emits only the anti-aliased edge portion and delegates each pixel through
+ *
+ * `egui_canvas_draw_point_limit`, so any active mask remains respected.
+ */
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_row(egui_canvas_t *self, egui_dim_t screen_y, egui_dim_t clip_x_start,
                                                                         egui_dim_t clip_x_end, egui_dim_t base_x, egui_dim_t screen_x_start,
                                                                         egui_dim_t screen_x_end, egui_dim_t row_index, egui_dim_t total_width, int mirrored,
@@ -1727,6 +1912,15 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_row(egui_can
     }
 }
 
+/**
+ * @brief Derive the row layout for the basic full-circle fill renderer.
+ *
+ * For one row in the quarter-circle table, the function returns:
+ * - the first
+ * visible column with fractional coverage,
+ * - the first fully opaque column,
+ * - the mirrored end of the solid interior span.
+ */
 __EGUI_STATIC_INLINE__ void egui_canvas_get_circle_fill_basic_row_layout_fast(egui_canvas_t *self, egui_dim_t radius, egui_dim_t row_index,
                                                                               const egui_circle_info_t *info, const egui_circle_item_t *items,
                                                                               egui_dim_t *start_offset, egui_dim_t *fill_start, egui_dim_t *fill_end)
@@ -1760,6 +1954,13 @@ __EGUI_STATIC_INLINE__ void egui_canvas_get_circle_fill_basic_row_layout_fast(eg
 }
 #endif
 
+/**
+ * @brief Legacy full-circle fill built by composing four quarter fills.
+ *
+ * This variant is kept as a smaller-code fallback when the newer basic fill
+ *
+ * path is disabled at compile time.
+ */
 static void egui_canvas_draw_circle_fill_basic_legacy(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color,
                                                       egui_alpha_t alpha)
 {
@@ -1775,6 +1976,13 @@ static void egui_canvas_draw_circle_fill_basic_legacy(egui_canvas_t *self, egui_
 
 /* egui_canvas_get_circle_corner_value moved to egui_canvas.h for reuse by gradient code */
 
+/**
+ * @brief Sample the alpha contribution of the left-top quarter circle at one point.
+ *
+ * The function is primarily used by higher-level composition
+ * helpers that need
+ * quarter-circle coverage without drawing it immediately.
+ */
 int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha)
 {
 
@@ -1830,6 +2038,9 @@ int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, eg
     return 1;
 }
 
+/**
+ * @brief Sample the alpha contribution of the left-bottom quarter circle.
+ */
 int egui_canvas_get_circle_left_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha)
 {
 
@@ -1885,6 +2096,9 @@ int egui_canvas_get_circle_left_bottom(egui_dim_t center_x, egui_dim_t center_y,
     return 1;
 }
 
+/**
+ * @brief Sample the alpha contribution of the right-top quarter circle.
+ */
 int egui_canvas_get_circle_right_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha)
 {
 
@@ -1941,6 +2155,9 @@ int egui_canvas_get_circle_right_top(egui_dim_t center_x, egui_dim_t center_y, e
     return 1;
 }
 
+/**
+ * @brief Sample the alpha contribution of the right-bottom quarter circle.
+ */
 int egui_canvas_get_circle_right_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha)
 {
 
@@ -1997,6 +2214,14 @@ int egui_canvas_get_circle_right_bottom(egui_dim_t center_x, egui_dim_t center_y
     return 1;
 }
 
+/**
+ * @brief Draw the outline of one quarter circle.
+ *
+ * If the stroke width covers the whole radius, the quarter circle degenerates
+ * into a filled corner
+ * and the fill helper is reused. Otherwise the function
+ * resolves both the outer and inner circle tables and draws the visible ring.
+ */
 void egui_canvas_draw_circle_corner(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, int type,
                                     egui_color_t color, egui_alpha_t alpha)
 {
@@ -2201,6 +2426,13 @@ typedef struct
     egui_dim_t x_arc_allow_max;
 } egui_canvas_arc_scan_state_t;
 
+/**
+ * @brief Round a non-negative Q8 X coordinate upward to the next pixel index.
+ *
+ * Arc fill code uses this when converting an angular boundary from
+ * fixed-point
+ * space into the first pixel that is guaranteed to be fully inside the sector.
+ */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_arc_fill_basic_qx_ceil_nonnegative(egui_canvas_t *self, int32_t value_q8)
 {
     if (value_q8 <= 0)
@@ -2211,6 +2443,13 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_arc_fill_basic_qx_ceil_nonnegative
     return (egui_dim_t)((value_q8 + ((1 << ARC_INT_Q8_SHIFT) - 1)) >> ARC_INT_Q8_SHIFT);
 }
 
+/**
+ * @brief Floor a non-negative Q8 X coordinate and report whether it is valid.
+ *
+ * Returning `0` means the fixed-point value was negative, so the caller
+ * should
+ * treat the row as having no fully opaque span on that side.
+ */
 __EGUI_STATIC_INLINE__ int egui_canvas_arc_fill_basic_qx_floor_nonnegative(egui_canvas_t *self, int32_t value_q8, egui_dim_t *result)
 {
     if (value_q8 < 0)
@@ -2222,6 +2461,14 @@ __EGUI_STATIC_INLINE__ int egui_canvas_arc_fill_basic_qx_floor_nonnegative(egui_
     return 1;
 }
 
+/**
+ * @brief Initialize the per-row scan state for one quarter-arc raster pass.
+ *
+ * The state caches trigonometric values and the previous/current/next X
+ * limits
+ * for both angular edges, so each row can cheaply reuse them while scanning
+ * from the outer edge toward the center.
+ */
 static void egui_canvas_arc_prepare_scan_state(egui_canvas_t *self, egui_canvas_arc_scan_state_t *scan_state, egui_dim_t radius, int16_t start_angle,
                                                int16_t end_angle)
 {
@@ -2244,6 +2491,14 @@ static void egui_canvas_arc_prepare_scan_state(egui_canvas_t *self, egui_canvas_
     scan_state->x_arc_allow_max = EGUI_DIM_MAX;
 }
 
+/**
+ * @brief Compute the fully opaque X range for one quarter-arc row.
+ *
+ * The result excludes the angular anti-aliased transition width at both arc
+ *
+ * boundaries, so callers can safely emit one solid span without per-pixel
+ * angle tests.
+ */
 __EGUI_STATIC_INLINE__ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range_core(egui_canvas_t *self, egui_dim_t radius, egui_dim_t qy,
                                                                                       int16_t start_angle, int16_t end_angle, egui_dim_t *qx_min,
                                                                                       egui_dim_t *qx_max)
@@ -2296,6 +2551,13 @@ __EGUI_STATIC_INLINE__ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range
     return 1;
 }
 
+/**
+ * @brief Public wrapper that validates inputs for arc-row opaque span queries.
+ *
+ * This helper is used by tests and by the renderer to confirm which
+ * pixels in
+ * one quarter-row belong to the arc sector without any angular AA blending.
+ */
 int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_canvas_t *self, egui_dim_t radius, egui_dim_t qy, int16_t start_angle, int16_t end_angle,
                                                           egui_dim_t *qx_min, egui_dim_t *qx_max)
 {
@@ -2317,6 +2579,14 @@ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_canvas_t *self, e
     return egui_canvas_get_arc_fill_basic_row_angle_opaque_range_core(self, radius, qy, start_angle, end_angle, qx_min, qx_max);
 }
 
+/**
+ * @brief Convert signed distance to an arc edge into anti-aliased coverage.
+ *
+ * Values outside the transition band become fully transparent or opaque.
+ * The
+ * in-between region uses a smoothstep lookup table to avoid per-pixel floating
+ * point math while keeping the edge visually smooth.
+ */
 static egui_alpha_t arc_edge_smoothstep_alpha(int32_t signed_dist_q15)
 {
     // 1.5-pixel wide AA transition zone with smoothstep for smoother radial edges
@@ -2334,6 +2604,13 @@ static egui_alpha_t arc_edge_smoothstep_alpha(int32_t signed_dist_q15)
     return arc_edge_smoothstep_alpha_lut[(uint32_t)(signed_dist_q15 + ARC_AA_HALF_TRANSITION + 64) >> 7];
 }
 
+/**
+ * @brief Evaluate how much a point is covered by the two angular arc edges.
+ *
+ * The radial circle coverage is handled elsewhere. This function only
+ * measures
+ * the start-angle and end-angle clipping planes and mixes their alpha results.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t arc_get_point_alpha(egui_dim_t x, egui_dim_t y, const egui_canvas_arc_scan_state_t *scan_state)
 {
     egui_alpha_t alpha_start = EGUI_ALPHA_100;
@@ -2364,6 +2641,14 @@ __EGUI_STATIC_INLINE__ egui_alpha_t arc_get_point_alpha(egui_dim_t x, egui_dim_t
     return egui_color_alpha_mix(alpha_start, alpha_end);
 }
 
+/**
+ * @brief Reject or attenuate one arc pixel based on angular edge coverage.
+ *
+ * Fast-path bounds in `scan_state` let the caller skip obvious misses
+ * before
+ * computing the anti-aliased edge alpha. When the pixel lies in the transition
+ * band, the angular edge alpha is multiplied into `mix_alpha`.
+ */
 __EGUI_STATIC_INLINE__ int egui_canvas_arc_try_apply_edge_alpha(egui_canvas_t *self, const egui_canvas_arc_scan_state_t *scan_state, egui_dim_t sel_x,
                                                                 egui_dim_t sel_y, egui_alpha_t *mix_alpha)
 {
@@ -2393,6 +2678,18 @@ __EGUI_STATIC_INLINE__ int egui_canvas_arc_try_apply_edge_alpha(egui_canvas_t *s
     return 1;
 }
 
+/**
+ * @brief Fill one quarter of an arc sector.
+ *
+ * Reading tip:
+ * - Circle coverage still comes from the quarter-circle lookup table.
+ * - Angular clipping
+ * is applied by `scan_state`, which tracks the start/end
+ *   boundaries row by row in screen-space angle convention.
+ * - On the direct-PFB path, rows can
+ * emit one fully opaque horizontal span
+ *   before falling back to per-pixel AA work near the curved or angular edges.
+ */
 void egui_canvas_draw_arc_corner_fill(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
                                       int type, egui_color_t color, egui_alpha_t alpha)
 {
@@ -2713,14 +3010,11 @@ void egui_canvas_draw_arc_corner_fill(egui_canvas_t *self, egui_dim_t center_x, 
 }
 
 /**
- * \brief           Draw filled rectangle
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: Top left X position
- * \param[in]       y: Top left Y position
- * \param[in]       width: Rectangle width
- * \param[in]       height: Rectangle height
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_rectangle, egui_canvas_draw_round_rectangle, egui_canvas_draw_round_rectangle_fill
+ * @brief Public API for a solid axis-aligned rectangle.
+ *
+ * This is a thin wrapper over `egui_canvas_draw_fillrect`, kept as the
+ * user-facing primitive
+ * name in the canvas API.
  */
 void egui_canvas_draw_rectangle_fill(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
                                      egui_alpha_t alpha)
@@ -2735,14 +3029,11 @@ void egui_canvas_draw_rectangle_fill(egui_canvas_t *self, egui_dim_t x, egui_dim
 }
 
 /**
- * \brief           Draw rectangle
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: Top left X position
- * \param[in]       y: Top left Y position
- * \param[in]       width: Rectangle width
- * \param[in]       height: Rectangle height
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_rectangle_fill, egui_canvas_draw_round_rectangle, egui_canvas_draw_round_rectangle_fill
+ * @brief Draw a rectangle outline by composing four filled edge strips.
+ *
+ * If the requested stroke is too thick to leave an inner hole, the function
+ *
+ * intentionally falls back to `egui_canvas_draw_rectangle_fill`.
  */
 void egui_canvas_draw_rectangle(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t stroke_width,
                                 egui_color_t color, egui_alpha_t alpha)
@@ -2768,15 +3059,15 @@ void egui_canvas_draw_rectangle(egui_canvas_t *self, egui_dim_t x, egui_dim_t y,
 }
 
 /**
- * \brief           Draw filled rectangle with rounded corners
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: Top left X position
- * \param[in]       y: Top left Y position
- * \param[in]       width: Rectangle width
- * \param[in]       height: Rectangle height
- * \param[in]       r: Corner radius, max value can be r = MIN(width, height) / 2
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_rectangle, egui_canvas_draw_rectangle_fill, egui_canvas_draw_round_rectangle
+ * @brief Fill a round rectangle with one shared corner radius.
+ *
+ * Reading tip:
+ * - The radius is clamped to geometry first.
+ * - Exact circle cases are
+ * redirected to `egui_canvas_draw_circle_fill`.
+ * - Otherwise the shape is built from one center rectangle, two side
+ *   rectangles, and four quarter-circle
+ * fills.
  */
 void egui_canvas_draw_round_rectangle_fill(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius,
                                            egui_color_t color, egui_alpha_t alpha)
@@ -2816,15 +3107,12 @@ void egui_canvas_draw_round_rectangle_fill(egui_canvas_t *self, egui_dim_t x, eg
 }
 
 /**
- * \brief           Draw rectangle with rounded corners
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: Top left X position
- * \param[in]       y: Top left Y position
- * \param[in]       width: Rectangle width
- * \param[in]       height: Rectangle height
- * \param[in]       r: Corner radius, max value can be r = MIN(width, height) / 2
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_rectangle, egui_canvas_draw_rectangle_fill, egui_canvas_draw_round_rectangle_fill
+ * @brief Draw a round-rectangle outline with one shared corner radius.
+ *
+ * The implementation mirrors the fill version, but the center area is replaced
+
+ * * by edge strips and quarter-circle stroke segments. If the geometry collapses,
+ * it degrades to the filled variant.
  */
 void egui_canvas_draw_round_rectangle(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius,
                                       egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
@@ -2873,15 +3161,15 @@ void egui_canvas_draw_round_rectangle(egui_canvas_t *self, egui_dim_t x, egui_di
 }
 
 /**
- * \brief           Draw filled rectangle with rounded corners
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: Top left X position
- * \param[in]       y: Top left Y position
- * \param[in]       width: Rectangle width
- * \param[in]       height: Rectangle height
- * \param[in]       r: Corner radius, max value can be r = MIN(width, height) / 2
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_rectangle, egui_canvas_draw_rectangle_fill, egui_canvas_draw_round_rectangle
+ * @brief Fill a rectangle whose four corners may use different radii.
+ *
+ * The body is stitched from:
+ * - up to four quarter-circle fills,
+ * - one
+ * middle rectangle spanning the full height,
+ * - left and right side rectangles plus small compensation rectangles when the
+ *   top and bottom radii on one
+ * side differ.
  */
 void egui_canvas_draw_round_rectangle_corners_fill(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
                                                    egui_dim_t radius_left_top, egui_dim_t radius_left_bottom, egui_dim_t radius_right_top,
@@ -2965,15 +3253,13 @@ void egui_canvas_draw_round_rectangle_corners_fill(egui_canvas_t *self, egui_dim
 }
 
 /**
- * \brief           Draw filled rectangle with rounded corners
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: Top left X position
- * \param[in]       y: Top left Y position
- * \param[in]       width: Rectangle width
- * \param[in]       height: Rectangle height
- * \param[in]       r: Corner radius, max value can be r = MIN(width, height) / 2
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_rectangle, egui_canvas_draw_rectangle_fill, egui_canvas_draw_round_rectangle
+ * @brief Draw a stroked rectangle with independent radii on all four corners.
+ *
+ * This variant combines per-corner quarter-circle strokes with straight
+ * edge
+ * strips. Additional compensation rectangles are emitted when a side radius is
+ * smaller than the stroke width so the outline remains visually
+ * continuous.
  */
 void egui_canvas_draw_round_rectangle_corners(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius_left_top,
                                               egui_dim_t radius_left_bottom, egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
@@ -3066,13 +3352,18 @@ void egui_canvas_draw_round_rectangle_corners(egui_canvas_t *self, egui_dim_t x,
 }
 
 /**
- * \brief           Draw filled circle
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: X position of circle center
- * \param[in]       y: X position of circle center
- * \param[in]       r: Circle radius
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_circle_basic, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
+ * @brief Fill a full circle with the row-based basic renderer.
+ *
+ * After clipping, each visible row is decomposed into:
+ * - a left anti-aliased edge
+ * span,
+ * - one solid center span,
+ * - a mirrored right anti-aliased edge span.
+ *
+ * Tiny clipped regions may still fall back to the legacy four-corner
+ *
+ * composition path because that can be cheaper than setting up the fast row
+ * renderer for very small visible areas.
  */
 void egui_canvas_draw_circle_fill_basic(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color,
                                         egui_alpha_t alpha)
@@ -3196,6 +3487,14 @@ void egui_canvas_draw_circle_fill_basic(egui_canvas_t *self, egui_dim_t center_x
 #endif
 }
 
+/**
+ * @brief Check whether a global arc sweep stays inside a single quadrant.
+ *
+ * If it does, the function also converts the angles into the local 0..90
+ *
+ * coordinate system expected by the quarter-arc helpers and returns which
+ * quarter-circle type should be used.
+ */
 static int egui_canvas_arc_try_get_single_quadrant(egui_canvas_t *self, int16_t start_angle, int16_t end_angle, int *type, int16_t *start_angle_local,
                                                    int16_t *end_angle_local)
 {
@@ -3240,13 +3539,18 @@ static int egui_canvas_arc_try_get_single_quadrant(egui_canvas_t *self, int16_t 
 }
 
 /**
- * \brief           Draw filled circle
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: X position of circle center
- * \param[in]       y: X position of circle center
- * \param[in]       r: Circle radius
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_circle_basic, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
+ * @brief Fill an arbitrary arc sector by splitting it into quadrant pieces.
+ *
+ * Angles use the canvas screen-space convention:
+ * - `0` degrees points
+ * right,
+ * - `90` down,
+ * - `180` left,
+ * - `270` up.
+ *
+ * The helper reuses the quarter-arc fill routine for each covered quadrant and
+ * adds the
+ * straight axis spokes needed when the sweep crosses a cardinal angle.
  */
 void egui_canvas_draw_arc_fill_basic(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
                                      egui_color_t color, egui_alpha_t alpha)
@@ -3384,13 +3688,11 @@ void egui_canvas_draw_arc_fill_basic(egui_canvas_t *self, egui_dim_t center_x, e
 }
 
 /**
- * \brief           Draw circle
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: X position of circle center
- * \param[in]       y: X position of circle center
- * \param[in]       r: Circle radius
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_circle_fill_basic, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
+ * @brief Draw a full circle outline from four quarter-circle outlines.
+ *
+ * The quarter helpers handle the curved ring segments. This wrapper only adds
+ *
+ * the straight center cross pieces that connect the four quadrants cleanly.
  */
 void egui_canvas_draw_circle_basic(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width,
                                    egui_color_t color, egui_alpha_t alpha)
@@ -3416,6 +3718,15 @@ void egui_canvas_draw_circle_basic(egui_canvas_t *self, egui_dim_t center_x, egu
     egui_canvas_draw_vline(self, center_x, center_y + radius - stroke_width + 1, stroke_width, color, alpha);
 }
 
+/**
+ * @brief Draw one quarter of an arc outline.
+ *
+ * This is the ring equivalent of `egui_canvas_draw_arc_corner_fill`: it uses
+ * the outer quarter-circle
+ * table for coverage, subtracts the inner circle for
+ * stroke thickness, and then clips the remaining pixels against the angular
+ * start/end edges.
+ */
 void egui_canvas_draw_arc_corner(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
                                  int stroke_width, int type, egui_color_t color, egui_alpha_t alpha)
 {
@@ -3737,13 +4048,12 @@ void egui_canvas_draw_arc_corner(egui_canvas_t *self, egui_dim_t center_x, egui_
 }
 
 /**
- * \brief           Draw filled circle
- * \param[in,out]   self: Pointer to \ref egui_canvas_t structure for display operations
- * \param[in]       x: X position of circle center
- * \param[in]       y: X position of circle center
- * \param[in]       r: Circle radius
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_circle_basic, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
+ * @brief Draw an arbitrary arc outline by splitting it into quadrant-local work.
+ *
+ * For each covered quadrant the function delegates to
+ *
+ * `egui_canvas_draw_arc_corner`, then adds straight axis-aligned stroke spans
+ * whenever the sweep crosses `0`, `90`, `180`, or `270` degrees.
  */
 void egui_canvas_draw_arc_basic(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
                                 egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
@@ -3946,44 +4256,75 @@ void egui_canvas_test_circle(void)
 }
 #endif
 
+/**
+ * @brief Dispatch text drawing to the selected font backend.
+ */
 void egui_canvas_draw_text(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
     font->api->draw_string(font, self, string, x, y, color, alpha);
 }
 
+/**
+ * @brief Draw aligned text inside a rectangle with explicit extra line spacing.
+ */
 void egui_canvas_draw_text_in_rect_with_line_space(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type,
                                                    egui_dim_t line_space, egui_color_t color, egui_alpha_t alpha)
 {
     egui_font_draw_string_in_rect(font, self, string, rect, align_type, line_space, color, alpha);
 }
 
+/**
+ * @brief Draw aligned text inside a rectangle using the default line spacing.
+ */
 void egui_canvas_draw_text_in_rect(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type,
                                    egui_color_t color, egui_alpha_t alpha)
 {
     egui_font_draw_string_in_rect(font, self, string, rect, align_type, 0, color, alpha);
 }
 
+/**
+ * @brief Draw an image at its natural size.
+ */
 void egui_canvas_draw_image(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y)
 {
     egui_image_draw_image(img, self, x, y);
 }
 
+/**
+ * @brief Draw an image scaled to the requested size.
+ */
 void egui_canvas_draw_image_resize(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     egui_image_draw_image_resize(img, self, x, y, width, height);
 }
 
+/**
+ * @brief Draw an image with an extra color and alpha modulation.
+ */
 void egui_canvas_draw_image_color(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
     egui_image_draw_image_color(img, self, x, y, color, alpha);
 }
 
+/**
+ * @brief Draw a scaled image with color and alpha modulation.
+ */
 void egui_canvas_draw_image_resize_color(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
                                          egui_color_t color, egui_alpha_t alpha)
 {
     egui_image_draw_image_resize_color(img, self, x, y, width, height, color, alpha);
 }
 
+/**
+ * @brief Derive the active work region for the current draw pass.
+ *
+ * The result is the intersection of the view region, the current PFB tile, and
+ * the
+ * optional extra clip region. The function then converts that intersection
+ * into base-view coordinates so all later primitive draws use one coordinate
+ *
+ * space consistently.
+ */
 void egui_canvas_calc_work_region(egui_canvas_t *self, egui_region_t *base_region)
 {
 
@@ -4013,6 +4354,9 @@ void egui_canvas_calc_work_region(egui_canvas_t *self, egui_region_t *base_regio
     self->pfb_location_in_base_view.y = self->pfb_region.location.y - base_region->location.y;
 }
 
+/**
+ * @brief Register optional runtime circle metadata tables for custom radii.
+ */
 void egui_canvas_register_spec_circle_info(egui_canvas_t *self, uint16_t res_circle_info_count_spec, const egui_circle_info_t *res_circle_info_spec_arr)
 {
 #if EGUI_CONFIG_FUNCTION_CANVAS_SPEC_CIRCLE_INFO
@@ -4024,6 +4368,9 @@ void egui_canvas_register_spec_circle_info(egui_canvas_t *self, uint16_t res_cir
 #endif
 }
 
+/**
+ * @brief Return the core that currently owns this canvas.
+ */
 egui_core_t *egui_canvas_get_core(egui_canvas_t *self)
 {
     if (self == NULL)
@@ -4034,6 +4381,13 @@ egui_core_t *egui_canvas_get_core(egui_canvas_t *self)
     return self->core;
 }
 
+/**
+ * @brief Initialize a canvas around one PFB tile and reset per-draw defaults.
+ *
+ * `egui_canvas_calc_work_region` is called later for each draw pass to
+ * derive
+ * the tile-local work area from the current base view.
+ */
 void egui_canvas_init(egui_canvas_t *self, egui_core_t *core, egui_color_int_t *pfb, egui_region_t *region)
 {
     self->core = core;

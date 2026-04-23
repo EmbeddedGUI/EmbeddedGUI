@@ -11,6 +11,13 @@
 #include "font/egui_font_std.h"
 #include "core/egui_trig_lut.h"
 
+/**
+ * @brief Return sine in Q15 format for any degree angle.
+ *
+ * The lookup table only stores 0..90 degrees, so this helper folds the input
+ * angle into the
+ * first quadrant and restores the sign afterwards.
+ */
 static int32_t transform_sin_q15(int32_t deg)
 {
     deg = ((deg % 360) + 360) % 360;
@@ -27,11 +34,17 @@ static int32_t transform_sin_q15(int32_t deg)
     return egui_trig_float_to_q15(egui_trig_sin_lut[deg]) * sign;
 }
 
+/**
+ * @brief Return cosine in Q15 format by reusing the sine helper.
+ */
 static int32_t transform_cos_q15(int32_t deg)
 {
     return transform_sin_q15(deg + 90);
 }
 
+/**
+ * @brief Normalize any degree value into the [0, 360) range.
+ */
 static int16_t transform_normalize_angle_deg(int32_t deg)
 {
     deg %= 360;
@@ -42,11 +55,21 @@ static int16_t transform_normalize_angle_deg(int32_t deg)
     return (int16_t)deg;
 }
 
+/**
+ * @brief Clamp invalid Q8 scale inputs back to 1.0x.
+ */
 static int16_t transform_sanitize_scale_q8(int16_t scale_q8)
 {
     return scale_q8 > 0 ? scale_q8 : 256;
 }
 
+/**
+ * @brief Convert a start+sweep arc request into the start/end range used below.
+ *
+ * Negative sweeps are flipped into the equivalent positive interval so
+ * all
+ * public sweep wrappers can share the same downstream arc renderer.
+ */
 static int transform_prepare_arc_sweep_range(int16_t start_angle, int16_t sweep_angle, int16_t *draw_start, int16_t *draw_end)
 {
     int32_t start = start_angle;
@@ -78,6 +101,13 @@ static int transform_prepare_arc_sweep_range(int16_t start_angle, int16_t sweep_
     return 1;
 }
 
+/**
+ * @brief Apply the forward rotate-scale matrix to one offset vector.
+ *
+ * `dx` and `dy` are measured from the untransformed source center. The result
+ *
+ * tells callers where that offset lands after rotation and scaling.
+ */
 static void transform_compute_rotated_offset(int32_t dx, int32_t dy, int16_t angle_deg, int16_t scale_q8, int32_t *out_dx, int32_t *out_dy)
 {
     int32_t sinA = transform_sin_q15(angle_deg);
@@ -98,6 +128,13 @@ static void transform_compute_rotated_offset(int32_t dx, int32_t dy, int16_t ang
     }
 }
 
+/**
+ * @brief Convert a top-left anchor plus pivot into the transformed draw center.
+ *
+ * High-level rotate helpers anchor the source by its top-left corner,
+ * while the
+ * lower-level transform draw APIs expect the post-transform source center.
+ */
 static void transform_compute_center_from_anchor_pivot(egui_dim_t anchor_x, egui_dim_t anchor_y, egui_dim_t src_w, egui_dim_t src_h, egui_dim_t pivot_x,
                                                        egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_dim_t *center_x, egui_dim_t *center_y)
 {
@@ -118,11 +155,17 @@ static void transform_compute_center_from_anchor_pivot(egui_dim_t anchor_x, egui
     }
 }
 
+/**
+ * @brief Thin wrapper that lets image rotate helpers share size-query logic.
+ */
 static int transform_get_image_size(const egui_image_t *img, egui_dim_t *width, egui_dim_t *height)
 {
     return egui_image_get_size(img, width, height);
 }
 
+/**
+ * @brief Measure a non-empty text box before text rotation helpers proceed.
+ */
 static int transform_measure_text_box(const egui_font_t *font, const void *string, egui_dim_t *width, egui_dim_t *height)
 {
     egui_dim_t text_width = 0;
@@ -154,6 +197,9 @@ static int transform_measure_text_box(const egui_font_t *font, const void *strin
     return 1;
 }
 
+/**
+ * @brief Draw an arc using a sweep angle instead of explicit end angle.
+ */
 void egui_canvas_draw_arc_sweep(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle,
                                 egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
@@ -168,6 +214,9 @@ void egui_canvas_draw_arc_sweep(egui_canvas_t *self, egui_dim_t center_x, egui_d
     egui_canvas_draw_arc(self, center_x, center_y, radius, draw_start, draw_end, stroke_width, color, alpha);
 }
 
+/**
+ * @brief Fill an arc sector using a start angle plus sweep length.
+ */
 void egui_canvas_draw_arc_fill_sweep(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle,
                                      egui_color_t color, egui_alpha_t alpha)
 {
@@ -182,6 +231,9 @@ void egui_canvas_draw_arc_fill_sweep(egui_canvas_t *self, egui_dim_t center_x, e
     egui_canvas_draw_arc_fill(self, center_x, center_y, radius, draw_start, draw_end, color, alpha);
 }
 
+/**
+ * @brief Draw a round-capped HQ arc using a sweep angle API.
+ */
 void egui_canvas_draw_arc_round_cap_sweep_hq(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle,
                                              int16_t sweep_angle, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
@@ -196,6 +248,17 @@ void egui_canvas_draw_arc_round_cap_sweep_hq(egui_canvas_t *self, egui_dim_t cen
     egui_canvas_draw_arc_round_cap_hq(self, center_x, center_y, radius, draw_start, draw_end, stroke_width, color, alpha);
 }
 
+/**
+ * @brief Shared implementation for all rotated image entry points.
+ *
+ * It keeps the common policy in one place:
+ * - reject null images,
+ * - fast-path
+ * the identity transform,
+ * - measure the source,
+ * - convert anchor+pivot into transform center,
+ * - then call the heavy image transform renderer.
+ */
 static void transform_draw_image_rotate_pivot_impl(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
                                                    egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8)
 {
@@ -226,6 +289,9 @@ static void transform_draw_image_rotate_pivot_impl(egui_canvas_t *self, const eg
     egui_canvas_draw_image_transform(self, img, center_x, center_y, normalized_angle, final_scale);
 }
 
+/**
+ * @brief Rotate an image around its geometric center.
+ */
 void egui_canvas_draw_image_rotate(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg)
 {
     egui_dim_t image_w;
@@ -239,6 +305,9 @@ void egui_canvas_draw_image_rotate(egui_canvas_t *self, const egui_image_t *img,
     transform_draw_image_rotate_pivot_impl(self, img, x, y, image_w / 2, image_h / 2, angle_deg, 256);
 }
 
+/**
+ * @brief Rotate and scale an image around its geometric center.
+ */
 void egui_canvas_draw_image_rotate_scale(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
 {
     egui_dim_t image_w;
@@ -252,12 +321,22 @@ void egui_canvas_draw_image_rotate_scale(egui_canvas_t *self, const egui_image_t
     transform_draw_image_rotate_pivot_impl(self, img, x, y, image_w / 2, image_h / 2, angle_deg, scale_q8);
 }
 
+/**
+ * @brief Rotate and scale an image around a caller-specified pivot.
+ */
 void egui_canvas_draw_image_rotate_pivot(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y,
                                          int16_t angle_deg, int16_t scale_q8)
 {
     transform_draw_image_rotate_pivot_impl(self, img, x, y, pivot_x, pivot_y, angle_deg, scale_q8);
 }
 
+/**
+ * @brief Shared implementation for all rotated text entry points.
+ *
+ * The flow mirrors the image helpers, except the source bounds come from the
+ * font
+ * backend's text measurement callback.
+ */
 static void transform_draw_text_rotate_pivot_impl(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y,
                                                   egui_dim_t pivot_x, egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color,
                                                   egui_alpha_t alpha)
@@ -289,6 +368,9 @@ static void transform_draw_text_rotate_pivot_impl(egui_canvas_t *self, const egu
     egui_canvas_draw_text_transform(self, font, string, center_x, center_y, normalized_angle, final_scale, color, alpha);
 }
 
+/**
+ * @brief Rotate text around its measured bounding-box center.
+ */
 void egui_canvas_draw_text_rotate(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
                                   egui_color_t color, egui_alpha_t alpha)
 {
@@ -303,6 +385,9 @@ void egui_canvas_draw_text_rotate(egui_canvas_t *self, const egui_font_t *font, 
     transform_draw_text_rotate_pivot_impl(self, font, string, x, y, text_w / 2, text_h / 2, angle_deg, 256, color, alpha);
 }
 
+/**
+ * @brief Rotate and scale text around its measured bounding-box center.
+ */
 void egui_canvas_draw_text_rotate_scale(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
                                         int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
@@ -317,6 +402,9 @@ void egui_canvas_draw_text_rotate_scale(egui_canvas_t *self, const egui_font_t *
     transform_draw_text_rotate_pivot_impl(self, font, string, x, y, text_w / 2, text_h / 2, angle_deg, scale_q8, color, alpha);
 }
 
+/**
+ * @brief Rotate and scale text around a caller-specified pivot.
+ */
 void egui_canvas_draw_text_rotate_pivot(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
                                         egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {

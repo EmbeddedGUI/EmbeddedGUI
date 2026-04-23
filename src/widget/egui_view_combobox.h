@@ -11,9 +11,18 @@ extern "C" {
 
 #define EGUI_VIEW_COMBOBOX_PRESSED_NONE 0xFF
 
+/** Listener fired when the combobox commits a user-visible selection. */
 typedef void (*egui_view_on_combobox_selected_listener_t)(egui_view_t *self, uint8_t index);
 
 typedef struct egui_view_combobox egui_view_combobox_t;
+/**
+ * @brief Combobox widget state stored directly after the base view.
+ *
+ * The widget keeps its item arrays by reference, so callers normally provide
+ * static string tables. When expanded, the same view grows vertically instead
+ * of spawning a popup object, which keeps the runtime model small and easy to
+ * reason about on embedded targets.
+ */
 struct egui_view_combobox
 {
     egui_view_t base;
@@ -46,6 +55,9 @@ struct egui_view_combobox
 
 // ============== ComboBox Params ==============
 typedef struct egui_view_combobox_params egui_view_combobox_params_t;
+/**
+ * @brief Construction-time parameter block for one combobox.
+ */
 struct egui_view_combobox_params
 {
     egui_region_t region;
@@ -55,28 +67,47 @@ struct egui_view_combobox_params
     uint8_t current_index;
 };
 
+/** Build a parameter block with text items and no icon list. */
 #define EGUI_VIEW_COMBOBOX_PARAMS_INIT(_name, _x, _y, _w, _h, _items, _count, _index)                                                                          \
     static const egui_view_combobox_params_t _name = {                                                                                                         \
             .region = {{(_x), (_y)}, {(_w), (_h)}}, .items = (_items), .item_icons = NULL, .item_count = (_count), .current_index = (_index)}
 
+/** Apply a combobox parameter block after initialization. */
 void egui_view_combobox_apply_params(egui_view_t *self, const egui_view_combobox_params_t *params);
+/** Initialize a combobox and immediately apply its parameter block. */
 void egui_view_combobox_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_combobox_params_t *params);
 
+/** Register the callback fired when the user commits a selection. */
 void egui_view_combobox_set_on_selected_listener(egui_view_t *self, egui_view_on_combobox_selected_listener_t listener);
+/** Replace the item array and visible item count. The current index is clamped if needed. */
 void egui_view_combobox_set_items(egui_view_t *self, const char **items, uint8_t count);
+/** Set the optional icon array that parallels the item text array. */
 void egui_view_combobox_set_item_icons(egui_view_t *self, const char **item_icons);
+/** Change the current selection programmatically without firing the selection listener. */
 void egui_view_combobox_set_current_index(egui_view_t *self, uint8_t index);
+/** Return the currently selected item index. */
 uint8_t egui_view_combobox_get_current_index(egui_view_t *self);
+/** Return the text of the currently selected item, or NULL when there are no items. */
 const char *egui_view_combobox_get_current_text(egui_view_t *self);
+/** Limit how many items may be shown when the dropdown expands. */
 void egui_view_combobox_set_max_visible_items(egui_view_t *self, uint8_t max_items);
+/** Override the font used for item text and header text. */
 void egui_view_combobox_set_font(egui_view_t *self, const egui_font_t *font);
+/** Override the icon font used for item icons and expand/collapse arrows. */
 void egui_view_combobox_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Override the icons used for collapsed and expanded arrow states. Passing NULL restores defaults. */
 void egui_view_combobox_set_arrow_icons(egui_view_t *self, const char *expand_icon, const char *collapse_icon);
+/** Set the horizontal gap between an item icon and its text. */
 void egui_view_combobox_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Expand the dropdown if there is enough space to show at least one item. */
 void egui_view_combobox_expand(egui_view_t *self);
+/** Collapse the dropdown back to its header height. */
 void egui_view_combobox_collapse(egui_view_t *self);
+/** Return whether the combobox is currently expanded. */
 uint8_t egui_view_combobox_is_expanded(egui_view_t *self);
+/** Default draw hook used by the combobox API table. */
 void egui_view_combobox_on_draw(egui_view_t *self);
+/** Initialize the focusable combobox widget. */
 void egui_view_combobox_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

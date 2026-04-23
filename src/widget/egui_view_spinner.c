@@ -9,6 +9,18 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_spinner.c
+ * @brief Timer-driven loading spinner drawn as one rotating arc segment.
+ *
+ * The implementation is useful for learning
+ * partial invalidation on circular
+ * geometry: each timer tick invalidates only the union of the old and new arc.
+ */
+
+/**
+ * @brief Invalidate only the arc area touched by one rotation step.
+ */
 static void egui_view_spinner_invalidate_rotation_change(egui_view_t *self, egui_view_spinner_t *local, int16_t old_rotation_angle)
 {
     egui_region_t region;
@@ -80,6 +92,9 @@ static void egui_view_spinner_invalidate_rotation_change(egui_view_t *self, egui
     egui_view_invalidate_region(self, &dirty_region);
 }
 
+/**
+ * @brief Timer callback that advances the arc by a fixed angle step.
+ */
 static void egui_view_spinner_timer_callback(egui_timer_t *timer)
 {
     egui_view_spinner_t *local = (egui_view_spinner_t *)timer->user_data;
@@ -89,6 +104,9 @@ static void egui_view_spinner_timer_callback(egui_timer_t *timer)
     egui_view_spinner_invalidate_rotation_change((egui_view_t *)local, local, old_rotation_angle);
 }
 
+/**
+ * @brief Start or stop the spin timer depending on state and attachment.
+ */
 static void egui_view_spinner_update_timer(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
@@ -111,12 +129,18 @@ static void egui_view_spinner_update_timer(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Resume spinner timing when the widget becomes attached.
+ */
 static void egui_view_spinner_on_attach_to_window(egui_view_t *self)
 {
     egui_view_on_attach_to_window(self);
     egui_view_spinner_update_timer(self);
 }
 
+/**
+ * @brief Stop the timer before normal detach processing.
+ */
 static void egui_view_spinner_on_detach_from_window(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
@@ -125,6 +149,9 @@ static void egui_view_spinner_on_detach_from_window(egui_view_t *self)
     egui_view_on_detach_from_window(self);
 }
 
+/**
+ * @brief Begin rotating the spinner arc.
+ */
 void egui_view_spinner_start(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
@@ -135,6 +162,9 @@ void egui_view_spinner_start(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Freeze the spinner at its current angle.
+ */
 void egui_view_spinner_stop(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
@@ -145,6 +175,9 @@ void egui_view_spinner_stop(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Change the color used for the rotating arc.
+ */
 void egui_view_spinner_set_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
@@ -152,6 +185,9 @@ void egui_view_spinner_set_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Draw the spinner arc centered inside the work region.
+ */
 void egui_view_spinner_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
@@ -211,6 +247,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_spinner_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the spinner with default arc geometry and an idle timer.
+ */
 void egui_view_spinner_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_spinner_t);
@@ -231,12 +270,18 @@ void egui_view_spinner_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_spinner");
 }
 
+/**
+ * @brief Apply geometry from one spinner parameter block.
+ */
 void egui_view_spinner_apply_params(egui_view_t *self, const egui_view_spinner_params_t *params)
 {
     self->region = params->region;
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains spinner init and params.
+ */
 void egui_view_spinner_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_spinner_params_t *params)
 {
     egui_view_spinner_init(self, core);

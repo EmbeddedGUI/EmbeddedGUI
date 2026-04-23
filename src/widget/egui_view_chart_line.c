@@ -2,8 +2,20 @@
 #include "core/egui_core.h"
 #include "canvas/egui_canvas_gradient.h"
 
+/**
+ * @file egui_view_chart_line.c
+ * @brief Axis-based line chart widget with optional point markers.
+ *
+ * This module adds line-series rendering on top of
+ * the shared chart-axis base.
+ * It optimizes monotonic series with binary-search culling, keeps stack usage
+ * bounded for long polylines, and reuses the
+ * axis-base draw path for chrome.
+ */
+
 // ============== Line Drawing ==============
 
+/** Detect whether point X values are monotonic so binary-search culling is safe. */
 static int egui_view_chart_line_series_is_monotonic_increasing(const egui_chart_series_t *series)
 {
     if (series == NULL || series->point_count < 2)
@@ -22,6 +34,7 @@ static int egui_view_chart_line_series_is_monotonic_increasing(const egui_chart_
     return 1;
 }
 
+/** Return the first point index whose X value is greater than or equal to `target_x`. */
 static uint8_t egui_view_chart_line_series_lower_bound_x(const egui_chart_series_t *series, int16_t target_x)
 {
     uint8_t left = 0;
@@ -49,6 +62,7 @@ static uint8_t egui_view_chart_line_series_lower_bound_x(const egui_chart_series
     return left;
 }
 
+/** Return the first point index whose X value is strictly greater than `target_x`. */
 static uint8_t egui_view_chart_line_series_upper_bound_x(const egui_chart_series_t *series, int16_t target_x)
 {
     uint8_t left = 0;
@@ -76,6 +90,7 @@ static uint8_t egui_view_chart_line_series_upper_bound_x(const egui_chart_series
     return left;
 }
 
+/** Map one X-axis value into a plot-space pixel using the active viewport. */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_line_map_x_fast(int16_t data_x, egui_dim_t plot_x, int32_t plot_w_span, int16_t view_x_min, int32_t range_x)
 {
     if (range_x <= 0 || plot_w_span <= 0)
@@ -86,6 +101,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_line_map_x_fast(int16_t data_x
     return plot_x + (egui_dim_t)(((int32_t)data_x - (int32_t)view_x_min) * plot_w_span / range_x);
 }
 
+/** Map one Y-axis value into a plot-space pixel using the active viewport. */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_line_map_y_fast(int16_t data_y, egui_dim_t plot_y, int32_t plot_h_span, int16_t view_y_min, int32_t range_y)
 {
     if (range_y <= 0 || plot_h_span <= 0)
@@ -96,6 +112,16 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_line_map_y_fast(int16_t data_y
     return plot_y + plot_h_span - (egui_dim_t)(((int32_t)data_y - (int32_t)view_y_min) * plot_h_span / range_y);
 }
 
+/**
+ * @brief Find the minimal visible index span for a monotonic line series.
+ *
+ * `draw_start` and `draw_end` include one extra point around the visible X
+ *
+ * window so line segments that cross the clip boundary still connect cleanly.
+ * Marker indices stay tighter because isolated point markers do not need that
+ *
+ * extra overlap.
+ */
 static int egui_view_chart_line_get_visible_index_range(const egui_chart_series_t *series, const egui_region_t *plot_area, egui_dim_t work_x1,
                                                         egui_dim_t work_x2, int16_t view_x_min, int16_t view_x_max, uint8_t *draw_start, uint8_t *draw_end,
                                                         uint8_t *marker_start, uint8_t *marker_end)
@@ -171,6 +197,7 @@ static int egui_view_chart_line_get_visible_index_range(const egui_chart_series_
     return (*draw_start <= *draw_end) ? 1 : 0;
 }
 
+/** Convert the clipped plot rectangle back into a conservative visible Y-value range. */
 static int egui_view_chart_line_get_visible_data_y_range(const egui_region_t *plot_area, egui_dim_t work_y1, egui_dim_t work_y2, int16_t view_y_min,
                                                          int16_t view_y_max, int16_t *out_min, int16_t *out_max)
 {
@@ -219,6 +246,14 @@ static int egui_view_chart_line_get_visible_data_y_range(const egui_region_t *pl
     return 1;
 }
 
+/**
+ * @brief Draw line segments and optional markers inside the shared plot clip.
+ *
+ * Monotonic series use binary-search culling in X, all series use a
+ * Y-range
+ * rejection test for point markers, and long polylines are emitted in chunks so
+ * the temporary coordinate buffer stays bounded on the stack.
+ */
 static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -249,6 +284,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
         return;
     }
 
+    // Expand the clip by marker radius or stroke width so edge pixels are preserved.
     work_x1 = work->location.x - clip_expand;
     work_y1 = work->location.y - clip_expand;
     work_x2 = work->location.x + work->size.width + clip_expand;
@@ -274,6 +310,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
         uint8_t marker_end = 0;
         uint8_t has_visible_range = 0;
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+        // Enhanced draw builds add a radial highlight to each point marker.
         egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {
                 {.position = 0, .color = color_light},
@@ -317,7 +354,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
             continue;
         }
 
-// Build a bounded coordinate array to avoid large stack usage with long series.
+        // Build a bounded coordinate array to avoid large stack usage with long series.
 #define CHART_LINE_MAX_POLYLINE_POINTS 64
         uint8_t point_start = monotonic_increasing ? draw_start : 0;
         uint8_t point_end = monotonic_increasing ? draw_end : (uint8_t)(series->point_count - 1);
@@ -349,11 +386,12 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                     break;
                 }
 
+                // Reuse the last point as the first point of the next chunk to keep the polyline continuous.
                 chunk_start = (uint8_t)(chunk_start + pt_count - 1);
             }
         }
 
-        // Draw data point markers
+        // Draw point markers after the polyline so they stay visible on top of the stroke.
         if (local->point_radius > 0)
         {
             uint8_t marker_loop_start = 0;
@@ -409,6 +447,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
 
 // ============== API Table ==============
 
+/** API table that keeps the axis-base lifecycle and supplies line-series drawing. */
 const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_line_t) = {
         .base =
                 {
@@ -436,15 +475,15 @@ const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_line_t
 
 // ============== Init / Params ==============
 
+/** Initialize a line chart with stock stroke width, marker radius, and axis defaults. */
 void egui_view_chart_line_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_chart_line_t);
-    // call base class init
+    // Reuse the shared axis-chart setup before installing the line-specific API.
     egui_view_chart_axis_init(self, core);
-    // update api
     self->api = (const egui_view_api_t *)&EGUI_VIEW_API_TABLE_NAME(egui_view_chart_line_t);
 
-    // line chart defaults
+    // Clip expansion covers both the stroke width and the marker radius.
     local->line_width = 2;
     local->point_radius = 3;
     local->axis_base.clip_margin = local->point_radius + local->line_width;
@@ -452,12 +491,14 @@ void egui_view_chart_line_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_chart_line");
 }
 
+/** Apply only the view rectangle from one line-chart parameter block. */
 void egui_view_chart_line_apply_params(egui_view_t *self, const egui_view_chart_line_params_t *params)
 {
     self->region = params->region;
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the widget before applying its geometry. */
 void egui_view_chart_line_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_line_params_t *params)
 {
     egui_view_chart_line_init(self, core);
@@ -466,6 +507,7 @@ void egui_view_chart_line_init_with_params(egui_view_t *self, egui_core_t *core,
 
 // ============== Setters ==============
 
+/** Update the line stroke width and keep the clip-margin hint in sync. */
 void egui_view_chart_line_set_line_width(egui_view_t *self, uint8_t width)
 {
     EGUI_LOCAL_INIT(egui_view_chart_line_t);
@@ -474,6 +516,7 @@ void egui_view_chart_line_set_line_width(egui_view_t *self, uint8_t width)
     egui_view_invalidate(self);
 }
 
+/** Update the marker radius and keep the clip-margin hint in sync. */
 void egui_view_chart_line_set_point_radius(egui_view_t *self, uint8_t radius)
 {
     EGUI_LOCAL_INIT(egui_view_chart_line_t);

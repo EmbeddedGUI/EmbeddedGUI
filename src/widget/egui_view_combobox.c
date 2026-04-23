@@ -11,11 +11,34 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_combobox.c
+ * @brief Embedded-friendly combobox widget built as one self-expanding view.
+ *
+ * Learning path:
+ * - geometry helpers
+ * decide how many rows can fit under the current parent
+ *   clipping chain,
+ * - draw helpers render the collapsed header plus the optional visible rows,
+ * -
+ * touch and key handlers reuse the same current-index commit path.
+ */
+
+/**
+ * @brief Pick a default icon font for the arrow area from the available height.
+ */
 static const egui_font_t *egui_view_combobox_get_icon_font(egui_dim_t area_size)
 {
     return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
+/**
+ * @brief Resolve the icon font used for item icons and arrow glyphs.
+ *
+ * A widget-local override wins. Otherwise the helper falls back to the shared
+ *
+ * icon font chooser so applications do not have to configure icons manually.
+ */
 static const egui_font_t *egui_view_combobox_get_item_icon_font(egui_view_combobox_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
@@ -26,6 +49,9 @@ static const egui_font_t *egui_view_combobox_get_item_icon_font(egui_view_combob
     return egui_view_combobox_get_icon_font(area_size);
 }
 
+/**
+ * @brief Return the arrow glyph that matches the current expand state.
+ */
 static const char *egui_view_combobox_get_arrow_icon(egui_view_combobox_t *local, uint8_t is_expanded)
 {
     if (is_expanded)
@@ -36,6 +62,13 @@ static const char *egui_view_combobox_get_arrow_icon(egui_view_combobox_t *local
     return local->expand_icon;
 }
 
+/**
+ * @brief Estimate how much horizontal space one icon should reserve.
+ *
+ * The helper prefers the real glyph metrics, then falls back to a height-based
+ *
+ * guess so layout stays stable even when the icon font cannot report width.
+ */
 static egui_dim_t egui_view_combobox_get_content_icon_width(egui_view_combobox_t *local, egui_dim_t area_height, const char *icon)
 {
     const egui_font_t *icon_font = egui_view_combobox_get_item_icon_font(local, area_height);
@@ -79,6 +112,13 @@ static egui_dim_t egui_view_combobox_get_content_icon_width(egui_view_combobox_t
     return icon_width;
 }
 
+/**
+ * @brief Draw one row's icon and text inside the provided content rectangle.
+ *
+ * The icon consumes the leading width first, then the text is shifted
+ * right by
+ * `icon_text_gap`. Both the header row and expanded list rows reuse this path.
+ */
 static void egui_view_combobox_draw_item_content(egui_canvas_t *canvas, egui_view_combobox_t *local, const egui_region_t *rect, const char *icon,
                                                  const char *text, egui_color_t color, egui_alpha_t alpha)
 {
@@ -122,6 +162,9 @@ static void egui_view_combobox_draw_item_content(egui_canvas_t *canvas, egui_vie
     }
 }
 
+/**
+ * @brief Apply the user-visible row cap before any geometry fitting.
+ */
 static uint8_t egui_view_combobox_get_max_visible_count(const egui_view_combobox_t *local)
 {
     uint8_t visible_count = local->item_count;
@@ -132,6 +175,13 @@ static uint8_t egui_view_combobox_get_max_visible_count(const egui_view_combobox
     return visible_count;
 }
 
+/**
+ * @brief Convert one available height into the number of rows that can fit.
+ *
+ * The collapsed header always stays visible, so only the remaining height
+ * is
+ * divided by `item_height`.
+ */
 static uint8_t egui_view_combobox_get_visible_count_for_height(const egui_view_combobox_t *local, egui_dim_t total_height, uint8_t max_visible_count)
 {
     if (max_visible_count == 0 || local->item_height <= 0 || total_height <= local->collapsed_height)
@@ -148,6 +198,13 @@ static uint8_t egui_view_combobox_get_visible_count_for_height(const egui_view_c
     return fit_count;
 }
 
+/**
+ * @brief Find the lowest y-coordinate this dropdown may safely expand to.
+ *
+ * The search walks up the parent chain and intersects the usable content
+ * area
+ * of each ancestor, which keeps the expanded list inside clipping bounds.
+ */
 static egui_dim_t egui_view_combobox_get_available_bottom(egui_view_t *self)
 {
     egui_dim_t available_bottom = EGUI_CONFIG_SCEEN_HEIGHT;
@@ -173,6 +230,9 @@ static egui_dim_t egui_view_combobox_get_available_bottom(egui_view_t *self)
     return available_bottom;
 }
 
+/**
+ * @brief Return how many rows can be shown if the dropdown expands now.
+ */
 static uint8_t egui_view_combobox_get_expand_fit_count(egui_view_t *self, const egui_view_combobox_t *local)
 {
     uint8_t max_visible_count = egui_view_combobox_get_max_visible_count(local);
@@ -192,12 +252,26 @@ static uint8_t egui_view_combobox_get_expand_fit_count(egui_view_t *self, const 
     return egui_view_combobox_get_visible_count_for_height(local, available_height, max_visible_count);
 }
 
+/**
+ * @brief Return how many rows fit in the combobox's current height.
+ *
+ * This is used after expansion because the widget height may already have been
+ *
+ * clamped to less than the theoretical maximum.
+ */
 static uint8_t egui_view_combobox_get_current_visible_count(egui_view_t *self, const egui_view_combobox_t *local)
 {
     uint8_t max_visible_count = egui_view_combobox_get_max_visible_count(local);
     return egui_view_combobox_get_visible_count_for_height(local, self->region.size.height, max_visible_count);
 }
 
+/**
+ * @brief Scroll the visible window so the current item stays near the bottom.
+ *
+ * There is no separate scroll state; the start index is derived directly
+ * from
+ * `current_index` and the number of visible rows.
+ */
 static uint8_t egui_view_combobox_get_visible_start_index(const egui_view_combobox_t *local, uint8_t visible_count)
 {
     uint8_t start_index = 0;
@@ -221,6 +295,13 @@ static uint8_t egui_view_combobox_get_visible_start_index(const egui_view_combob
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/**
+ * @brief Map one touch coordinate to either the header row or one list item.
+ *
+ * When expanded, the first row remains the header and the rest of the
+ * height is
+ * converted into a visible item index relative to the derived start window.
+ */
 static uint8_t egui_view_combobox_get_hit_target(egui_view_t *self, egui_view_combobox_t *local, egui_dim_t touch_x, egui_dim_t touch_y, uint8_t *is_header,
                                                  uint8_t *item_index)
 {
@@ -265,6 +346,9 @@ static uint8_t egui_view_combobox_get_hit_target(egui_view_t *self, egui_view_co
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+/**
+ * @brief Fire the user callback for the current selection when it is valid.
+ */
 static void egui_view_combobox_notify_selected(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -277,6 +361,13 @@ static void egui_view_combobox_notify_selected(egui_view_t *self)
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+/**
+ * @brief Update the current item, redraw if needed, and optionally notify.
+ *
+ * Both touch and keyboard handlers funnel through this helper so selection
+
+ * * rules stay consistent across input methods.
+ */
 static void egui_view_combobox_commit_current_index(egui_view_t *self, uint8_t index, uint8_t notify)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -481,6 +572,9 @@ uint8_t egui_view_combobox_is_expanded(egui_view_t *self)
     return local->is_expanded;
 }
 
+/**
+ * @brief Draw the expand/collapse arrow inside the reserved header slot.
+ */
 static void egui_view_combobox_draw_arrow(egui_canvas_t *canvas, egui_view_combobox_t *local, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
                                           uint8_t is_expanded, egui_color_t color, egui_alpha_t alpha)
 {
@@ -496,6 +590,13 @@ static void egui_view_combobox_draw_arrow(egui_canvas_t *canvas, egui_view_combo
     egui_canvas_draw_text_in_rect(canvas, icon_font, icon_text, &arrow_rect, EGUI_ALIGN_CENTER, color, alpha);
 }
 
+/**
+ * @brief Render the header and, when expanded, the visible item window.
+ *
+ * The current selection is repeated in the header, while the expanded list
+ *
+ * highlights the active row and derives the row window from the current index.
+ */
 void egui_view_combobox_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -661,6 +762,13 @@ void egui_view_combobox_on_draw(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/**
+ * @brief Handle press-drag-release selection for both header and list rows.
+ *
+ * The handler remembers which target was pressed so release only commits
+ * when
+ * the pointer ends on the same logical target, matching button semantics.
+ */
 int egui_view_combobox_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -739,6 +847,13 @@ int egui_view_combobox_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+/**
+ * @brief Support keyboard navigation and selection on focused comboboxes.
+ *
+ * Arrow keys move through items, Enter/Space toggle the expanded state, and
+
+ * * Home/End jump directly to the first or last item.
+ */
 static int egui_view_combobox_on_key_event(egui_view_t *self, egui_key_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -852,6 +967,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_combobox_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the combobox with its default theme-like values.
+ */
 void egui_view_combobox_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_combobox_t);
@@ -892,6 +1010,9 @@ void egui_view_combobox_init(egui_view_t *self, egui_core_t *core)
 #endif
 }
 
+/**
+ * @brief Apply a construction block and reset transient press bookkeeping.
+ */
 void egui_view_combobox_apply_params(egui_view_t *self, const egui_view_combobox_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -913,6 +1034,9 @@ void egui_view_combobox_apply_params(egui_view_t *self, const egui_view_combobox
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains init and parameter application.
+ */
 void egui_view_combobox_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_combobox_params_t *params)
 {
     egui_view_combobox_init(self, core);

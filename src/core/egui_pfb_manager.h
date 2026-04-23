@@ -16,8 +16,7 @@ extern "C" {
 
 /**
  * Draw parameters stored per ring entry.
- * When CPU submits a rendered tile, these params are saved so DMA ISR
- * can auto-chain the next transfer without CPU intervention.
+ * When CPU submits a rendered tile, these params are saved so DMA ISR can auto-chain the next transfer without CPU intervention.
  */
 typedef struct egui_pfb_flush_params
 {
@@ -38,12 +37,12 @@ typedef struct egui_pfb_flush_params
  */
 struct egui_pfb_manager
 {
-    egui_color_int_t *buffers[EGUI_PFB_BUFFER_MAX_COUNT];
-    egui_pfb_flush_params_t flush_params[EGUI_PFB_BUFFER_MAX_COUNT];
+    egui_color_int_t *buffers[EGUI_PFB_BUFFER_MAX_COUNT];            // ring of PFB storage blocks
+    egui_pfb_flush_params_t flush_params[EGUI_PFB_BUFFER_MAX_COUNT]; // draw parameters paired with each queued block
 
-    int16_t width;
-    int16_t height;
-    int buffer_size_bytes;
+    int16_t width;         // width of one PFB tile in pixels
+    int16_t height;        // height of one PFB tile in pixels
+    int buffer_size_bytes; // size of one PFB tile buffer in bytes
 
     uint8_t buffer_count;           // Total buffers configured (1..EGUI_CONFIG_PFB_BUFFER_COUNT)
     uint8_t render_idx;             // Next buffer for CPU to render into
@@ -52,7 +51,7 @@ struct egui_pfb_manager
     volatile uint8_t dma_busy;      // 1 if DMA transfer is in progress
     volatile uint8_t bus_locked;    // 1 if SPI bus is locked (e.g., flash access)
 
-    struct egui_core *core; // Back-pointer to owning core instance
+    struct egui_core *core; // back-pointer to the owning core instance
 };
 
 /**
@@ -135,16 +134,10 @@ void egui_pfb_manager_bus_release(egui_pfb_manager_t *mgr);
  */
 void egui_pfb_manager_set_backup_buffer(egui_pfb_manager_t *mgr, egui_color_int_t *backup);
 
-/**
- * Legacy: get active buffer pointer.
- * Returns buffers[render_idx].
- */
+/** Legacy: get the current render buffer pointer, equivalent to `buffers[render_idx]`. */
 egui_color_int_t *egui_pfb_manager_get_active(egui_pfb_manager_t *mgr);
 
-/**
- * Legacy: swap buffers (for backward compatibility with old double-buffer code).
- * In multi-buffer mode, this is a no-op — use submit/notify instead.
- */
+/** Legacy swap hook kept for old double-buffer call sites. Multi-buffer users should call submit/notify instead. */
 void egui_pfb_manager_swap(egui_pfb_manager_t *mgr);
 
 /* Ends C function definitions when using C++ */

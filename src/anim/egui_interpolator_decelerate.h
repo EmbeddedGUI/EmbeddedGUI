@@ -17,6 +17,9 @@ struct egui_interpolator_decelerate
                          // factor above 1.0f makes exaggerates the ease-out effect (i.e., it starts even faster and ends evens slower)
 };
 
+/** Set the decelerate factor. `1.0` gives a basic quadratic ease-out; larger values end more gently. */
+void egui_interpolator_decelerate_factor_set(egui_interpolator_t *self, egui_float_t factor);
+/** Initialize an ease-out interpolator. */
 void egui_interpolator_decelerate_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

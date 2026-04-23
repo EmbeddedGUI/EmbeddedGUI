@@ -7,10 +7,25 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_stepper.c
+ * @brief Step-progress widget layered on top of the page-indicator base widget.
+ *
+ * Learning path:
+ * - count and current
+ * index reuse page-indicator storage and setters,
+ * - dot mode directly reuses the page-indicator draw helper,
+ * - icon mode adds connectors plus a
+ * completed-step badge renderer.
+ */
+
 void egui_view_page_indicator_on_draw_dot(egui_view_t *self);
 
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_stepper_t);
 
+/**
+ * @brief Update the total step count, clamping it to at least one step.
+ */
 void egui_view_stepper_set_total_steps(egui_view_t *self, uint8_t total_steps)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -25,12 +40,18 @@ void egui_view_stepper_set_total_steps(egui_view_t *self, uint8_t total_steps)
     egui_view_page_indicator_set_total_count(self, total_steps);
 }
 
+/**
+ * @brief Return the total number of steps currently stored in the base indicator.
+ */
 uint8_t egui_view_stepper_get_total_steps(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     return local->total_count;
 }
 
+/**
+ * @brief Update the current active step and clamp it into the valid range.
+ */
 void egui_view_stepper_set_current_step(egui_view_t *self, uint8_t current_step)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -45,12 +66,18 @@ void egui_view_stepper_set_current_step(egui_view_t *self, uint8_t current_step)
     egui_view_page_indicator_set_current_index(self, current_step);
 }
 
+/**
+ * @brief Return the current active step index.
+ */
 uint8_t egui_view_stepper_get_current_step(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     return local->current_index;
 }
 
+/**
+ * @brief Switch between simple dot mode and icon-enhanced step mode.
+ */
 void egui_view_stepper_set_mark_style(egui_view_t *self, egui_view_stepper_mark_style_t style)
 {
     EGUI_LOCAL_INIT(egui_view_stepper_t);
@@ -63,6 +90,9 @@ void egui_view_stepper_set_mark_style(egui_view_t *self, egui_view_stepper_mark_
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Replace the icon glyph used for completed steps.
+ */
 void egui_view_stepper_set_completed_icon(egui_view_t *self, const char *icon)
 {
     EGUI_LOCAL_INIT(egui_view_stepper_t);
@@ -75,6 +105,9 @@ void egui_view_stepper_set_completed_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Override the icon font used for completed-step badges.
+ */
 void egui_view_stepper_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_stepper_t);
@@ -87,6 +120,9 @@ void egui_view_stepper_set_icon_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Draw connectors plus pending/current/completed step marks.
+ */
 static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -231,6 +267,9 @@ static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Dispatch to dot mode or icon-enhanced step mode.
+ */
 void egui_view_stepper_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_stepper_t);
@@ -261,6 +300,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_stepper_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the stepper by first initializing the page-indicator base.
+ */
 void egui_view_stepper_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_LOCAL_INIT(egui_view_stepper_t);
@@ -271,6 +313,9 @@ void egui_view_stepper_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_stepper");
 }
 
+/**
+ * @brief Apply geometry and initial step state from one parameter block.
+ */
 void egui_view_stepper_apply_params(egui_view_t *self, const egui_view_stepper_params_t *params)
 {
     uint8_t total_steps = params->total_steps;
@@ -291,6 +336,9 @@ void egui_view_stepper_apply_params(egui_view_t *self, const egui_view_stepper_p
     egui_view_page_indicator_apply_params(self, &indicator_params);
 }
 
+/**
+ * @brief Convenience initializer that chains stepper init and params.
+ */
 void egui_view_stepper_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_stepper_params_t *params)
 {
     egui_view_stepper_init(self, core);

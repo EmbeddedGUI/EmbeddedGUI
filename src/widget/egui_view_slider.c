@@ -12,6 +12,21 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_slider.c
+ * @brief Interactive horizontal slider built on shared linear-value geometry.
+ *
+ * Learning path:
+ * - logical values are
+ * clamped before drawing or callback dispatch,
+ * - touch handling converts screen x coordinates back into slider values,
+ * - value changes invalidate only
+ * the affected track span and thumb circles.
+ */
+
+/**
+ * @brief Resolve the effective maximum value, falling back to `100`.
+ */
 static uint8_t egui_view_slider_get_max_value(const egui_view_slider_t *local)
 {
     if (local == NULL || local->max_value == 0u)
@@ -22,6 +37,9 @@ static uint8_t egui_view_slider_get_max_value(const egui_view_slider_t *local)
     return local->max_value;
 }
 
+/**
+ * @brief Clamp one value into the slider's configured logical range.
+ */
 static uint8_t egui_view_slider_clamp_value(const egui_view_slider_t *local, uint8_t value)
 {
     uint8_t max_value = egui_view_slider_get_max_value(local);
@@ -29,6 +47,9 @@ static uint8_t egui_view_slider_clamp_value(const egui_view_slider_t *local, uin
     return value > max_value ? max_value : value;
 }
 
+/**
+ * @brief Convert a logical slider value into a percentage used by drawing helpers.
+ */
 static uint8_t egui_view_slider_value_to_percent(const egui_view_slider_t *local, uint8_t value)
 {
     uint8_t max_value = egui_view_slider_get_max_value(local);
@@ -42,6 +63,9 @@ static uint8_t egui_view_slider_value_to_percent(const egui_view_slider_t *local
     return (uint8_t)(((uint32_t)value * 100u + (uint32_t)max_value / 2u) / (uint32_t)max_value);
 }
 
+/**
+ * @brief Register the callback fired after value changes.
+ */
 void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view_on_value_changed_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
@@ -49,6 +73,9 @@ void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/**
+ * @brief Convert a percentage back into the slider's logical value range.
+ */
 static uint8_t egui_view_slider_percent_to_value(const egui_view_slider_t *local, uint8_t percent)
 {
     uint8_t max_value = egui_view_slider_get_max_value(local);
@@ -68,6 +95,9 @@ static uint8_t egui_view_slider_percent_to_value(const egui_view_slider_t *local
     return egui_view_slider_clamp_value(local, value);
 }
 
+/**
+ * @brief Compute thumb position and radius for one slider value.
+ */
 static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_slider_t *local, uint8_t value, egui_dim_t *out_thumb_x, egui_dim_t *out_thumb_y,
                                                   egui_dim_t *out_thumb_radius)
 {
@@ -107,6 +137,9 @@ static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_s
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/**
+ * @brief Compute the thumb dirty region used for pressed-state refreshes.
+ */
 static uint8_t egui_view_slider_get_thumb_dirty_region(egui_view_t *self, egui_view_slider_t *local, uint8_t value, egui_region_t *dirty_region)
 {
     egui_dim_t thumb_x;
@@ -130,6 +163,9 @@ static uint8_t egui_view_slider_get_thumb_dirty_region(egui_view_t *self, egui_v
 }
 #endif
 
+/**
+ * @brief Invalidate only the changed track span and old/new thumb areas.
+ */
 static void egui_view_slider_invalidate_value_change(egui_view_t *self, egui_view_slider_t *local, uint8_t old_value)
 {
     egui_region_t region;
@@ -184,6 +220,9 @@ static void egui_view_slider_invalidate_value_change(egui_view_t *self, egui_vie
     egui_view_invalidate_region(self, &dirty_region);
 }
 
+/**
+ * @brief Clamp, store, notify, and redraw when the slider value changes.
+ */
 void egui_view_slider_set_value(egui_view_t *self, uint8_t value)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
@@ -203,6 +242,9 @@ void egui_view_slider_set_value(egui_view_t *self, uint8_t value)
     }
 }
 
+/**
+ * @brief Return the current logical slider value.
+ */
 uint8_t egui_view_slider_get_value(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
@@ -210,6 +252,9 @@ uint8_t egui_view_slider_get_value(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/**
+ * @brief Convert one touch x position into a new slider value.
+ */
 static void egui_view_slider_update_value_from_touch(egui_view_t *self, egui_dim_t touch_x)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
@@ -230,6 +275,9 @@ static void egui_view_slider_update_value_from_touch(egui_view_t *self, egui_dim
 }
 #endif
 
+/**
+ * @brief Draw the background track, active fill, and draggable thumb.
+ */
 void egui_view_slider_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
@@ -307,6 +355,9 @@ void egui_view_slider_on_draw(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/**
+ * @brief Handle press, drag, and release for the slider thumb interaction.
+ */
 int egui_view_slider_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
@@ -395,6 +446,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_slider_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the slider with default colors and a `0..100` range.
+ */
 void egui_view_slider_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_slider_t);
@@ -415,6 +469,9 @@ void egui_view_slider_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_slider");
 }
 
+/**
+ * @brief Apply geometry and initial value from one parameter block.
+ */
 void egui_view_slider_apply_params(egui_view_t *self, const egui_view_slider_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
@@ -426,6 +483,9 @@ void egui_view_slider_apply_params(egui_view_t *self, const egui_view_slider_par
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains slider init and params.
+ */
 void egui_view_slider_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_slider_params_t *params)
 {
     egui_view_slider_init(self, core);

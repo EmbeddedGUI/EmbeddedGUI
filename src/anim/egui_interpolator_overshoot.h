@@ -17,7 +17,9 @@ struct egui_interpolator_overshoot
                           // simple acceleration/deceleration interpolator.
 };
 
+/** Set how far the curve overshoots the target before settling back to the end value. */
 void egui_interpolator_overshoot_tension_set(egui_interpolator_t *self, egui_float_t tension);
+/** Initialize an overshoot interpolator with the default tension. */
 void egui_interpolator_overshoot_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

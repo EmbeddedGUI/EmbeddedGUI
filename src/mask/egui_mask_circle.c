@@ -11,11 +11,27 @@
 
 extern const egui_circle_info_t egui_res_circle_info_arr[];
 
+/**
+ * @brief Invalidate the optional per-row cache used by scanline helpers.
+ *
+ * The current circle mask keeps only a tiny point cache, so there is nothing
+
+ * * to clear here. The hook stays in place because the row-based API is a good
+ * extension point for future caching experiments.
+ */
 __EGUI_STATIC_INLINE__ void egui_mask_circle_invalidate_row_cache(egui_mask_circle_t *local)
 {
     (void)local;
 }
 
+/**
+ * @brief Try to reuse previously computed scanline metrics for one absolute row.
+ *
+ * Returning 0 tells the caller to recompute the row geometry. The
+ * signature is
+ * intentionally shaped like a real cache lookup so higher-level code does not
+ * need to change if a cache is added later.
+ */
 __EGUI_STATIC_INLINE__ int egui_mask_circle_get_cached_row(egui_mask_circle_t *local, egui_dim_t y, egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
 {
     (void)local;
@@ -25,6 +41,13 @@ __EGUI_STATIC_INLINE__ int egui_mask_circle_get_cached_row(egui_mask_circle_t *l
     return 0;
 }
 
+/**
+ * @brief Store scanline metrics for later reuse.
+ *
+ * This is a no-op in the lightweight implementation, but keeping the helper
+ * makes the scanline
+ * pipeline easier to read: lookup, compute, then store.
+ */
 __EGUI_STATIC_INLINE__ void egui_mask_circle_store_row(egui_mask_circle_t *local, egui_dim_t y, egui_dim_t visible_half, egui_dim_t opaque_boundary)
 {
     (void)local;
@@ -33,6 +56,14 @@ __EGUI_STATIC_INLINE__ void egui_mask_circle_store_row(egui_mask_circle_t *local
     (void)opaque_boundary;
 }
 
+/**
+ * @brief Refresh cached circle geometry after the mask region changes.
+ *
+ * The public mask API stores only a rectangle. This helper converts that
+ *
+ * rectangle into the circle data used by the rasterizer: bounding box, center,
+ * radius, and quick point-query state.
+ */
 __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
@@ -77,6 +108,14 @@ __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
 #define EGUI_MASK_CIRCLE_AA_HALF_256  192
 #define EGUI_MASK_CIRCLE_ROW_EDGE_256 183
 
+/**
+ * @brief Compute floor(sqrt(n)) without using floating point.
+ *
+ * The mask code works on squared distances so it can stay in integer math.
+ * When a
+ * scanline needs a horizontal half-width, this helper converts the
+ * squared form back into a pixel-space radius.
+ */
 __EGUI_STATIC_INLINE__ uint32_t egui_mask_circle_isqrt(uint32_t n)
 {
     uint32_t root = 0;
@@ -104,6 +143,14 @@ __EGUI_STATIC_INLINE__ uint32_t egui_mask_circle_isqrt(uint32_t n)
     return root;
 }
 
+/**
+ * @brief Convert the AA edge width into a squared-distance threshold.
+ *
+ * Row metrics are derived in distance-squared space to avoid repeated square
+ *
+ * roots. This threshold marks how far we extend the visible fringe and how far
+ * we shrink the fully opaque core for one-pixel anti-aliasing.
+ */
 __EGUI_STATIC_INLINE__ uint32_t egui_mask_circle_get_edge_diff_threshold(egui_dim_t radius)
 {
     int32_t numerator = EGUI_MASK_CIRCLE_ROW_EDGE_256 * (int32_t)radius - (radius >> 1);
@@ -111,6 +158,14 @@ __EGUI_STATIC_INLINE__ uint32_t egui_mask_circle_get_edge_diff_threshold(egui_di
     return (uint32_t)((numerator + 127) >> 7);
 }
 
+/**
+ * @brief Map a signed edge distance to alpha with a smoothstep curve.
+ *
+ * `signed_dist_256` is measured in 1/256 pixel units. Negative values are
+ *
+ * inside the circle, positive values are outside. Smoothstep gives a softer
+ * transition than a straight linear ramp, so small circles look less jagged.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_mask_circle_edge_smoothstep(int32_t signed_dist_256)
 {
     int32_t coverage;
@@ -147,6 +202,14 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_mask_circle_edge_smoothstep(int32_t sig
     return (egui_alpha_t)smooth;
 }
 
+/**
+ * @brief Sample one quarter-circle pixel and return its coverage alpha.
+ *
+ * The row/column indices live in a canonical corner space where `(radius,
+ *
+ * radius)` is the circle center. The rest of the rasterizer mirrors this
+ * quarter-circle result to all four quadrants of the full mask.
+ */
 egui_alpha_t egui_mask_circle_get_corner_alpha(egui_dim_t radius, egui_dim_t row_index, egui_dim_t col_index)
 {
     if (radius <= 0)
@@ -195,6 +258,16 @@ egui_alpha_t egui_mask_circle_get_corner_alpha(egui_dim_t radius, egui_dim_t row
     }
 }
 
+/**
+ * @brief Derive scanline geometry for one symmetric row of the circle.
+ *
+ * `visible_half` tells how far the row reaches from the center before alpha
+ *
+ * drops to zero. `opaque_boundary` marks where the fully opaque middle band
+ * starts, letting callers treat the row as:
+ *   AA edge | fully opaque center |
+ * AA edge
+ */
 void egui_mask_circle_get_row_metrics(egui_dim_t radius, egui_dim_t row_index, egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
 {
     egui_dim_t first_visible;
@@ -281,6 +354,14 @@ void egui_mask_circle_get_row_metrics(egui_dim_t radius, egui_dim_t row_index, e
     *opaque_boundary = radius - (egui_dim_t)egui_mask_circle_isqrt((uint32_t)opaque_limit_sq - dy_sq);
 }
 
+/**
+ * @brief Prepare cached metrics for one absolute y coordinate.
+ *
+ * The helper first maps `y` into the symmetric row index used by the corner
+ * sampler,
+ * then fetches or computes the visible and opaque spans for that row.
+ * Most row-oriented APIs call this once and reuse the results for all pixels.
+ */
 int egui_mask_circle_prepare_row(egui_mask_circle_t *local, egui_dim_t y, egui_dim_t *row_index, egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
 {
     egui_mask_t *self = (egui_mask_t *)local;
@@ -329,11 +410,26 @@ int egui_mask_circle_prepare_row(egui_mask_circle_t *local, egui_dim_t y, egui_d
     return 1;
 }
 
+/**
+ * @brief Release frame-level resources associated with circle masks.
+ *
+ * The current implementation keeps no external frame cache, but the function is
+ *
+ * kept so the mask module can share one lifecycle contract across mask types.
+ */
 void egui_mask_circle_release_frame_cache(egui_core_t *core)
 {
     EGUI_UNUSED(core);
 }
 
+/**
+ * @brief Blend a contiguous fully covered span with one solid color.
+ *
+ * This is the fast path used for the opaque center of a scanline. Edge pixels
+ *
+ * still go through per-pixel alpha sampling, but the middle segment can be
+ * filled or blended in one tight loop.
+ */
 static void egui_mask_circle_blend_solid_row(egui_color_int_t *dst, egui_dim_t count, egui_color_t color, egui_alpha_t alpha)
 {
     if (count <= 0 || alpha == 0)
@@ -353,6 +449,14 @@ static void egui_mask_circle_blend_solid_row(egui_color_int_t *dst, egui_dim_t c
     }
 }
 
+/**
+ * @brief Apply the circle mask to a single point sample.
+ *
+ * This is the generic mask entry used by slow paths that need per-pixel
+ * answers. It reuses
+ * a tiny cache for the last queried row because many callers
+ * walk one scanline from left to right.
+ */
 void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
@@ -407,6 +511,14 @@ void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, 
     *alpha = 0;
 }
 
+/**
+ * @brief Report the fully opaque horizontal band for one row.
+ *
+ * Callers use this to skip needless per-pixel work in the middle of the row.
+ * Even when
+ * the opaque band is empty, the function can still return PARTIAL to
+ * signal that anti-aliased edge pixels exist inside the requested range.
+ */
 int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
@@ -447,6 +559,14 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
     return EGUI_MASK_ROW_PARTIAL;
 }
 
+/**
+ * @brief Paint one scanline segment through the circle mask.
+ *
+ * The implementation mirrors the geometry returned by
+ *
+ * `egui_mask_circle_get_row_metrics`: blend the left AA fringe, fill the solid
+ * middle span quickly, then blend the right AA fringe.
+ */
 int egui_mask_circle_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, egui_dim_t y, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
                                       egui_alpha_t alpha)
 {
@@ -571,6 +691,13 @@ int egui_mask_circle_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, 
     return 1;
 }
 
+/**
+ * @brief Return the broad visible range of a row, including AA-only pixels.
+ *
+ * This range is wider than the opaque band and is useful for clipping
+ * before a
+ * caller decides whether it needs the slower per-pixel edge sampling.
+ */
 static int egui_mask_circle_get_row_visible_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
@@ -603,6 +730,13 @@ const egui_mask_api_t egui_mask_circle_t_api_table = {
         .mask_get_row_overlay = NULL,
 };
 
+/**
+ * @brief Initialize the circle mask and reset all cached geometry.
+ *
+ * The actual circle is derived later from the mask region, so init only needs
+ * to
+ * wire the API table and put every cache field into a known empty state.
+ */
 void egui_mask_circle_init(egui_mask_t *self)
 {
     EGUI_LOCAL_INIT(egui_mask_circle_t);
@@ -629,6 +763,9 @@ void egui_mask_circle_init(egui_mask_t *self)
 
 #else
 
+/**
+ * @brief Fallback stub when mask support is compiled out.
+ */
 egui_alpha_t egui_mask_circle_get_corner_alpha(egui_dim_t radius, egui_dim_t row_index, egui_dim_t col_index)
 {
     EGUI_UNUSED(radius);
@@ -637,6 +774,9 @@ egui_alpha_t egui_mask_circle_get_corner_alpha(egui_dim_t radius, egui_dim_t row
     return EGUI_ALPHA_0;
 }
 
+/**
+ * @brief Fallback stub that reports no visible or opaque span.
+ */
 void egui_mask_circle_get_row_metrics(egui_dim_t radius, egui_dim_t row_index, egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
 {
     EGUI_UNUSED(radius);
@@ -653,6 +793,9 @@ void egui_mask_circle_get_row_metrics(egui_dim_t radius, egui_dim_t row_index, e
     }
 }
 
+/**
+ * @brief Fallback stub that always reports the row as outside the mask.
+ */
 int egui_mask_circle_prepare_row(egui_mask_circle_t *local, egui_dim_t y, egui_dim_t *row_index, egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
 {
     EGUI_UNUSED(local);
@@ -676,6 +819,9 @@ int egui_mask_circle_prepare_row(egui_mask_circle_t *local, egui_dim_t y, egui_d
     return 0;
 }
 
+/**
+ * @brief Fallback stub kept for a consistent public API.
+ */
 void egui_mask_circle_release_frame_cache(egui_core_t *core)
 {
     EGUI_UNUSED(core);

@@ -10,6 +10,19 @@
 #include "shadow/egui_shadow.h"
 #endif
 
+/**
+ * @file egui_view_card.c
+ * @brief Card container that combines group layout with themed surface chrome.
+ *
+ * Reading tip:
+ * - child management and layout stay delegated to `egui_view_group`,
+ * - this file mainly resolves style values and paints the rounded surface,
+ * - shadow setup is synced from theme style so card elevation can follow state.
+ */
+
+/**
+ * @brief Override the rounded corner radius used by the card surface.
+ */
 void egui_view_card_set_corner_radius(egui_view_t *self, egui_dim_t radius)
 {
     EGUI_LOCAL_INIT(egui_view_card_t);
@@ -17,6 +30,9 @@ void egui_view_card_set_corner_radius(egui_view_t *self, egui_dim_t radius)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Override the card border thickness and border color together.
+ */
 void egui_view_card_set_border(egui_view_t *self, egui_dim_t width, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_card_t);
@@ -25,6 +41,12 @@ void egui_view_card_set_border(egui_view_t *self, egui_dim_t width, egui_color_t
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Replace the themed background fill with a caller-owned custom color.
+ *
+ * After this call the draw path keeps using the local background fields until
+ * the widget is reinitialized or another customization policy is applied.
+ */
 void egui_view_card_set_bg_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha)
 {
     EGUI_LOCAL_INIT(egui_view_card_t);
@@ -34,16 +56,28 @@ void egui_view_card_set_bg_color(egui_view_t *self, egui_color_t color, egui_alp
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Add one child to the internal group content tree.
+ */
 void egui_view_card_add_child(egui_view_t *self, egui_view_t *child)
 {
     egui_view_group_add_child(self, child);
 }
 
+/**
+ * @brief Forward simple horizontal or vertical layout to the group helper.
+ */
 void egui_view_card_layout_childs(egui_view_t *self, uint8_t is_horizontal, uint8_t align_type)
 {
     egui_view_group_layout_childs(self, is_horizontal, 0, 0, align_type);
 }
 
+/**
+ * @brief Draw the card background and border, then sync themed shadow state.
+ *
+ * The card reads the current theme style every draw so state-dependent style
+ * changes can update radius, border, alpha, and shadow without extra plumbing.
+ */
 void egui_view_card_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_card_t);
@@ -102,6 +136,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_card_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the card as a themed group container with surface defaults.
+ */
 void egui_view_card_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_card_t);
@@ -147,6 +184,9 @@ void egui_view_card_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_card");
 }
 
+/**
+ * @brief Apply card geometry fields from one parameter block.
+ */
 void egui_view_card_apply_params(egui_view_t *self, const egui_view_card_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_card_t);
@@ -158,6 +198,9 @@ void egui_view_card_apply_params(egui_view_t *self, const egui_view_card_params_
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains card init and params.
+ */
 void egui_view_card_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_card_params_t *params)
 {
     egui_view_card_init(self, core);

@@ -16,7 +16,9 @@ struct egui_interpolator_accelerate
     egui_float_t factor; // Acceleration factor
 };
 
+/** Set the accelerate factor. `1.0` gives a basic quadratic ease-in; larger values start even slower. */
 void egui_interpolator_accelerate_factor_set(egui_interpolator_t *self, egui_float_t factor);
+/** Initialize an ease-in interpolator. */
 void egui_interpolator_accelerate_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

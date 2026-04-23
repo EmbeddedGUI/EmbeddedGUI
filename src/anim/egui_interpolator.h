@@ -32,6 +32,7 @@ struct egui_interpolator
     const egui_interpolator_api_t *api; // api of the view
 };
 
+/** Initialize the base interpolator with the default linear `input -> input` mapping. */
 void egui_interpolator_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

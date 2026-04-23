@@ -5,6 +5,12 @@
 #include "widget/egui_view.h"
 #include "core/egui_api.h"
 
+/**
+ * @file egui_animation_scale_size.c
+ * @brief Uniform scale animation that grows or shrinks a target view around its center.
+ */
+
+/** Capture the original target region so each update scales from the same baseline bounds. */
 void egui_animation_scale_size_on_start(egui_animation_t *self)
 {
     EGUI_LOCAL_INIT(egui_animation_scale_size_t);
@@ -16,6 +22,13 @@ void egui_animation_scale_size_on_start(egui_animation_t *self)
     egui_region_copy(&local->origin_region, &self->target_view->region);
 }
 
+/** Compatibility wrapper that forwards to the normal scale-size start hook. */
+void egui_animation_scale_size_start(egui_animation_t *self)
+{
+    egui_animation_scale_size_on_start(self);
+}
+
+/** Interpolate the uniform scale, keep the view centered, and relayout only when the integer size changes. */
 void egui_animation_scale_size_on_update(egui_animation_t *self, egui_float_t fraction)
 {
     EGUI_LOCAL_INIT(egui_animation_scale_size_t);
@@ -31,7 +44,7 @@ void egui_animation_scale_size_on_update(egui_animation_t *self, egui_float_t fr
     egui_dim_t delta_width = width - self->target_view->region.size.width;
     egui_dim_t delta_height = height - self->target_view->region.size.height;
 
-    // round to even number.
+    // Round to even deltas so splitting by two keeps the view centered on integer coordinates.
     delta_width = delta_width & 0xfffffffe;
     delta_height = delta_height & 0xfffffffe;
 
@@ -49,11 +62,11 @@ void egui_animation_scale_size_on_update(egui_animation_t *self, egui_float_t fr
 
     if (delta_width != 0 || delta_height != 0)
     {
-        // need to update view's region.
         egui_view_layout(self->target_view, &region);
     }
 }
 
+/** Bind the borrowed parameter block used by this scale-size animation instance. */
 void egui_animation_scale_size_params_set(egui_animation_scale_size_t *self, const egui_animation_scale_size_params_t *params)
 {
     self->params = params;
@@ -65,13 +78,9 @@ const egui_animation_api_t egui_animation_scale_size_t_api_table = {
         .on_update = egui_animation_scale_size_on_update,
 };
 
+/** Initialize a scale-size animation and install the callbacks that resize the target symmetrically. */
 void egui_animation_scale_size_init(egui_animation_t *self)
 {
-    EGUI_LOCAL_INIT(egui_animation_scale_size_t);
-    // call super init.
     egui_animation_init(self);
-    // update api.
     self->api = &egui_animation_scale_size_t_api_table;
-
-    // init local data.
 }

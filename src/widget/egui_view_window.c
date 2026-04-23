@@ -15,11 +15,25 @@
 #include "shadow/egui_shadow.h"
 #endif
 
+/**
+ * @file egui_view_window.c
+ * @brief Window container that combines header chrome with an inner content group.
+ *
+ * Reading notes:
+ * - the outer group
+ * owns title, close, and content subviews so window users only add content widgets;
+ * - layout reserves optional space for the close glyph and keeps the title
+ * centered in the remaining header area;
+ * - the default close behavior hides the window, but applications can replace it with their own callback.
+ */
+
+/** Choose an icon font size that fits one square header control area. */
 static const egui_font_t *egui_view_window_get_icon_font(egui_dim_t area_size)
 {
     return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
+/** Resolve the effective close-icon font, falling back to an automatic size from the header height. */
 static const egui_font_t *egui_view_window_get_close_icon_font(const egui_view_window_t *local)
 {
     if (local->close_icon_font != NULL)
@@ -30,12 +44,14 @@ static const egui_font_t *egui_view_window_get_close_icon_font(const egui_view_w
     return egui_view_window_get_icon_font(local->header_height);
 }
 
+/** Report whether the close control currently has both glyph text and a font to draw with. */
 static uint8_t egui_view_window_has_close_icon(const egui_view_window_t *local)
 {
     const egui_font_t *icon_font = egui_view_window_get_close_icon_font(local);
     return (icon_font != NULL && local->close_icon != NULL && local->close_icon[0] != '\0') ? 1U : 0U;
 }
 
+/** Recompute title, close-button, and content-group rectangles after size or icon changes. */
 static void egui_view_window_update_layout(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -75,6 +91,7 @@ static void egui_view_window_update_layout(egui_view_t *self)
     egui_view_set_size(EGUI_VIEW_OF(&local->content), window_width, content_height);
 }
 
+/** Forward close clicks to the user callback, or hide the window when no callback is installed. */
 static void egui_view_window_on_close_click(egui_view_t *self)
 {
     egui_view_t *window_view = EGUI_VIEW_PARENT(self);
@@ -95,6 +112,7 @@ static void egui_view_window_on_close_click(egui_view_t *self)
     egui_view_set_gone(window_view, 1);
 }
 
+/** Replace the borrowed title text shown by the internal header label. */
 void egui_view_window_set_title(egui_view_t *self, const char *title)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -102,6 +120,7 @@ void egui_view_window_set_title(egui_view_t *self, const char *title)
     egui_view_invalidate(self);
 }
 
+/** Change the header height, then relayout the title, close control, and content area. */
 void egui_view_window_set_header_height(egui_view_t *self, egui_dim_t height)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -113,6 +132,7 @@ void egui_view_window_set_header_height(egui_view_t *self, egui_dim_t height)
     }
 }
 
+/** Replace the close glyph string and update layout because icon presence changes reserved header space. */
 void egui_view_window_set_close_icon(egui_view_t *self, const char *icon)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -128,6 +148,7 @@ void egui_view_window_set_close_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+/** Override the close-icon font and recompute layout because icon visibility may change. */
 void egui_view_window_set_close_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -142,6 +163,7 @@ void egui_view_window_set_close_icon_font(egui_view_t *self, const egui_font_t *
     egui_view_invalidate(self);
 }
 
+/** Add one child into the window's content group instead of the outer chrome container. */
 void egui_view_window_add_content(egui_view_t *self, egui_view_t *child)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -149,12 +171,14 @@ void egui_view_window_add_content(egui_view_t *self, egui_view_t *child)
     egui_view_invalidate(self);
 }
 
+/** Store the callback that intercepts close-button clicks. */
 void egui_view_window_set_on_close(egui_view_t *self, egui_view_window_close_cb_t callback)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
     local->on_close = callback;
 }
 
+/** Draw window chrome: header background, close-button press feedback, and content background. */
 void egui_view_window_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -203,6 +227,7 @@ void egui_view_window_on_draw(egui_view_t *self)
                                     region.size.height - local->header_height, local->content_bg_color, EGUI_ALPHA_100);
 }
 
+/* Use group behavior for child management and events, but keep custom window chrome drawing. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_window_t) = {
         .dispatch_touch_event = egui_view_group_dispatch_touch_event,
         .on_touch_event = egui_view_group_on_touch_event,
@@ -220,6 +245,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_window_t) = {
 #endif
 };
 
+/** Initialize the outer group plus its built-in title label, close label, and content group. */
 void egui_view_window_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_window_t);
@@ -277,6 +303,7 @@ void egui_view_window_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_window");
 }
 
+/** Apply geometry, header height, and title text from one parameter block. */
 void egui_view_window_apply_params(egui_view_t *self, const egui_view_window_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -292,6 +319,7 @@ void egui_view_window_apply_params(egui_view_t *self, const egui_view_window_par
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the window before applying params. */
 void egui_view_window_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_window_params_t *params)
 {
     egui_view_window_init(self, core);

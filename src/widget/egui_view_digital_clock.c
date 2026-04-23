@@ -7,6 +7,20 @@
 #include "font/egui_font.h"
 #include "resource/egui_resource.h"
 
+/**
+ * @file egui_view_digital_clock.c
+ * @brief Digital clock implemented as a formatted label wrapper.
+ *
+ * The widget stores raw hour/minute/second fields, converts them into one
+ * short ASCII buffer, and reuses the normal label draw path for rendering.
+ */
+
+/**
+ * @brief Rebuild the visible time string from the stored clock fields.
+ *
+ * 24-hour mode optionally renders seconds. 12-hour mode uses `HH:MM AM/PM`.
+ * Colon blinking is implemented by replacing ':' with spaces in the buffer.
+ */
 static void format_time(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_digital_clock_t);
@@ -54,6 +68,9 @@ static void format_time(egui_view_t *self)
     egui_view_label_set_text(self, local->time_buffer);
 }
 
+/**
+ * @brief Store raw time fields and immediately refresh the visible label text.
+ */
 void egui_view_digital_clock_set_time(egui_view_t *self, uint8_t hour, uint8_t minute, uint8_t second)
 {
     EGUI_LOCAL_INIT(egui_view_digital_clock_t);
@@ -63,6 +80,9 @@ void egui_view_digital_clock_set_time(egui_view_t *self, uint8_t hour, uint8_t m
     format_time(self);
 }
 
+/**
+ * @brief Switch between 24-hour and 12-hour text formatting modes.
+ */
 void egui_view_digital_clock_set_format(egui_view_t *self, uint8_t format_24h)
 {
     EGUI_LOCAL_INIT(egui_view_digital_clock_t);
@@ -70,6 +90,9 @@ void egui_view_digital_clock_set_format(egui_view_t *self, uint8_t format_24h)
     format_time(self);
 }
 
+/**
+ * @brief Enable or disable the colon-replacement blink behavior.
+ */
 void egui_view_digital_clock_set_colon_blink(egui_view_t *self, uint8_t enable)
 {
     EGUI_LOCAL_INIT(egui_view_digital_clock_t);
@@ -77,6 +100,9 @@ void egui_view_digital_clock_set_colon_blink(egui_view_t *self, uint8_t enable)
     format_time(self);
 }
 
+/**
+ * @brief Control whether blink-enabled colons currently appear visible.
+ */
 void egui_view_digital_clock_set_colon_visible(egui_view_t *self, uint8_t visible)
 {
     EGUI_LOCAL_INIT(egui_view_digital_clock_t);
@@ -84,6 +110,9 @@ void egui_view_digital_clock_set_colon_visible(egui_view_t *self, uint8_t visibl
     format_time(self);
 }
 
+/**
+ * @brief Show or hide the seconds field when 24-hour formatting is active.
+ */
 void egui_view_digital_clock_set_show_second(egui_view_t *self, uint8_t show)
 {
     EGUI_LOCAL_INIT(egui_view_digital_clock_t);
@@ -91,6 +120,9 @@ void egui_view_digital_clock_set_show_second(egui_view_t *self, uint8_t show)
     format_time(self);
 }
 
+/**
+ * @brief Initialize the digital clock as a label with local time-format state.
+ */
 void egui_view_digital_clock_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_digital_clock_t);
@@ -112,6 +144,9 @@ void egui_view_digital_clock_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_digital_clock");
 }
 
+/**
+ * @brief Convenience initializer that chains clock init and label params.
+ */
 void egui_view_digital_clock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params)
 {
     egui_view_digital_clock_init(self, core);

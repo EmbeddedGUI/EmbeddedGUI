@@ -36,6 +36,13 @@ static const int16_t line_hq_sin_q1[19] = {
         0, 22, 44, 66, 88, 108, 128, 147, 165, 181, 196, 210, 222, 232, 241, 247, 252, 255, 256,
 };
 
+/**
+ * @brief Approximate sine in degrees using the first-quadrant lookup table.
+ *
+ * The function mirrors the angle into [0, 90] and linearly interpolates
+ *
+ * between 5-degree samples, returning a signed value scaled by 256.
+ */
 static int32_t line_hq_sin_deg(int32_t deg)
 {
     deg = ((deg % 360) + 360) % 360;
@@ -60,12 +67,18 @@ static int32_t line_hq_sin_deg(int32_t deg)
     return value * sign;
 }
 
+/**
+ * @brief Approximate cosine in degrees by phase-shifting the sine helper.
+ */
 static int32_t line_hq_cos_deg(int32_t deg)
 {
     return line_hq_sin_deg(deg + 90);
 }
 
 /* Integer square root (32-bit input, 16-bit result) */
+/**
+ * @brief Compute an integer square root for scan-range estimation.
+ */
 static uint16_t line_hq_isqrt32(uint32_t n)
 {
     uint32_t result = 0;
@@ -134,6 +147,9 @@ typedef struct line_hq_polyline_draw_ctx_t
     uint8_t seg_count;
 } line_hq_polyline_draw_ctx_t;
 
+/**
+ * @brief Blend directly into the PFB when no extra mask composition is needed.
+ */
 __EGUI_STATIC_INLINE__ void line_hq_blend_direct(egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
     if (alpha == 0)
@@ -151,6 +167,13 @@ __EGUI_STATIC_INLINE__ void line_hq_blend_direct(egui_color_t *dst, egui_color_t
     }
 }
 
+/**
+ * @brief Precompute coverage-to-alpha lookup tables for sampled and direct paths.
+ *
+ * `sample_alpha_table` is used when drawing through canvas APIs,
+ * while
+ * `direct_alpha_table` also folds in the canvas alpha for raw PFB writes.
+ */
 static void line_hq_prepare_alpha_table(egui_alpha_t alpha, egui_alpha_t canvas_alpha, egui_alpha_t *sample_alpha_table, egui_alpha_t *direct_alpha_table)
 {
     uint32_t i;
@@ -169,6 +192,9 @@ static void line_hq_prepare_alpha_table(egui_alpha_t alpha, egui_alpha_t canvas_
     }
 }
 
+/**
+ * @brief Cache scaled line parameters that each coverage test reuses.
+ */
 static void line_hq_init_sample_ctx(line_hq_sample_ctx_t *ctx, int32_t dx, int32_t dy, int64_t line_len_sq, int64_t half_w_sq_x_len_sq)
 {
     ctx->dx = dx;
@@ -182,6 +208,9 @@ static void line_hq_init_sample_ctx(line_hq_sample_ctx_t *ctx, int32_t dx, int32
     ctx->dot_step_x = (int64_t)ctx->dx_s * LINE_HQ_SAMPLE_STEP;
 }
 
+/**
+ * @brief Convert signed 16.16 fixed point to int, truncating toward zero.
+ */
 __EGUI_STATIC_INLINE__ int32_t line_hq_fp16_to_int_trunc0(egui_canvas_t *self, int64_t value)
 {
     if (value >= 0)
@@ -299,6 +328,13 @@ static uint8_t line_hq_get_pixel_coverage_round_cap(int32_t rel_x, int32_t rel_y
 
 /* ========================== Line HQ ========================== */
 
+/**
+ * @brief Draw a high-quality thick line with sub-pixel antialiasing.
+ *
+ * The implementation combines fast bounding tests, an inner fully covered
+ *
+ * region, and per-pixel sub-sampling along the edge band.
+ */
 void egui_canvas_draw_line_hq(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
                               egui_alpha_t alpha)
 {
@@ -475,6 +511,9 @@ void egui_canvas_draw_line_hq(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1,
 
 /* ========================== Line Segment HQ ========================== */
 
+/**
+ * @brief Draw one butt-capped segment using the same HQ line pipeline.
+ */
 void egui_canvas_draw_line_segment_hq(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width,
                                       egui_color_t color, egui_alpha_t alpha)
 {
@@ -675,9 +714,12 @@ void egui_canvas_draw_line_round_cap_hq(egui_canvas_t *self, egui_dim_t x1, egui
 /* ========================== Polyline HQ ========================== */
 
 /**
- * @brief Internal polyline drawing with configurable endpoint caps.
+ * @brief Rasterize one polyline segment and cooperate with neighbors at joints.
  *
- * round_cap: when 1, first and last endpoints get round caps.
+ * Pixels past the current segment end are normally left to the next
+ * segment,
+ * but near the joint this function samples both segments and keeps the max
+ * coverage so acute turns do not open small AA gaps.
  */
 static void line_hq_draw_polyline_segment(const line_hq_polyline_draw_ctx_t *ctx, const egui_dim_t *points, uint8_t seg)
 {
@@ -898,6 +940,9 @@ static void line_hq_draw_polyline_segment(const line_hq_polyline_draw_ctx_t *ctx
     }
 }
 
+/**
+ * @brief Shared HQ polyline entry used by butt-cap and round-cap wrappers.
+ */
 static void line_hq_draw_polyline_internal(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color,
                                            egui_alpha_t alpha, int32_t round_cap)
 {
@@ -973,11 +1018,17 @@ static void line_hq_draw_polyline_internal(egui_canvas_t *self, const egui_dim_t
     }
 }
 
+/**
+ * @brief Draw a high-quality polyline with butt caps on the two outer ends.
+ */
 void egui_canvas_draw_polyline_hq(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
     line_hq_draw_polyline_internal(self, points, count, stroke_width, color, alpha, 0);
 }
 
+/**
+ * @brief Draw a high-quality polyline with round caps on the outer endpoints.
+ */
 void egui_canvas_draw_polyline_round_cap_hq(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color,
                                             egui_alpha_t alpha)
 {

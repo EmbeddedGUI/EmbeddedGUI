@@ -8,6 +8,9 @@
 extern "C" {
 #endif
 
+/**
+ * @brief One point in the line widget's local coordinate space.
+ */
 typedef struct egui_view_line_point
 {
     egui_dim_t x;
@@ -15,6 +18,9 @@ typedef struct egui_view_line_point
 } egui_view_line_point_t;
 
 typedef struct egui_view_line egui_view_line_t;
+/**
+ * @brief Simple polyline widget backed by a borrowed point array.
+ */
 struct egui_view_line
 {
     egui_view_t base;
@@ -28,6 +34,9 @@ struct egui_view_line
 
 // ============== Line Params ==============
 typedef struct egui_view_line_params egui_view_line_params_t;
+/**
+ * @brief Construction-time parameter block for one line widget.
+ */
 struct egui_view_line_params
 {
     egui_region_t region;
@@ -35,17 +44,26 @@ struct egui_view_line_params
     egui_color_t line_color;
 };
 
+/** Build a line parameter block with region, stroke width, and stroke color. */
 #define EGUI_VIEW_LINE_PARAMS_INIT(_name, _x, _y, _w, _h, _line_width, _line_color)                                                                            \
     static const egui_view_line_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .line_width = (_line_width), .line_color = _line_color}
 
+/** Apply a line-view parameter block after initialization. */
 void egui_view_line_apply_params(egui_view_t *self, const egui_view_line_params_t *params);
+/** Initialize a line view and immediately apply its parameter block. */
 void egui_view_line_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_line_params_t *params);
 
+/** Set the polyline point array. The view keeps the pointer, so the caller must keep the data alive. */
 void egui_view_line_set_points(egui_view_t *self, const egui_view_line_point_t *points, uint8_t count);
+/** Set the stroke width used for every segment. */
 void egui_view_line_set_line_width(egui_view_t *self, uint8_t width);
+/** Set the stroke color used for every segment. */
 void egui_view_line_set_line_color(egui_view_t *self, egui_color_t color);
+/** Toggle rounded end caps for each line segment. */
 void egui_view_line_set_use_round_cap(egui_view_t *self, uint8_t enable);
+/** Default draw hook used by the line API table. */
 void egui_view_line_on_draw(egui_view_t *self);
+/** Initialize an empty polyline view. Nothing is drawn until at least two points are provided. */
 void egui_view_line_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

@@ -12,9 +12,8 @@ extern "C" {
 #define EGUI_FONT_STD_EXT_CHAR_DESC_ITEM_SIZE 12
 
 /*
- * By default egui_font_std_prepare_access() keeps external pixel data external-backed
- * to avoid copying the whole font bitmap onto the heap. Define this to 1 only if
- * your caller explicitly needs a fully local pixel buffer.
+ * By default egui_font_std_prepare_access() keeps external pixel data external-backed to avoid copying the whole font bitmap onto the heap. Define this to 1
+ * only if your caller explicitly needs a fully local pixel buffer.
  */
 #ifndef EGUI_FONT_STD_PREPARE_ACCESS_COPY_PIXEL_BUFFER
 #define EGUI_FONT_STD_PREPARE_ACCESS_COPY_PIXEL_BUFFER 0

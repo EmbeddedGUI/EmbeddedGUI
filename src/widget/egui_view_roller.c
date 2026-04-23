@@ -7,6 +7,12 @@
 #include "widget/egui_view_group.h"
 #include "resource/egui_resource.h"
 
+/*
+ * The roller is a compact wheel-like selector.
+ * It keeps one item centered, shifts rows while dragging, and snaps back to zero offset after the gesture
+ * ends.
+ */
+
 void egui_view_roller_set_on_selected_listener(egui_view_t *self, egui_view_on_roller_selected_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_roller_t);
@@ -18,6 +24,7 @@ void egui_view_roller_set_items(egui_view_t *self, const char **items, uint8_t c
     EGUI_LOCAL_INIT(egui_view_roller_t);
     local->items = items;
     local->item_count = count;
+    // Reset an out-of-range selection when the backing list shrinks.
     if (local->current_index >= count)
     {
         local->current_index = 0;
@@ -35,6 +42,7 @@ void egui_view_roller_set_current_index(egui_view_t *self, uint8_t index)
     if (index != local->current_index)
     {
         local->current_index = index;
+        // Programmatic selection changes snap immediately instead of animating from an old drag residue.
         local->scroll_offset = 0;
         egui_view_invalidate(self);
     }
@@ -65,7 +73,7 @@ void egui_view_roller_on_draw(egui_view_t *self)
         return;
     }
 
-    // Draw highlight background for center row
+    // The center row is the "selected window" that visually anchors the current item.
     egui_dim_t center_row_index = local->visible_count / 2;
     egui_dim_t highlight_y = region.location.y + center_row_index * item_height;
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
@@ -87,7 +95,7 @@ void egui_view_roller_on_draw(egui_view_t *self)
     egui_canvas_draw_rectangle_fill(canvas, region.location.x, highlight_y, region.size.width, item_height, local->highlight_color, EGUI_ALPHA_100);
 #endif
 
-    // Draw visible items
+    // Draw the visible window around current_index, shifted by the live drag offset.
     int16_t half = local->visible_count / 2;
     for (int16_t row = 0; row < local->visible_count; row++)
     {
@@ -135,7 +143,7 @@ int egui_view_roller_on_touch_event(egui_view_t *self, egui_motion_event_t *even
         local->is_dragging = 1;
         local->scroll_offset = 0;
 
-        // Request parent to not intercept touch events
+        // Ask the parent container to keep this drag bound to the roller until release.
         if (self->parent != NULL)
         {
             egui_view_group_request_disallow_intercept_touch_event((egui_view_t *)self->parent, 1);
@@ -150,10 +158,10 @@ int egui_view_roller_on_touch_event(egui_view_t *self, egui_motion_event_t *even
             local->scroll_offset += diff;
             local->last_touch_y = event->location.y;
 
-            // Check if scrolled enough to change index
+            // Each full row height crossed by the drag advances the logical selection by one item.
             if (local->scroll_offset >= item_height)
             {
-                // Scrolled down -> previous item
+                // Finger moved down, so the highlighted row reveals the previous item.
                 if (local->current_index > 0)
                 {
                     local->current_index--;
@@ -162,7 +170,7 @@ int egui_view_roller_on_touch_event(egui_view_t *self, egui_motion_event_t *even
             }
             else if (local->scroll_offset <= -item_height)
             {
-                // Scrolled up -> next item
+                // Finger moved up, so the highlighted row reveals the next item.
                 if (local->current_index < local->item_count - 1)
                 {
                     local->current_index++;
@@ -178,6 +186,7 @@ int egui_view_roller_on_touch_event(egui_view_t *self, egui_motion_event_t *even
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
     {
         local->is_dragging = 0;
+        // Release snaps the text rows back to the center highlight band.
         local->scroll_offset = 0;
         egui_view_invalidate(self);
 
@@ -219,12 +228,12 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_roller_t) = {
 void egui_view_roller_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_roller_t);
-    // call super init.
+    // Initialize the base view first so region, lifecycle hooks, and input dispatch are valid.
     egui_view_init(self, core);
-    // update api.
+    // Replace the generic view vtable with the roller implementation.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_roller_t);
 
-    // init local data.
+    // Defaults keep the widget ready to show a 3-row picker even before params are applied.
     local->on_selected = NULL;
     local->items = NULL;
     local->item_count = 0;
@@ -246,7 +255,6 @@ void egui_view_roller_apply_params(egui_view_t *self, const egui_view_roller_par
     EGUI_LOCAL_INIT(egui_view_roller_t);
 
     self->region = params->region;
-
     local->items = params->items;
     local->item_count = params->item_count;
     local->current_index = params->current_index;

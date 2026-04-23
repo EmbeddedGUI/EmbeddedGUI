@@ -9,6 +9,19 @@
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
+/**
+ * @file egui_view_table.c
+ * @brief Fixed-capacity table view that renders borrowed strings in a simple text grid.
+ *
+ * Reading notes:
+ * - cell text is
+ * borrowed rather than copied, so callers own the string lifetime;
+ * - each visible column uses the same width because the widget divides the view width
+ * evenly;
+ * - header rows are purely a visual style change and still use the same text layout path as body rows.
+ */
+
+/** Replace one borrowed cell string and redraw the table if the indices are within capacity. */
 void egui_view_table_set_cell(egui_view_t *self, uint8_t row, uint8_t col, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
@@ -20,6 +33,7 @@ void egui_view_table_set_cell(egui_view_t *self, uint8_t row, uint8_t col, const
     egui_view_invalidate(self);
 }
 
+/** Clamp the visible row and column counts to the built-in storage capacity. */
 void egui_view_table_set_size(egui_view_t *self, uint8_t rows, uint8_t cols)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
@@ -36,6 +50,7 @@ void egui_view_table_set_size(egui_view_t *self, uint8_t rows, uint8_t cols)
     egui_view_invalidate(self);
 }
 
+/** Mark the first `count` visible rows as header rows. */
 void egui_view_table_set_header_rows(egui_view_t *self, uint8_t count)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
@@ -43,6 +58,7 @@ void egui_view_table_set_header_rows(egui_view_t *self, uint8_t count)
     egui_view_invalidate(self);
 }
 
+/** Change the uniform row height used by every table row. */
 void egui_view_table_set_row_height(egui_view_t *self, egui_dim_t height)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
@@ -50,6 +66,7 @@ void egui_view_table_set_row_height(egui_view_t *self, egui_dim_t height)
     egui_view_invalidate(self);
 }
 
+/** Show or hide the grid lines drawn between cells. */
 void egui_view_table_set_show_grid(egui_view_t *self, uint8_t show)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
@@ -57,6 +74,7 @@ void egui_view_table_set_show_grid(egui_view_t *self, uint8_t show)
     egui_view_invalidate(self);
 }
 
+/** Override the background color used for header rows. */
 void egui_view_table_set_header_bg_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
@@ -64,6 +82,7 @@ void egui_view_table_set_header_bg_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+/** Override the stroke color used for the optional grid. */
 void egui_view_table_set_grid_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
@@ -71,6 +90,7 @@ void egui_view_table_set_grid_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+/** Draw header fills, cell text, and the optional grid for the current visible table slice. */
 void egui_view_table_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
@@ -143,6 +163,7 @@ void egui_view_table_on_draw(egui_view_t *self)
     }
 }
 
+/* Use default view behavior and override only the table's custom draw hook. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_table_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
         .on_touch_event = egui_view_on_touch_event,
@@ -160,6 +181,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_table_t) = {
 #endif
 };
 
+/** Initialize empty cell storage plus default colors, row sizing, and grid visibility. */
 void egui_view_table_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_table_t);
@@ -184,6 +206,7 @@ void egui_view_table_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_table");
 }
 
+/** Apply geometry and initial visible dimensions from one parameter block. */
 void egui_view_table_apply_params(egui_view_t *self, const egui_view_table_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
@@ -202,6 +225,7 @@ void egui_view_table_apply_params(egui_view_t *self, const egui_view_table_param
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the table before applying params. */
 void egui_view_table_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_table_params_t *params)
 {
     egui_view_table_init(self, core);

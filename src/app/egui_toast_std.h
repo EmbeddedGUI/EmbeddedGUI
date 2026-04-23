@@ -17,7 +17,9 @@ struct egui_toast_std
     egui_view_label_t label;
 };
 
+/** Reserved standard-toast helper API. Keep compatibility if older code still references it. */
 void egui_toast_std_set_index(egui_toast_t *self, int index);
+/** Initialize the built-in label-based toast implementation. */
 void egui_toast_std_init(egui_toast_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

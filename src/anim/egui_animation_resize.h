@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+/** Resize anchor modes used when the target region grows or shrinks. */
 enum
 {
     EGUI_ANIMATION_RESIZE_MODE_LEFT = 0,   // Anchor left/top edge, grow right/down
@@ -19,6 +20,7 @@ enum
     EGUI_ANIMATION_RESIZE_MODE_RIGHT = 2,  // Anchor right/bottom edge, grow left/up
 };
 
+/** Build a static resize-animation parameter block from width/height ratios and one anchor mode. */
 #define EGUI_ANIMATION_RESIZE_PARAMS_INIT(_name, _from_w, _to_w, _from_h, _to_h, _mode)                                                                        \
     static const egui_animation_resize_params_t _name = {                                                                                                      \
             .from_width_ratio = _from_w,                                                                                                                       \
@@ -48,7 +50,9 @@ struct egui_animation_resize
     const egui_animation_resize_params_t *params;
 };
 
+/** Bind resize ratios and anchor mode for later animation runs. The parameter pointer is borrowed. */
 void egui_animation_resize_params_set(egui_animation_resize_t *self, const egui_animation_resize_params_t *params);
+/** Initialize an animation that rescales a view from its captured start region. */
 void egui_animation_resize_init(egui_animation_t *self);
 
 /* Ends C function definitions when using C++ */

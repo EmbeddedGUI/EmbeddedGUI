@@ -10,8 +10,25 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_page_indicator.c
+ * @brief Small state widget that highlights one page among many.
+ *
+ * It supports two visual modes:
+ * - dot mode
+ * draws filled circles with one active mark,
+ * - icon mode centers glyphs from a caller-provided icon table.
+ */
+
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_page_indicator_t);
 
+/**
+ * @brief Change how many marks should be rendered.
+ *
+ * This uses full invalidation because the visual width can change when the
+ * page count changes.
+
+ */
 void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_count)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -23,6 +40,9 @@ void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_c
     egui_view_invalidate_full(self);
 }
 
+/**
+ * @brief Update the active mark index and clamp it into the valid range.
+ */
 void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t current_index)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -38,6 +58,9 @@ void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t curre
     egui_view_invalidate_full(self);
 }
 
+/**
+ * @brief Switch between dot rendering and icon rendering.
+ */
 void egui_view_page_indicator_set_mark_style(egui_view_t *self, egui_view_page_indicator_mark_style_t style)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -50,6 +73,9 @@ void egui_view_page_indicator_set_mark_style(egui_view_t *self, egui_view_page_i
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Borrow the icon text table used by icon-style indicators.
+ */
 void egui_view_page_indicator_set_icons(egui_view_t *self, const char *const *icons)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -62,6 +88,9 @@ void egui_view_page_indicator_set_icons(egui_view_t *self, const char *const *ic
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Override the icon font used when the mark style is icon-based.
+ */
 void egui_view_page_indicator_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -74,6 +103,9 @@ void egui_view_page_indicator_set_icon_font(egui_view_t *self, const egui_font_t
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Draw centered circular marks across the work region.
+ */
 void egui_view_page_indicator_on_draw_dot(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -128,6 +160,9 @@ void egui_view_page_indicator_on_draw_dot(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Draw centered icon marks using one glyph per page.
+ */
 static void egui_view_page_indicator_on_draw_icon_impl(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -175,6 +210,9 @@ static void egui_view_page_indicator_on_draw_icon_impl(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Dispatch to dot mode or icon mode based on current configuration.
+ */
 void egui_view_page_indicator_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -205,6 +243,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_page_indicator_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the page indicator with themed dot-style defaults.
+ */
 void egui_view_page_indicator_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_page_indicator_t);
@@ -228,6 +269,9 @@ void egui_view_page_indicator_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_page_indicator");
 }
 
+/**
+ * @brief Apply geometry and initial page state from one parameter block.
+ */
 void egui_view_page_indicator_apply_params(egui_view_t *self, const egui_view_page_indicator_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -240,6 +284,9 @@ void egui_view_page_indicator_apply_params(egui_view_t *self, const egui_view_pa
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains page-indicator init and params.
+ */
 void egui_view_page_indicator_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_page_indicator_params_t *params)
 {
     egui_view_page_indicator_init(self, core);

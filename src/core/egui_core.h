@@ -145,66 +145,111 @@ void egui_init(egui_core_t *core, egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH *
  */
 void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, egui_color_int_t **pfb_bufs, int buf_count, int pfb_w, int pfb_h);
 
+/** App-provided UI bootstrap callback used by `egui_setup_display()`. */
 typedef void (*egui_uicode_init_func_t)(egui_core_t *core);
+/** Optional port callback that registers the touch driver for one display. */
 typedef void (*egui_touch_register_func_t)(egui_core_t *core);
 
 typedef struct egui_display_setup
 {
-    int screen_width;
-    int screen_height;
-    int pfb_width;
-    int pfb_height;
-    egui_color_int_t **pfb_buffers;
-    int pfb_buffer_count;
-    egui_display_driver_t *display_driver;
-    egui_platform_t *platform;
-    egui_touch_register_func_t touch_register;
-    egui_uicode_init_func_t uicode_init;
-    uint8_t display_id;
+    int screen_width;                          // logical screen width in pixels
+    int screen_height;                         // logical screen height in pixels
+    int pfb_width;                             // one PFB tile width
+    int pfb_height;                            // one PFB tile height
+    egui_color_int_t **pfb_buffers;            // array of PFB buffer pointers
+    int pfb_buffer_count;                      // number of PFB buffers in the array
+    egui_display_driver_t *display_driver;     // display driver bound to this core
+    egui_platform_t *platform;                 // platform callback table for timing, memory, and sync
+    egui_touch_register_func_t touch_register; // optional touch-driver registration callback
+    egui_uicode_init_func_t uicode_init;       // UI bootstrap callback that creates the initial scene
+    uint8_t display_id;                        // runtime display index used by multi-display ports
 } egui_display_setup_t;
 
+/**
+ * Initialize a display from a single setup descriptor.
+ *
+ * This is the recommended startup helper when the platform layer already has
+ * the display
+ * driver, platform callbacks, optional touch registration, and the
+ * UI bootstrap callback prepared.
+ */
 void egui_setup_display(egui_core_t *core, const egui_display_setup_t *setup);
 
+/** Force the entire screen to be marked dirty and refreshed on the next frame. */
 void egui_core_force_refresh(egui_core_t *core);
+/** Return the top-most root container owned by this core. */
 egui_view_group_t *egui_core_get_root_view(egui_core_t *core);
+/** Check whether a new dirty region overlaps any existing dirty slot. */
 int egui_core_check_region_dirty_intersect(egui_core_t *core, egui_region_t *region_dirty);
+/** Merge a screen-space dirty region into the core dirty queue. */
 void egui_core_update_region_dirty(egui_core_t *core, egui_region_t *region_dirty);
+/** Mark the full screen as dirty. */
 void egui_core_update_region_dirty_all(egui_core_t *core);
+/** Clear all dirty slots after a frame completes and advance the dirty epoch. */
 void egui_core_clear_region_dirty(egui_core_t *core);
+/** Return the user root container used for activities, dialogs, and other app-owned trees. */
 egui_view_group_t *egui_core_get_user_root_view(egui_core_t *core);
+/** Add a view to the user root container. */
 void egui_core_add_user_root_view(egui_view_t *view);
+/** Expose the internal dirty-region array for advanced diagnostics or tooling. */
 egui_region_t *egui_core_get_region_dirty_arr(egui_core_t *core);
+/** Return the current dirty epoch used to detect same-frame invalidations. */
 uint32_t egui_core_get_dirty_epoch(egui_core_t *core);
+/** Render one dirty region by splitting it into PFB-sized tiles. */
 void egui_core_draw_view_group(egui_core_t *core, egui_region_t *p_region_dirty, int is_debug_mode);
+/** Optional hook for tuning logical PFB probe width on specific platforms. */
 egui_dim_t egui_core_get_logical_pfb_target_width_hint(egui_core_t *core);
+/** Push one motion event into the input pipeline of this core. */
 void egui_core_process_input_motion(egui_core_t *core, egui_motion_event_t *motion_event);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+/** Push one key event into the input pipeline of this core. */
 void egui_core_process_input_key(egui_core_t *core, egui_key_event_t *key_event);
 #endif
 #if EGUI_CONFIG_DEBUG_VIEW_ID
+/** Allocate a per-core debug view id. */
 uint16_t egui_core_get_unique_id(egui_core_t *core);
 #endif
+/** Run animation/layout/render work if the core has pending dirty content. */
 void egui_core_refresh_screen(egui_core_t *core);
+/** Stop the automatic refresh timer without changing scene state. */
 void egui_core_stop_auto_refresh_screen(egui_core_t *core);
+/** Return the currently active PFB buffer pointer. */
 egui_color_int_t *egui_core_get_pfb_buffer_ptr(egui_core_t *core);
+/** Replace the current PFB buffer and update cached size metadata. */
 void egui_core_pfb_set_buffer(egui_core_t *core, egui_color_int_t *pfb, uint16_t width, uint16_t height);
+/** Stop automatic refresh work for a powered-down display. */
 void egui_core_power_off(egui_core_t *core);
+/** Restart automatic refresh work for an active display. */
 void egui_core_power_on(egui_core_t *core);
+/** Update runtime screen size and resize the built-in root views. */
 void egui_core_set_screen_size(egui_core_t *core, int16_t width, int16_t height);
+/** Suspend rendering and timers while keeping the scene tree intact. */
 void egui_core_suspend(egui_core_t *core);
+/** Resume rendering, mark everything dirty, and restart refresh timing. */
 void egui_core_resume(egui_core_t *core);
+/** Return non-zero when the core is suspended. */
 int egui_core_is_suspended(egui_core_t *core);
 
+/** Notify the PFB manager that one asynchronous flush finished. */
 void egui_pfb_notify_flush_complete(egui_core_t *core);
+/** Acquire exclusive access to the display bus for a PFB submission sequence. */
 void egui_pfb_bus_acquire(egui_core_t *core);
+/** Release the display bus previously acquired by egui_pfb_bus_acquire(). */
 void egui_pfb_bus_release(egui_core_t *core);
+/** Fill the whole physical screen with black using the current PFB configuration. */
 void egui_core_clear_screen(egui_core_t *core);
+/** Turn off the display and suspend UI refresh work. */
 void egui_screen_off(egui_core_t *core);
+/** Turn on the display, clear stale pixels, and redraw the current scene. */
 void egui_screen_on(egui_core_t *core);
 
+/** Render all pending dirty regions immediately in polling mode. */
 void egui_polling_refresh_display(egui_core_t *core);
+/** Return non-zero when at least one dirty region still needs rendering. */
 int egui_check_need_refresh(egui_core_t *core);
+/** Run per-frame pre-work such as scroll updates and layout calculation. */
 void egui_core_draw_view_group_pre_work(egui_core_t *core);
+/** Poll timers and input devices once. Call this from the main loop in polling ports. */
 void egui_polling_work(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

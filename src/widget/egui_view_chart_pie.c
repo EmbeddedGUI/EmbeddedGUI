@@ -7,15 +7,29 @@
 #include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
+/**
+ * @file egui_view_chart_pie.c
+ * @brief Pie-chart widget with optional legend and clip-aware slice culling.
+ *
+ * Unlike the axis-based chart widgets, the
+ * pie chart owns its own geometry,
+ * legend layout, and slice-visibility tests. The helper layer below focuses on
+ * cheap region rejection so
+ * partial-frame-buffer redraws only touch slices that
+ * can actually affect the current work tile.
+ */
+
 typedef egui_dim_t (*egui_view_chart_pie_get_font_height_fn)(egui_view_chart_pie_t *local);
 typedef void (*egui_view_chart_pie_draw_legend_text_fn)(egui_canvas_t *canvas, egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect);
 
+/* Font and legend rendering hooks used by the lightweight and rich-text paths. */
 struct egui_view_chart_pie_text_ops
 {
     egui_view_chart_pie_get_font_height_fn get_font_height;
     egui_view_chart_pie_draw_legend_text_fn draw_legend_text;
 };
 
+/* Resolved circle placement for the current widget rectangle after legend space is reserved. */
 typedef struct egui_view_chart_pie_geometry
 {
     egui_dim_t center_x;
@@ -23,6 +37,7 @@ typedef struct egui_view_chart_pie_geometry
     egui_dim_t radius;
 } egui_view_chart_pie_geometry_t;
 
+/* Cached facts about the current work tile that help reject hidden slices quickly. */
 typedef struct egui_view_chart_pie_work_region_info
 {
     egui_region_t *work;
@@ -36,16 +51,19 @@ typedef struct egui_view_chart_pie_work_region_info
 #define EGUI_VIEW_CHART_PIE_ANGLE_CULL_PAD_DEG   0
 #define EGUI_VIEW_CHART_PIE_ANGLE_WINDOW_PAD_DEG 5
 
+/* Forward declarations for the heavier geometric tests used by slice culling. */
 static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
 static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
 static int16_t egui_view_chart_pie_integer_atan2_deg(int32_t dy, int32_t dx);
 
+/** Return the fallback default-font height used by the lightweight text path. */
 static egui_dim_t egui_view_chart_pie_get_font_height_basic(egui_view_chart_pie_t *local)
 {
     (void)local;
     return egui_chart_get_font_height((const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
 }
 
+/** Return the active custom-font height, or a small safe fallback when no font is bound. */
 static egui_dim_t egui_view_chart_pie_get_font_height_rich(egui_view_chart_pie_t *local)
 {
     if (local == NULL || local->font == NULL)
@@ -56,6 +74,7 @@ static egui_dim_t egui_view_chart_pie_get_font_height_rich(egui_view_chart_pie_t
     return EGUI_FONT_STD_GET_FONT_HEIGHT(local->font);
 }
 
+/** Draw one legend label with the default lightweight text renderer. */
 static void egui_view_chart_pie_draw_legend_text_basic(egui_canvas_t *canvas, egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect)
 {
     const egui_font_t *font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
@@ -71,6 +90,7 @@ static void egui_view_chart_pie_draw_legend_text_basic(egui_canvas_t *canvas, eg
     }
 }
 
+/** Draw one legend label with the currently bound rich font. */
 static void egui_view_chart_pie_draw_legend_text_rich(egui_canvas_t *canvas, egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect)
 {
     if (local == NULL || local->font == NULL || text == NULL || text_rect == NULL)
@@ -81,16 +101,19 @@ static void egui_view_chart_pie_draw_legend_text_rich(egui_canvas_t *canvas, egu
     egui_canvas_draw_text_in_rect(canvas, local->font, text, text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
 }
 
+/** Lightweight text-ops table used when the widget relies on the default font path. */
 static const egui_view_chart_pie_text_ops_t egui_view_chart_pie_basic_text_ops = {
         .get_font_height = egui_view_chart_pie_get_font_height_basic,
         .draw_legend_text = egui_view_chart_pie_draw_legend_text_basic,
 };
 
+/** Rich-text ops table used when a custom font is explicitly assigned. */
 static const egui_view_chart_pie_text_ops_t egui_view_chart_pie_rich_text_ops = {
         .get_font_height = egui_view_chart_pie_get_font_height_rich,
         .draw_legend_text = egui_view_chart_pie_draw_legend_text_rich,
 };
 
+/** Query the current text height through the selected text-ops backend. */
 static egui_dim_t egui_view_chart_pie_get_font_height(egui_view_chart_pie_t *local)
 {
     if (local == NULL || local->text_ops == NULL || local->text_ops->get_font_height == NULL)
@@ -101,6 +124,7 @@ static egui_dim_t egui_view_chart_pie_get_font_height(egui_view_chart_pie_t *loc
     return local->text_ops->get_font_height(local);
 }
 
+/** Test whether an axis-aligned rectangle overlaps the current canvas work tile. */
 static int egui_view_chart_pie_rect_intersects_work_region(egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
@@ -121,6 +145,7 @@ static int egui_view_chart_pie_rect_intersects_work_region(egui_canvas_t *canvas
     return !(rect_x2 <= work->location.x || x >= work_x2 || rect_y2 <= work->location.y || y >= work_y2);
 }
 
+/** Check whether one angle falls inside a normalized pie-slice sweep. */
 static int egui_view_chart_pie_sweep_contains_angle(int16_t start_angle, uint16_t sweep, int16_t angle)
 {
     if (sweep >= 360U)
@@ -131,6 +156,7 @@ static int egui_view_chart_pie_sweep_contains_angle(int16_t start_angle, uint16_
     return (uint16_t)egui_view_circle_dirty_normalize_angle((int32_t)angle - start_angle) <= sweep;
 }
 
+/** Sort a short in-place angle list so window-gap detection can scan it linearly. */
 static void egui_view_chart_pie_sort_angles(int16_t *angles, uint8_t count)
 {
     for (uint8_t i = 1; i < count; i++)
@@ -147,6 +173,7 @@ static void egui_view_chart_pie_sort_angles(int16_t *angles, uint8_t count)
     }
 }
 
+/** Append one normalized candidate angle unless the short list already contains it. */
 static void egui_view_chart_pie_add_angle_candidate(int16_t *angles, uint8_t *count, int16_t angle)
 {
     uint8_t i;
@@ -170,6 +197,14 @@ static void egui_view_chart_pie_add_angle_candidate(int16_t *angles, uint8_t *co
     (*count)++;
 }
 
+/**
+ * @brief Approximate the angular window covered by the current work tile.
+ *
+ * The function samples the work-tile corners plus axis crossings, then takes
+
+ * * the complement of the largest uncovered gap. That gives a conservative sweep
+ * which later slice-culling logic can use as a cheap early reject.
+ */
 static int egui_view_chart_pie_get_region_angle_window(const egui_region_t *work, egui_dim_t center_x, egui_dim_t center_y, int16_t *out_start,
                                                        uint16_t *out_sweep)
 {
@@ -228,6 +263,7 @@ static int egui_view_chart_pie_get_region_angle_window(const egui_region_t *work
 
     egui_view_chart_pie_sort_angles(angles, count);
 
+    // The visible angular span is the complement of the largest gap between sorted samples.
     for (uint8_t i = 0; i < count; i++)
     {
         int32_t cur = angles[i];
@@ -253,6 +289,7 @@ static int egui_view_chart_pie_get_region_angle_window(const egui_region_t *work
     return 1;
 }
 
+/** Check whether two normalized angular sweeps overlap at any endpoint. */
 static int egui_view_chart_pie_arc_intersects_arc(int16_t start_a, uint16_t sweep_a, int16_t start_b, uint16_t sweep_b)
 {
     int16_t end_a;
@@ -279,6 +316,7 @@ static int egui_view_chart_pie_arc_intersects_arc(int16_t start_a, uint16_t swee
            egui_view_chart_pie_sweep_contains_angle(start_b, sweep_b, start_a) || egui_view_chart_pie_sweep_contains_angle(start_b, sweep_b, end_a);
 }
 
+/** Integer square root used by the circle-edge intersection helpers. */
 static uint16_t egui_view_chart_pie_isqrt32(uint32_t n)
 {
     uint32_t result = 0;
@@ -306,6 +344,7 @@ static uint16_t egui_view_chart_pie_isqrt32(uint32_t n)
     return (uint16_t)result;
 }
 
+/** Approximate `atan2` in degrees using only integer arithmetic. */
 static int16_t egui_view_chart_pie_integer_atan2_deg(int32_t dy, int32_t dx)
 {
     int32_t abs_y;
@@ -349,6 +388,7 @@ static int16_t egui_view_chart_pie_integer_atan2_deg(int32_t dy, int32_t dx)
     return angle % 360;
 }
 
+/** Check whether one point lies inside an axis-aligned region. */
 static int egui_view_chart_pie_point_in_region(const egui_region_t *region, egui_dim_t x, egui_dim_t y)
 {
     if (region == NULL || egui_region_is_empty((egui_region_t *)region))
@@ -360,6 +400,7 @@ static int egui_view_chart_pie_point_in_region(const egui_region_t *region, egui
            y < (region->location.y + region->size.height);
 }
 
+/** Test whether one angle lies inside a slice after applying the configured cull padding. */
 static int egui_view_chart_pie_angle_in_slice(int16_t start_angle, uint16_t sweep, int16_t angle)
 {
     int16_t padded_start;
@@ -380,6 +421,7 @@ static int egui_view_chart_pie_angle_in_slice(int16_t start_angle, uint16_t swee
     return (uint16_t)egui_view_circle_dirty_normalize_angle((int32_t)angle - padded_start) <= padded_sweep;
 }
 
+/** Check whether one point lies inside the filled pie slice, including a small outer AA margin. */
 static int egui_view_chart_pie_point_in_slice(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, uint16_t sweep, egui_dim_t x,
                                               egui_dim_t y)
 {
@@ -395,16 +437,19 @@ static int egui_view_chart_pie_point_in_slice(egui_dim_t center_x, egui_dim_t ce
     return egui_view_chart_pie_angle_in_slice(start_angle, sweep, egui_view_chart_pie_integer_atan2_deg(dy, dx));
 }
 
+/** Test whether a point lies on the bounding box of one segment. */
 static int egui_view_chart_pie_point_on_segment(egui_dim_t ax, egui_dim_t ay, egui_dim_t bx, egui_dim_t by, egui_dim_t px, egui_dim_t py)
 {
     return px >= EGUI_MIN(ax, bx) && px <= EGUI_MAX(ax, bx) && py >= EGUI_MIN(ay, by) && py <= EGUI_MAX(ay, by);
 }
 
+/** 2D cross product helper used by the segment intersection test. */
 static int32_t egui_view_chart_pie_segment_cross(egui_dim_t ax, egui_dim_t ay, egui_dim_t bx, egui_dim_t by, egui_dim_t px, egui_dim_t py)
 {
     return ((int32_t)bx - ax) * ((int32_t)py - ay) - ((int32_t)by - ay) * ((int32_t)px - ax);
 }
 
+/** Check whether two line segments intersect, including collinear edge-touch cases. */
 static int egui_view_chart_pie_segments_intersect(egui_dim_t ax, egui_dim_t ay, egui_dim_t bx, egui_dim_t by, egui_dim_t cx, egui_dim_t cy, egui_dim_t dx,
                                                   egui_dim_t dy)
 {
@@ -438,6 +483,7 @@ static int egui_view_chart_pie_segments_intersect(egui_dim_t ax, egui_dim_t ay, 
     return 0;
 }
 
+/** Check whether one radial slice edge intersects the current work tile. */
 static int egui_view_chart_pie_segment_intersects_region(egui_dim_t x0, egui_dim_t y0, egui_dim_t x1, egui_dim_t y1, const egui_region_t *region)
 {
     egui_dim_t left;
@@ -479,6 +525,7 @@ static int egui_view_chart_pie_segment_intersects_region(egui_dim_t x0, egui_dim
            egui_view_chart_pie_segments_intersect(x0, y0, x1, y1, left, bottom, left, top);
 }
 
+/** Probe whether the slice's curved outer edge crosses the current work tile. */
 static int egui_view_chart_pie_slice_circle_edge_hits_region(const egui_region_t *work, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
                                                              int16_t start_angle, uint16_t sweep)
 {
@@ -551,6 +598,7 @@ static int egui_view_chart_pie_slice_circle_edge_hits_region(const egui_region_t
     return 0;
 }
 
+/** Build a conservative slice bounding box and test it against the work tile. */
 static int egui_view_chart_pie_slice_bbox_intersects_work_region(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
                                                                  int16_t start_angle, uint16_t sweep, egui_dim_t *start_x, egui_dim_t *start_y,
                                                                  egui_dim_t *end_x, egui_dim_t *end_y)
@@ -611,6 +659,14 @@ static int egui_view_chart_pie_slice_bbox_intersects_work_region(egui_canvas_t *
     return egui_view_chart_pie_rect_intersects_work_region(canvas, bbox_min_x - 1, bbox_min_y - 1, bbox_max_x - bbox_min_x + 3, bbox_max_y - bbox_min_y + 3);
 }
 
+/**
+ * @brief Decide whether a slice can affect the current work tile.
+ *
+ * The test intentionally uses several cheap conservative checks in sequence:
+ *
+ * angle-window rejection, bounding-box rejection, corner/center hits, radial
+ * edge hits, and finally curved-edge probing.
+ */
 static int egui_view_chart_pie_slice_intersects_work_region(egui_canvas_t *canvas, const egui_view_chart_pie_work_region_info_t *work_info, egui_dim_t center_x,
                                                             egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, uint16_t sweep)
 {
@@ -679,6 +735,7 @@ static int egui_view_chart_pie_slice_intersects_work_region(egui_canvas_t *canva
         return 1;
     }
 
+    // A small sweep cannot touch the outer arc when the tile is already fully inside the solid core.
     if ((work_info != NULL && work_info->inside_solid_circle && sweep <= 180U) ||
         (work_info == NULL && sweep <= 180U && egui_view_chart_pie_is_work_region_inside_solid_circle(canvas, center_x, center_y, radius)))
     {
@@ -688,6 +745,7 @@ static int egui_view_chart_pie_slice_intersects_work_region(egui_canvas_t *canva
     return egui_view_chart_pie_slice_circle_edge_hits_region(work, center_x, center_y, radius, start_angle, sweep);
 }
 
+/** Sum all slice values so angular proportions can be derived. */
 static uint32_t egui_view_chart_pie_get_total_value(egui_view_chart_pie_t *local)
 {
     uint32_t total = 0;
@@ -706,6 +764,7 @@ static uint32_t egui_view_chart_pie_get_total_value(egui_view_chart_pie_t *local
     return total;
 }
 
+/** Compute the pie center and radius after reserving room for the legend. */
 static int egui_view_chart_pie_compute_geometry(egui_view_chart_pie_t *local, egui_region_t *region, egui_view_chart_pie_geometry_t *geometry)
 {
     egui_dim_t font_h;
@@ -747,6 +806,7 @@ static int egui_view_chart_pie_compute_geometry(egui_view_chart_pie_t *local, eg
     return (geometry->radius > 0) ? 1 : 0;
 }
 
+/** Check whether the whole work tile lies inside the circle's solid interior. */
 static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius)
 {
     egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
@@ -783,6 +843,7 @@ static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_canvas_t 
 #undef EGUI_VIEW_CHART_PIE_CORNER_INSIDE
 }
 
+/** Check whether the work tile reaches the pie's outer circle at all. */
 static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius)
 {
     egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
@@ -838,6 +899,7 @@ static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_canvas_t
     return dx * dx + dy * dy <= outer_radius * outer_radius;
 }
 
+/** Gather reusable facts about the current work tile for later slice culling. */
 static void egui_view_chart_pie_get_work_region_info(egui_canvas_t *canvas, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
                                                      egui_view_chart_pie_work_region_info_t *info)
 {
@@ -868,6 +930,13 @@ static void egui_view_chart_pie_get_work_region_info(egui_canvas_t *canvas, egui
 
 // ============== Pie Chart Drawing ==============
 
+/**
+ * @brief Draw all visible pie slices into the current work tile.
+ *
+ * Slice end angles are derived from cumulative totals to keep rounding error
+ * from
+ * accumulating across many small slices.
+ */
 static void egui_view_chart_pie_draw_pie(egui_canvas_t *canvas, egui_view_chart_pie_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
                                          uint32_t total)
 {
@@ -939,7 +1008,7 @@ static void egui_view_chart_pie_draw_pie(egui_canvas_t *canvas, egui_view_chart_
         uint16_t cull_sweep;
         if (i == local->pie_slice_count - 1)
         {
-            end_angle = 630; // ensure exact full circle
+            end_angle = 630; // Keep the last slice exact so the full circle closes cleanly.
         }
         else if (use_angle_scale_q7)
         {
@@ -1030,7 +1099,7 @@ static void egui_view_chart_pie_draw_legend(egui_canvas_t *canvas, egui_view_cha
         return;
     }
 
-    // Calculate legend starting position
+    // Choose a legend anchor that matches the configured side and keeps the list centered when possible.
     egui_dim_t lx, ly;
     if (local->legend_pos == EGUI_CHART_LEGEND_BOTTOM)
     {
@@ -1054,7 +1123,7 @@ static void egui_view_chart_pie_draw_legend(egui_canvas_t *canvas, egui_view_cha
     }
     else if (local->legend_pos == EGUI_CHART_LEGEND_RIGHT)
     {
-        // For pie, legend goes to the right of the pie area
+        // Right-side legend reserves the trailing width that `compute_geometry` already removed from the pie.
         egui_dim_t pie_w = region->size.width - font_h * 4;
         lx = region->location.x + pie_w + 6;
         ly = region->location.y + (region->size.height - count * (font_h + 2)) / 2;
@@ -1078,13 +1147,13 @@ static void egui_view_chart_pie_draw_legend(egui_canvas_t *canvas, egui_view_cha
             continue;
         }
 
-        // Draw color swatch
+        // Draw the slice color swatch first so the text can read against it visually.
         if (egui_view_chart_pie_rect_intersects_work_region(canvas, lx, ly + 1, swatch_size, swatch_size))
         {
             egui_canvas_draw_rectangle_fill(canvas, lx, ly + 1, swatch_size, swatch_size, color, EGUI_ALPHA_100);
         }
 
-        // Draw name text
+        // Draw the borrowed slice label through the active text backend.
         EGUI_REGION_DEFINE(text_rect, lx + swatch_size + 2, ly, text_w, font_h);
         if (local->text_ops != NULL && local->text_ops->draw_legend_text != NULL &&
             egui_view_chart_pie_rect_intersects_work_region(canvas, text_rect.location.x, text_rect.location.y, text_rect.size.width, text_rect.size.height))
@@ -1092,7 +1161,7 @@ static void egui_view_chart_pie_draw_legend(egui_canvas_t *canvas, egui_view_cha
             local->text_ops->draw_legend_text(canvas, local, name, &text_rect);
         }
 
-        // Advance position
+        // Advance along the chosen legend axis.
         if (local->legend_pos == EGUI_CHART_LEGEND_RIGHT)
         {
             ly += font_h + 2;
@@ -1106,6 +1175,7 @@ static void egui_view_chart_pie_draw_legend(egui_canvas_t *canvas, egui_view_cha
 
 // ============== Main Draw ==============
 
+/** Draw background, pie body, and optional legend for the current tile. */
 void egui_view_chart_pie_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_chart_pie_t);
@@ -1131,13 +1201,13 @@ void egui_view_chart_pie_on_draw(egui_view_t *self)
         egui_canvas_draw_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, local->bg_color, EGUI_ALPHA_100);
     }
 
-    // Draw pie
+    // Draw the pie body only when there is at least one non-zero slice.
     if (has_geometry)
     {
         egui_view_chart_pie_draw_pie(canvas, local, geometry.center_x, geometry.center_y, geometry.radius, total);
     }
 
-    // Draw legend
+    // Draw the legend after the pie so labels stay readable on top of the background.
     if (local->legend_pos != EGUI_CHART_LEGEND_NONE)
     {
         egui_view_chart_pie_draw_legend(canvas, local, &region);
@@ -1146,6 +1216,7 @@ void egui_view_chart_pie_on_draw(egui_view_t *self)
 
 // ============== API Table ==============
 
+/** API table for the standalone pie-chart widget. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_pie_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
         .on_touch_event = egui_view_on_touch_event,
@@ -1165,22 +1236,22 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_pie_t) = {
 
 // ============== Init / Params ==============
 
+/** Initialize a pie chart with empty data, hidden legend, and fallback text ops. */
 void egui_view_chart_pie_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_chart_pie_t);
-    // call super init
+    // Initialize the inherited view shell first.
     egui_view_init(self, core);
-    // update api
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_chart_pie_t);
 
-    // init local data
+    // Start with no borrowed slice data.
     local->pie_slices = NULL;
     local->pie_slice_count = 0;
 
-    // legend
+    // Hide the legend until the caller opts in.
     local->legend_pos = EGUI_CHART_LEGEND_NONE;
 
-    // style
+    // Default to theme-driven colors and the lightweight text path.
     local->bg_color = EGUI_THEME_SURFACE;
     local->text_color = EGUI_THEME_TEXT_SECONDARY;
     local->font = NULL;
@@ -1189,12 +1260,14 @@ void egui_view_chart_pie_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_chart_pie");
 }
 
+/** Apply only the widget rectangle from one pie-chart parameter block. */
 void egui_view_chart_pie_apply_params(egui_view_t *self, const egui_view_chart_pie_params_t *params)
 {
     self->region = params->region;
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the widget before applying its geometry. */
 void egui_view_chart_pie_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_pie_params_t *params)
 {
     egui_view_chart_pie_init(self, core);
@@ -1203,6 +1276,7 @@ void egui_view_chart_pie_init_with_params(egui_view_t *self, egui_core_t *core, 
 
 // ============== Setters ==============
 
+/** Borrow the caller-owned slice array and invalidate the widget. */
 void egui_view_chart_pie_set_slices(egui_view_t *self, const egui_chart_pie_slice_t *slices, uint8_t count)
 {
     EGUI_LOCAL_INIT(egui_view_chart_pie_t);
@@ -1211,6 +1285,7 @@ void egui_view_chart_pie_set_slices(egui_view_t *self, const egui_chart_pie_slic
     egui_view_invalidate(self);
 }
 
+/** Update the legend placement and redraw only when the setting actually changes. */
 void egui_view_chart_pie_set_legend_pos(egui_view_t *self, uint8_t pos)
 {
     EGUI_LOCAL_INIT(egui_view_chart_pie_t);
@@ -1221,6 +1296,7 @@ void egui_view_chart_pie_set_legend_pos(egui_view_t *self, uint8_t pos)
     }
 }
 
+/** Update the background and legend/text colors used by the widget. */
 void egui_view_chart_pie_set_colors(egui_view_t *self, egui_color_t bg, egui_color_t text)
 {
     EGUI_LOCAL_INIT(egui_view_chart_pie_t);
@@ -1229,6 +1305,7 @@ void egui_view_chart_pie_set_colors(egui_view_t *self, egui_color_t bg, egui_col
     egui_view_invalidate(self);
 }
 
+/** Switch between fallback and rich-text rendering depending on whether a font is provided. */
 void egui_view_chart_pie_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_chart_pie_t);

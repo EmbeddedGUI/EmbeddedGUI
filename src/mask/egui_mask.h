@@ -26,6 +26,15 @@ typedef enum
 } egui_mask_kind_t;
 
 typedef struct egui_mask_api egui_mask_api_t;
+
+/**
+ * @brief Virtual function table shared by every mask implementation.
+ *
+ * Reading tip:
+ * - `mask_point` is the always-available fallback used by pixel-level draws.
+ * - Row queries are optional accelerators for scanline renderers.
+ * - Overlay helpers are used by masks that modify color instead of only alpha.
+ */
 struct egui_mask_api
 {
     egui_mask_kind_t kind;
@@ -52,9 +61,27 @@ struct egui_mask
     const egui_mask_api_t *api; // virtual api
 };
 
+/**
+ * @brief Move the mask region to a new origin.
+ */
 void egui_mask_set_position(egui_mask_t *self, egui_dim_t x, egui_dim_t y);
+
+/**
+ * @brief Resize the mask region, clamping shape data when required.
+ */
 void egui_mask_set_size(egui_mask_t *self, egui_dim_t width, egui_dim_t height);
+
+/**
+ * @brief Apply the mask effect to one destination pixel.
+ *
+ * Most callers reach this through `self->api->mask_point`, but the symbol is
+ * still exposed so the base implementation can live in one shared place.
+ */
 void egui_mask_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);
+
+/**
+ * @brief Initialize the base mask object before specializing it.
+ */
 void egui_mask_init(egui_mask_t *self);
 
 /* Ends C function definitions when using C++ */

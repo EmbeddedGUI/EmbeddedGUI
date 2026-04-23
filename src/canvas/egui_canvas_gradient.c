@@ -36,6 +36,13 @@ static const egui_alpha_t grad_rr_alpha_table[] = {0, 64, 128, 191, 255};
 static const egui_alpha_t grad_rr_alpha_table[] = {0, 16, 32, 48, 64, 80, 96, 112, 128, 143, 159, 175, 191, 207, 223, 239, 255};
 #endif
 
+/**
+ * @brief Estimate one rounded-corner pixel's coverage with sub-pixel sampling.
+ *
+ * Samples are counted inside either the quarter-circle cap or the
+ * straight
+ * rectangular continuation, matching the geometry of a rounded rectangle.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t gradient_round_rect_corner_alpha(int32_t dx, int32_t dy, int32_t r, uint8_t is_left)
 {
     int32_t r_scaled_sq = r * r * GRAD_RR_SCALE_SQ;
@@ -95,6 +102,9 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_round_rect_corner_alpha(int32_t dx,
  * dy: pixel offset from corner circle center (same as corner_alpha dy).
  * r: corner radius.
  */
+/**
+ * @brief Estimate vertical edge coverage for rows that pass through a corner cap.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t gradient_round_rect_vert_edge_alpha(int32_t dy, int32_t r)
 {
     int32_t r_scaled = r * GRAD_RR_SCALE;
@@ -122,6 +132,9 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_round_rect_vert_edge_alpha(int32_t 
 }
 
 /* Division-free integer square root (bit-by-bit method) for radial gradient distance. */
+/**
+ * @brief Compute an integer square root for radial and circular gradient helpers.
+ */
 static uint32_t gradient_isqrt(uint32_t n)
 {
     if (n == 0)
@@ -155,6 +168,13 @@ static uint32_t gradient_isqrt(uint32_t n)
 }
 
 /* Compute gradient color at position t (0-255) given a stop array. */
+/**
+ * @brief Interpolate the gradient stop array at one normalized position.
+ *
+ * The function first clamps to the edge stops, then finds the two neighboring
+
+ * * stops around `t` and mixes their colors linearly.
+ */
 egui_color_t egui_gradient_get_color(const egui_gradient_stop_t *stops, uint8_t stop_count, uint8_t t)
 {
     /* Clamp to first/last stop */
@@ -202,6 +222,13 @@ static const uint8_t egui_gradient_bayer_4x4[16] = {
 };
 // clang-format on
 
+/**
+ * @brief Apply Bayer dithering before sampling the gradient stop array.
+ *
+ * Dithering perturbs `t` by a tiny screen-space pattern so RGB565 banding is
+ *
+ * spread spatially instead of showing up as large flat stripes.
+ */
 egui_color_t egui_gradient_get_color_dithered(const egui_gradient_stop_t *stops, uint8_t stop_count, uint8_t t, egui_dim_t px, egui_dim_t py)
 {
     /* Apply dithering offset to the gradient position (t).
@@ -224,6 +251,9 @@ egui_color_t egui_gradient_get_color_dithered(const egui_gradient_stop_t *stops,
 #endif /* EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING */
 
 /* Compute linear gradient t value (0-255) for a given position within a dimension. */
+/**
+ * @brief Map a position along one axis to the common 0..255 gradient domain.
+ */
 __EGUI_STATIC_INLINE__ uint8_t gradient_linear_t(egui_dim_t pos, egui_dim_t size)
 {
     if (size <= 1)
@@ -234,6 +264,9 @@ __EGUI_STATIC_INLINE__ uint8_t gradient_linear_t(egui_dim_t pos, egui_dim_t size
 }
 
 /* Compute radial gradient t value (0-255) for a given pixel offset from center. */
+/**
+ * @brief Map a pixel's distance from the gradient center to 0..255.
+ */
 __EGUI_STATIC_INLINE__ uint8_t gradient_radial_t(egui_dim_t dx, egui_dim_t dy, egui_dim_t radius)
 {
     if (radius <= 0)
@@ -258,6 +291,9 @@ static const uint8_t atan2_octant_lut[33] = {
 
 /* Integer atan2 returning angle in [0, 255] where 0=0掳(right), 64=90掳(down),
  * 128=180掳(left), 192=270掳(up). Clockwise screen convention (y-down). */
+/**
+ * @brief Approximate screen-space atan2 and encode the result into 256 steps.
+ */
 static uint8_t gradient_atan2_256(int32_t dy, int32_t dx)
 {
     if (dx == 0 && dy == 0)
@@ -292,6 +328,9 @@ static uint8_t gradient_atan2_256(int32_t dy, int32_t dx)
 
 /* Compute angular gradient t value (0-255) for a pixel at (dx, dy) from center.
  * Full 360掳 sweep: 0掳(right) 锟?255 锟?0掳(right). */
+/**
+ * @brief Convert a full-sweep angular gradient sample into the shared 0..255 domain.
+ */
 __EGUI_STATIC_INLINE__ uint8_t gradient_angular_t(egui_dim_t dx, egui_dim_t dy)
 {
     return gradient_atan2_256((int32_t)dy, (int32_t)dx);
@@ -299,6 +338,9 @@ __EGUI_STATIC_INLINE__ uint8_t gradient_angular_t(egui_dim_t dx, egui_dim_t dy)
 
 /* Compute angular gradient t value for an arc span.
  * Maps pixel angle to [0, 255] within [start_angle_deg, start_angle_deg + span_deg]. */
+/**
+ * @brief Normalize a pixel angle relative to one arc segment's sweep.
+ */
 __EGUI_STATIC_INLINE__ uint8_t gradient_angular_arc_t(int32_t dy, int32_t dx, int32_t start_angle_deg, int32_t span_deg)
 {
     uint8_t pixel_angle = gradient_atan2_256(dy, dx);
@@ -318,6 +360,9 @@ __EGUI_STATIC_INLINE__ uint8_t gradient_angular_arc_t(int32_t dy, int32_t dx, in
 }
 
 /* Get gradient color for a pixel at (px, py) relative to shape origin (0,0) with shape size (w, h). */
+/**
+ * @brief Dispatch one pixel to the correct gradient `t` generator and color lookup.
+ */
 __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at(const egui_gradient_t *gradient, egui_dim_t px, egui_dim_t py, egui_dim_t w, egui_dim_t h)
 {
     uint8_t t;
@@ -345,6 +390,9 @@ __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at(const egui_gradient_t *gra
 }
 
 #if EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
+/**
+ * @brief Dithered variant of gradient_color_at using absolute screen coordinates.
+ */
 __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at_dithered(const egui_gradient_t *gradient, egui_dim_t px, egui_dim_t py, egui_dim_t w, egui_dim_t h,
                                                                egui_dim_t screen_x, egui_dim_t screen_y)
 {
@@ -375,6 +423,9 @@ __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at_dithered(const egui_gradie
 
 /* Unified gradient color lookup: applies dithering when enabled, falls back to plain color_at otherwise.
  * screen_x/screen_y are absolute pixel coordinates for the Bayer matrix. */
+/**
+ * @brief Central color lookup used by the shape rasterizers in this file.
+ */
 __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at_pixel(const egui_gradient_t *gradient, egui_dim_t rel_x, egui_dim_t rel_y, egui_dim_t w, egui_dim_t h,
                                                             egui_dim_t screen_x, egui_dim_t screen_y)
 {
@@ -388,6 +439,9 @@ __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at_pixel(const egui_gradient_
 }
 
 /* Unified single-stop gradient color: applies dithering when enabled. */
+/**
+ * @brief Lookup a precomputed `t` value while still honoring optional dithering.
+ */
 __EGUI_STATIC_INLINE__ egui_color_t gradient_get_color_pixel(const egui_gradient_stop_t *stops, uint8_t stop_count, uint8_t t, egui_dim_t screen_x,
                                                              egui_dim_t screen_y)
 {
@@ -402,6 +456,9 @@ __EGUI_STATIC_INLINE__ egui_color_t gradient_get_color_pixel(const egui_gradient
 
 /* 129-entry cache stores t = {0, 2, ..., 254, 255}.
  * This keeps lookup O(1) while cutting the old 256-entry LUT stack roughly in half. */
+/**
+ * @brief Map the full 0..255 gradient domain onto the compact 129-entry cache.
+ */
 __EGUI_STATIC_INLINE__ uint8_t gradient_compact_cache_index(uint8_t t)
 {
     return (t == 255) ? 128 : (t >> 1);
@@ -409,6 +466,14 @@ __EGUI_STATIC_INLINE__ uint8_t gradient_compact_cache_index(uint8_t t)
 
 /* ========================== Rectangle Fill Gradient ========================== */
 
+/**
+ * @brief Fill a rectangle with vertical, horizontal, angular, or radial gradients.
+ *
+ * The function specializes the common linear cases into row or
+ * column fills,
+ * while the angular and radial cases fall back to per-pixel sampling with
+ * small color caches to keep repeated lookups cheap.
+ */
 void egui_canvas_draw_rectangle_fill_gradient(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
                                               const egui_gradient_t *gradient)
 {
@@ -742,6 +807,9 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_canvas_t *self, egui_dim_t x,
  * Linearly maps [r_outer_sq .. r_inner_sq] 锟?[0 .. 255].
  * inv_r = (255 << 8) / (r_outer_sq - r_inner_sq), pre-computed once per draw call.
  * Matches SCGUI sc_arc.c reciprocal technique: 1 multiply + 1 shift per pixel. */
+/**
+ * @brief Convert squared circle-edge distance into anti-aliased coverage.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t gradient_circle_edge_alpha_sdf(int32_t d_sq, int32_t r_inner_sq, int32_t r_outer_sq, uint32_t inv_r)
 {
     if (d_sq >= r_outer_sq)
@@ -756,6 +824,13 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_circle_edge_alpha_sdf(int32_t d_sq,
     return (egui_alpha_t)(cov > 255 ? 255 : cov);
 }
 
+/**
+ * @brief Fill a circle with a gradient while preserving a smooth anti-aliased rim.
+ *
+ * Each row is split into a solid center span and narrow edge bands,
+ * and the
+ * no-mask path writes directly into the current PFB tile for speed.
+ */
 void egui_canvas_draw_circle_fill_gradient(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, const egui_gradient_t *gradient)
 {
 
@@ -1291,6 +1366,9 @@ void egui_canvas_draw_circle_fill_gradient(egui_canvas_t *self, egui_dim_t cente
 /* Helper: compute the x-inset at a given dy from a corner center with given radius.
  * Returns the number of pixels from the corner edge to the circle boundary.
  * If dy >= radius, returns 0 (no inset). */
+/**
+ * @brief Return how far a rounded-rectangle row retreats from the square corner.
+ */
 __EGUI_STATIC_INLINE__ egui_dim_t round_rect_corner_inset(egui_dim_t dy, egui_dim_t corner_radius)
 {
     if (corner_radius <= 0 || dy >= corner_radius)
@@ -1303,6 +1381,13 @@ __EGUI_STATIC_INLINE__ egui_dim_t round_rect_corner_inset(egui_dim_t dy, egui_di
     return (egui_dim_t)(r - x_boundary);
 }
 
+/**
+ * @brief Fill a rounded rectangle with independent radii on all four corners.
+ *
+ * The middle rows use wide fast spans, while rows that intersect corner
+ * arcs
+ * switch to LUT/sub-pixel based edge coverage so the caps stay smooth.
+ */
 void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
                                                             egui_dim_t radius_left_top, egui_dim_t radius_left_bottom, egui_dim_t radius_right_top,
                                                             egui_dim_t radius_right_bottom, const egui_gradient_t *gradient)
@@ -2005,6 +2090,9 @@ void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_canvas_t *self,
     }
 }
 
+/**
+ * @brief Convenience wrapper for the common uniform-radius rounded rectangle.
+ */
 void egui_canvas_draw_round_rectangle_fill_gradient(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius,
                                                     const egui_gradient_t *gradient)
 {
@@ -2016,8 +2104,10 @@ void egui_canvas_draw_round_rectangle_fill_gradient(egui_canvas_t *self, egui_di
 /**
  * @brief Compute SDF-based alpha for a pixel relative to one triangle edge.
  *
- * cross = edx*(py-ey) - edy*(px-ex), sign ensures positive=inside.
- * Maps signed distance d in [-0.5, +0.5] to alpha linearly.
+ * `cross = edx * (py - ey) - edy * (px - ex)`, and `sign` chooses which
+ * side
+ * of the edge counts as inside. The signed distance is then mapped into a
+ * narrow linear alpha ramp so triangle borders stay smooth.
  */
 __EGUI_STATIC_INLINE__ egui_alpha_t gradient_triangle_edge_alpha(int32_t cross, int32_t sign, uint32_t len)
 {
@@ -2044,6 +2134,13 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_triangle_edge_alpha(int32_t cross, 
     return (egui_alpha_t)alpha_val;
 }
 
+/**
+ * @brief Fill a triangle with a gradient using scanline spans plus SDF edge AA.
+ *
+ * The scanline structure matches the non-gradient triangle renderer,
+ * but each
+ * pixel or interior span derives its color from the triangle bounding box.
+ */
 void egui_canvas_draw_triangle_fill_gradient(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
                                              const egui_gradient_t *gradient)
 {
@@ -2597,10 +2694,7 @@ void egui_canvas_draw_ellipse_fill_gradient(egui_canvas_t *self, egui_dim_t cent
 #endif
 
 /**
- * @brief Intersection record: x position + originating edge index.
- */
-/**
- * @brief Integer square root for edge length computation.
+ * @brief Integer square root for polygon edge length normalization.
  */
 static uint32_t gradient_polygon_isqrt(uint32_t n)
 {
@@ -2630,6 +2724,9 @@ static uint32_t gradient_polygon_isqrt(uint32_t n)
     return root;
 }
 
+/**
+ * @brief Sort one scanline's polygon intersections together with their edge ids.
+ */
 static void gradient_sort_polygon_isects(egui_float_t *x_arr, uint8_t *edge_idx_arr, int count)
 {
     for (int i = 1; i < count; i++)
@@ -2676,6 +2773,13 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_polygon_edge_alpha(int32_t cross, i
     return (egui_alpha_t)alpha_val;
 }
 
+/**
+ * @brief Fill a polygon with the same even-odd scanline strategy used by the solid path.
+ *
+ * Interior spans are emitted quickly, while the narrow left
+ * and right edge
+ * bands still use edge-distance coverage so oblique borders stay smooth.
+ */
 void egui_canvas_draw_polygon_fill_gradient(egui_canvas_t *self, const egui_dim_t *points, uint8_t count, const egui_gradient_t *gradient)
 {
 
@@ -2935,6 +3039,9 @@ void egui_canvas_draw_polygon_fill_gradient(egui_canvas_t *self, const egui_dim_
 
 /* ========================== Public gradient color utility ========================== */
 
+/**
+ * @brief Public utility wrapper around the internal gradient position sampler.
+ */
 egui_color_t egui_gradient_color_at_pos(const egui_gradient_t *gradient, egui_dim_t px, egui_dim_t py, egui_dim_t w, egui_dim_t h)
 {
     return gradient_color_at(gradient, px, py, w, h);
@@ -2946,6 +3053,9 @@ egui_color_t egui_gradient_color_at_pos(const egui_gradient_t *gradient, egui_di
  * outer_cov: coverage inside outer circle (with AA).
  * inner_inv_cov: inverse coverage of inner circle (255 = fully outside inner, 0 = fully inside inner).
  * Returns combined ring alpha. */
+/**
+ * @brief Combine inner and outer circle coverage into one annulus alpha value.
+ */
 static egui_alpha_t gradient_ring_alpha(int32_t d_sq, int32_t outer_r_inner_sq, int32_t outer_r_outer_sq, int32_t inner_r_inner_sq, int32_t inner_r_outer_sq,
                                         uint32_t inv_outer_r, uint32_t inv_inner_r)
 {
@@ -2998,6 +3108,9 @@ static egui_alpha_t gradient_ring_alpha(int32_t d_sq, int32_t outer_r_inner_sq, 
     return ring_cov;
 }
 
+/**
+ * @brief Fill a circular ring with a gradient and anti-aliased inner/outer edges.
+ */
 void egui_canvas_draw_circle_ring_fill_gradient(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t outer_r, egui_dim_t inner_r,
                                                 const egui_gradient_t *gradient)
 {
@@ -3148,6 +3261,9 @@ void egui_canvas_draw_circle_ring_fill_gradient(egui_canvas_t *self, egui_dim_t 
 
 /* ========================== Rectangle Ring Fill Gradient ========================== */
 
+/**
+ * @brief Fill a rectangular frame with a gradient, leaving the center hollow.
+ */
 void egui_canvas_draw_rectangle_ring_fill_gradient(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t stroke_w,
                                                    const egui_gradient_t *gradient)
 {
@@ -3240,6 +3356,9 @@ void egui_canvas_draw_rectangle_ring_fill_gradient(egui_canvas_t *self, egui_dim
 
 /* ========================== Round Rectangle Ring Fill Gradient ========================== */
 
+/**
+ * @brief Fill a rounded-rectangle frame with gradient color and smooth corner AA.
+ */
 void egui_canvas_draw_round_rectangle_ring_fill_gradient(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
                                                          egui_dim_t stroke_w, egui_dim_t radius, const egui_gradient_t *gradient)
 {
@@ -3569,6 +3688,9 @@ void egui_canvas_draw_round_rectangle_ring_fill_gradient(egui_canvas_t *self, eg
 
 /* ========================== Capsule Line Fill Gradient ========================== */
 
+/**
+ * @brief Fill a thick line as a capsule: rectangle body plus circular end caps.
+ */
 void egui_canvas_draw_line_capsule_fill_gradient(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_w,
                                                  const egui_gradient_t *gradient)
 {
@@ -3706,6 +3828,9 @@ static const int16_t gradient_sin_q15[91] = {
 };
 
 /* sin(deg) * 256, deg in degrees (arbitrary integer). Uses Q15 table for 1-deg precision. */
+/**
+ * @brief Approximate sine in degrees using the 1-degree quarter-wave table.
+ */
 static int32_t gradient_sin_deg(int32_t deg)
 {
     deg = ((deg % 360) + 360) % 360;
@@ -3724,6 +3849,9 @@ static int32_t gradient_sin_deg(int32_t deg)
     return v * sign;
 }
 
+/**
+ * @brief Approximate cosine in degrees by phase-shifting gradient_sin_deg.
+ */
 static int32_t gradient_cos_deg(int32_t deg)
 {
     return gradient_sin_deg(deg + 90);
@@ -3732,6 +3860,9 @@ static int32_t gradient_cos_deg(int32_t deg)
 /* Check if pixel vector (dx, dy) is within a clockwise arc [start_deg, end_deg].
  * sx,sy = start direction vector * 256; ex,ey = end direction vector * 256.
  * span360 = arc span in degrees (0..360). */
+/**
+ * @brief Test whether one pixel vector falls inside the requested arc sector.
+ */
 __EGUI_STATIC_INLINE__ int gradient_in_arc_sector(int32_t dx, int32_t dy, int32_t sx, int32_t sy, int32_t ex, int32_t ey, int32_t span360)
 {
     /* Cross products (dx,dy scaled by 256 on direction side) */
@@ -3754,6 +3885,9 @@ __EGUI_STATIC_INLINE__ int gradient_in_arc_sector(int32_t dx, int32_t dy, int32_
  * the edge direction vector (scaled by 256).
  * pixel = (px, py) is the pixel offset from center. Returns EGUI_ALPHA_100 if well inside, scaled alpha at edge,
  * 0 if outside. */
+/**
+ * @brief Compute AA coverage near one radial cut edge of an arc.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t gradient_arc_edge_alpha(int32_t px, int32_t py, int32_t dir_x, int32_t dir_y)
 {
     /* Perpendicular distance from the ray = cross(dir, P) / |dir|
@@ -3777,6 +3911,9 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_arc_edge_alpha(int32_t px, int32_t 
 /* Symmetric AA for outside-sector pixels: alpha peaks at the edge line and
  * falls off on BOTH sides within a 2-pixel zone. Used only for pixels that
  * failed the sector check but may be in the AA fringe. */
+/**
+ * @brief Compute symmetric falloff for pixels just outside an arc cut edge.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t gradient_arc_edge_alpha_symmetric(int32_t px, int32_t py, int32_t dir_x, int32_t dir_y)
 {
     int32_t perp_scaled = dir_x * py - dir_y * px;
@@ -3794,6 +3931,9 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_arc_edge_alpha_symmetric(int32_t px
     return (egui_alpha_t)((uint32_t)(512 - perp_scaled) * 255 / 512);
 }
 
+/**
+ * @brief Fill an arc-shaped ring with gradient color and anti-aliased radial cuts.
+ */
 void egui_canvas_draw_arc_ring_fill_gradient(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t outer_r, egui_dim_t inner_r,
                                              int32_t start_angle_deg, int32_t end_angle_deg, const egui_gradient_t *gradient)
 {
@@ -4023,6 +4163,9 @@ void egui_canvas_draw_arc_ring_fill_gradient(egui_canvas_t *self, egui_dim_t cen
 #define EGUI_ARC_CAP_START 2
 #define EGUI_ARC_CAP_BOTH  3
 
+/**
+ * @brief Arc-ring wrapper that adds round caps at both angular endpoints.
+ */
 void egui_canvas_draw_arc_ring_fill_gradient_round_cap(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t outer_r, egui_dim_t inner_r,
                                                        int32_t start_angle_deg, int32_t end_angle_deg, const egui_gradient_t *gradient, uint8_t cap_mode)
 {
@@ -4093,6 +4236,9 @@ void egui_canvas_draw_arc_ring_fill_gradient_round_cap(egui_canvas_t *self, egui
 
 /* ========================== Image + Gradient Overlay ========================== */
 
+/**
+ * @brief Draw an image first, then multiply it with a gradient-style color overlay.
+ */
 void egui_canvas_draw_image_gradient_overlay(egui_canvas_t *self, const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
                                              const egui_gradient_t *gradient, egui_alpha_t overlay_alpha)
 {

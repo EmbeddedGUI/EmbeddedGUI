@@ -8,7 +8,9 @@
 extern "C" {
 #endif
 
+/** Get the toast instance currently registered with the core. */
 egui_toast_t *egui_core_toast_get(egui_core_t *core);
+/** Register or clear the default toast instance used by higher-level helpers. */
 void egui_core_toast_set(egui_core_t *core, egui_toast_t *toast);
 
 /* Ends C function definitions when using C++ */

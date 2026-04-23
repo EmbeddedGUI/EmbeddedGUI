@@ -3,10 +3,13 @@
 
 /**
  * @file egui_input_simulator.h
- * @brief Input simulation helpers for GIF recording
+ * @brief Input-simulation helpers used by runtime recording and screenshot tests.
  *
- * Provides helper functions and types for simulating user interactions
- * during GIF recording. Used with EGUI_CONFIG_FUNCTION_RECORDING_TEST macro.
+ * These helpers are typically
+ * consumed from `egui_port_get_recording_action()`
+ * to describe a deterministic sequence of clicks, drags, swipes, waits, and
+ * targeted multi-display
+ * interactions.
  */
 
 #include "config/egui_config.h"
@@ -18,69 +21,78 @@ extern "C" {
 #endif
 
 /**
- * @brief Simulation action types
+ * @brief High-level simulated interaction types consumed by the recording port.
  */
 typedef enum
 {
-    EGUI_SIM_ACTION_NONE = 0, // No action / end marker
-    EGUI_SIM_ACTION_CLICK,    // Single click at position
-    EGUI_SIM_ACTION_DRAG,     // Drag from one point to another
-    EGUI_SIM_ACTION_SWIPE,    // Fast swipe gesture
-    EGUI_SIM_ACTION_WAIT,     // Wait without action
+    EGUI_SIM_ACTION_NONE = 0, // terminator / no-op action
+    EGUI_SIM_ACTION_CLICK,    // click or tap at one point
+    EGUI_SIM_ACTION_DRAG,     // drag from one point to another over multiple steps
+    EGUI_SIM_ACTION_SWIPE,    // fast drag with a fixed short step count
+    EGUI_SIM_ACTION_WAIT,     // delay without generating pointer input
 } egui_sim_action_type_t;
 
 /**
- * @brief Simulation action description
+ * @brief One recorded or simulated action entry.
+ *
+ * Unused coordinates are ignored according to `type`. For single-display helpers, `display_id` defaults to `0`.
  */
 typedef struct egui_sim_action
 {
-    egui_sim_action_type_t type;
-    int x1, y1;      // Start position (or click position)
-    int x2, y2;      // End position (for drag/swipe)
-    int steps;       // Number of steps for drag (0 = auto)
-    int interval_ms; // Time before this action (ms)
-    int display_id;  // Target display index (0 = default/main display)
+    egui_sim_action_type_t type; // enum egui_sim_action_type_t
+    int x1, y1;                  // click position or drag/swipe start point
+    int x2, y2;                  // drag/swipe end point
+    int steps;                   // number of intermediate drag steps, `0` lets the port pick one
+    int interval_ms;             // delay before this action begins
+    int display_id;              // target display index, `0` selects the main/default display
 } egui_sim_action_t;
 
 /**
- * @brief Helper macro to define a click action
+ * @brief Create one click or tap action for the default display.
  * @param _x Click x position
  * @param _y Click y position
- * @param _interval_ms Interval before click (ms)
+ * @param _interval_ms
+ * Interval before click (ms)
  */
 #define EGUI_SIM_CLICK(_x, _y, _interval_ms) {EGUI_SIM_ACTION_CLICK, (_x), (_y), 0, 0, 0, (_interval_ms)}
 
 /**
- * @brief Helper macro to define a drag action
+ * @brief Create one drag action for the default display.
  * @param _x1, _y1 Start position
  * @param _x2, _y2 End position
- * @param _steps Number of intermediate steps (0 = auto calculate)
+ * @param _steps Number of
+ * intermediate steps (0 = auto calculate)
  * @param _interval_ms Interval before drag starts (ms)
  */
 #define EGUI_SIM_DRAG(_x1, _y1, _x2, _y2, _steps, _interval_ms) {EGUI_SIM_ACTION_DRAG, (_x1), (_y1), (_x2), (_y2), (_steps), (_interval_ms)}
 
 /**
- * @brief Helper macro to define a swipe action (fast drag)
- * @param _x1, _y1 Start position
+ * @brief Create one swipe action for the default display.
+ *
+ * A swipe is encoded as a drag that always uses five intermediate steps.
+ *
+ * @param _x1,
+ * _y1 Start position
  * @param _x2, _y2 End position
  * @param _interval_ms Interval before swipe (ms)
  */
 #define EGUI_SIM_SWIPE(_x1, _y1, _x2, _y2, _interval_ms) {EGUI_SIM_ACTION_SWIPE, (_x1), (_y1), (_x2), (_y2), 5, (_interval_ms)}
 
 /**
- * @brief Helper macro to define a wait action
+ * @brief Create one wait-only action for the default display.
  * @param _interval_ms Wait duration (ms)
  */
 #define EGUI_SIM_WAIT(_interval_ms) {EGUI_SIM_ACTION_WAIT, 0, 0, 0, 0, 0, (_interval_ms)}
 
 /**
- * @brief End marker for action array
+ * @brief End marker for one action array returned by the recording hook.
  */
 #define EGUI_SIM_END() {EGUI_SIM_ACTION_NONE, 0, 0, 0, 0, 0, 0}
 
 /**
- * @brief Get center position of a view
- * @param view Pointer to egui_view_t (or derived type, will be cast)
+ * @brief Resolve the center point of one view in screen coordinates.
+ * @param view Pointer to `egui_view_t` (or a derived type, which will be cast)
+ *
  * @param p_x Pointer to store center x
  * @param p_y Pointer to store center y
  */
@@ -92,12 +104,13 @@ __EGUI_STATIC_INLINE__ void egui_sim_get_view_center(void *view, int *p_x, int *
 }
 
 /**
- * @brief Get position within a view (relative to view's top-left)
- * @param view Pointer to egui_view_t
+ * @brief Resolve a point inside one view using normalized relative coordinates.
+ * @param view Pointer to `egui_view_t`
  * @param rel_x Relative x (0.0 = left, 0.5 = center, 1.0 = right)
  * @param rel_y Relative y (0.0 = top, 0.5 = center, 1.0 = bottom)
  * @param p_x Pointer to store absolute x
- * @param p_y Pointer to store absolute y
+ * @param p_y
+ * Pointer to store absolute y
  */
 __EGUI_STATIC_INLINE__ void egui_sim_get_view_pos(void *view, float rel_x, float rel_y, int *p_x, int *p_y)
 {
@@ -107,11 +120,12 @@ __EGUI_STATIC_INLINE__ void egui_sim_get_view_pos(void *view, float rel_x, float
 }
 
 /**
- * @brief Get the visible intersection region of a view under an optional clip region.
- * @param view Pointer to egui_view_t
- * @param clip_region Optional clip region in screen coordinates, NULL to use full view region
+ * @brief Compute the currently visible region of a view after optional clipping.
+ * @param view Pointer to `egui_view_t`
+ * @param clip_region Optional clip region in screen coordinates, `NULL` keeps the full view bounds
  * @param p_visible_region Pointer to store the visible region
- * @return 1 if the view has a non-empty visible region, 0 otherwise
+ * @return 1 if the view
+ * has a non-empty visible region, 0 otherwise
  */
 __EGUI_STATIC_INLINE__ int egui_sim_get_view_visible_region(void *view, const egui_region_t *clip_region, egui_region_t *p_visible_region)
 {
@@ -136,8 +150,8 @@ __EGUI_STATIC_INLINE__ int egui_sim_get_view_visible_region(void *view, const eg
 }
 
 /**
- * @brief Get the center position of a view after clipping to an optional region.
- * @param view Pointer to egui_view_t
+ * @brief Resolve the center of the visible part of one view.
+ * @param view Pointer to `egui_view_t`
  * @param clip_region Optional clip region in screen coordinates
  * @param p_x Pointer to store center x
  * @param p_y Pointer to store center y
@@ -158,9 +172,9 @@ __EGUI_STATIC_INLINE__ int egui_sim_get_view_clipped_center(void *view, const eg
 }
 
 /**
- * @brief Set a click action using the clipped visible center of a view.
- * @param p_action Pointer to egui_sim_action_t
- * @param view Pointer to egui_view_t
+ * @brief Fill one action as a click on the clipped visible center of a view.
+ * @param p_action Pointer to `egui_sim_action_t`
+ * @param view Pointer to `egui_view_t`
  * @param clip_region Optional clip region in screen coordinates
  * @param interval_ms Interval before click
  * @return 1 if the action was set, 0 otherwise
@@ -178,16 +192,16 @@ __EGUI_STATIC_INLINE__ int egui_sim_set_click_view_clipped(egui_sim_action_t *p_
 }
 
 /**
- * @brief Macro to get view center coordinates as expressions
- * Can be used directly in macro arguments
+ * @brief View-center X expression for macro arguments and initializers.
  */
 #define EGUI_SIM_VIEW_CENTER_X(_view) (((egui_view_t *)(_view))->region_screen.location.x + ((egui_view_t *)(_view))->region_screen.size.width / 2)
 
+/** @brief View-center Y expression for macro arguments and initializers. */
 #define EGUI_SIM_VIEW_CENTER_Y(_view) (((egui_view_t *)(_view))->region_screen.location.y + ((egui_view_t *)(_view))->region_screen.size.height / 2)
 
 /**
- * @brief Set action to click at view center
- * @param _p_action Pointer to egui_sim_action_t
+ * @brief Fill one action as a click on the center of a view on the default display.
+ * @param _p_action Pointer to `egui_sim_action_t`
  * @param _view Pointer to view
  * @param _interval_ms Interval before click (ms)
  */
@@ -201,8 +215,8 @@ __EGUI_STATIC_INLINE__ int egui_sim_set_click_view_clipped(egui_sim_action_t *p_
     } while (0)
 
 /**
- * @brief Set action to drag from one view to another
- * @param _p_action Pointer to egui_sim_action_t
+ * @brief Fill one action as a drag from one view center to another on the default display.
+ * @param _p_action Pointer to `egui_sim_action_t`
  * @param _view_from Start view
  * @param _view_to End view
  * @param _steps Number of steps
@@ -221,7 +235,7 @@ __EGUI_STATIC_INLINE__ int egui_sim_set_click_view_clipped(egui_sim_action_t *p_
     } while (0)
 
 /**
- * @brief Set action to swipe from one view to another
+ * @brief Fill one action as a swipe between the centers of two views on the default display.
  */
 #define EGUI_SIM_SET_SWIPE_VIEW(_p_action, _view_from, _view_to, _interval_ms)                                                                                 \
     do                                                                                                                                                         \
@@ -236,15 +250,17 @@ __EGUI_STATIC_INLINE__ int egui_sim_set_click_view_clipped(egui_sim_action_t *p_
     } while (0)
 
 /**
- * @brief Request a screenshot on the next rendered frame.
- * Call this in egui_port_get_recording_action() to precisely capture a frame.
- * If not called, the framework auto-captures after each action completes (fallback).
- * Implemented in porting layer (e.g., sdl_port.c).
+ * @brief Request an extra screenshot on the next rendered frame.
+ *
+ * Call this from `egui_port_get_recording_action()` when an action sequence
+ * needs a
+ * snapshot at a precise frame boundary instead of relying on the
+ * framework's default auto-capture timing.
  */
 extern void recording_request_snapshot(void);
 
 /**
- * @brief Set action to wait
+ * @brief Fill one action as a wait-only entry on the default display.
  */
 #define EGUI_SIM_SET_WAIT(_p_action, _interval_ms)                                                                                                             \
     do                                                                                                                                                         \
@@ -256,23 +272,23 @@ extern void recording_request_snapshot(void);
 /* ---- Multi-display action macros ---- */
 
 /**
- * @brief Click on a specific display
+ * @brief Create one click or tap action for an explicit display index.
  */
 #define EGUI_SIM_CLICK_DISP(_x, _y, _interval_ms, _disp) {EGUI_SIM_ACTION_CLICK, (_x), (_y), 0, 0, 0, (_interval_ms), (_disp)}
 
 /**
- * @brief Drag on a specific display
+ * @brief Create one drag action for an explicit display index.
  */
 #define EGUI_SIM_DRAG_DISP(_x1, _y1, _x2, _y2, _steps, _interval_ms, _disp)                                                                                    \
     {EGUI_SIM_ACTION_DRAG, (_x1), (_y1), (_x2), (_y2), (_steps), (_interval_ms), (_disp)}
 
 /**
- * @brief Swipe on a specific display
+ * @brief Create one swipe action for an explicit display index.
  */
 #define EGUI_SIM_SWIPE_DISP(_x1, _y1, _x2, _y2, _interval_ms, _disp) {EGUI_SIM_ACTION_SWIPE, (_x1), (_y1), (_x2), (_y2), 5, (_interval_ms), (_disp)}
 
 /**
- * @brief Set action to click at view center on a specific display
+ * @brief Fill one action as a centered click on a view on the selected display.
  */
 #define EGUI_SIM_SET_CLICK_VIEW_DISP(_p_action, _view, _interval_ms, _disp)                                                                                    \
     do                                                                                                                                                         \
@@ -285,7 +301,7 @@ extern void recording_request_snapshot(void);
     } while (0)
 
 /**
- * @brief Set action to drag between views on a specific display
+ * @brief Fill one action as a drag between two view centers on the selected display.
  */
 #define EGUI_SIM_SET_DRAG_VIEW_DISP(_p_action, _view_from, _view_to, _steps, _interval_ms, _disp)                                                              \
     do                                                                                                                                                         \
@@ -301,7 +317,7 @@ extern void recording_request_snapshot(void);
     } while (0)
 
 /**
- * @brief Set action to swipe between views on a specific display
+ * @brief Fill one action as a swipe between two view centers on the selected display.
  */
 #define EGUI_SIM_SET_SWIPE_VIEW_DISP(_p_action, _view_from, _view_to, _interval_ms, _disp)                                                                     \
     do                                                                                                                                                         \

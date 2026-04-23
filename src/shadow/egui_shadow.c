@@ -7,6 +7,21 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
 
+/**
+ * @file egui_shadow.c
+ * @brief Shadow rasterizer used by styled widgets and other elevated surfaces.
+ *
+ * The implementation splits one shadow into three
+ * regions:
+ * 1. a solid inner body,
+ * 2. straight edge strips with one alpha per row or column,
+ * 3. corner zones that need per-pixel distance evaluation.
+
+ * *
+ * This keeps the common rectangular work cheap while reserving the more
+ * expensive distance math for the rounded corners only.
+ */
+
 // clang-format off
 
 // Pre-computed Gaussian-approximation falloff LUT (64 bytes ROM)
@@ -30,6 +45,13 @@ static const uint8_t egui_shadow_alpha_lut[EGUI_SHADOW_LUT_SIZE] =
 
 // Division-free integer square root (bit-by-bit method).
 // Uses only shifts, additions and comparisons - fast on MCUs without hardware divider.
+/**
+ * @brief Compute an integer square root without division or floating point.
+ *
+ * The shadow rasterizer uses this to recover the radius from
+ * distance-squared
+ * values when building or sampling corner lookup tables.
+ */
 static uint32_t egui_shadow_isqrt(uint32_t n)
 {
     if (n == 0)
@@ -71,6 +93,14 @@ static uint32_t egui_shadow_isqrt(uint32_t n)
 #define EGUI_SHADOW_LUT_INNER_OFFSET (EGUI_SHADOW_LUT_SIZE / 4)
 
 // Get shadow alpha from LUT based on distance to inner edge
+/**
+ * @brief Convert one blur-distance sample into the final shadow alpha.
+ *
+ * `distance` is measured from the solid inner shape toward the outer blur
+ *
+ * boundary. The function first maps that distance into the shared falloff LUT,
+ * then applies the caller's overall shadow opacity on top.
+ */
 static egui_alpha_t egui_shadow_get_alpha(egui_dim_t distance, egui_dim_t width, egui_alpha_t opa)
 {
     if (distance < 0)
@@ -100,6 +130,20 @@ static egui_alpha_t egui_shadow_get_alpha(egui_dim_t distance, egui_dim_t width,
 // Draw one corner zone with sub-pixel precision.
 // bx0..bx1, by0..by1: iteration bounds (pre-clipped to PFB work region).
 // cx, cy: arc center coordinates.
+/**
+ * @brief Rasterize one shadow corner after clipping it to the active work tile.
+ *
+ * Reading tip:
+ * - The direct-PFB path is used when no mask is active,
+ * which is the common
+ *   case for shadows and avoids the generic point-draw overhead.
+ * - Square-corner shadows (`R == 0`) use an edge-distance shortcut
+ * because the
+ *   corner is really the overlap of two straight blur strips.
+ * - Rounded corners reuse distance-squared lookup tables so the inner loop can
+ *
+ * avoid calling the integer square root for every pixel.
+ */
 __attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_canvas_t *canvas, egui_dim_t bx0, egui_dim_t by0, egui_dim_t bx1, egui_dim_t by1,
                                                                     egui_dim_t cx, egui_dim_t cy, egui_dim_t R, egui_dim_t W, egui_color_t color,
                                                                     egui_alpha_t opa, egui_alpha_t center_opa)
@@ -626,6 +670,16 @@ __attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_canvas_
     }
 }
 
+/**
+ * @brief Draw the full shadow around one view-sized inner region.
+ *
+ * The supplied `view_region` describes the original widget bounds. This
+ * function
+ * expands that shape by shadow width and spread, clamps the requested
+ * corner radius, fills the inner body, draws the straight blur strips, and
+ * finally
+ * delegates the four corner boxes to `egui_shadow_draw_corner`.
+ */
 void egui_shadow_draw(egui_canvas_t *canvas, const egui_shadow_t *shadow, egui_region_t *view_region)
 {
     if (shadow->width == 0 && shadow->spread == 0)
@@ -779,6 +833,13 @@ void egui_shadow_draw(egui_canvas_t *canvas, const egui_shadow_t *shadow, egui_r
     }
 }
 
+/**
+ * @brief Compute the outer bounding region occupied by one shadow.
+ *
+ * Callers use this to expand invalidate or clipping regions before the actual
+ *
+ * shadow draw happens, taking offset, spread, and blur width into account.
+ */
 void egui_shadow_get_region(const egui_shadow_t *shadow, egui_region_t *view_region, egui_region_t *shadow_region)
 {
     egui_dim_t ext = shadow->width + shadow->spread;

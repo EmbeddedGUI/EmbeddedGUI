@@ -13,10 +13,16 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
+/*
+ * The text input is a single-line editable field backed by an internal fixed-size buffer.
+ * It keeps the caret visible by horizontally scrolling the
+ * rendered text instead of wrapping.
+ */
+
 #define EGUI_TEXTINPUT_CURSOR_WIDTH 1
 
 /**
- * Get the pixel width of text from index 0 to pos.
+ * Measure the rendered width from byte index 0 up to the requested cursor position.
  */
 static egui_dim_t egui_view_textinput_get_text_width_to_pos(egui_view_textinput_t *local, uint8_t pos)
 {
@@ -25,7 +31,7 @@ static egui_dim_t egui_view_textinput_get_text_width_to_pos(egui_view_textinput_
         return 0;
     }
 
-    // Create a temporary substring
+    // The font API measures null-terminated strings, so build a temporary prefix.
     char tmp[EGUI_CONFIG_TEXTINPUT_MAX_LENGTH + 1];
     uint8_t len = pos;
     if (len > local->text_len)
@@ -43,7 +49,7 @@ static egui_dim_t egui_view_textinput_get_text_width_to_pos(egui_view_textinput_
 }
 
 /**
- * Update scroll offset to ensure cursor is visible in the work region.
+ * Shift the horizontal scroll offset so the caret stays inside the visible content box.
  */
 static void egui_view_textinput_update_scroll(egui_view_t *self)
 {
@@ -52,11 +58,12 @@ static void egui_view_textinput_update_scroll(egui_view_t *self)
     egui_dim_t cursor_x = egui_view_textinput_get_text_width_to_pos(local, local->cursor_pos);
     egui_dim_t work_width = self->region.size.width - (self->padding.left + self->padding.right);
 
-    // Ensure cursor is visible
+    // Scroll right when the caret moves past the trailing edge.
     if (cursor_x - local->scroll_offset_x > work_width - EGUI_TEXTINPUT_CURSOR_WIDTH)
     {
         local->scroll_offset_x = cursor_x - work_width + EGUI_TEXTINPUT_CURSOR_WIDTH;
     }
+    // Scroll back left when the caret returns before the current viewport origin.
     if (cursor_x < local->scroll_offset_x)
     {
         local->scroll_offset_x = cursor_x;
@@ -79,6 +86,7 @@ static int egui_view_textinput_get_cursor_region(egui_view_t *self, egui_view_te
         return 0;
     }
 
+    // The caret is a 1-pixel-wide rectangle positioned inside the padded work region.
     egui_view_get_work_region(self, &work_region);
     cursor_x = work_region.location.x + egui_view_textinput_get_text_width_to_pos(local, local->cursor_pos) - local->scroll_offset_x;
     local->font->api->get_str_size(local->font, "A", 0, 0, &dummy_width, &cursor_height);
@@ -93,6 +101,7 @@ static int egui_view_textinput_get_cursor_region(egui_view_t *self, egui_view_te
 
 static void egui_view_textinput_local_region_to_screen(egui_view_t *self, const egui_region_t *local_region, egui_region_t *screen_region)
 {
+    // Clip checks use screen-space regions, while drawing helpers below use local widget coordinates.
     screen_region->location.x = self->region_screen.location.x + local_region->location.x;
     screen_region->location.y = self->region_screen.location.y + local_region->location.y;
     screen_region->size.width = local_region->size.width;
@@ -103,6 +112,7 @@ static void egui_view_textinput_invalidate_cursor_region(egui_view_t *self, egui
 {
     egui_region_t cursor_region;
 
+    // Fall back to full invalidation when the caret region cannot be measured.
     if (!egui_view_textinput_get_cursor_region(self, local, &cursor_region))
     {
         egui_view_invalidate(self);
@@ -117,10 +127,11 @@ static void egui_view_textinput_cursor_timer_callback(egui_timer_t *timer)
     egui_view_textinput_t *local = (egui_view_textinput_t *)timer->user_data;
     egui_view_t *self = (egui_view_t *)local;
 
+    // Blink by toggling visibility and invalidating only the caret area when possible.
     local->cursor_visible = !local->cursor_visible;
     egui_view_textinput_invalidate_cursor_region(self, local);
 
-    // Restart timer for next blink
+    // Rearm a one-shot timer instead of keeping a permanently repeating timer alive.
     egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
 }
 
@@ -131,13 +142,13 @@ static void egui_view_textinput_on_focus_change(egui_view_t *self, int is_focuse
 
     if (is_focused)
     {
-        // Start cursor blinking
+        // Gaining focus makes the caret visible immediately, then starts blinking.
         local->cursor_visible = 1;
         egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
     }
     else
     {
-        // Stop cursor blinking
+        // Losing focus hides the caret and stops the timer entirely.
         local->cursor_visible = 0;
         egui_view_stop_timer(self, &local->cursor_timer);
     }
@@ -149,6 +160,7 @@ void egui_view_textinput_set_text(egui_view_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_textinput_t);
 
+    // Copy the caller string into owned storage so later edits never depend on external memory.
     if (text == NULL)
     {
         local->text[0] = '\0';
@@ -165,6 +177,7 @@ void egui_view_textinput_set_text(egui_view_t *self, const char *text)
         local->text[len] = '\0';
         local->text_len = len;
     }
+    // Programmatic replacement always moves the caret to the end and resets horizontal scroll.
     local->cursor_pos = local->text_len;
     local->scroll_offset_x = 0;
     egui_view_textinput_update_scroll(self);
@@ -191,12 +204,13 @@ void egui_view_textinput_insert_char(egui_view_t *self, char c)
 {
     EGUI_LOCAL_INIT(egui_view_textinput_t);
 
+    // This widget edits one byte at a time; callers are expected to feed printable single-byte chars.
     if (local->text_len >= local->max_length || c == 0)
     {
         return;
     }
 
-    // Shift characters right from cursor_pos
+    // Open a gap at the caret, insert the byte, then rebuild caret blink timing.
     for (int i = local->text_len; i > local->cursor_pos; i--)
     {
         local->text[i] = local->text[i - 1];
@@ -207,7 +221,7 @@ void egui_view_textinput_insert_char(egui_view_t *self, char c)
     local->text_len++;
     local->text[local->text_len] = '\0';
 
-    // Reset cursor blink
+    // Fresh user input makes the caret visible again immediately.
     local->cursor_visible = 1;
     egui_view_stop_timer(self, &local->cursor_timer);
     egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
@@ -225,12 +239,12 @@ void egui_view_textinput_delete_char(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_textinput_t);
 
+    // Backspace removes the byte before the caret and shifts the tail left.
     if (local->cursor_pos == 0)
     {
         return;
     }
 
-    // Shift characters left
     for (int i = local->cursor_pos - 1; i < local->text_len - 1; i++)
     {
         local->text[i] = local->text[i + 1];
@@ -240,7 +254,7 @@ void egui_view_textinput_delete_char(egui_view_t *self)
     local->text_len--;
     local->text[local->text_len] = '\0';
 
-    // Reset cursor blink
+    // Editing restarts the blink cycle so the caret stays visible after the change.
     local->cursor_visible = 1;
     egui_view_stop_timer(self, &local->cursor_timer);
     egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
@@ -258,12 +272,12 @@ void egui_view_textinput_delete_forward(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_textinput_t);
 
+    // Delete removes the byte at the caret without moving the caret itself.
     if (local->cursor_pos >= local->text_len)
     {
         return;
     }
 
-    // Shift characters left
     for (int i = local->cursor_pos; i < local->text_len - 1; i++)
     {
         local->text[i] = local->text[i + 1];
@@ -285,6 +299,7 @@ void egui_view_textinput_set_cursor_pos(egui_view_t *self, uint8_t pos)
 {
     EGUI_LOCAL_INIT(egui_view_textinput_t);
 
+    // Clamp to the valid byte range before invalidating the old/new caret positions.
     if (pos > local->text_len)
     {
         pos = local->text_len;
@@ -297,7 +312,7 @@ void egui_view_textinput_set_cursor_pos(egui_view_t *self, uint8_t pos)
     egui_view_textinput_invalidate_cursor_region(self, local);
     local->cursor_pos = pos;
 
-    // Reset cursor blink
+    // Cursor moves also restart blinking so keyboard navigation feels responsive.
     local->cursor_visible = 1;
     egui_view_stop_timer(self, &local->cursor_timer);
     egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
@@ -343,6 +358,7 @@ void egui_view_textinput_set_font(egui_view_t *self, const egui_font_t *font)
         return;
     }
     local->font = font;
+    // New font metrics change both text width and caret placement.
     egui_view_textinput_update_scroll(self);
     egui_view_invalidate(self);
 }
@@ -386,7 +402,7 @@ void egui_view_textinput_set_max_length(egui_view_t *self, uint8_t max_length)
     }
     local->max_length = max_length;
 
-    // Truncate if needed
+    // Shrinking the limit may immediately truncate stored text and clamp the caret.
     if (local->text_len > max_length)
     {
         local->text_len = max_length;
@@ -417,6 +433,7 @@ void egui_view_textinput_on_draw(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_textinput_t);
     egui_canvas_t *canvas = egui_view_get_canvas(self);
 
+    // Without a font the widget can still exist, but there is nothing meaningful to draw.
     if (local->font == NULL)
     {
         return;
@@ -429,7 +446,7 @@ void egui_view_textinput_on_draw(egui_view_t *self)
         radius = region.size.height / 2;
     }
 
-    // Draw input container first.
+    // Paint the field container before rendering text content and caret.
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(EGUI_THEME_SURFACE, EGUI_COLOR_WHITE, 80);
@@ -461,31 +478,29 @@ void egui_view_textinput_on_draw(egui_view_t *self)
     egui_view_textinput_local_region_to_screen(self, &work_region, &text_screen_region);
     text_active = egui_canvas_is_region_active(canvas, &text_screen_region);
 
-    // Draw text or placeholder
+    // Placeholder is only shown when the buffer is empty and the field is not actively focused.
     if (text_active && local->text_len == 0 && !self->is_focused && local->placeholder != NULL)
     {
-        // Draw placeholder
         egui_canvas_draw_text_in_rect(canvas, local->font, local->placeholder, &work_region, local->align_type, local->placeholder_color,
                                       local->placeholder_alpha);
     }
     else if (text_active && local->text_len > 0)
     {
-        // Draw text with scroll offset
+        // Real text is drawn as one scrolling line instead of using alignment/wrapping helpers.
         egui_dim_t text_x = work_region.location.x - local->scroll_offset_x;
         egui_dim_t text_y = work_region.location.y;
 
-        // Get text height for vertical centering
+        // Measure height so the baseline can stay vertically centered inside the input box.
         egui_dim_t text_width = 0;
         egui_dim_t text_height = 0;
         local->font->api->get_str_size(local->font, local->text, 0, 0, &text_width, &text_height);
 
-        // Vertical center
         text_y += (work_region.size.height - text_height) / 2;
 
         egui_canvas_draw_text(canvas, local->font, local->text, text_x, text_y, local->text_color, local->text_alpha);
     }
 
-    // Draw cursor
+    // The caret is clipped independently so it can disappear cleanly when scrolled out of view.
     if (self->is_focused && local->cursor_visible)
     {
         egui_region_t cursor_region;
@@ -513,7 +528,7 @@ static int egui_view_textinput_on_key_event(egui_view_t *self, egui_key_event_t 
         return 0;
     }
 
-    // Only process key up events for actions (and key down for printable chars)
+    // Editing actions are committed on key-up so navigation keys do not double-trigger.
     if (event->type == EGUI_KEY_EVENT_ACTION_UP)
     {
         switch (event->key_code)
@@ -544,7 +559,7 @@ static int egui_view_textinput_on_key_event(egui_view_t *self, egui_key_event_t 
             return 1;
         default:
         {
-            // Try to convert to printable character
+            // Printable characters are inserted through the same byte-oriented edit path.
             char c = egui_key_event_to_char(event);
             if (c != 0)
             {
@@ -557,7 +572,7 @@ static int egui_view_textinput_on_key_event(egui_view_t *self, egui_key_event_t 
     }
     else if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
     {
-        // Consume DOWN events for keys we handle on UP to prevent propagation
+        // Swallow the matching key-down so parents do not react before the text field does.
         switch (event->key_code)
         {
         case EGUI_KEY_CODE_BACKSPACE:
@@ -596,7 +611,7 @@ static int egui_view_textinput_on_touch_event(egui_view_t *self, egui_motion_eve
 
     if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
     {
-        // Calculate cursor position from touch x
+        // Convert the touch point into content coordinates after accounting for current scroll.
         egui_dim_t touch_x = event->location.x - self->region_screen.location.x - self->padding.left + local->scroll_offset_x;
 
         if (local->font != NULL && local->text_len > 0)
@@ -604,6 +619,7 @@ static int egui_view_textinput_on_touch_event(egui_view_t *self, egui_motion_eve
             uint8_t best_pos = 0;
             egui_dim_t best_dist = 0x7FFF;
 
+            // Pick the nearest byte boundary so taps land on the closest caret position.
             for (uint8_t i = 0; i <= local->text_len; i++)
             {
                 egui_dim_t char_x = egui_view_textinput_get_text_width_to_pos(local, i);
@@ -617,7 +633,7 @@ static int egui_view_textinput_on_touch_event(egui_view_t *self, egui_motion_eve
             egui_view_textinput_set_cursor_pos(self, best_pos);
         }
 
-        // Request focus on touch
+        // Touching the field also requests keyboard focus.
         egui_view_request_focus(self);
         return 1;
     }
@@ -659,12 +675,11 @@ void egui_view_textinput_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_textinput_t);
 
-    // call super init
+    // Start from the generic view, then install text-input-specific event and draw hooks.
     egui_view_init(self, core);
-    // update api
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_textinput_t);
 
-    // init local data
+    // Default state is an empty single-line editor with the build-time maximum capacity.
     local->text[0] = '\0';
     local->text_len = 0;
     local->cursor_pos = 0;
@@ -673,7 +688,7 @@ void egui_view_textinput_init(egui_view_t *self, egui_core_t *core)
     local->cursor_visible = 0;
     local->reserved = 0;
 
-    // init timer
+    // The timer callback flips caret visibility while the widget keeps focus.
     egui_timer_init_timer(&local->cursor_timer, (void *)local, egui_view_textinput_cursor_timer_callback);
 
     local->font = NULL;
@@ -690,7 +705,7 @@ void egui_view_textinput_init(egui_view_t *self, egui_core_t *core)
     local->on_text_changed = NULL;
     local->on_submit = NULL;
 
-    // Make textinput focusable and clickable
+    // Text input must receive both touch and focus to place the caret and handle key events.
     self->is_clickable = true;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     self->is_focusable = true;

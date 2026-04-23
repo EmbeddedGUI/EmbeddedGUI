@@ -17,7 +17,9 @@ struct egui_interpolator_anticipate_overshoot
                           // simple acceleration/deceleration interpolator.
 };
 
+/** Set the shared anticipation/overshoot strength used on both ends of the curve. */
 void egui_interpolator_anticipate_overshoot_tension_set(egui_interpolator_t *self, egui_float_t tension);
+/** Initialize an interpolator that pulls back first and overshoots near the end. */
 void egui_interpolator_anticipate_overshoot_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

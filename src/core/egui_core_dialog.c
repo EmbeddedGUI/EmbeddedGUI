@@ -8,6 +8,12 @@
 #include "app/egui_dialog.h"
 #include "widget/egui_view.h"
 
+/**
+ * @file egui_core_dialog.c
+ * @brief Core-side dialog ownership and lifecycle handoff on top of the current activity.
+ */
+
+/** Cancel one dialog animation slot only when it still belongs to the target dialog. */
 static void egui_core_dialog_cancel_anim_slot(egui_animation_t *anim, egui_dialog_t **owner_slot, egui_dialog_t *dialog)
 {
     if (owner_slot == NULL || *owner_slot != dialog)
@@ -23,6 +29,7 @@ static void egui_core_dialog_cancel_anim_slot(egui_animation_t *anim, egui_dialo
     *owner_slot = NULL;
 }
 
+/** Remove every pending transition reference that still points at the supplied dialog. */
 static void egui_core_dialog_cancel_pending(egui_core_t *core, egui_dialog_t *dialog)
 {
     if (core == NULL || dialog == NULL)
@@ -39,11 +46,16 @@ static void egui_core_dialog_cancel_pending(egui_core_t *core, egui_dialog_t *di
     }
 }
 
+/** Return the dialog currently attached to this core, or NULL when no dialog is active. */
 egui_dialog_t *egui_core_dialog_get(egui_core_t *core)
 {
     return core->scene.dialog;
 }
 
+/**
+ * Show a dialog above the current activity.
+ * The dialog is created first, the bound activity pauses, and the dialog then resumes immediately or after its open animation completes.
+ */
 void egui_core_dialog_start(egui_core_t *core, egui_activity_t *activity, egui_dialog_t *self)
 {
     if (core == NULL || activity == NULL || self == NULL)
@@ -67,6 +79,7 @@ void egui_core_dialog_start(egui_core_t *core, egui_activity_t *activity, egui_d
 
     if (core->scene.dialog_anim_start != NULL)
     {
+        // The open animation owns the deferred on_resume callback for the entering dialog.
         core->scene.dialog_anim_start_owner = self;
         egui_animation_target_view_set(core->scene.dialog_anim_start, (egui_view_t *)&self->user_root_view);
         egui_animation_start(core->scene.dialog_anim_start);
@@ -78,6 +91,7 @@ void egui_core_dialog_start(egui_core_t *core, egui_activity_t *activity, egui_d
     }
 }
 
+/** Return non-zero when the supplied dialog is still the active dialog tracked by this core. */
 int egui_core_dialog_check_in_process(egui_core_t *core, egui_dialog_t *dialog)
 {
     if (core->scene.dialog == dialog)
@@ -87,10 +101,15 @@ int egui_core_dialog_check_in_process(egui_core_t *core, egui_dialog_t *dialog)
     return 0;
 }
 
+/**
+ * Begin closing the active dialog.
+ * The dialog pauses first, then stops immediately or after its close animation,
+ * and the previously paused activity resumes once the dialog is gone.
+ */
 void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self)
 {
     EGUI_LOG_DBG("egui_core_dialog_finish %p, self->is_need_finish: %d\n", self, self->is_need_finish);
-    // avoid enter twice
+    // Ignore duplicate finish requests.
     if (self->is_need_finish)
     {
         return;
@@ -107,7 +126,7 @@ void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self)
 
     if (self->state < EGUI_DIALOG_STATE_STOP)
     {
-        // check anim
+        // The close animation owns the deferred stop/resume handoff when configured.
         if (core->scene.dialog_anim_finish != NULL)
         {
             core->scene.dialog_anim_finish_owner = self;
@@ -132,10 +151,11 @@ void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self)
         }
     }
 
-    // refresh the screen
+    // Dirty the dialog area so the overlay and the re-exposed activity content are redrawn.
     egui_core_update_region_dirty(core, &self->root_view.base.base.region);
 }
 
+/** Complete the dialog open transition by resuming the dialog that just became interactive. */
 static void on_dialog_anim_start_end(egui_animation_t *self)
 {
     egui_core_t *core = egui_view_get_core(self->target_view);
@@ -163,6 +183,7 @@ static const egui_animation_handle_t dialog_anim_start_hanlde = {
         .repeat = NULL,
 };
 
+/** Complete the dialog close transition by resuming the bound activity and stopping the dialog. */
 static void on_dialog_anim_finish_end(egui_animation_t *self)
 {
     egui_core_t *core = egui_view_get_core(self->target_view);
@@ -195,6 +216,7 @@ static const egui_animation_handle_t dialog_anim_finish_hanlde = {
         .repeat = NULL,
 };
 
+/** Install the open/close animations used for dialogs on this core. */
 void egui_core_dialog_set_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim)
 {
     egui_core_dialog_cancel_anim_slot(core->scene.dialog_anim_start, &core->scene.dialog_anim_start_owner, core->scene.dialog_anim_start_owner);

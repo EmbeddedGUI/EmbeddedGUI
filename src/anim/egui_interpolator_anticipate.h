@@ -17,7 +17,9 @@ struct egui_interpolator_anticipate
                           // interpolator.
 };
 
+/** Set how strongly the motion pulls backward before moving forward. */
 void egui_interpolator_anticipate_tension_set(egui_interpolator_t *self, egui_float_t tension);
+/** Initialize an anticipate interpolator with the default tension. */
 void egui_interpolator_anticipate_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

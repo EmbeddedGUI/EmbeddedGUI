@@ -11,6 +11,16 @@
 #include "egui_view_group.h"
 #endif
 
+/**
+ * @file egui_view_chart_common.c
+ * @brief Shared text, layout, axis, legend, and zoom helpers for chart widgets.
+ *
+ * Line, scatter, and bar charts all
+ * build on the same axis-base state. This
+ * module centralizes the common math so those widgets stay visually and
+ * behaviorally aligned.
+ */
+
 typedef egui_dim_t (*egui_chart_get_font_height_fn)(egui_chart_axis_base_t *ab);
 typedef void (*egui_chart_draw_text_fn)(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type);
 
@@ -20,12 +30,14 @@ struct egui_chart_text_ops
     egui_chart_draw_text_fn draw_text;
 };
 
+/** Return the stock chart text height when no custom axis font is installed. */
 static egui_dim_t egui_chart_get_font_height_basic(egui_chart_axis_base_t *ab)
 {
     (void)ab;
     return egui_chart_get_font_height((const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
 }
 
+/** Return the explicit axis font height, or a small fallback if rich text is misconfigured. */
 static egui_dim_t egui_chart_get_font_height_rich(egui_chart_axis_base_t *ab)
 {
     if (ab == NULL || ab->font == NULL)
@@ -36,6 +48,7 @@ static egui_dim_t egui_chart_get_font_height_rich(egui_chart_axis_base_t *ab)
     return EGUI_FONT_STD_GET_FONT_HEIGHT(ab->font);
 }
 
+/** Draw one axis label using the default chart font path. */
 static void egui_chart_draw_text_basic(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
 {
     const egui_font_t *font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
@@ -51,6 +64,7 @@ static void egui_chart_draw_text_basic(egui_canvas_t *canvas, egui_chart_axis_ba
     }
 }
 
+/** Draw one axis label using the caller-supplied chart font. */
 static void egui_chart_draw_text_rich(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
 {
     if (ab == NULL || ab->font == NULL || text == NULL || text_rect == NULL)
@@ -61,16 +75,19 @@ static void egui_chart_draw_text_rich(egui_canvas_t *canvas, egui_chart_axis_bas
     egui_canvas_draw_text_in_rect(canvas, ab->font, text, text_rect, align_type, ab->text_color, EGUI_ALPHA_100);
 }
 
+/** Built-in text operations used when charts rely on the default theme font. */
 static const egui_chart_text_ops_t egui_chart_basic_text_ops = {
         .get_font_height = egui_chart_get_font_height_basic,
         .draw_text = egui_chart_draw_text_basic,
 };
 
+/** Text operations used after `egui_chart_axis_base_set_font` installs a custom font. */
 static const egui_chart_text_ops_t egui_chart_rich_text_ops = {
         .get_font_height = egui_chart_get_font_height_rich,
         .draw_text = egui_chart_draw_text_rich,
 };
 
+/** Resolve the effective text height through the active text-ops table. */
 static egui_dim_t egui_chart_get_axis_font_height(egui_chart_axis_base_t *ab)
 {
     if (ab == NULL || ab->text_ops == NULL || ab->text_ops->get_font_height == NULL)
@@ -81,6 +98,7 @@ static egui_dim_t egui_chart_get_axis_font_height(egui_chart_axis_base_t *ab)
     return ab->text_ops->get_font_height(ab);
 }
 
+/** Dispatch axis-label drawing through the active text-ops table. */
 static void egui_chart_draw_axis_text(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
 {
     if (ab == NULL || ab->text_ops == NULL || ab->text_ops->draw_text == NULL)
@@ -91,6 +109,13 @@ static void egui_chart_draw_axis_text(egui_canvas_t *canvas, egui_chart_axis_bas
     ab->text_ops->draw_text(canvas, ab, text, text_rect, align_type);
 }
 
+/**
+ * @brief Fast rectangle-vs-work-region test used to cull chart sub-elements.
+ *
+ * Chart axes can emit many ticks, labels, and grid lines. Culling them
+ * against
+ * the current work region avoids unnecessary draw calls during partial redraw.
+ */
 static int egui_chart_rect_intersects_work_region(egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
@@ -111,6 +136,7 @@ static int egui_chart_rect_intersects_work_region(egui_canvas_t *canvas, egui_di
     return !(rect_x2 <= work->location.x || x >= work_x2 || rect_y2 <= work->location.y || y >= work_y2);
 }
 
+/** Export the active work-region bounds so axis helpers can cull by range. */
 static int egui_chart_get_work_region_bounds(egui_canvas_t *canvas, egui_dim_t *out_x1, egui_dim_t *out_y1, egui_dim_t *out_x2, egui_dim_t *out_y2)
 {
     egui_region_t *work = egui_canvas_get_base_view_work_region(canvas);
@@ -127,6 +153,7 @@ static int egui_chart_get_work_region_bounds(egui_canvas_t *canvas, egui_dim_t *
     return 1;
 }
 
+/** Honor `tick_step` filtering even when categorical samples are stored per slot. */
 static int egui_chart_is_tick_value_aligned(int16_t value, int16_t base, int16_t step)
 {
     if (step <= 1)
@@ -137,6 +164,14 @@ static int egui_chart_is_tick_value_aligned(int16_t value, int16_t base, int16_t
     return ((int32_t)value - (int32_t)base) % step == 0;
 }
 
+/**
+ * @brief Draw a categorical X axis where labels are centered inside category slots.
+ *
+ * Bar-like charts usually iterate data by category index, but the
+ * visible slot
+ * range is trimmed against the work region first so off-screen categories do
+ * not generate labels or grid lines.
+ */
 static void egui_chart_draw_x_axis_categorical(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h,
                                                int16_t view_x_min, int16_t view_x_max)
 {
@@ -172,6 +207,7 @@ static void egui_chart_draw_x_axis_categorical(egui_canvas_t *canvas, egui_chart
         int32_t visible_start = (int32_t)work_x1 - plot_area->location.x - 13;
         int32_t visible_end = (int32_t)work_x2 - plot_area->location.x + 13;
 
+        // Expand the visible range slightly so partially visible labels are still emitted.
         if (visible_start > 0)
         {
             int32_t start_index = visible_start / slot_w;
@@ -247,6 +283,13 @@ static void egui_chart_draw_x_axis_categorical(egui_canvas_t *canvas, egui_chart
     }
 }
 
+/**
+ * @brief Draw a continuous X axis with auto or explicit tick stepping.
+ *
+ * The visible value range may be narrowed by zoom, so tick generation starts
+ *
+ * from the current viewport instead of the configured full axis range.
+ */
 static void egui_chart_draw_x_axis_continuous(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h,
                                               int16_t view_x_min, int16_t view_x_max)
 {
@@ -296,6 +339,7 @@ static void egui_chart_draw_x_axis_continuous(egui_canvas_t *canvas, egui_chart_
         }
     }
 
+    // Align the first emitted tick to a step boundary inside the current viewport.
     int16_t start_v = ((view_x_min + step - 1) / step) * step;
     if (view_x_min <= 0 && start_v > view_x_min)
     {
@@ -337,6 +381,7 @@ static void egui_chart_draw_x_axis_continuous(egui_canvas_t *canvas, egui_chart_
 
 // ============== Axis Base Init ==============
 
+/** Reset the shared axis-base state to the stock chart defaults. */
 void egui_chart_axis_base_init_defaults(egui_chart_axis_base_t *ab)
 {
     ab->series = NULL;
@@ -389,6 +434,7 @@ void egui_chart_axis_base_init_defaults(egui_chart_axis_base_t *ab)
 #endif
 }
 
+/** Switch between slot-centered categorical ticks and continuous numeric ticks. */
 void egui_chart_axis_base_set_axis_x_categorical(egui_chart_axis_base_t *ab, uint8_t is_categorical)
 {
     if (ab == NULL)
@@ -400,6 +446,7 @@ void egui_chart_axis_base_set_axis_x_categorical(egui_chart_axis_base_t *ab, uin
     ab->draw_axis_x = ab->axis_x.is_categorical ? egui_chart_draw_x_axis_categorical : egui_chart_draw_x_axis_continuous;
 }
 
+/** Install a custom font and select the matching text operation table. */
 void egui_chart_axis_base_set_font(egui_chart_axis_base_t *ab, const egui_font_t *font)
 {
     if (ab == NULL)
@@ -413,6 +460,13 @@ void egui_chart_axis_base_set_font(egui_chart_axis_base_t *ab, const egui_font_t
 
 // ============== Internal Helpers ==============
 
+/**
+ * @brief Convert a signed integer into ASCII text without libc formatting.
+ *
+ * Chart drawing calls this repeatedly for ticks, so the helper avoids
+ * pulling
+ * in heavier formatting paths.
+ */
 void egui_chart_int_to_str(int16_t value, char *buf, int buf_size)
 {
     int pos = 0;
@@ -457,6 +511,7 @@ void egui_chart_int_to_str(int16_t value, char *buf, int buf_size)
     buf[pos] = '\0';
 }
 
+/** Return the font height used by shared chart layout, with a fixed fallback. */
 egui_dim_t egui_chart_get_font_height(const egui_font_t *font)
 {
     if (font == NULL)
@@ -466,6 +521,7 @@ egui_dim_t egui_chart_get_font_height(const egui_font_t *font)
     return EGUI_FONT_STD_GET_FONT_HEIGHT(font);
 }
 
+/** Count the character width contribution of one signed integer label. */
 static uint8_t egui_chart_count_int_chars(int16_t value)
 {
     uint8_t chars = 0;
@@ -483,6 +539,7 @@ static uint8_t egui_chart_count_int_chars(int16_t value)
     return chars;
 }
 
+/** Estimate how much left margin Y-axis labels need for the configured range. */
 static egui_dim_t egui_chart_get_y_label_width(egui_chart_axis_base_t *ab, egui_dim_t font_h)
 {
     uint8_t min_chars = egui_chart_count_int_chars(ab->axis_y.min_value);
@@ -493,6 +550,7 @@ static egui_dim_t egui_chart_get_y_label_width(egui_chart_axis_base_t *ab, egui_
 
 // ============== Viewport Helpers ==============
 
+/** Return the active X range, falling back to the configured axis bounds when not zoomed. */
 void egui_chart_get_view_x(egui_chart_axis_base_t *ab, int16_t *out_min, int16_t *out_max)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
@@ -507,6 +565,7 @@ void egui_chart_get_view_x(egui_chart_axis_base_t *ab, int16_t *out_min, int16_t
     *out_max = ab->axis_x.max_value;
 }
 
+/** Return the active Y range, falling back to the configured axis bounds when not zoomed. */
 void egui_chart_get_view_y(egui_chart_axis_base_t *ab, int16_t *out_min, int16_t *out_max)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
@@ -523,6 +582,13 @@ void egui_chart_get_view_y(egui_chart_axis_base_t *ab, int16_t *out_min, int16_t
 
 // ============== Coordinate Mapping ==============
 
+/**
+ * @brief Map one X data value into plot pixels over the active viewport.
+ *
+ * The rightmost data value maps to `plot_x + plot_w - 1` so the full range
+ *
+ * stays inside the plot box.
+ */
 egui_dim_t egui_chart_map_x(egui_chart_axis_base_t *ab, int16_t data_x, egui_dim_t plot_x, egui_dim_t plot_w)
 {
     int16_t min_val, max_val;
@@ -537,6 +603,13 @@ egui_dim_t egui_chart_map_x(egui_chart_axis_base_t *ab, int16_t data_x, egui_dim
     return plot_x + (egui_dim_t)(offset * (int32_t)(plot_w - 1) / range);
 }
 
+/**
+ * @brief Map one Y data value into plot pixels with screen-space inversion.
+ *
+ * Larger data values move upward on screen, so the mapping is inverted
+ *
+ * relative to the X axis.
+ */
 egui_dim_t egui_chart_map_y(egui_chart_axis_base_t *ab, int16_t data_y, egui_dim_t plot_y, egui_dim_t plot_h)
 {
     int16_t min_val, max_val;
@@ -553,6 +626,13 @@ egui_dim_t egui_chart_map_y(egui_chart_axis_base_t *ab, int16_t data_y, egui_dim
 
 // ============== Plot Area Calculation ==============
 
+/**
+ * @brief Reserve room for axes, labels, and legend, then return the plot box.
+ *
+ * The margins are intentionally approximate because charts only need a
+ * stable
+ * layout envelope, not text-tight packing.
+ */
 void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
     egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
@@ -606,6 +686,7 @@ void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region
     plot_area->size.width = region->size.width - margin_left - margin_right;
     plot_area->size.height = region->size.height - margin_top - margin_bottom;
 
+    // Keep a minimum drawable interior so callers can still render degenerate charts safely.
     if (plot_area->size.width < 10)
     {
         plot_area->size.width = 10;
@@ -618,6 +699,13 @@ void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region
 
 // ============== Axis Drawing ==============
 
+/**
+ * @brief Draw shared X/Y axes, ticks, grid lines, and labels for axis charts.
+ *
+ * Each sub-part is culled against the canvas work region so partial
+ * redraw can
+ * skip off-screen or untouched axis fragments.
+ */
 void egui_chart_draw_axes(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
     egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
@@ -707,7 +795,7 @@ void egui_chart_draw_axes(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egu
             }
         }
 
-        // Align start to tick step boundary
+        // Align the first visible Y tick to the step grid before iterating upward.
         int16_t start_v = ((view_y_min + step - 1) / step) * step;
         if (view_y_min <= 0 && start_v > view_y_min)
         {
@@ -761,6 +849,14 @@ void egui_chart_draw_axes(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egu
 
 // ============== Legend Drawing (series) ==============
 
+/**
+ * @brief Draw the shared legend layout for axis-based charts.
+ *
+ * The legend uses a compact swatch-plus-text layout and supports top, bottom,
+ * and
+ * right placement without requiring each chart widget to duplicate the
+ * packing logic.
+ */
 void egui_chart_draw_legend_series(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
     egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
@@ -869,12 +965,13 @@ void egui_chart_draw_legend_series(egui_canvas_t *canvas, egui_chart_axis_base_t
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
 
+/** Small integer absolute helper kept local to the chart zoom code paths. */
 static int32_t chart_iabs32(int32_t v)
 {
     return (v >= 0) ? v : -v;
 }
 
-// Integer square root (for pinch distance calculation)
+/** Integer square root used to approximate pinch distance without floating point. */
 static int32_t chart_isqrt(int32_t n)
 {
     if (n <= 0)
@@ -891,6 +988,13 @@ static int32_t chart_isqrt(int32_t n)
     return x;
 }
 
+/**
+ * @brief Clamp the zoom viewport into the configured axis bounds.
+ *
+ * The helper also enforces a minimum visible range so repeated zoom-in
+ * gestures
+ * cannot collapse the viewport to a zero-sized range.
+ */
 void egui_chart_clamp_viewport(egui_chart_axis_base_t *ab)
 {
     int16_t ax_min = ab->axis_x.min_value;
@@ -956,12 +1060,14 @@ void egui_chart_clamp_viewport(egui_chart_axis_base_t *ab)
     }
 }
 
+/** Report whether the live viewport differs from the configured full chart range. */
 int egui_chart_is_zoomed(egui_chart_axis_base_t *ab)
 {
     return (ab->view_x_min > ab->axis_x.min_value || ab->view_x_max < ab->axis_x.max_value || ab->view_y_min > ab->axis_y.min_value ||
             ab->view_y_max < ab->axis_y.max_value);
 }
 
+/** Zoom both axes symmetrically around the current viewport center. */
 void egui_chart_apply_zoom(egui_chart_axis_base_t *ab, int zoom_in)
 {
     int32_t x_range = (int32_t)ab->view_x_max - (int32_t)ab->view_x_min;
@@ -996,6 +1102,7 @@ void egui_chart_apply_zoom(egui_chart_axis_base_t *ab, int zoom_in)
     egui_chart_clamp_viewport(ab);
 }
 
+/** Zoom only the requested axes while leaving the other axis unchanged. */
 void egui_chart_apply_zoom_axis(egui_chart_axis_base_t *ab, int zoom_in, int axis_x, int axis_y)
 {
     int32_t x_range = (int32_t)ab->view_x_max - (int32_t)ab->view_x_min;
@@ -1028,6 +1135,14 @@ void egui_chart_apply_zoom_axis(egui_chart_axis_base_t *ab, int zoom_in, int axi
     egui_chart_clamp_viewport(ab);
 }
 
+/**
+ * @brief Shared wheel, pan, and pinch handler for zoomable chart widgets.
+ *
+ * Scroll zooms around the current viewport center. Single-finger move pans
+ * when
+ * the chart is already zoomed. Two-finger move rescales the stored pinch-start
+ * viewport using axis-aligned gesture deltas.
+ */
 int egui_chart_axis_on_touch_event(egui_view_t *self, egui_chart_axis_base_t *ab, egui_motion_event_t *event)
 {
     if (!ab->zoom_enabled)
@@ -1113,7 +1228,7 @@ int egui_chart_axis_on_touch_event(egui_view_t *self, egui_chart_axis_base_t *ab
             return 1;
         }
 
-        // Single-finger move = pan (only when zoomed)
+        // Single-finger move pans the visible data window only after zoom has narrowed it.
         if (egui_chart_is_zoomed(ab) && event->pointer_count <= 1)
         {
             egui_dim_t dx_px = event->location.x - ab->pan_last_x;
@@ -1161,6 +1276,7 @@ int egui_chart_axis_on_touch_event(egui_view_t *self, egui_chart_axis_base_t *ab
 
     case EGUI_MOTION_EVENT_ACTION_POINTER_DOWN:
     {
+        // Snapshot the starting viewport so the pinch gesture can scale both axes from one baseline.
         ab->is_pinching = 1;
         ab->is_panning = 0;
         int32_t dx = (int32_t)event->location2.x - (int32_t)event->location.x;

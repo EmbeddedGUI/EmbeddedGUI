@@ -1,6 +1,11 @@
 #ifndef _EGUI_MOTION_EVENT_H_
 #define _EGUI_MOTION_EVENT_H_
 
+/**
+ * @file egui_motion_event.h
+ * @brief Pointer-style input events queued by the core input subsystem.
+ */
+
 #include "egui_common.h"
 #include "egui_region.h"
 #include "utils/egui_slist.h"
@@ -10,35 +15,38 @@
 extern "C" {
 #endif
 
+/** Motion-event types emitted by touch, multi-touch, and wheel-style inputs. */
 enum egui_motion_event_type
 {
-    EGUI_MOTION_EVENT_NONE = 0,
-    EGUI_MOTION_EVENT_ACTION_DOWN,
-    EGUI_MOTION_EVENT_ACTION_UP,
-    EGUI_MOTION_EVENT_ACTION_MOVE,
-    EGUI_MOTION_EVENT_ACTION_CANCEL,
+    EGUI_MOTION_EVENT_NONE = 0,      // unused/default event slot
+    EGUI_MOTION_EVENT_ACTION_DOWN,   // first pointer became active
+    EGUI_MOTION_EVENT_ACTION_UP,     // final active pointer was released
+    EGUI_MOTION_EVENT_ACTION_MOVE,   // active pointer position changed
+    EGUI_MOTION_EVENT_ACTION_CANCEL, // current gesture was aborted
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
-    EGUI_MOTION_EVENT_ACTION_POINTER_DOWN, // 2nd pointer down while 1st still down
-    EGUI_MOTION_EVENT_ACTION_POINTER_UP,   // 2nd pointer up while 1st still down
-    EGUI_MOTION_EVENT_ACTION_SCROLL,       // scroll wheel event
+    EGUI_MOTION_EVENT_ACTION_POINTER_DOWN, // second pointer became active while the first is still down
+    EGUI_MOTION_EVENT_ACTION_POINTER_UP,   // second pointer was released while the first is still down
+    EGUI_MOTION_EVENT_ACTION_SCROLL,       // wheel-like event carrying a signed scroll delta
 #endif
 };
 
 typedef struct egui_motion_event egui_motion_event_t;
+/** One queued motion event stored in the per-core motion FIFO. */
 struct egui_motion_event
 {
-    egui_snode_t node; // the node that the event is related to
+    egui_snode_t node; // intrusive list node used by the core's queued motion list
 
-    uint8_t type;             // type of the event, enum egui_motion_event_type
-    uint32_t timestamp;       // timestamp of the event in milliseconds
-    egui_location_t location; // the position in screen coordinates
+    uint8_t type;             // enum egui_motion_event_type
+    uint32_t timestamp;       // event timestamp in milliseconds
+    egui_location_t location; // primary pointer position in screen coordinates
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
-    uint8_t pointer_count;     // number of active pointers (1 or 2)
-    egui_location_t location2; // 2nd pointer position (valid when pointer_count >= 2)
-    int16_t scroll_delta;      // scroll wheel delta (only for SCROLL events)
+    uint8_t pointer_count;     // number of valid touch points described by this event
+    egui_location_t location2; // second pointer position when `pointer_count >= 2`
+    int16_t scroll_delta;      // signed wheel delta used only by `ACTION_SCROLL`
 #endif
 };
 
+/** Convert one motion-event type to a short debug string for logs and assertions. */
 const char *egui_motion_event_string(uint8_t type);
 
 /* Ends C function definitions when using C++ */

@@ -8,8 +8,20 @@
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
+/**
+ * @file egui_view_chart_scatter.c
+ * @brief Axis-based scatter chart widget that renders one marker per data point.
+ *
+ * The axis base owns axes, legend,
+ * and zoom state. This module focuses on
+ * mapping points into plot pixels, expanding the clip for marker radius, and
+ * skipping points outside the currently
+ * visible data window.
+ */
+
 // ============== Scatter Drawing (virtual) ==============
 
+/** Map one X-axis value into a plot-space pixel using the active viewport. */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_scatter_map_x_fast(int16_t data_x, egui_dim_t plot_x, int32_t plot_w_span, int16_t view_x_min,
                                                                      int32_t range_x)
 {
@@ -21,6 +33,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_scatter_map_x_fast(int16_t dat
     return plot_x + (egui_dim_t)(((int32_t)data_x - (int32_t)view_x_min) * plot_w_span / range_x);
 }
 
+/** Map one Y-axis value into a plot-space pixel using the active viewport. */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_scatter_map_y_fast(int16_t data_y, egui_dim_t plot_y, int32_t plot_h_span, int16_t view_y_min,
                                                                      int32_t range_y)
 {
@@ -32,6 +45,13 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_scatter_map_y_fast(int16_t dat
     return plot_y + plot_h_span - (egui_dim_t)(((int32_t)data_y - (int32_t)view_y_min) * plot_h_span / range_y);
 }
 
+/**
+ * @brief Convert the current clipped plot rectangle back into a conservative data-space window.
+ *
+ * The returned range is slightly expanded so markers
+ * that sit on the clip edge
+ * still survive integer rounding when the final pixel positions are computed.
+ */
 static int egui_view_chart_scatter_get_visible_data_range(const egui_region_t *plot_area, egui_dim_t work_x1, egui_dim_t work_y1, egui_dim_t work_x2,
                                                           egui_dim_t work_y2, int16_t view_x_min, int16_t view_x_max, int16_t view_y_min, int16_t view_y_max,
                                                           int16_t *out_x_min, int16_t *out_x_max, int16_t *out_y_min, int16_t *out_y_max)
@@ -103,6 +123,13 @@ static int egui_view_chart_scatter_get_visible_data_range(const egui_region_t *p
     return 1;
 }
 
+/**
+ * @brief Draw every visible scatter marker inside the shared plot clip.
+ *
+ * The clip is expanded by the marker radius first so points close to the clip
+
+ * * edge are not accidentally rejected before their full circle is considered.
+ */
 static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -157,6 +184,7 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
     range_x = (int32_t)view_x_max - (int32_t)view_x_min;
     range_y = (int32_t)view_y_max - (int32_t)view_y_min;
 
+    // First derive a conservative visible data window from the expanded clip rectangle.
     has_visible_data_range =
             egui_view_chart_scatter_get_visible_data_range(plot_area, expanded_work_x1, expanded_work_y1, expanded_work_x2, expanded_work_y2, view_x_min,
                                                            view_x_max, view_y_min, view_y_max, &data_x_min, &data_x_max, &data_y_min, &data_y_max);
@@ -170,6 +198,7 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
         const egui_chart_series_t *series = &ab->series[s];
         uint8_t r = point_radius;
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+        // Enhanced draw builds render a small radial highlight for each marker.
         egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {
                 {.position = 0, .color = color_light},
@@ -214,6 +243,7 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
 
 // ============== API Table ==============
 
+/** API table that keeps the axis-base lifecycle and supplies scatter point drawing. */
 const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_scatter_t) = {
         .base =
                 {
@@ -241,27 +271,29 @@ const egui_view_chart_axis_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_scatte
 
 // ============== Init / Params ==============
 
+/** Initialize a scatter chart with a default marker radius and axis-base defaults. */
 void egui_view_chart_scatter_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_chart_scatter_t);
-    // call super init (initializes axis base with defaults)
+    // Reuse the shared axis-chart setup before installing the scatter-specific API.
     egui_view_chart_axis_init(self, core);
-    // update api
     self->api = (const egui_view_api_t *)&EGUI_VIEW_API_TABLE_NAME(egui_view_chart_scatter_t);
 
-    // scatter chart defaults
+    // The clip margin matches the point radius so marker edges can cross the plot border slightly.
     local->point_radius = 3;
-    local->axis_base.clip_margin = local->point_radius; // FIX Bug #4
+    local->axis_base.clip_margin = local->point_radius;
 
     egui_view_set_view_name(self, "egui_view_chart_scatter");
 }
 
+/** Apply only the view rectangle from one scatter-chart parameter block. */
 void egui_view_chart_scatter_apply_params(egui_view_t *self, const egui_view_chart_scatter_params_t *params)
 {
     self->region = params->region;
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the widget before applying its geometry. */
 void egui_view_chart_scatter_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_scatter_params_t *params)
 {
     egui_view_chart_scatter_init(self, core);
@@ -270,6 +302,7 @@ void egui_view_chart_scatter_init_with_params(egui_view_t *self, egui_core_t *co
 
 // ============== Scatter-Specific Setter ==============
 
+/** Update the marker radius and mirror it into the stored clip-margin hint. */
 void egui_view_chart_scatter_set_point_radius(egui_view_t *self, uint8_t radius)
 {
     EGUI_LOCAL_INIT(egui_view_chart_scatter_t);

@@ -1,18 +1,21 @@
 #include "canvas/egui_canvas.h"
 
 /**
- * @brief Triangle drawing with scanline fill algorithm and SDF anti-aliasing.
+ * @brief Triangle fill and outline helpers.
  *
- * Uses signed-distance-field (SDF) for edge anti-aliasing:
- * - Precompute edge direction vectors and lengths once
- * - For each scanline, find interior span (fast hline) and edge zone (SDF AA)
- * - Perpendicular distance to each edge determines smooth alpha coverage
- * - Works correctly at all edge angles, vertices, and thin tips
+ * The fill path combines classic scanline rasterization with SDF-style edge
+ * coverage. Each row is split
+ * into a solid interior span plus narrow edge
+ * zones, so most pixels are drawn through fast horizontal fills while the edge
+ * pixels still receive
+ * angle-independent anti-aliasing.
  *
- * Outline delegates to egui_canvas_draw_line(canvas, ) for each edge.
+ * The public outline helper simply reuses the line renderer for each edge.
  */
 
-/* Integer square root (bit-by-bit) for edge length computation. */
+/**
+ * @brief Integer square root used when normalizing edge distance estimates.
+ */
 static uint32_t triangle_isqrt(uint32_t n)
 {
     if (n == 0)
@@ -42,7 +45,7 @@ static uint32_t triangle_isqrt(uint32_t n)
 }
 
 /**
- * @brief Compute SDF-based alpha for a pixel relative to one triangle edge.
+ * @brief Convert the signed distance to one edge into a coverage alpha.
  *
  * The signed distance from pixel center (px, py) to the edge line from
  * (ex, ey) with direction (edx, edy) and precomputed length is:
@@ -50,7 +53,10 @@ static uint32_t triangle_isqrt(uint32_t n)
  *   d = sign * cross / len
  * where sign ensures positive = inside the triangle.
  *
- * Maps d in [-0.5, +0.5] to alpha linearly.
+ * The result maps a one-pixel transition band around the edge into an alpha
+ * ramp, which keeps diagonal triangle edges smooth without special-case slope
+ *
+ * handling.
  *
  * @return alpha value (0 = fully outside, EGUI_ALPHA_100 = fully inside)
  */
@@ -82,12 +88,15 @@ __EGUI_STATIC_INLINE__ egui_alpha_t triangle_edge_alpha(int32_t cross, int32_t s
 }
 
 /**
- * \brief           Draw filled triangle with SDF anti-aliased edges
- * \param[in]       x1, y1: First vertex
- * \param[in]       x2, y2: Second vertex
- * \param[in]       x3, y3: Third vertex
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw a filled triangle with scanline fill and edge anti-aliasing.
+ *
+ * Reading tip:
+ * - Vertices are sorted by Y first so every scanline can be
+ * handled as a top
+ *   or bottom half against one long edge.
+ * - The interior span is emitted with `egui_canvas_draw_hline`.
+ * - Only the narrow left and
+ * right edge bands fall back to per-pixel coverage.
  */
 void egui_canvas_draw_triangle_fill(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
                                     egui_color_t color, egui_alpha_t alpha)
@@ -416,12 +425,7 @@ void egui_canvas_draw_triangle_fill(egui_canvas_t *self, egui_dim_t x1, egui_dim
 }
 
 /**
- * \brief           Draw triangle outline
- * \param[in]       x1, y1: First vertex
- * \param[in]       x2, y2: Second vertex
- * \param[in]       x3, y3: Third vertex
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw a triangle outline as three anti-aliased unit-width edges.
  */
 void egui_canvas_draw_triangle(egui_canvas_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
                                egui_color_t color, egui_alpha_t alpha)

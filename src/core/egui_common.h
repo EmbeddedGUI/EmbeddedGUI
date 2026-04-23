@@ -301,6 +301,7 @@ typedef union egui_color_rgb888_t
 
 typedef uint8_t egui_alpha_t; /*!< Alpha value in range 0-255 */
 
+/** Convert a 0-100 percentage to the 0-255 alpha scale used by the renderer. */
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_alpha_make(int32_t percent)
 {
     if (percent <= 0)
@@ -331,6 +332,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_alpha_make(int32_t percent)
 extern const uint8_t egui_alpha_change_table_2[4];
 extern const uint8_t egui_alpha_change_table_4[16];
 
+/** Combine two alpha factors the same way layered rendering composes opacity. */
 static __attribute__((unused)) egui_alpha_t egui_color_alpha_mix(egui_alpha_t alpha_0, egui_alpha_t alpha_1)
 {
     if (alpha_0 == EGUI_ALPHA_100)
@@ -348,6 +350,7 @@ static __attribute__((unused)) egui_alpha_t egui_color_alpha_mix(egui_alpha_t al
     }
 }
 
+/** Blend one foreground color over one background color with a single alpha factor. */
 static __attribute__((unused)) egui_color_t egui_rgb_mix(egui_color_t back_color, egui_color_t fore_color, egui_alpha_t fore_alpha)
 {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
@@ -382,6 +385,7 @@ static __attribute__((unused)) egui_color_t egui_rgb_mix(egui_color_t back_color
 #endif
 }
 
+/** Pointer-based variant of `egui_rgb_mix()` for hot paths that already work on addresses. */
 static __attribute__((unused)) void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_color_t *p_fore_color, egui_color_t *p_out_color, egui_alpha_t fore_alpha)
 {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
@@ -411,17 +415,23 @@ static __attribute__((unused)) void egui_rgb_mix_ptr(egui_color_t *p_back_color,
 #endif
 }
 
+/** Blend one BGRA8888 foreground pixel over one RGB565 background pixel. */
 void egui_argb8888_mix_rgb565(egui_color_rgb565_t *p_back_color, egui_color_bgra8888_t *p_fore_color, egui_color_rgb565_t *p_out_color);
+/** Blend one BGRA8888 foreground pixel over one BGRA8888 background pixel. */
 void egui_argb8888_mix_argb8888(egui_color_bgra8888_t *p_back_color, egui_color_bgra8888_t *p_fore_color, egui_color_bgra8888_t *p_out_color);
 
 egui_color_t egui_rgb_mix(egui_color_t back_color, egui_color_t fore_color, egui_alpha_t fore_alpha);
 void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_color_t *p_fore_color, egui_color_t *p_out_color, egui_alpha_t fore_alpha);
 
+/** Compute the child top-left offset inside a parent rectangle for the given alignment flags. */
 void egui_common_align_get_x_y(egui_dim_t parent_width, egui_dim_t parent_height, egui_dim_t child_width, egui_dim_t child_height, uint8_t align_type,
                                egui_dim_t *x, egui_dim_t *y);
 
+/** Compatibility wrapper around `egui_api_memcpy()`. */
 void egui_memcpy(void *dest, const void *src, uint32_t n);
+/** Allocate memory using the active core-aware allocator. */
 void *egui_malloc(egui_core_t *core, int size);
+/** Free memory that was allocated by `egui_malloc()` or `egui_api_malloc()`. */
 void egui_free(egui_core_t *core, void *ptr);
 
 /* Ends C function definitions when using C++ */

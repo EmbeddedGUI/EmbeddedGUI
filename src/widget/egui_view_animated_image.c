@@ -5,6 +5,19 @@
 #include "core/egui_core.h"
 #include "image/egui_image.h"
 
+/**
+ * @file egui_view_animated_image.c
+ * @brief Minimal frame-player widget driven by external elapsed time.
+ *
+ * Learning path:
+ * - the widget only stores frame pointers and playback state,
+ * - drawing always shows the current frame at the work-region origin,
+ * - playback advances only when outside code calls `update()`.
+ */
+
+/**
+ * @brief Draw the current frame without scaling.
+ */
 void egui_view_animated_image_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
@@ -27,6 +40,9 @@ void egui_view_animated_image_on_draw(egui_view_t *self)
     egui_canvas_draw_image(canvas, image, region.location.x, region.location.y);
 }
 
+/**
+ * @brief Replace the borrowed frame array and restart playback position.
+ */
 void egui_view_animated_image_set_frames(egui_view_t *self, const egui_image_t **frames, uint8_t count)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
@@ -38,6 +54,9 @@ void egui_view_animated_image_set_frames(egui_view_t *self, const egui_image_t *
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Change the frame interval used by future `update()` calls.
+ */
 void egui_view_animated_image_set_interval(egui_view_t *self, uint16_t ms)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
@@ -45,6 +64,9 @@ void egui_view_animated_image_set_interval(egui_view_t *self, uint16_t ms)
     local->frame_interval_ms = ms;
 }
 
+/**
+ * @brief Start playback from the current frame and clear accumulated time.
+ */
 void egui_view_animated_image_play(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
@@ -57,6 +79,9 @@ void egui_view_animated_image_play(egui_view_t *self)
     local->elapsed_ms = 0;
 }
 
+/**
+ * @brief Stop frame advancement while keeping the current frame on screen.
+ */
 void egui_view_animated_image_stop(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
@@ -64,6 +89,9 @@ void egui_view_animated_image_stop(egui_view_t *self)
     local->is_playing = 0;
 }
 
+/**
+ * @brief Control whether playback wraps back to frame zero.
+ */
 void egui_view_animated_image_set_loop(egui_view_t *self, uint8_t enable)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
@@ -71,6 +99,9 @@ void egui_view_animated_image_set_loop(egui_view_t *self, uint8_t enable)
     local->is_loop = enable ? 1 : 0;
 }
 
+/**
+ * @brief Jump to one frame immediately and request redraw on real changes.
+ */
 void egui_view_animated_image_set_current_frame(egui_view_t *self, uint8_t index)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
@@ -87,6 +118,12 @@ void egui_view_animated_image_set_current_frame(egui_view_t *self, uint8_t index
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Advance playback state using externally supplied elapsed milliseconds.
+ *
+ * This helper intentionally contains no platform timer logic, so examples can
+ * drive it from app loops, widget timers, or any custom animation scheduler.
+ */
 void egui_view_animated_image_update(egui_view_t *self, uint16_t elapsed_ms)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
@@ -143,6 +180,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_animated_image_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the animated-image widget with loop playback enabled.
+ */
 void egui_view_animated_image_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_animated_image_t);
@@ -164,6 +204,9 @@ void egui_view_animated_image_init(egui_view_t *self, egui_core_t *core)
     local->elapsed_ms = 0;
 }
 
+/**
+ * @brief Apply geometry and initial frame interval from one parameter block.
+ */
 void egui_view_animated_image_apply_params(egui_view_t *self, const egui_view_animated_image_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
@@ -174,6 +217,9 @@ void egui_view_animated_image_apply_params(egui_view_t *self, const egui_view_an
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains animated-image init and params.
+ */
 void egui_view_animated_image_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_animated_image_params_t *params)
 {
     egui_view_animated_image_init(self, core);

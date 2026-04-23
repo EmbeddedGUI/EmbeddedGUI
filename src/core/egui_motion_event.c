@@ -4,8 +4,14 @@
 #include "egui_motion_event.h"
 #include "egui_api.h"
 
+/**
+ * @file egui_motion_event.c
+ * @brief Small debug helpers for motion-event inspection.
+ */
+
 #define DEFINE_STR(R) #R
 
+/** Convert one motion-event type to a readable debug string. */
 const char *egui_motion_event_string(uint8_t type)
 {
     const char *str;
@@ -28,6 +34,7 @@ const char *egui_motion_event_string(uint8_t type)
         break;
 
     default:
+        // Multi-touch-only values currently fall back here unless this table is extended.
         str = "unknown";
         break;
     };

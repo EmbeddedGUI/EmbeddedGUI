@@ -1,6 +1,14 @@
 #include "egui_display_driver.h"
 #include "egui_core.h"
 
+/**
+ * @file egui_display_driver.c
+ * @brief Registration and state helpers for the per-core display driver instance.
+ */
+
+/**
+ * Bind one display driver to the core and immediately apply the defaults already stored in the driver instance, such as rotation and brightness.
+ */
 void egui_display_driver_register(egui_core_t *core, egui_display_driver_t *driver)
 {
     core->render.driver = driver;
@@ -10,13 +18,13 @@ void egui_display_driver_register(egui_core_t *core, egui_display_driver_t *driv
         return;
     }
 
-    // Initialize display hardware
+    // Initialize the port-side panel driver before any runtime state is applied.
     if (driver->ops->init != NULL)
     {
         driver->ops->init(core);
     }
 
-    // Apply initial display configuration from driver struct
+    // Replay the driver's cached defaults so the core and the panel start in sync.
     if (driver->ops->set_rotation != NULL)
     {
         driver->ops->set_rotation(core, driver->rotation);
@@ -27,11 +35,13 @@ void egui_display_driver_register(egui_core_t *core, egui_display_driver_t *driv
     }
 }
 
+/** Return the display driver currently registered on this core, if any. */
 egui_display_driver_t *egui_display_driver_get(egui_core_t *core)
 {
     return core->render.driver;
 }
 
+/** Update the cached brightness value and forward it to the hardware when supported. */
 void egui_display_set_brightness(egui_core_t *core, uint8_t level)
 {
     if (core->render.driver == NULL)
@@ -45,6 +55,7 @@ void egui_display_set_brightness(egui_core_t *core, uint8_t level)
     }
 }
 
+/** Update the cached power state and forward it to the hardware when supported. */
 void egui_display_set_power(egui_core_t *core, uint8_t on)
 {
     if (core->render.driver == NULL)
@@ -58,6 +69,10 @@ void egui_display_set_power(egui_core_t *core, uint8_t on)
     }
 }
 
+/**
+ * Update the runtime display rotation.
+ * The driver is notified first, then the core's logical screen size is refreshed when the rotation changes the effective orientation.
+ */
 void egui_display_set_rotation(egui_core_t *core, egui_display_rotation_t rotation)
 {
     if (core->render.driver == NULL)
@@ -68,13 +83,13 @@ void egui_display_set_rotation(egui_core_t *core, egui_display_rotation_t rotati
     egui_display_rotation_t old_rotation = core->render.driver->rotation;
     core->render.driver->rotation = rotation;
 
-    // If hardware supports rotation, delegate to it
+    // Let the hardware rotate first when the controller supports it.
     if (core->render.driver->ops->set_rotation != NULL)
     {
         core->render.driver->ops->set_rotation(core, rotation);
     }
 
-    // Update core screen dimensions if rotation changed between portrait/landscape
+    // Refresh the logical screen size so layout/input code sees the new orientation.
     if (old_rotation != rotation)
     {
         int16_t new_w = egui_display_get_width(core);
@@ -84,6 +99,7 @@ void egui_display_set_rotation(egui_core_t *core, egui_display_rotation_t rotati
     }
 }
 
+/** Return the current runtime display rotation, or the default orientation when no driver is present. */
 egui_display_rotation_t egui_display_get_rotation(egui_core_t *core)
 {
     if (core->render.driver == NULL)
@@ -93,13 +109,14 @@ egui_display_rotation_t egui_display_get_rotation(egui_core_t *core)
     return core->render.driver->rotation;
 }
 
+/** Return the logical display width currently exposed to the rest of the core. */
 int16_t egui_display_get_width(egui_core_t *core)
 {
     if (core->render.driver == NULL)
     {
         return EGUI_CONFIG_SCEEN_WIDTH;
     }
-    // Runtime software rotation check (replaces compile-time EGUI_CONFIG_SOFTWARE_ROTATION)
+    // Software rotation swaps the logical width/height for quarter turns.
     if (core->render.software_rotation)
     {
         if (core->render.driver->rotation == EGUI_DISPLAY_ROTATION_90 || core->render.driver->rotation == EGUI_DISPLAY_ROTATION_270)
@@ -110,13 +127,14 @@ int16_t egui_display_get_width(egui_core_t *core)
     return core->render.driver->physical_width;
 }
 
+/** Return the logical display height currently exposed to the rest of the core. */
 int16_t egui_display_get_height(egui_core_t *core)
 {
     if (core->render.driver == NULL)
     {
         return EGUI_CONFIG_SCEEN_HEIGHT;
     }
-    // Runtime software rotation check (replaces compile-time EGUI_CONFIG_SOFTWARE_ROTATION)
+    // Software rotation swaps the logical width/height for quarter turns.
     if (core->render.software_rotation)
     {
         if (core->render.driver->rotation == EGUI_DISPLAY_ROTATION_90 || core->render.driver->rotation == EGUI_DISPLAY_ROTATION_270)
@@ -127,6 +145,7 @@ int16_t egui_display_get_height(egui_core_t *core)
     return core->render.driver->physical_height;
 }
 
+/** Mark one non-blocking frame-sync slot as ready after a VSync/TE edge. */
 void egui_display_notify_vsync(egui_core_t *core)
 {
     if (core->render.driver != NULL)

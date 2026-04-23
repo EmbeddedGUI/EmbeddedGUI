@@ -8,6 +8,19 @@
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
+/**
+ * @file egui_view_tab_bar.c
+ * @brief Evenly divided horizontal tab selector with optional per-tab icons.
+ *
+ * The implementation is intentionally
+ * compact:
+ * - tab geometry is derived by splitting the widget width evenly;
+ * - touch tracking stores only the currently pressed segment index;
+ * - drawing
+ * optionally stacks an icon above the label when both are present.
+ */
+
+/** Resolve the icon font, falling back to an automatic size for the tab cell. */
 static const egui_font_t *egui_view_tab_bar_get_icon_font(egui_view_tab_bar_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
@@ -18,6 +31,7 @@ static const egui_font_t *egui_view_tab_bar_get_icon_font(egui_view_tab_bar_t *l
     return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
+/** Replace the borrowed tab label array and clamp the current index if needed. */
 void egui_view_tab_bar_set_tabs(egui_view_t *self, const char **tab_texts, uint8_t tab_count)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -30,6 +44,7 @@ void egui_view_tab_bar_set_tabs(egui_view_t *self, const char **tab_texts, uint8
     egui_view_invalidate(self);
 }
 
+/** Change the active tab and notify listeners only on real index changes. */
 void egui_view_tab_bar_set_current_index(egui_view_t *self, uint8_t index)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -49,12 +64,14 @@ void egui_view_tab_bar_set_current_index(egui_view_t *self, uint8_t index)
     egui_view_invalidate(self);
 }
 
+/** Store the callback used to react to tab-selection changes. */
 void egui_view_tab_bar_set_on_tab_changed_listener(egui_view_t *self, egui_view_on_tab_changed_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
     local->on_tab_changed = listener;
 }
 
+/** Override the label font used for tab text. */
 void egui_view_tab_bar_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -62,6 +79,7 @@ void egui_view_tab_bar_set_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+/** Attach an optional borrowed icon array that parallels the tab labels. */
 void egui_view_tab_bar_set_tab_icons(egui_view_t *self, const char **tab_icons)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -74,6 +92,7 @@ void egui_view_tab_bar_set_tab_icons(egui_view_t *self, const char **tab_icons)
     egui_view_invalidate(self);
 }
 
+/** Override the icon font used when tabs display glyphs. */
 void egui_view_tab_bar_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -86,6 +105,7 @@ void egui_view_tab_bar_set_icon_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+/** Set the vertical spacing between an icon and label inside one tab. */
 void egui_view_tab_bar_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -98,6 +118,7 @@ void egui_view_tab_bar_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
     egui_view_invalidate(self);
 }
 
+/** Draw all tabs and the active underline indicator. */
 void egui_view_tab_bar_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -114,6 +135,7 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
     egui_dim_t tab_w = region.size.width / local->tab_count;
     egui_dim_t indicator_h = 3;
 
+    // Each tab cell uses the same width, so selection math and drawing stay aligned.
     uint8_t i;
     for (i = 0; i < local->tab_count; i++)
     {
@@ -135,6 +157,7 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
             const egui_font_t *icon_font = egui_view_tab_bar_get_icon_font(local, tab_rect.size.height);
             if (tab_text != NULL && tab_text[0] != '\0')
             {
+                // Mixed tabs stack icon and text vertically inside the same cell.
                 if (icon_font == NULL)
                 {
                     egui_canvas_draw_text_in_rect(canvas, local->font, tab_text, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
@@ -193,6 +216,7 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
                 egui_canvas_draw_text_in_rect(canvas, icon_font, tab_icon, &icon_rect, EGUI_ALIGN_CENTER, color, local->alpha);
                 egui_canvas_draw_text_in_rect(canvas, local->font, tab_text, &text_rect, EGUI_ALIGN_CENTER, color, local->alpha);
             }
+            // Icon-only tabs simply center the glyph in the whole tab cell.
             else if (icon_font != NULL)
             {
                 egui_canvas_draw_text_in_rect(canvas, icon_font, tab_icon, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
@@ -203,7 +227,7 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
             egui_canvas_draw_text_in_rect(canvas, local->font, tab_text, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
         }
 
-        // Draw indicator under current tab
+        // The underline shares the same tab width so it always tracks the active cell exactly.
         if (i == local->current_index)
         {
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
@@ -231,6 +255,7 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/** Map screen coordinates to one tab segment, or `EGUI_VIEW_TAB_BAR_PRESSED_NONE`. */
 static uint8_t egui_view_tab_bar_get_hit_index(egui_view_t *self, egui_view_tab_bar_t *local, egui_dim_t touch_x, egui_dim_t touch_y)
 {
     egui_dim_t local_x;
@@ -260,6 +285,7 @@ static uint8_t egui_view_tab_bar_get_hit_index(egui_view_t *self, egui_view_tab_
     }
 }
 
+/** Keep press tracking stable so a tab only activates on release inside the same segment. */
 int egui_view_tab_bar_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -332,6 +358,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_tab_bar_t) = {
 #endif
 };
 
+/** Initialize the tab bar with no tabs selected beyond index zero and theme colors. */
 void egui_view_tab_bar_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_tab_bar_t);
@@ -358,6 +385,7 @@ void egui_view_tab_bar_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_tab_bar");
 }
 
+/** Apply geometry and borrowed tab labels from one parameter block. */
 void egui_view_tab_bar_apply_params(egui_view_t *self, const egui_view_tab_bar_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -370,6 +398,7 @@ void egui_view_tab_bar_apply_params(egui_view_t *self, const egui_view_tab_bar_p
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the tab bar before applying params. */
 void egui_view_tab_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_tab_bar_params_t *params)
 {
     egui_view_tab_bar_init(self, core);

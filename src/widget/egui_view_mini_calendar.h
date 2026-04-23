@@ -48,15 +48,24 @@ struct egui_view_mini_calendar_params
 #define EGUI_VIEW_MINI_CALENDAR_PARAMS_INIT(_name, _x, _y, _w, _h, _year, _month, _day)                                                                        \
     static const egui_view_mini_calendar_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .year = (_year), .month = (_month), .day = (_day)}
 
+/** Apply the region and initial year/month/day from one parameter block. */
 void egui_view_mini_calendar_apply_params(egui_view_t *self, const egui_view_mini_calendar_params_t *params);
+/** Initialize a mini calendar and immediately apply its parameter block. */
 void egui_view_mini_calendar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_mini_calendar_params_t *params);
 
+/** Set the calendar month and the currently selected day. */
 void egui_view_mini_calendar_set_date(egui_view_t *self, uint16_t year, uint8_t month, uint8_t day);
+/** Set the day number highlighted as "today". Use 0 to clear the today highlight. */
 void egui_view_mini_calendar_set_today(egui_view_t *self, uint8_t day);
+/** Set which weekday column appears first. Use the widget numbering (`0 = Sunday`, `1 = Monday`, and so on). */
 void egui_view_mini_calendar_set_first_day_of_week(egui_view_t *self, uint8_t day);
+/** Borrow a 7-entry weekday-label array. Pass NULL to restore the built-in labels. */
 void egui_view_mini_calendar_set_weekday_labels(egui_view_t *self, const char *const *labels);
+/** Register the callback fired after the user selects a different day by touch release. */
 void egui_view_mini_calendar_set_on_date_selected_listener(egui_view_t *self, egui_view_on_date_selected_listener_t listener);
+/** Default draw hook used by the mini-calendar API table. */
 void egui_view_mini_calendar_on_draw(egui_view_t *self);
+/** Initialize the compact month-view calendar widget. */
 void egui_view_mini_calendar_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

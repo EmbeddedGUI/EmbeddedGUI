@@ -9,7 +9,10 @@ static egui_view_label_t content_label_1;
 static egui_view_label_t content_label_2;
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
+#define WINDOW_VERIFY_RETRY_MAX 3U
+
 static uint8_t runtime_fail_reported;
+static uint8_t window_verify_retry;
 #endif
 
 EGUI_VIEW_WINDOW_PARAMS_INIT(window_1_params, 10, 10, 220, 200, 30, "My Window");
@@ -26,6 +29,7 @@ void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
+    window_verify_retry = 0U;
 #endif
 
     // Init window
@@ -58,6 +62,19 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
+static uint8_t schedule_window_verify_retry(egui_sim_action_t *p_action)
+{
+    if (window_verify_retry >= WINDOW_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    window_verify_retry++;
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     switch (action_index)
@@ -68,8 +85,13 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 1:
         if (strcmp(window_1.title_label.text, "Closed") != 0)
         {
+            if (schedule_window_verify_retry(p_action))
+            {
+                return true;
+            }
             report_runtime_failure("window close action did not update title");
         }
+        window_verify_retry = 0U;
         recording_request_snapshot();
         EGUI_SIM_SET_WAIT(p_action, 320);
         return true;

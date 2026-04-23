@@ -48,7 +48,13 @@ typedef enum
     EGUI_STATE_MAX = 5,
 } egui_state_t;
 
-/* Style structure - designed to be const (ROM-resident), ~32 bytes */
+/**
+ * @brief Immutable style record typically stored in ROM.
+ *
+ * Flags tell the renderer which fields are meaningful. This keeps themes cheap
+ * to define
+ * while allowing widgets to share one compact style representation.
+ */
 typedef struct egui_style
 {
     uint16_t flags;
@@ -81,14 +87,20 @@ typedef struct egui_style
     const egui_shadow_t *shadow;
 } egui_style_t;
 
-/* Widget style descriptor: [part][state] lookup table */
+/**
+ * @brief O(1) lookup descriptor for one widget family's styles.
+ *
+ * The flat `styles` array is indexed as `[part * EGUI_STATE_MAX + state]`.
+ */
 typedef struct egui_widget_style_desc
 {
     uint8_t part_count;
     const egui_style_t *const *styles; /* flat array: styles[part * EGUI_STATE_MAX + state] */
 } egui_widget_style_desc_t;
 
-/* O(1) style lookup */
+/**
+ * @brief Fetch the style for one `(part, state)` pair.
+ */
 static inline const egui_style_t *egui_style_get(const egui_widget_style_desc_t *desc, egui_part_t part, egui_state_t state)
 {
     if (desc == NULL || part >= desc->part_count || state >= EGUI_STATE_MAX)
@@ -98,10 +110,14 @@ static inline const egui_style_t *egui_style_get(const egui_widget_style_desc_t 
     return desc->styles[part * EGUI_STATE_MAX + state];
 }
 
-/* Get current state enum from view state bits */
+/**
+ * @brief Convert one view's runtime flags into the style-state enum.
+ */
 egui_state_t egui_style_get_view_state(const void *view);
 
-/* Convenience: get style for a view's current state */
+/**
+ * @brief Convenience wrapper that resolves the view state first, then looks up the style.
+ */
 static inline const egui_style_t *egui_style_get_current(const egui_widget_style_desc_t *desc, egui_part_t part, const void *view)
 {
     return egui_style_get(desc, part, egui_style_get_view_state(view));

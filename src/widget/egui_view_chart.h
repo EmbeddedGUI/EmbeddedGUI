@@ -1,10 +1,17 @@
 #ifndef _EGUI_VIEW_CHART_H_
 #define _EGUI_VIEW_CHART_H_
 
-// Backward compatibility wrapper.
-// The monolithic egui_view_chart has been split into 4 independent chart widgets.
-// Include this header to get all chart types, or include individual headers for
-// smaller code size (linker can strip unused chart types).
+/**
+ * @brief Compatibility umbrella header for all built-in chart widgets.
+ *
+ * New code can include the type-specific chart headers directly, but this file
+
+ * * remains useful for legacy code that expects one combined chart include.
+ */
+
+/* Backward-compatibility wrapper.
+ * Include this header to pull in all chart widgets, or include only the
+ * type-specific headers when code size matters. */
 
 #include "egui_view_chart_axis.h"
 #include "egui_view_chart_common.h"
@@ -18,7 +25,7 @@
 extern "C" {
 #endif
 
-// Preserved for reference - use type-specific widgets directly
+/** Legacy chart-type enum kept for compatibility. New code should use the type-specific widgets directly. */
 typedef enum egui_chart_type
 {
     EGUI_CHART_TYPE_LINE = 0,

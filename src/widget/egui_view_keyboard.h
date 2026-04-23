@@ -48,40 +48,42 @@ extern "C" {
 #define EGUI_KEYBOARD_KEY_IDX_ENTER     30
 
 typedef struct egui_view_keyboard egui_view_keyboard_t;
+/** On-screen keyboard composed of four row layouts plus one button per logical key. */
 struct egui_view_keyboard
 {
     egui_view_group_t base;
 
-    // Row layout containers
-    egui_view_linearlayout_t rows[EGUI_KEYBOARD_ROW_COUNT];
+    egui_view_linearlayout_t rows[EGUI_KEYBOARD_ROW_COUNT]; /* One horizontal layout per keyboard row. */
 
-    // All key buttons
-    egui_view_button_t keys[EGUI_KEYBOARD_TOTAL_KEYS];
+    egui_view_button_t keys[EGUI_KEYBOARD_TOTAL_KEYS]; /* Flat button array indexed by the shared key tables. */
 
-    // Current mode: 0=lowercase, 1=uppercase, 2=symbols
-    uint8_t mode;
+    uint8_t mode; /* Current label/output mode: lowercase, uppercase, or symbols. */
 
-    // Target text input view (NULL when keyboard is not active)
-    egui_view_t *target;
+    egui_view_t *target; /* Active textinput receiving characters, or NULL while hidden. */
 
-    // Font for key labels
-    const egui_font_t *font;
-    const egui_font_t *icon_font;
-    const char *shift_icon;
-    const char *backspace_icon;
-    const char *enter_icon;
+    const egui_font_t *font;      /* Font used by normal character labels. */
+    const egui_font_t *icon_font; /* Optional icon font for Shift/Backspace/Enter glyphs. */
+    const char *shift_icon;       /* Borrowed icon string for the Shift key. */
+    const char *backspace_icon;   /* Borrowed icon string for the Backspace key. */
+    const char *enter_icon;       /* Borrowed icon string for the Enter key. */
 
-    // Keyboard avoidance: saved state for restoring position when keyboard hides
-    egui_view_t *adjusted_view; // view whose Y position was adjusted (NULL if none)
-    egui_dim_t saved_y;         // original Y position before adjustment
+    egui_view_t *adjusted_view; /* Root view moved upward to avoid keyboard overlap, if any. */
+    egui_dim_t saved_y;         /* Original Y position restored when the keyboard hides. */
 };
 
+/** Initialize the on-screen keyboard. It starts hidden and must be shown for a target text input. */
 void egui_view_keyboard_init(egui_view_t *self, egui_core_t *core);
+/** Set the font used by normal character keys and refresh all key labels. */
 void egui_view_keyboard_set_font(egui_view_t *self, const egui_font_t *font);
+/** Set the font used by special-key icons and refresh icon-based keys. */
 void egui_view_keyboard_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Override the Shift, Backspace, and Enter glyph strings, then refresh labels for the current mode. */
 void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shift_icon, const char *backspace_icon, const char *enter_icon);
+/** Show the keyboard for one target text input and move the target's root view upward if the keyboard would cover it. */
 void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput);
+/** Hide the keyboard, clear the target, and restore any root-view position adjusted by `show()`. */
 void egui_view_keyboard_hide(egui_view_t *self);
+/** Switch between lowercase, uppercase, and symbol layouts. Invalid modes fall back to lowercase. */
 void egui_view_keyboard_set_mode(egui_view_t *self, uint8_t mode);
 
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS

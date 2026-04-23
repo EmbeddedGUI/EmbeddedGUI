@@ -14,6 +14,7 @@ struct egui_interpolator_accelerate_decelerate
     egui_interpolator_t base;
 };
 
+/** Initialize an interpolator that eases in at the start and eases out at the end. */
 void egui_interpolator_accelerate_decelerate_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

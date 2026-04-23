@@ -9,6 +9,9 @@ extern "C" {
 #endif
 
 typedef struct egui_view_divider egui_view_divider_t;
+/**
+ * @brief Minimal divider widget that paints one solid or gradient-filled strip.
+ */
 struct egui_view_divider
 {
     egui_view_t base;
@@ -19,20 +22,29 @@ struct egui_view_divider
 
 // ============== Divider Params ==============
 typedef struct egui_view_divider_params egui_view_divider_params_t;
+/**
+ * @brief Construction-time parameter block for one divider strip.
+ */
 struct egui_view_divider_params
 {
     egui_region_t region;
     egui_color_t color;
 };
 
+/** Build a divider parameter block with region and color. */
 #define EGUI_VIEW_DIVIDER_PARAMS_INIT(_name, _x, _y, _w, _h, _color)                                                                                           \
     static const egui_view_divider_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .color = _color}
 
+/** Apply a divider parameter block after initialization. */
 void egui_view_divider_apply_params(egui_view_t *self, const egui_view_divider_params_t *params);
+/** Initialize a divider and immediately apply its parameter block. */
 void egui_view_divider_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_divider_params_t *params);
 
+/** Set the divider fill color. */
 void egui_view_divider_set_color(egui_view_t *self, egui_color_t color);
+/** Default draw hook used by the divider API table. */
 void egui_view_divider_on_draw(egui_view_t *self);
+/** Initialize a simple divider rectangle with the theme border color. */
 void egui_view_divider_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

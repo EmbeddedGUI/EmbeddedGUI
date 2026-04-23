@@ -1,6 +1,11 @@
 #include "egui_rotation.h"
 
 /**
+ * @file egui_rotation.c
+ * @brief Software rotation helpers for rendered PFB tiles and touch coordinates.
+ */
+
+/**
  * Rotate PFB 180 degrees in-place (simple buffer reverse).
  */
 static void rotate_180_inplace(egui_color_int_t *buf, int count)
@@ -57,17 +62,17 @@ void egui_rotation_transform_pfb(egui_display_rotation_t rotation, int16_t phys_
     int16_t lw = *w;
     int16_t lh = *h;
 
+    // The caller already guarantees sufficient destination capacity for the selected rotation path.
     EGUI_UNUSED(dst_size);
 
     switch (rotation)
     {
     case EGUI_DISPLAY_ROTATION_0:
-        // No transformation needed
+        // No coordinate or pixel transformation is needed.
         break;
 
     case EGUI_DISPLAY_ROTATION_90:
-        // Logical (lx, ly, lw, lh) on rotated screen (phys_h x phys_w)
-        // -> Physical coordinates on phys_w x phys_h screen
+        // Map the logical tile rectangle back into native panel space, then rotate the pixels.
         *x = phys_w - ly - lh;
         *y = lx;
         *w = lh;
@@ -76,12 +81,10 @@ void egui_rotation_transform_pfb(egui_display_rotation_t rotation, int16_t phys_
         break;
 
     case EGUI_DISPLAY_ROTATION_180:
-        // Logical (lx, ly, lw, lh) on (phys_w x phys_h)
-        // -> Physical on same dimensions but inverted
+        // 180-degree rotation keeps width/height unchanged while mirroring both axes.
         *x = phys_w - lx - lw;
         *y = phys_h - ly - lh;
-        // w, h unchanged
-        // For 180, we can rotate in-place if dst == src, or copy+reverse
+        // For 180 degrees we can either reverse in place or copy into a separate buffer.
         if (dst != src)
         {
             int count = lw * lh;
@@ -97,8 +100,7 @@ void egui_rotation_transform_pfb(egui_display_rotation_t rotation, int16_t phys_
         break;
 
     case EGUI_DISPLAY_ROTATION_270:
-        // Logical (lx, ly, lw, lh) on rotated screen (phys_h x phys_w)
-        // -> Physical coordinates on phys_w x phys_h screen
+        // Map the logical tile rectangle back into native panel space, then rotate the pixels.
         *x = ly;
         *y = phys_h - lx - lw;
         *w = lh;
@@ -111,6 +113,7 @@ void egui_rotation_transform_pfb(egui_display_rotation_t rotation, int16_t phys_
     }
 }
 
+/** Convert one raw touch coordinate from native panel space back into logical rotated space. */
 void egui_rotation_transform_touch(egui_display_rotation_t rotation, int16_t phys_w, int16_t phys_h, egui_dim_t *x, egui_dim_t *y)
 {
     egui_dim_t tx = *x;
@@ -121,7 +124,7 @@ void egui_rotation_transform_touch(egui_display_rotation_t rotation, int16_t phy
     case EGUI_DISPLAY_ROTATION_0:
         break;
     case EGUI_DISPLAY_ROTATION_90:
-        // Physical touch -> logical coordinates
+        // Physical touch -> logical rotated coordinates.
         *x = ty;
         *y = phys_w - 1 - tx;
         break;

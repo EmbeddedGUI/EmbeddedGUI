@@ -1,6 +1,20 @@
 #include "egui_view_linear_value_helper.h"
 #include "style/egui_theme.h"
 
+/**
+ * @file egui_view_linear_value_helper.c
+ * @brief Shared geometry and coordinate conversion helpers for horizontal value controls.
+ *
+ * Slider, progress bar, and related widgets reuse these helpers so their track
+ * thickness, knob placement, and `0..100` conversions stay consistent.
+ */
+
+/**
+ * @brief Clamp a derived knob radius into the theme's supported size band.
+ *
+ * Reusing the theme radii keeps slider and progress-bar knobs visually aligned
+ * even when the source widget region is unusually short or tall.
+ */
 static egui_dim_t egui_view_linear_value_clamp_radius(egui_dim_t radius)
 {
     if (radius < EGUI_THEME_RADIUS_SM)
@@ -14,6 +28,13 @@ static egui_dim_t egui_view_linear_value_clamp_radius(egui_dim_t radius)
     return radius;
 }
 
+/**
+ * @brief Derive track and knob metrics for one horizontal value widget region.
+ *
+ * `reserve_knob_margin` is the main behavioral switch: sliders reserve room so
+ * the thumb can stay fully inside the widget bounds, while progress bars can
+ * use the full width when they do not need that margin.
+ */
 uint8_t egui_view_linear_value_get_metrics(const egui_region_t *region, uint8_t reserve_knob_margin, egui_view_linear_value_metrics_t *metrics)
 {
     egui_dim_t track_height;
@@ -25,6 +46,7 @@ uint8_t egui_view_linear_value_get_metrics(const egui_region_t *region, uint8_t 
         return 0;
     }
 
+    // The stock track thickness comes from the theme but is clamped when the widget is shorter than that.
     track_height = EGUI_THEME_TRACK_THICKNESS;
     if (!reserve_knob_margin && track_height > region->size.height)
     {
@@ -40,6 +62,7 @@ uint8_t egui_view_linear_value_get_metrics(const egui_region_t *region, uint8_t 
 
     if (reserve_knob_margin)
     {
+        // Reserve one knob radius on both sides so the thumb center can reach both ends without clipping.
         if (region->size.width <= 2 * knob_margin)
         {
             return 0;
@@ -63,6 +86,12 @@ uint8_t egui_view_linear_value_get_metrics(const egui_region_t *region, uint8_t 
     return 1;
 }
 
+/**
+ * @brief Convert a percentage value into the absolute x position on the track.
+ *
+ * The mapping is inclusive at both ends: `0` lands on `start_x` and `100`
+ * lands on the far edge of the usable span.
+ */
 egui_dim_t egui_view_linear_value_get_x(const egui_view_linear_value_metrics_t *metrics, uint8_t value)
 {
     if (metrics == NULL)
@@ -73,6 +102,12 @@ egui_dim_t egui_view_linear_value_get_x(const egui_view_linear_value_metrics_t *
     return metrics->start_x + (egui_dim_t)((uint32_t)metrics->usable_width * value / 100);
 }
 
+/**
+ * @brief Clamp an absolute x coordinate so the knob stays inside the usable span.
+ *
+ * Callers usually apply this after converting widths or drag positions into a
+ * thumb center coordinate.
+ */
 egui_dim_t egui_view_linear_value_clamp_x(const egui_view_linear_value_metrics_t *metrics, egui_dim_t x)
 {
     egui_dim_t min_x;
@@ -97,6 +132,12 @@ egui_dim_t egui_view_linear_value_clamp_x(const egui_view_linear_value_metrics_t
     return x;
 }
 
+/**
+ * @brief Convert a local x coordinate back into a `0..100` percentage value.
+ *
+ * `local_x` is expected to use the widget's local coordinate space, so the
+ * helper subtracts the knob margin before projecting into the usable span.
+ */
 uint8_t egui_view_linear_value_get_value_from_local_x(const egui_view_linear_value_metrics_t *metrics, egui_dim_t local_x)
 {
     egui_dim_t offset;

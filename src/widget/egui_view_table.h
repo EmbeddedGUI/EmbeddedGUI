@@ -4,29 +4,52 @@
 #include "egui_view.h"
 #include "font/egui_font.h"
 
+/**
+ * @brief Fixed-capacity table widget that draws text cells in a uniform grid.
+ *
+ * The widget stores borrowed string pointers for each cell, divides the current
+ * width evenly across visible columns, and optionally highlights the first few
+ * rows as header rows. It is intended for lightweight status tables rather than
+ * rich per-cell widgets or variable column sizing.
+ */
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/** Maximum number of rows stored by one table instance. */
 #define EGUI_VIEW_TABLE_MAX_ROWS 16
+/** Maximum number of columns stored by one table instance. */
 #define EGUI_VIEW_TABLE_MAX_COLS 8
 
 typedef struct egui_view_table egui_view_table_t;
 struct egui_view_table
 {
+    /* Base view responsible for region, invalidation, and draw dispatch. */
     egui_view_t base;
 
+    /* Borrowed text pointers for each logical cell in the fixed-capacity grid. */
     const char *cells[EGUI_VIEW_TABLE_MAX_ROWS][EGUI_VIEW_TABLE_MAX_COLS];
+    /* Number of visible rows currently drawn. */
     uint8_t row_count;
+    /* Number of visible columns currently drawn. */
     uint8_t col_count;
+    /* Number of leading rows styled as table headers. */
     uint8_t header_rows;
+    /* Uniform pixel height used by every row. */
     egui_dim_t row_height;
+    /* Fill color used behind header rows. */
     egui_color_t header_bg_color;
+    /* Text color used inside header cells. */
     egui_color_t header_text_color;
+    /* Text color used inside normal body cells. */
     egui_color_t cell_text_color;
+    /* Stroke color used for optional grid lines. */
     egui_color_t grid_color;
+    /* Whether row and column separators are drawn. */
     uint8_t show_grid;
+    /* Font used for both header and body text. */
     const egui_font_t *font;
 };
 
@@ -34,25 +57,40 @@ struct egui_view_table
 typedef struct egui_view_table_params egui_view_table_params_t;
 struct egui_view_table_params
 {
+    /* Outer region occupied by the whole table. */
     egui_region_t region;
+    /* Initial visible row count. */
     uint8_t row_count;
+    /* Initial visible column count. */
     uint8_t col_count;
 };
 
+/** Build a table parameter block with region plus initial row and column counts. */
 #define EGUI_VIEW_TABLE_PARAMS_INIT(_name, _x, _y, _w, _h, _row_count, _col_count)                                                                             \
     static const egui_view_table_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .row_count = (_row_count), .col_count = (_col_count)}
 
+/** Apply region, row count, and column count from one parameter block. */
 void egui_view_table_apply_params(egui_view_t *self, const egui_view_table_params_t *params);
+/** Initialize a table view and immediately apply its parameter block. */
 void egui_view_table_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_table_params_t *params);
 
+/** Set one cell's text pointer. The widget borrows the string and ignores indices outside the fixed table capacity. */
 void egui_view_table_set_cell(egui_view_t *self, uint8_t row, uint8_t col, const char *text);
+/** Set the visible row and column counts. Values larger than the built-in maxima are clamped. */
 void egui_view_table_set_size(egui_view_t *self, uint8_t rows, uint8_t cols);
+/** Mark the first `count` rows as header rows so they use header colors. */
 void egui_view_table_set_header_rows(egui_view_t *self, uint8_t count);
+/** Set the height of each row in pixels. */
 void egui_view_table_set_row_height(egui_view_t *self, egui_dim_t height);
+/** Show or hide the grid lines around cells. */
 void egui_view_table_set_show_grid(egui_view_t *self, uint8_t show);
+/** Set the fill color used for header rows. */
 void egui_view_table_set_header_bg_color(egui_view_t *self, egui_color_t color);
+/** Set the color used for grid lines. */
 void egui_view_table_set_grid_color(egui_view_t *self, egui_color_t color);
+/** Default draw hook used by the table API table. */
 void egui_view_table_on_draw(egui_view_t *self);
+/** Initialize the fixed-capacity table widget with default font, colors, and grid rendering enabled. */
 void egui_view_table_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

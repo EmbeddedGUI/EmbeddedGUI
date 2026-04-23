@@ -1,6 +1,11 @@
 #ifndef _EGUI_TOUCH_DRIVER_H_
 #define _EGUI_TOUCH_DRIVER_H_
 
+/**
+ * @file egui_touch_driver.h
+ * @brief Port-side touch driver callbacks that feed the core input layer.
+ */
+
 #include "egui_common.h"
 
 /* Set up for C function definitions, even when using C++ */
@@ -10,19 +15,20 @@ extern "C" {
 
 /**
  * Touch driver operations (vtable).
- * External touch hardware driver implements this.
- * read() is called periodically from egui_input_polling_work();
- * it should report the current touch state (pressed/released + coordinates).
- * The core framework converts raw touch data into motion events automatically.
+ * The port implements this table to expose raw touch state.
+ * `read()` is polled from `egui_input_polling_work()`, and the core converts the reported pressed/released state into motion events automatically.
  */
 typedef struct egui_touch_driver_ops egui_touch_driver_ops_t;
 struct egui_touch_driver_ops
 {
-    /** Initialize touch hardware. Called once during init. */
+    /** Initialize touch hardware and any driver-private state. Called once when the driver is registered. */
     void (*init)(egui_core_t *core);
 
     /**
-     * Read current touch state.
+     * Read the current touch state.
+     * This callback is the required baseline polling hook; the input layer
+     * checks it before consulting `read_ex`.
+     *
      * @param[out] pressed  1 if touch is active, 0 if released
      * @param[out] x        touch X coordinate (only valid when pressed=1)
      * @param[out] y        touch Y coordinate (only valid when pressed=1)
@@ -30,27 +36,28 @@ struct egui_touch_driver_ops
     void (*read)(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y);
 
     /**
-     * Extended read with coordinate validity.
+     * Extended read with explicit release-coordinate validity.
      * When implemented, x/y may still be valid after release and has_position
-     * tells the input layer whether it should trust them for ACTION_UP.
+     * tells the input layer whether it should trust them for `ACTION_UP`.
+     * Ports that cannot report release coordinates can leave this `NULL`.
      */
     void (*read_ex)(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y, uint8_t *has_position);
 };
 
 /**
- * Touch driver instance.
- * Statically allocated by the port.
+ * One touch-driver instance bound to one core.
+ * The port usually allocates this structure statically.
  */
 typedef struct egui_touch_driver egui_touch_driver_t;
 struct egui_touch_driver
 {
-    const egui_touch_driver_ops_t *ops;
+    const egui_touch_driver_ops_t *ops; // driver callback table implemented by the port
 };
 
-/** Register touch driver with a core. Called after egui_init() / egui_init_display(). */
+/** Register a touch driver with one core and run its init callback immediately when present. */
 void egui_touch_driver_register(egui_core_t *core, egui_touch_driver_t *driver);
 
-/** Get current touch driver. Returns NULL if not registered. */
+/** Get the touch driver currently bound to one core, or `NULL` when no driver is registered. */
 egui_touch_driver_t *egui_touch_driver_get(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

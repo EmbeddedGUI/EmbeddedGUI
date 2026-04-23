@@ -15,6 +15,18 @@
 #include "egui_view_viewpage_cache.h"
 #include "egui_view_virtual_viewport.h"
 
+/**
+ * @file egui_view_canvas_viewport.c
+ * @brief Clipping viewport that hosts one movable content subtree.
+ *
+ * The viewport owns an internal content layer
+ * whose origin is shifted by the
+ * current scroll offset. Drawing is clipped back to the visible viewport, and
+ * touch handling negotiates drag ownership
+ * with nested scrollable widgets.
+ */
+
+/* Default drag-bar metrics used by the optional bottom handle overlay. */
 #define EGUI_VIEW_CANVAS_VIEWPORT_DEFAULT_DRAG_BAR_HEIGHT 0
 #define EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_MARGIN         4
 #define EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_WIDTH   40
@@ -38,6 +50,7 @@ extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_virtual_viewport
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_axis_t);
 #endif
 
+/** Return the furthest valid horizontal scroll offset. */
 static egui_dim_t egui_view_canvas_viewport_get_max_offset_x(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
     egui_dim_t viewport_width = self->region_screen.size.width;
@@ -50,6 +63,7 @@ static egui_dim_t egui_view_canvas_viewport_get_max_offset_x(egui_view_t *self, 
     return (egui_dim_t)(local->canvas_width - viewport_width);
 }
 
+/** Return the furthest valid vertical scroll offset. */
 static egui_dim_t egui_view_canvas_viewport_get_max_offset_y(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
     egui_dim_t viewport_height = self->region_screen.size.height;
@@ -62,6 +76,7 @@ static egui_dim_t egui_view_canvas_viewport_get_max_offset_y(egui_view_t *self, 
     return (egui_dim_t)(local->canvas_height - viewport_height);
 }
 
+/** Clamp the stored offsets to the currently reachable canvas range. */
 static void egui_view_canvas_viewport_clamp_offset(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
     egui_dim_t max_offset_x = egui_view_canvas_viewport_get_max_offset_x(self, local);
@@ -86,11 +101,13 @@ static void egui_view_canvas_viewport_clamp_offset(egui_view_t *self, egui_view_
     }
 }
 
+/** Detect containers that should be searched recursively during drag hit testing. */
 static uint8_t egui_view_canvas_viewport_is_group_like(egui_view_t *view)
 {
     return view != NULL && view->api != NULL && view->api->request_layout == egui_view_group_request_layout;
 }
 
+/** Mark one view subtree as needing layout after the viewport origin changes. */
 static void egui_view_canvas_viewport_mark_subtree_request_layout(egui_view_t *view)
 {
     if (view == NULL)
@@ -116,6 +133,7 @@ static void egui_view_canvas_viewport_mark_subtree_request_layout(egui_view_t *v
     }
 }
 
+/** Mark every child attached to the internal content layer as layout-dirty. */
 static void egui_view_canvas_viewport_mark_content_request_layout(egui_view_canvas_viewport_t *local)
 {
     egui_dnode_t *node;
@@ -128,6 +146,7 @@ static void egui_view_canvas_viewport_mark_content_request_layout(egui_view_canv
     }
 }
 
+/** Sync the internal content layer to the current logical canvas origin and size. */
 static void egui_view_canvas_viewport_sync_content_layer(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
     egui_view_t *content_layer = EGUI_VIEW_OF(&local->content_layer);
@@ -160,6 +179,7 @@ static void egui_view_canvas_viewport_sync_content_layer(egui_view_t *self, egui
     }
 }
 
+/** Recalculate layout for every child hosted inside the shifted content layer. */
 static void egui_view_canvas_viewport_layout_content_children(egui_view_canvas_viewport_t *local)
 {
     egui_dnode_t *node;
@@ -173,6 +193,7 @@ static void egui_view_canvas_viewport_layout_content_children(egui_view_canvas_v
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/* Bitmask describing which drag axes a widget or gesture can consume. */
 enum
 {
     EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE = 0,
@@ -181,11 +202,13 @@ enum
     EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_BOTH = EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_HORIZONTAL | EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL,
 };
 
+/** Check whether the logical canvas is currently scrollable on either axis. */
 static uint8_t egui_view_canvas_viewport_can_drag(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
     return egui_view_canvas_viewport_get_max_offset_x(self, local) > 0 || egui_view_canvas_viewport_get_max_offset_y(self, local) > 0;
 }
 
+/** Return the drag axes that the viewport itself can currently handle. */
 static uint8_t egui_view_canvas_viewport_get_self_drag_axis_mask(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
     uint8_t axis_mask = EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
@@ -202,6 +225,7 @@ static uint8_t egui_view_canvas_viewport_get_self_drag_axis_mask(egui_view_t *se
     return axis_mask;
 }
 
+/** Report the axis consumed by a nested scroll widget, if any. */
 static uint8_t egui_view_canvas_viewport_get_scroll_drag_axis_mask(egui_view_t *view, egui_view_scroll_t *scroll)
 {
     egui_view_t *container = EGUI_VIEW_OF(&scroll->container);
@@ -214,6 +238,7 @@ static uint8_t egui_view_canvas_viewport_get_scroll_drag_axis_mask(egui_view_t *
     return EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
 }
 
+/** Report the axis consumed by a nested viewpage widget. */
 static uint8_t egui_view_canvas_viewport_get_viewpage_drag_axis_mask(egui_view_t *view, egui_view_viewpage_t *viewpage)
 {
     egui_view_t *container = EGUI_VIEW_OF(&viewpage->container);
@@ -226,6 +251,7 @@ static uint8_t egui_view_canvas_viewport_get_viewpage_drag_axis_mask(egui_view_t
     return EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
 }
 
+/** Report the axis consumed by a cached viewpage widget. */
 static uint8_t egui_view_canvas_viewport_get_viewpage_cache_drag_axis_mask(egui_view_t *view, egui_view_viewpage_cache_t *viewpage_cache)
 {
     egui_view_t *container = EGUI_VIEW_OF(&viewpage_cache->container);
@@ -238,6 +264,7 @@ static uint8_t egui_view_canvas_viewport_get_viewpage_cache_drag_axis_mask(egui_
     return EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
 }
 
+/** Report every axis currently reachable by a nested tileview page graph. */
 static uint8_t egui_view_canvas_viewport_get_tileview_drag_axis_mask(egui_view_tileview_t *tileview)
 {
     uint8_t axis_mask = EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
@@ -267,6 +294,7 @@ static uint8_t egui_view_canvas_viewport_get_tileview_drag_axis_mask(egui_view_t
     return axis_mask;
 }
 
+/** Report the scroll axis consumed by a nested virtual viewport. */
 static uint8_t egui_view_canvas_viewport_get_virtual_viewport_drag_axis_mask(egui_view_virtual_viewport_t *virtual_viewport)
 {
     if (virtual_viewport->logical_extent <= virtual_viewport->viewport_extent)
@@ -278,6 +306,7 @@ static uint8_t egui_view_canvas_viewport_get_virtual_viewport_drag_axis_mask(egu
                                                                                               : EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL;
 }
 
+/** Report the scroll axes consumed by a textblock with internal scrolling enabled. */
 static uint8_t egui_view_canvas_viewport_get_textblock_drag_axis_mask(egui_view_t *view, egui_view_textblock_t *textblock)
 {
     egui_dim_t content_width = view->region.size.width - (view->padding.left + view->padding.right);
@@ -310,6 +339,7 @@ static uint8_t egui_view_canvas_viewport_get_textblock_drag_axis_mask(egui_view_
     return axis_mask;
 }
 
+/** Map one concrete widget type to the drag axes it can reasonably claim. */
 static uint8_t egui_view_canvas_viewport_get_drag_axis_mask_for_view(egui_view_t *view)
 {
     const egui_view_api_t *api = view != NULL ? view->api : NULL;
@@ -379,16 +409,19 @@ static uint8_t egui_view_canvas_viewport_get_drag_axis_mask_for_view(egui_view_t
     return EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
 }
 
+/** Collapse a motion vector into the dominant gesture axis. */
 static uint8_t egui_view_canvas_viewport_get_gesture_axis_mask(egui_dim_t delta_x, egui_dim_t delta_y)
 {
     return EGUI_ABS(delta_x) > EGUI_ABS(delta_y) ? EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_HORIZONTAL : EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL;
 }
 
+/** Check whether the optional drag-bar overlay should be visible. */
 static uint8_t egui_view_canvas_viewport_has_drag_bar(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
     return local->drag_bar_height > 0 && egui_view_canvas_viewport_can_drag(self, local);
 }
 
+/** Walk the hit subtree and find the first child drag axis under the touch point. */
 static uint8_t egui_view_canvas_viewport_resolve_hit_drag_axis_mask(egui_view_t *view, egui_dim_t screen_x, egui_dim_t screen_y)
 {
     if (view == NULL || !view->is_enable || !view->is_visible || view->is_gone)
@@ -421,11 +454,13 @@ static uint8_t egui_view_canvas_viewport_resolve_hit_drag_axis_mask(egui_view_t 
     return egui_view_canvas_viewport_get_drag_axis_mask_for_view(view);
 }
 
+/** Return the cached child-drag capability for the current gesture. */
 static uint8_t egui_view_canvas_viewport_get_child_drag_axis_mask(egui_view_canvas_viewport_t *local)
 {
     return local->is_drag_target_resolved ? local->child_drag_axis_mask : EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
 }
 
+/** Resolve and cache which child inside the content layer can consume dragging. */
 static uint8_t egui_view_canvas_viewport_resolve_child_drag_target(egui_view_canvas_viewport_t *local)
 {
     if (!local->is_drag_target_resolved)
@@ -438,6 +473,14 @@ static uint8_t egui_view_canvas_viewport_resolve_child_drag_target(egui_view_can
     return egui_view_canvas_viewport_get_child_drag_axis_mask(local);
 }
 
+/**
+ * @brief Decide whether the viewport should intercept a touch stream from its content.
+ *
+ * The viewport only takes over when the gesture axis matches one
+ * of its own
+ * scrollable axes and does not overlap a draggable child under the original hit
+ * position.
+ */
 static int egui_view_canvas_viewport_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
@@ -506,6 +549,7 @@ static int egui_view_canvas_viewport_on_intercept_touch_event(egui_view_t *self,
     }
 }
 
+/** Handle touch events once the viewport itself owns the gesture stream. */
 static int egui_view_canvas_viewport_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
@@ -564,6 +608,7 @@ static int egui_view_canvas_viewport_on_touch_event(egui_view_t *self, egui_moti
 
         if (old_offset_x != local->offset_x || old_offset_y != local->offset_y)
         {
+            // Moving the viewport origin requires the hosted content subtree to relayout in the shifted canvas space.
             egui_view_canvas_viewport_mark_content_request_layout(local);
             egui_view_invalidate(self);
         }
@@ -581,6 +626,7 @@ static int egui_view_canvas_viewport_on_touch_event(egui_view_t *self, egui_moti
 }
 #endif
 
+/** Layout the viewport shell first, then sync and relayout the hosted content subtree. */
 static void egui_view_canvas_viewport_calculate_layout(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
@@ -591,6 +637,7 @@ static void egui_view_canvas_viewport_calculate_layout(egui_view_t *self)
     egui_view_canvas_viewport_layout_content_children(local);
 }
 
+/** Draw the clipped content subtree and, when enabled, the optional drag-bar overlay. */
 static void egui_view_canvas_viewport_draw(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -605,6 +652,7 @@ static void egui_view_canvas_viewport_draw(egui_view_t *self)
         active_clip = &clip_region;
     }
 
+    // Always clip hosted content to the visible viewport rectangle.
     egui_canvas_set_extra_clip(canvas, active_clip);
     egui_view_group_draw(self);
 
@@ -631,6 +679,7 @@ static void egui_view_canvas_viewport_draw(egui_view_t *self)
         bar_h = bar_height;
         if (bar_w > 0 && bar_h > 0)
         {
+            // The drag bar is a visual affordance only; it mirrors scrollability but does not handle direct pointer capture.
             egui_canvas_draw_round_rectangle_fill(canvas, bar_x, bar_y, bar_w, bar_h, EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_RADIUS, EGUI_COLOR_BLACK, 56);
 
             handle_w = EGUI_VIEW_CANVAS_VIEWPORT_DRAG_BAR_HANDLE_WIDTH;
@@ -666,6 +715,7 @@ static void egui_view_canvas_viewport_draw(egui_view_t *self)
     }
 }
 
+/** API table for the clipping canvas viewport widget. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_canvas_viewport_t) = {
         .dispatch_touch_event = egui_view_group_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -688,6 +738,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_canvas_viewport_t) = {
 #endif
 };
 
+/** Apply one parameter block that sets both viewport geometry and logical canvas size. */
 void egui_view_canvas_viewport_apply_params(egui_view_t *self, const egui_view_canvas_viewport_params_t *params)
 {
     if (params == NULL)
@@ -700,12 +751,14 @@ void egui_view_canvas_viewport_apply_params(egui_view_t *self, const egui_view_c
     egui_view_canvas_viewport_set_canvas_size(self, params->canvas_width, params->canvas_height);
 }
 
+/** Convenience helper that initializes the viewport before applying its parameters. */
 void egui_view_canvas_viewport_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_canvas_viewport_params_t *params)
 {
     egui_view_canvas_viewport_init(self, core);
     egui_view_canvas_viewport_apply_params(self, params);
 }
 
+/** Update the logical canvas size, clamp offsets, and relayout the hosted content. */
 void egui_view_canvas_viewport_set_canvas_size(egui_view_t *self, egui_dim_t canvas_width, egui_dim_t canvas_height)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
@@ -731,18 +784,21 @@ void egui_view_canvas_viewport_set_canvas_size(egui_view_t *self, egui_dim_t can
     egui_view_invalidate(self);
 }
 
+/** Return the current logical canvas width. */
 egui_dim_t egui_view_canvas_viewport_get_canvas_width(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     return local->canvas_width;
 }
 
+/** Return the current logical canvas height. */
 egui_dim_t egui_view_canvas_viewport_get_canvas_height(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     return local->canvas_height;
 }
 
+/** Replace the single hosted content view attached to the internal content layer. */
 void egui_view_canvas_viewport_set_content_view(egui_view_t *self, egui_view_t *content_view)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
@@ -769,18 +825,21 @@ void egui_view_canvas_viewport_set_content_view(egui_view_t *self, egui_view_t *
     egui_view_invalidate(self);
 }
 
+/** Return the currently hosted content view pointer, if any. */
 egui_view_t *egui_view_canvas_viewport_get_content_view(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     return local->content_view;
 }
 
+/** Return the internal content layer used as the parent for hosted content. */
 egui_view_t *egui_view_canvas_viewport_get_content_layer(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     return EGUI_VIEW_OF(&local->content_layer);
 }
 
+/** Update the optional drag-bar height, clamping negative values to zero. */
 void egui_view_canvas_viewport_set_drag_bar_height(egui_view_t *self, egui_dim_t drag_bar_height)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
@@ -799,12 +858,14 @@ void egui_view_canvas_viewport_set_drag_bar_height(egui_view_t *self, egui_dim_t
     egui_view_invalidate(self);
 }
 
+/** Return the configured drag-bar height. */
 egui_dim_t egui_view_canvas_viewport_get_drag_bar_height(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     return local->drag_bar_height;
 }
 
+/** Set the absolute scroll offset, clamping it into range and relayouting content when needed. */
 void egui_view_canvas_viewport_set_offset(egui_view_t *self, egui_dim_t offset_x, egui_dim_t offset_y)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
@@ -823,24 +884,28 @@ void egui_view_canvas_viewport_set_offset(egui_view_t *self, egui_dim_t offset_x
     egui_view_invalidate(self);
 }
 
+/** Shift the current scroll offset by a relative delta. */
 void egui_view_canvas_viewport_scroll_by(egui_view_t *self, egui_dim_t delta_x, egui_dim_t delta_y)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     egui_view_canvas_viewport_set_offset(self, (egui_dim_t)(local->offset_x + delta_x), (egui_dim_t)(local->offset_y + delta_y));
 }
 
+/** Return the current horizontal scroll offset. */
 egui_dim_t egui_view_canvas_viewport_get_offset_x(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     return local->offset_x;
 }
 
+/** Return the current vertical scroll offset. */
 egui_dim_t egui_view_canvas_viewport_get_offset_y(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     return local->offset_y;
 }
 
+/** Initialize the viewport, its internal content layer, and stock drag state. */
 void egui_view_canvas_viewport_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_canvas_viewport_t);
@@ -848,6 +913,7 @@ void egui_view_canvas_viewport_init(egui_view_t *self, egui_core_t *core)
     egui_view_group_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_canvas_viewport_t);
 
+    // The internal content layer is the only direct child; caller content is attached under it.
     egui_view_group_init(EGUI_VIEW_OF(&local->content_layer), core);
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->content_layer));
 

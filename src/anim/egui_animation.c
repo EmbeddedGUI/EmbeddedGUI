@@ -6,6 +6,13 @@
 #include "core/egui_core_internal.h"
 #include "core/egui_api.h"
 
+/**
+ * @file egui_animation.c
+ * @brief Base animation state machine that binds one animation to a target view, advances normalized progress, and manages
+ * repeats.
+ */
+
+/** Resolve the core that owns this animation by following its bound target view. */
 static egui_core_t *egui_animation_get_core(egui_animation_t *self)
 {
     if (self == NULL || self->target_view == NULL)
@@ -16,46 +23,55 @@ static egui_core_t *egui_animation_get_core(egui_animation_t *self)
     return egui_view_get_core(self->target_view);
 }
 
+/** Store the duration of one animation cycle in milliseconds. */
 void egui_animation_duration_set(egui_animation_t *self, uint16_t duration)
 {
     self->duration = duration;
 }
 
+/** Install the interpolator used to remap the linear 0..1 progress fraction. */
 void egui_animation_interpolator_set(egui_animation_t *self, egui_interpolator_t *interpolator)
 {
     self->interpolator = interpolator;
 }
 
+/** Choose how each repeated cycle restarts once the current cycle finishes. */
 void egui_animation_repeat_mode_set(egui_animation_t *self, uint8_t repeat_mode)
 {
     self->repeat_mode = repeat_mode;
 }
 
+/** Set how many extra cycles run after the first play. */
 void egui_animation_repeat_count_set(egui_animation_t *self, uint8_t repeat_count)
 {
     self->repeat_count = repeat_count;
 }
 
+/** Install optional lifecycle callbacks notified on start, repeat, and end. */
 void egui_animation_handle_set(egui_animation_t *self, const egui_animation_handle_t *handle)
 {
     self->handle = handle;
 }
 
+/** When enabled, finish by forcing the animated property back to fraction 0. */
 void egui_animation_is_fill_before_set(egui_animation_t *self, int is_fill_before)
 {
     self->is_fill_before = is_fill_before;
 }
 
+/** When enabled, finish by forcing the animated property to fraction 1. */
 void egui_animation_is_fill_after_set(egui_animation_t *self, int is_fill_after)
 {
     self->is_fill_after = is_fill_after;
 }
 
+/** Mark whether this animation is owned by an animation set instead of the core queue. */
 void egui_animation_is_inside_animation_set(egui_animation_t *self, int is_inside_animation)
 {
     self->is_inside_animation = is_inside_animation;
 }
 
+/** Notify the optional external start callback once the animation actually begins running. */
 void egui_animation_notify_start(egui_animation_t *self)
 {
     if (self->handle && self->handle->start)
@@ -64,6 +80,7 @@ void egui_animation_notify_start(egui_animation_t *self)
     }
 }
 
+/** Apply configured fill behavior, then notify the optional external end callback. */
 void egui_animation_notify_end(egui_animation_t *self)
 {
     if (self->is_fill_before)
@@ -80,6 +97,7 @@ void egui_animation_notify_end(egui_animation_t *self)
     }
 }
 
+/** Notify the optional external repeat callback after one cycle completes. */
 void egui_animation_notify_repeat(egui_animation_t *self)
 {
     if (self->handle && self->handle->repeat)
@@ -88,6 +106,7 @@ void egui_animation_notify_repeat(egui_animation_t *self)
     }
 }
 
+/** Reset runtime state and queue the animation on its owning core unless it is nested in an animation set. */
 void egui_animation_start(egui_animation_t *self)
 {
     egui_core_t *core;
@@ -132,6 +151,7 @@ void egui_animation_start(egui_animation_t *self)
     self->api->on_start(self);
 }
 
+/** Force the animation to its final state for the current direction, then end it immediately. */
 void egui_animation_complete(egui_animation_t *self)
 {
     egui_float_t fraction = EGUI_FLOAT_VALUE(1.0f);
@@ -163,6 +183,7 @@ void egui_animation_complete(egui_animation_t *self)
     egui_animation_notify_end(self);
 }
 
+/** Stop the animation and detach it from the owning core queue when needed. */
 void egui_animation_stop(egui_animation_t *self)
 {
     if (self->is_running)
@@ -182,6 +203,7 @@ void egui_animation_stop(egui_animation_t *self)
     }
 }
 
+/** Advance one animation tick, apply interpolation/repeat rules, and dispatch the subclass update hook. */
 void egui_animation_update(egui_animation_t *self, uint32_t current_time)
 {
     int done = 0;
@@ -256,19 +278,23 @@ void egui_animation_update(egui_animation_t *self, uint32_t current_time)
     }
 }
 
+/** Bind the animation to one target view so it can locate the correct core queue. */
 void egui_animation_target_view_set(egui_animation_t *self, egui_view_t *view)
 {
     self->target_view = view;
 }
 
+/** Default on_start hook for subclasses that do not need setup work. */
 void egui_animation_on_start(egui_animation_t *self)
 {
-    // implement by subclass
+    EGUI_UNUSED(self);
 }
 
+/** Default on_update hook for subclasses that only override the base API selectively. */
 void egui_animation_on_update(egui_animation_t *self, egui_float_t fraction)
 {
-    // implement by subclass
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(fraction);
 }
 
 const egui_animation_api_t egui_animation_t_api_table = {
@@ -277,9 +303,9 @@ const egui_animation_api_t egui_animation_t_api_table = {
         .on_update = egui_animation_on_update,
 };
 
+/** Initialize the base animation object with default flags, no target view, and the base API table. */
 void egui_animation_init(egui_animation_t *self)
 {
-    // init api
     self->api = &egui_animation_t_api_table;
 
     self->duration = 0;

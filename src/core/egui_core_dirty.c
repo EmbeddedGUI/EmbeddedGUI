@@ -4,11 +4,17 @@
 #include "egui_core.h"
 #include "egui_core_internal.h"
 
+/**
+ * @file egui_core_dirty.c
+ * @brief Dirty-region bookkeeping, merge policy, and optional debug/statistics helpers for one GUI core.
+ */
+
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
 #define egui_dirty_region_stats (core->debug.dirty_region_stats)
 #endif
 
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL || EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE || EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+/** Return the pixel area of one region, treating empty or invalid rectangles as zero. */
 static uint32_t egui_core_get_region_area(const egui_region_t *region)
 {
     if (region == NULL || region->size.width <= 0 || region->size.height <= 0)
@@ -20,6 +26,7 @@ static uint32_t egui_core_get_region_area(const egui_region_t *region)
 }
 #endif
 
+/** Return non-zero when the candidate dirty region intersects any tracked dirty slot. */
 int egui_core_check_region_dirty_intersect(egui_core_t *core, egui_region_t *region_dirty)
 {
     int i;
@@ -37,16 +44,19 @@ int egui_core_check_region_dirty_intersect(egui_core_t *core, egui_region_t *reg
     return 0;
 }
 
+/** Return the monotonically increasing dirty epoch used to notice refresh cycles. */
 uint32_t egui_core_get_dirty_epoch(egui_core_t *core)
 {
     return core->scene.dirty_epoch;
 }
 
+/** Expose the dirty slot array so higher layers can iterate the coalesced dirty regions. */
 egui_region_t *egui_core_get_region_dirty_arr(egui_core_t *core)
 {
     return core->scene.region_dirty_arr;
 }
 
+/** Clear all dirty slots and bump the epoch so subsequent scans see a fresh frame. */
 void egui_core_clear_region_dirty(egui_core_t *core)
 {
     int i;
@@ -59,12 +69,18 @@ void egui_core_clear_region_dirty(egui_core_t *core)
     core->scene.dirty_epoch++;
 }
 
+/**
+ * Merge one new dirty rectangle into the bounded dirty slot array.
+ * The algorithm first tries direct overlap/empty-slot insertion, then
+ * coalesces later slots, and finally falls back to the slot whose union
+ * causes the smallest area growth.
+ */
 void egui_core_update_region_dirty(egui_core_t *core, egui_region_t *region_dirty)
 {
     int i, j;
     int is_changed = 0;
 
-    // change to the window dirty region
+    // Clip incoming updates to the visible screen so off-screen invalidations do not consume dirty slots.
     EGUI_REGION_DEFINE(region_new_in_window, 0, 0, core->screen_width, core->screen_height);
     egui_region_intersect(&region_new_in_window, region_dirty, &region_new_in_window);
 
@@ -83,6 +99,7 @@ void egui_core_update_region_dirty(egui_core_t *core, egui_region_t *region_dirt
 
         if (!is_changed)
         {
+            // First fit: merge into the first overlapping slot, or claim the first empty slot.
             if (egui_region_is_intersect(p_region_dirty, &region_new_in_window) || egui_region_is_empty(p_region_dirty))
             {
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
@@ -120,6 +137,7 @@ void egui_core_update_region_dirty(egui_core_t *core, egui_region_t *region_dirt
 
             if (egui_region_is_empty(p_region_dirty))
             {
+                // Compact later non-empty slots forward so early slots stay densely packed.
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
                 egui_region_t region_moved;
 
@@ -141,6 +159,7 @@ void egui_core_update_region_dirty(egui_core_t *core, egui_region_t *region_dirt
 
             if (egui_region_is_intersect(p_region_dirty, p_region_merge))
             {
+                // After the new region changes one slot, collapse any later slot that now overlaps it.
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
                 egui_region_t region_merged;
 
@@ -181,6 +200,7 @@ void egui_core_update_region_dirty(egui_core_t *core, egui_region_t *region_dirt
             egui_region_union(p_region, &region_new_in_window, &tmp_union);
 
             {
+                // When no overlap exists anywhere, sacrifice the slot whose expanded union is smallest.
                 int32_t area = (int32_t)tmp_union.size.width * tmp_union.size.height;
 
                 if (area < best_area)
@@ -212,17 +232,20 @@ void egui_core_update_region_dirty(egui_core_t *core, egui_region_t *region_dirt
     }
 }
 
+/** Mark the whole screen dirty so the next frame redraws everything. */
 void egui_core_update_region_dirty_all(egui_core_t *core)
 {
     EGUI_REGION_DEFINE(region_screen, 0, 0, core->screen_width, core->screen_height);
     egui_core_update_region_dirty(core, &region_screen);
 }
 
+/** Public alias for forcing a full-screen redraw. */
 void egui_core_force_refresh(egui_core_t *core)
 {
     egui_core_update_region_dirty_all(core);
 }
 
+/** Return the next frame index used by dirty-region debug logs. */
 uint32_t egui_core_debug_next_frame_index(egui_core_t *core)
 {
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
@@ -233,6 +256,7 @@ uint32_t egui_core_debug_next_frame_index(egui_core_t *core)
 #endif
 }
 
+/** Emit one formatted dirty-region debug line when detail or trace logging is enabled. */
 void egui_core_debug_log_region_line(const char *tag, uint32_t frame_index, int slot, const egui_region_t *region)
 {
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL || EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
@@ -254,6 +278,7 @@ void egui_core_debug_log_region_line(const char *tag, uint32_t frame_index, int 
 #endif
 }
 
+/** Snapshot the current dirty-slot state before rendering starts for this frame. */
 void egui_core_dirty_region_stats_begin_frame(egui_core_t *core)
 {
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
@@ -283,6 +308,7 @@ void egui_core_dirty_region_stats_begin_frame(egui_core_t *core)
 #endif
 }
 
+/** Count one rendered tile for dirty-region statistics. */
 void egui_core_dirty_region_stats_count_tile(egui_core_t *core, const egui_region_t *region)
 {
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
@@ -298,6 +324,7 @@ void egui_core_dirty_region_stats_count_tile(egui_core_t *core, const egui_regio
 #endif
 }
 
+/** Finalize and optionally print the per-frame dirty-region statistics after rendering completes. */
 void egui_core_dirty_region_stats_end_frame(egui_core_t *core)
 {
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS

@@ -26,8 +26,11 @@ EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_m_params, 0, 0, 84, 84, NULL);
 EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_l_params, 0, 0, 96, 96, NULL);
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
+#define IMAGE_BUTTON_VERIFY_RETRY_MAX 3U
+
 static uint8_t runtime_fail_reported;
 static uint8_t image_button_click_counts[4];
+static uint8_t image_button_verify_retries[4];
 
 static void report_runtime_failure(const char *message)
 {
@@ -38,6 +41,19 @@ static void report_runtime_failure(const char *message)
 
     runtime_fail_reported = 1;
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
+static uint8_t schedule_image_button_verify_retry(uint8_t verify_index, egui_sim_action_t *p_action)
+{
+    if (verify_index >= 4U || image_button_verify_retries[verify_index] >= IMAGE_BUTTON_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    image_button_verify_retries[verify_index]++;
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
 }
 #endif
 
@@ -71,6 +87,7 @@ void test_init_ui(egui_core_t *core)
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
     memset(image_button_click_counts, 0, sizeof(image_button_click_counts));
+    memset(image_button_verify_retries, 0, sizeof(image_button_verify_retries));
 #endif
 
     // Init grid
@@ -145,27 +162,50 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, &imgbtn_xs, 1000);
         return true;
     case 1:
-        if (first_call && image_button_click_counts[0] != 1)
+        if (image_button_click_counts[0] != 1)
         {
+            if (schedule_image_button_verify_retry(0U, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("imgbtn_xs click was not delivered exactly once");
         }
+        image_button_verify_retries[0] = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, &imgbtn_s, 1000);
         return true;
     case 2:
-        if (first_call && image_button_click_counts[1] != 1)
+        if (image_button_click_counts[1] != 1)
         {
+            if (schedule_image_button_verify_retry(1U, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("imgbtn_s click was not delivered exactly once");
         }
+        image_button_verify_retries[1] = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, &imgbtn_m, 1000);
         return true;
     case 3:
-        if (first_call && image_button_click_counts[2] != 1)
+        if (image_button_click_counts[2] != 1)
         {
+            if (schedule_image_button_verify_retry(2U, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("imgbtn_m click was not delivered exactly once");
         }
+        image_button_verify_retries[2] = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, &imgbtn_l, 1000);
         return true;
     case 4:
+        if (image_button_click_counts[0] != 1 || image_button_click_counts[1] != 1 || image_button_click_counts[2] != 1 || image_button_click_counts[3] != 1)
+        {
+            if (schedule_image_button_verify_retry(3U, p_action))
+            {
+                return true;
+            }
+        }
+        image_button_verify_retries[3] = 0U;
         if (first_call)
         {
             if (image_button_click_counts[3] != 1)

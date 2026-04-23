@@ -11,12 +11,30 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_progress_bar.c
+ * @brief Linear progress indicator built on shared track and knob geometry helpers.
+ *
+ * The implementation is a good
+ * reference for:
+ * - clamping percentage values,
+ * - using theme parts for track and fill colors,
+ * - invalidating only the portion changed by progress
+ * updates.
+ */
+
+/**
+ * @brief Register the optional callback fired when progress changes.
+ */
 void egui_view_progress_bar_set_on_progress_listener(egui_view_t *self, egui_view_on_progress_changed_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_progress_bar_t);
     local->on_progress_changed = listener;
 }
 
+/**
+ * @brief Invalidate only the fill span and optional knob touched by a value change.
+ */
 static void egui_view_progress_bar_invalidate_process_change(egui_view_t *self, egui_view_progress_bar_t *local, uint8_t old_process)
 {
     egui_region_t region;
@@ -70,6 +88,9 @@ static void egui_view_progress_bar_invalidate_process_change(egui_view_t *self, 
     egui_view_invalidate_region(self, &dirty_region);
 }
 
+/**
+ * @brief Clamp and store the new progress value, then notify and redraw.
+ */
 void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process)
 {
     EGUI_LOCAL_INIT(egui_view_progress_bar_t);
@@ -99,6 +120,9 @@ void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process)
 //     // egui_view_progress_bar_set_switch_on(self, !local->is_checked);
 // }
 
+/**
+ * @brief Draw the track, filled progress span, and optional control knob.
+ */
 void egui_view_progress_bar_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_progress_bar_t);
@@ -174,6 +198,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_progress_bar_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the progress bar with theme-based default colors.
+ */
 void egui_view_progress_bar_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_progress_bar_t);
@@ -196,6 +223,9 @@ void egui_view_progress_bar_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_progress_bar");
 }
 
+/**
+ * @brief Apply geometry and initial percentage from one parameter block.
+ */
 void egui_view_progress_bar_apply_params(egui_view_t *self, const egui_view_progress_bar_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_progress_bar_t);
@@ -207,6 +237,9 @@ void egui_view_progress_bar_apply_params(egui_view_t *self, const egui_view_prog
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains progress-bar init and params.
+ */
 void egui_view_progress_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_progress_bar_params_t *params)
 {
     egui_view_progress_bar_init(self, core);

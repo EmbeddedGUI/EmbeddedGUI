@@ -7,11 +7,21 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
+/**
+ * @file egui_focus.c
+ * @brief Minimal focus-management helpers for keyboard and accessibility-style navigation.
+ */
+
+/** Initialize focus tracking with no view currently selected. */
 void egui_focus_manager_init(egui_core_t *core)
 {
     core->system.focus_manager.focused_view = NULL;
 }
 
+/**
+ * Update one view's focused flag, fire the optional callback, and invalidate
+ * the view so focus visuals can be redrawn.
+ */
 static void egui_focus_set_view_focused(egui_view_t *view, int is_focused)
 {
     view->is_focused = is_focused;
@@ -22,6 +32,7 @@ static void egui_focus_set_view_focused(egui_view_t *view, int is_focused)
     egui_view_invalidate(view);
 }
 
+/** Replace the current focused view with a new one, clearing the old target first. */
 void egui_focus_manager_set_focus(egui_core_t *core, egui_view_t *view)
 {
     if (core->system.focus_manager.focused_view == view)
@@ -29,13 +40,13 @@ void egui_focus_manager_set_focus(egui_core_t *core, egui_view_t *view)
         return;
     }
 
-    // Clear old focus
+    // Clear the previously focused view before assigning the new target.
     if (core->system.focus_manager.focused_view != NULL)
     {
         egui_focus_set_view_focused(core->system.focus_manager.focused_view, 0);
     }
 
-    // Set new focus
+    // Activate the new focus target, if one was requested.
     core->system.focus_manager.focused_view = view;
     if (view != NULL)
     {
@@ -43,11 +54,13 @@ void egui_focus_manager_set_focus(egui_core_t *core, egui_view_t *view)
     }
 }
 
+/** Clear the current focus selection, if any. */
 void egui_focus_manager_clear_focus(egui_core_t *core)
 {
     egui_focus_manager_set_focus(core, NULL);
 }
 
+/** Return the view that currently owns focus in this core. */
 egui_view_t *egui_focus_manager_get_focused_view(egui_core_t *core)
 {
     return core->system.focus_manager.focused_view;
@@ -70,8 +83,8 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
 {
     int count = 0;
 
-// Simple stack-based DFS using a fixed-size stack
-// For embedded systems, we limit the depth
+// Simple stack-based DFS using a fixed-size stack to avoid heap allocation.
+// Depth and result count are intentionally capped for embedded use.
 #define FOCUS_DFS_MAX_DEPTH 16
     egui_view_t *stack[FOCUS_DFS_MAX_DEPTH];
     int stack_top = 0;
@@ -87,21 +100,20 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
             continue;
         }
 
-        // If this view is focusable, add it to the list
+        // Record focusable views in traversal order.
         if (egui_focus_view_is_focusable(current))
         {
             list[count++] = current;
         }
 
-        // If this is a group-like container, push children in reverse order so first child is processed first.
-        // Some containers reuse egui_view_group storage but override draw/layout (scroll/viewpage/virtual_stage).
+        // Push children in reverse order so DFS still visits the first child first.
+        // Some derived containers reuse `egui_view_group` storage while overriding behavior.
         if (current->api->draw == egui_view_group_draw || current->api->request_layout == egui_view_group_request_layout)
         {
             egui_view_group_t *group = (egui_view_group_t *)current;
             egui_dnode_t *p_head;
 
-            // Push children in reverse order onto stack
-            // First collect them, then push in reverse
+            // Collect children first, then push in reverse order.
             egui_view_t *children[FOCUS_DFS_MAX_DEPTH];
             int child_count = 0;
 
@@ -116,7 +128,7 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
                 }
             }
 
-            // Push in reverse order so first child is on top of stack
+            // Reverse push keeps the original child order when popping from the stack.
             for (int i = child_count - 1; i >= 0; i--)
             {
                 if (stack_top < FOCUS_DFS_MAX_DEPTH)
@@ -133,6 +145,7 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
 
 #define FOCUS_MAX_FOCUSABLE_VIEWS 32
 
+/** Move focus to the next focusable view in traversal order, wrapping around at the end. */
 void egui_focus_manager_move_focus_next(egui_core_t *core)
 {
     egui_view_t *focusable_list[FOCUS_MAX_FOCUSABLE_VIEWS];
@@ -145,7 +158,7 @@ void egui_focus_manager_move_focus_next(egui_core_t *core)
         return;
     }
 
-    // Find current focused view in the list
+    // Find the current focus target inside the flattened traversal order.
     int current_idx = -1;
     if (core->system.focus_manager.focused_view != NULL)
     {
@@ -159,11 +172,12 @@ void egui_focus_manager_move_focus_next(egui_core_t *core)
         }
     }
 
-    // Move to next, wrap around
+    // Advance to the next focus target, wrapping back to the first entry.
     int next_idx = (current_idx + 1) % count;
     egui_focus_manager_set_focus(core, focusable_list[next_idx]);
 }
 
+/** Move focus to the previous focusable view in traversal order, wrapping around at the beginning. */
 void egui_focus_manager_move_focus_prev(egui_core_t *core)
 {
     egui_view_t *focusable_list[FOCUS_MAX_FOCUSABLE_VIEWS];
@@ -176,7 +190,7 @@ void egui_focus_manager_move_focus_prev(egui_core_t *core)
         return;
     }
 
-    // Find current focused view in the list
+    // Find the current focus target inside the flattened traversal order.
     int current_idx = -1;
     if (core->system.focus_manager.focused_view != NULL)
     {
@@ -190,7 +204,7 @@ void egui_focus_manager_move_focus_prev(egui_core_t *core)
         }
     }
 
-    // Move to previous, wrap around
+    // Move backward one step, wrapping to the last focusable view when needed.
     int prev_idx;
     if (current_idx <= 0)
     {

@@ -5,6 +5,12 @@
 #include "widget/egui_view.h"
 #include "core/egui_api.h"
 
+/**
+ * @file egui_animation_translate.c
+ * @brief Translate animation that moves a target view by scrolling it with incremental x/y deltas.
+ */
+
+/** Reset the accumulated offsets so later updates can emit only the newly added translation delta. */
 void egui_animation_translate_on_start(egui_animation_t *self)
 {
     EGUI_LOCAL_INIT(egui_animation_translate_t);
@@ -17,6 +23,13 @@ void egui_animation_translate_on_start(egui_animation_t *self)
     local->current_y = 0;
 }
 
+/** Compatibility wrapper that forwards to the normal translate start hook. */
+void egui_animation_translate_start(egui_animation_t *self)
+{
+    egui_animation_translate_on_start(self);
+}
+
+/** Convert the normalized animation fraction into x/y offsets and scroll only by the incremental delta for this frame. */
 void egui_animation_translate_on_update(egui_animation_t *self, egui_float_t fraction)
 {
     EGUI_LOCAL_INIT(egui_animation_translate_t);
@@ -45,6 +58,7 @@ void egui_animation_translate_on_update(egui_animation_t *self, egui_float_t fra
     }
 }
 
+/** Bind the borrowed parameter block used by this translate animation instance. */
 void egui_animation_translate_params_set(egui_animation_translate_t *self, const egui_animation_translate_params_t *params)
 {
     self->params = params;
@@ -56,13 +70,9 @@ const egui_animation_api_t egui_animation_translate_t_api_table = {
         .on_update = egui_animation_translate_on_update,
 };
 
+/** Initialize a translate animation and install the callbacks that move the target view each frame. */
 void egui_animation_translate_init(egui_animation_t *self)
 {
-    EGUI_LOCAL_INIT(egui_animation_translate_t);
-    // call super init.
     egui_animation_init(self);
-    // update api.
     self->api = &egui_animation_translate_t_api_table;
-
-    // init local data.
 }

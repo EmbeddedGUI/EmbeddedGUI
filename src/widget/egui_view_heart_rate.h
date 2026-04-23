@@ -39,14 +39,22 @@ struct egui_view_heart_rate_params
 #define EGUI_VIEW_HEART_RATE_PARAMS_INIT(_name, _x, _y, _w, _h, _bpm)                                                                                          \
     static const egui_view_heart_rate_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .bpm = (_bpm)}
 
+/** Apply a heart rate parameter block after initialization. */
 void egui_view_heart_rate_apply_params(egui_view_t *self, const egui_view_heart_rate_params_t *params);
+/** Initialize a heart rate view and immediately apply its parameter block. */
 void egui_view_heart_rate_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_heart_rate_params_t *params);
 
+/** Set beats per minute. A value of 0 also stops the timer-driven pulse animation. */
 void egui_view_heart_rate_set_bpm(egui_view_t *self, uint8_t bpm);
+/** Enable or disable the internal ECG and heart pulse animation timer. */
 void egui_view_heart_rate_set_animate(egui_view_t *self, uint8_t enable);
+/** Set the color shared by the heart icon and ECG waveform. */
 void egui_view_heart_rate_set_heart_color(egui_view_t *self, egui_color_t color);
+/** Set the initial ECG scroll phase for deterministic previews or synchronized demos. */
 void egui_view_heart_rate_set_pulse_phase(egui_view_t *self, uint8_t phase);
+/** Default draw hook used by the heart rate API table. */
 void egui_view_heart_rate_on_draw(egui_view_t *self);
+/** Initialize a heart rate indicator with animation disabled by default. */
 void egui_view_heart_rate_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

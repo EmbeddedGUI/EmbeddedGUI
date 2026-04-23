@@ -38,13 +38,20 @@ struct egui_view_arc_slider_params
 #define EGUI_VIEW_ARC_SLIDER_PARAMS_INIT(_name, _x, _y, _w, _h, _val)                                                                                          \
     static const egui_view_arc_slider_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .value = (_val)}
 
+/** Apply an arc slider parameter block after initialization. */
 void egui_view_arc_slider_apply_params(egui_view_t *self, const egui_view_arc_slider_params_t *params);
+/** Initialize an arc slider and immediately apply its parameter block. */
 void egui_view_arc_slider_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_arc_slider_params_t *params);
 
+/** Register the callback fired whenever the slider value changes. */
 void egui_view_arc_slider_set_on_value_changed_listener(egui_view_t *self, egui_view_on_arc_value_changed_listener_t listener);
+/** Set the slider value in the 0-100 range and fire the listener on real changes. */
 void egui_view_arc_slider_set_value(egui_view_t *self, uint8_t value);
+/** Read the current slider percentage. */
 uint8_t egui_view_arc_slider_get_value(egui_view_t *self);
+/** Default draw hook used by the arc slider API table. */
 void egui_view_arc_slider_on_draw(egui_view_t *self);
+/** Initialize an interactive arc slider that updates continuously while dragged. */
 void egui_view_arc_slider_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

@@ -6,7 +6,13 @@
 #include "egui_core_internal.h"
 #include "resource/egui_resource.h"
 
+/**
+ * @file egui_core_debug.c
+ * @brief Debug-only helpers for overlay text, performance sampling, and memory monitor rendering.
+ */
+
 #if EGUI_CONFIG_DEBUG_VIEW_ID
+/** Return a monotonically increasing per-core view id for debug builds. */
 uint16_t egui_core_get_unique_id(egui_core_t *core)
 {
     return core->unique_id++;
@@ -18,6 +24,7 @@ uint16_t egui_core_get_unique_id(egui_core_t *core)
 #define EGUI_DEBUG_MONITOR_OVERLAY_BG_ALPHA 128
 #define EGUI_DEBUG_MONITOR_FONT()           ((const egui_font_t *)EGUI_CONFIG_DEBUG_MONITOR_FONT)
 
+/** Initialize one overlay slot with empty text and no previously committed region. */
 void egui_debug_overlay_init(egui_debug_overlay_t *overlay, uint8_t align_type, egui_dim_t offset_x, egui_dim_t offset_y)
 {
     if (overlay == NULL)
@@ -33,6 +40,7 @@ void egui_debug_overlay_init(egui_debug_overlay_t *overlay, uint8_t align_type, 
     overlay->offset_y = offset_y;
 }
 
+/** Replace overlay text only when the content actually changed. */
 uint8_t egui_debug_overlay_set_text(egui_debug_overlay_t *overlay, const char *next_text)
 {
     if (overlay == NULL || next_text == NULL)
@@ -49,6 +57,7 @@ uint8_t egui_debug_overlay_set_text(egui_debug_overlay_t *overlay, const char *n
     return 1;
 }
 
+/** Compute the on-screen rectangle needed by one overlay based on its text metrics and alignment. */
 int egui_debug_get_overlay_region(egui_core_t *core, const egui_debug_overlay_t *overlay, egui_region_t *region)
 {
     egui_dim_t text_width = 0;
@@ -84,6 +93,7 @@ int egui_debug_get_overlay_region(egui_core_t *core, const egui_debug_overlay_t 
     return 1;
 }
 
+/** Mark both the previous and current overlay rectangles dirty so moved or resized text redraws cleanly. */
 void egui_debug_mark_overlay_dirty(egui_core_t *core, egui_debug_overlay_t *overlay)
 {
     egui_region_t overlay_region;
@@ -123,6 +133,7 @@ void egui_debug_mark_overlay_dirty(egui_core_t *core, egui_debug_overlay_t *over
 #define debug_perf_stats   (core->debug.debug_perf_stats)
 #define debug_perf_overlay (core->debug.debug_perf_overlay)
 
+/** Format the performance overlay text from the current aggregated counters. */
 static uint8_t egui_debug_set_perf_text(egui_core_t *core, uint32_t fps, uint32_t cpu_percent, uint32_t render_avg_time_ms, uint32_t flush_avg_time_ms)
 {
     char next_string[EGUI_DEBUG_MONITOR_TEXT_MAX_LEN];
@@ -139,11 +150,13 @@ static uint8_t egui_debug_set_perf_text(egui_core_t *core, uint32_t fps, uint32_
     return egui_debug_overlay_set_text(&debug_perf_overlay, next_string);
 }
 
+/** Reset the rolling performance counters that feed the performance overlay. */
 static void egui_debug_reset_perf_stats(egui_core_t *core)
 {
     egui_api_memset(&debug_perf_stats, 0, (int)sizeof(debug_perf_stats));
 }
 
+/** Initialize the performance monitor overlay and start its first sampling window. */
 void egui_debug_perf_init_monitor(egui_core_t *core)
 {
     egui_debug_overlay_init(&debug_perf_overlay, EGUI_CONFIG_DEBUG_PERF_MONITOR_POS, EGUI_CONFIG_DEBUG_PERF_MONITOR_OFFSET_X,
@@ -154,6 +167,7 @@ void egui_debug_perf_init_monitor(egui_core_t *core)
     debug_perf_stats.initialized = 1;
 }
 
+/** Update the performance overlay once enough time has elapsed to close the current sampling window. */
 void egui_debug_perf_update_monitor(egui_core_t *core, uint32_t timestamp)
 {
     uint32_t elapsed;
@@ -208,6 +222,7 @@ void egui_debug_perf_update_monitor(egui_core_t *core, uint32_t timestamp)
     debug_perf_stats.total_flush_time = 0;
 }
 
+/** Record one frame's render and flush cost for the next performance-monitor update. */
 void egui_debug_perf_record_work_time(egui_core_t *core, uint32_t render_time, uint32_t flush_time, uint32_t timestamp)
 {
     if (!debug_perf_stats.initialized)
@@ -225,6 +240,7 @@ void egui_debug_perf_record_work_time(egui_core_t *core, uint32_t render_time, u
 #if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
 #define debug_mem_overlay (core->debug.debug_mem_overlay)
 
+/** Convert bytes into a `kB.tenth` style pair used by the memory overlay text. */
 static void egui_debug_bytes_to_kb_tenth(uint32_t bytes, uint32_t *kb_int, uint32_t *kb_tenth)
 {
     uint32_t whole = bytes / 1024U;
@@ -240,6 +256,7 @@ static void egui_debug_bytes_to_kb_tenth(uint32_t bytes, uint32_t *kb_int, uint3
     }
 }
 
+/** Format the memory overlay text from the current monitor snapshot. */
 static uint8_t egui_debug_set_mem_text(egui_core_t *core, const egui_mem_monitor_t *monitor)
 {
     char next_string[EGUI_DEBUG_MONITOR_TEXT_MAX_LEN];
@@ -263,6 +280,7 @@ static uint8_t egui_debug_set_mem_text(egui_core_t *core, const egui_mem_monitor
     return egui_debug_overlay_set_text(&debug_mem_overlay, next_string);
 }
 
+/** Initialize the memory monitor overlay from the current allocator snapshot. */
 void egui_debug_mem_init_monitor(egui_core_t *core)
 {
     egui_mem_monitor_t monitor;
@@ -276,6 +294,7 @@ void egui_debug_mem_init_monitor(egui_core_t *core)
     egui_debug_set_mem_text(core, &monitor);
 }
 
+/** Refresh the memory monitor overlay when the tracked usage changed. */
 void egui_debug_mem_update_monitor(egui_core_t *core, uint32_t timestamp)
 {
     egui_mem_monitor_t monitor;
@@ -288,6 +307,7 @@ void egui_debug_mem_update_monitor(egui_core_t *core, uint32_t timestamp)
 }
 #endif
 
+/** Draw one overlay into the current PFB only when that PFB intersects the overlay's screen region. */
 static void egui_debug_draw_overlay_for_current_pfb(egui_core_t *core, const egui_debug_overlay_t *overlay)
 {
     egui_canvas_t *canvas = &core->canvas;
@@ -324,6 +344,7 @@ static void egui_debug_draw_overlay_for_current_pfb(egui_core_t *core, const egu
                                   EGUI_ALPHA_100);
 }
 
+/** Remember the overlay rectangle that was just rendered so future updates can dirty the old area too. */
 static void egui_debug_commit_overlay_region(egui_core_t *core, egui_debug_overlay_t *overlay)
 {
     egui_region_t overlay_region;
@@ -337,6 +358,7 @@ static void egui_debug_commit_overlay_region(egui_core_t *core, egui_debug_overl
     overlay->region_last_valid = 1;
 }
 
+/** Draw every enabled debug overlay into the current PFB tile. */
 void egui_debug_draw_overlays_for_current_pfb(egui_core_t *core)
 {
 #if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
@@ -347,6 +369,7 @@ void egui_debug_draw_overlays_for_current_pfb(egui_core_t *core)
 #endif
 }
 
+/** Commit the last-drawn screen region for every enabled overlay. */
 void egui_debug_commit_overlay_regions(egui_core_t *core)
 {
 #if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
@@ -357,6 +380,7 @@ void egui_debug_commit_overlay_regions(egui_core_t *core)
 #endif
 }
 
+/** Initialize every debug monitor enabled by the current build configuration. */
 void egui_debug_init_monitors(egui_core_t *core)
 {
 #if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
@@ -368,6 +392,7 @@ void egui_debug_init_monitors(egui_core_t *core)
 #endif
 }
 
+/** Update every debug monitor enabled by the current build configuration. */
 void egui_debug_update_monitors(egui_core_t *core, uint32_t timestamp)
 {
 #if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW

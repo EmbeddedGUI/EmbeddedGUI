@@ -1,5 +1,11 @@
 #include "egui_trig_lut.h"
 
+/**
+ * @file egui_trig_lut.c
+ * @brief Constant sine lookup table for fixed-point drawing helpers.
+ */
+
+/* Only the first quadrant is stored explicitly; callers mirror it into the other quadrants. */
 #define EGUI_TRIG_SIN_LUT_VALUES                                                                                                                               \
     EGUI_FLOAT_VALUE(0.000000f), EGUI_FLOAT_VALUE(0.017452f), EGUI_FLOAT_VALUE(0.034899f), EGUI_FLOAT_VALUE(0.052336f), EGUI_FLOAT_VALUE(0.069756f),           \
             EGUI_FLOAT_VALUE(0.087156f), EGUI_FLOAT_VALUE(0.104528f), EGUI_FLOAT_VALUE(0.121869f), EGUI_FLOAT_VALUE(0.139173f), EGUI_FLOAT_VALUE(0.156434f),   \
@@ -21,4 +27,5 @@
             EGUI_FLOAT_VALUE(0.996195f), EGUI_FLOAT_VALUE(0.997564f), EGUI_FLOAT_VALUE(0.998630f), EGUI_FLOAT_VALUE(0.999391f), EGUI_FLOAT_VALUE(0.999848f),   \
             EGUI_FLOAT_VALUE(1.000000f)
 
+/* Sine samples for integer degrees 0..90. */
 const egui_float_t egui_trig_sin_lut[91] = {EGUI_TRIG_SIN_LUT_VALUES};

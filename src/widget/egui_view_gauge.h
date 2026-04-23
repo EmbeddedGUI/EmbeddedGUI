@@ -39,13 +39,20 @@ struct egui_view_gauge_params
 #define EGUI_VIEW_GAUGE_PARAMS_INIT(_name, _x, _y, _w, _h, _val)                                                                                               \
     static const egui_view_gauge_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .value = (_val)}
 
+/** Apply a gauge parameter block after initialization. */
 void egui_view_gauge_apply_params(egui_view_t *self, const egui_view_gauge_params_t *params);
+/** Initialize a gauge and immediately apply its parameter block. */
 void egui_view_gauge_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_gauge_params_t *params);
 
+/** Set the gauge percentage in the 0-100 range. */
 void egui_view_gauge_set_value(egui_view_t *self, uint8_t value);
+/** Override the font used for the centered value text. Passing NULL restores the default renderer. */
 void egui_view_gauge_set_font(egui_view_t *self, const egui_font_t *font);
+/** Set the color used for the centered value text. */
 void egui_view_gauge_set_text_color(egui_view_t *self, egui_color_t color);
+/** Default draw hook used by the gauge API table. */
 void egui_view_gauge_on_draw(egui_view_t *self);
+/** Initialize a gauge with a needle, tick marks, and centered value text. */
 void egui_view_gauge_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

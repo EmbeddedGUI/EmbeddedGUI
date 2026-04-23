@@ -12,12 +12,17 @@
 
 #include "utils/simple_ringbuffer/simple_pool.h"
 
+/**
+ * @file egui_input.c
+ * @brief Per-core input queues that bridge touch/key drivers into the core event pipeline.
+ */
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 #include "egui_key_event.h"
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-/* Convenience macro: dereference the active input pointer */
+/* Convenience macro: dereference the active input state stored inside the core. */
 #define egui_input_info (core->touch.input)
 
 #define input_motion_pool              (egui_input_info.motion_pool)
@@ -26,6 +31,7 @@
 
 #include "egui_touch_driver.h"
 
+/** Disable interrupts through the registered platform hooks when they exist. */
 static egui_base_t egui_input_interrupt_disable_if_available(egui_core_t *core, int *locked)
 {
     if (locked != NULL)
@@ -46,6 +52,7 @@ static egui_base_t egui_input_interrupt_disable_if_available(egui_core_t *core, 
     return core->render.platform->ops->interrupt_disable();
 }
 
+/** Re-enable interrupts only when `egui_input_interrupt_disable_if_available()` actually locked them. */
 static void egui_input_interrupt_enable_if_locked(egui_core_t *core, egui_base_t level, int locked)
 {
     if (!locked || core == NULL || core->render.platform == NULL || core->render.platform->ops == NULL || core->render.platform->ops->interrupt_enable == NULL)
@@ -56,6 +63,7 @@ static void egui_input_interrupt_enable_if_locked(egui_core_t *core, egui_base_t
     core->render.platform->ops->interrupt_enable(level);
 }
 
+/** Queue one single-pointer motion event, coalescing consecutive MOVE events to save queue slots. */
 int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_dim_t y)
 {
     // EGUI_LOG_DBG("egui_input_add_motion type:%d x:%d y:%d\n", type, x, y);
@@ -72,7 +80,7 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
     {
         if (last_motion_event->type == type && last_motion_event->type == EGUI_MOTION_EVENT_ACTION_MOVE)
         {
-            // reuse the last motion event
+            // Reuse the last queued MOVE node so fast drags do not exhaust the fixed pool.
             motion_event = last_motion_event;
             is_reused = 1;
         }
@@ -100,6 +108,7 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
 #endif
 
 #if EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
+    // Feed the tracker from the same event stream that will later be dispatched into the core.
     egui_velocity_tracker_add_motion(&egui_input_info.velocity_tracker, motion_event);
 #endif
     if (!is_reused)
@@ -112,6 +121,7 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+/** Queue one multi-touch motion event, using the same MOVE coalescing policy as single-touch input. */
 int egui_input_add_motion_multi(egui_core_t *core, uint8_t type, uint8_t pointer_count, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2)
 {
     int locked;
@@ -159,6 +169,7 @@ int egui_input_add_motion_multi(egui_core_t *core, uint8_t type, uint8_t pointer
     return 1;
 }
 
+/** Queue one scroll-wheel style motion event that carries a delta instead of a pressed state. */
 int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t delta)
 {
     int locked;
@@ -186,6 +197,7 @@ int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
 
+/** Return the last measured horizontal fling velocity, or zero when tracking is disabled. */
 egui_float_t egui_input_get_velocity_x(egui_core_t *core)
 {
 #if !EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
@@ -195,6 +207,7 @@ egui_float_t egui_input_get_velocity_x(egui_core_t *core)
 #endif
 }
 
+/** Return the last measured vertical fling velocity, or zero when tracking is disabled. */
 egui_float_t egui_input_get_velocity_y(egui_core_t *core)
 {
 #if !EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
@@ -204,16 +217,21 @@ egui_float_t egui_input_get_velocity_y(egui_core_t *core)
 #endif
 }
 
+/** Report whether the queued motion-event list is currently empty. */
 int egui_input_check_idle(egui_core_t *core)
 {
     return egui_slist_is_empty(&egui_input_info.motion_list);
 }
 
+/**
+ * Poll the registered touch driver once, convert its state changes into queued
+ * motion events, then drain the queue and dispatch each event into the core.
+ */
 void egui_input_polling_work(egui_core_t *core)
 {
     egui_motion_event_t *motion_event;
 
-    // Poll touch driver if registered
+    // Sample the touch driver first so polling-mode ports still feed the same queue-based pipeline.
     egui_touch_driver_t *tdrv = egui_touch_driver_get(core);
     if (tdrv != NULL && tdrv->ops->read != NULL)
     {
@@ -230,6 +248,7 @@ void egui_input_polling_work(egui_core_t *core)
             has_position = pressed;
         }
 
+        // Translate the current raw pressed/not-pressed state into DOWN/MOVE/UP edge events.
         if (pressed && !core->touch.prev_pressed)
         {
             egui_input_add_motion(core, EGUI_MOTION_EVENT_ACTION_DOWN, tx, ty);
@@ -255,6 +274,7 @@ void egui_input_polling_work(egui_core_t *core)
         }
     }
 
+    // Drain the motion queue in FIFO order so producer-side interrupt handlers stay short.
     while (1)
     {
         egui_base_t level = egui_hw_interrupt_disable_core(core);
@@ -268,7 +288,7 @@ void egui_input_polling_work(egui_core_t *core)
 
         // EGUI_LOG_DBG("egui_input_polling_work type:%d x:%d y:%d\n", motion_event->type, motion_event->location.x, motion_event->location.y);
 
-        // Runtime software rotation: transform physical touch coords to logical coords
+        // Convert native panel coordinates back into logical GUI coordinates when software rotation owns the panel transform.
         if (core->render.software_rotation)
         {
             egui_display_driver_t *drv = egui_display_driver_get(core);
@@ -278,16 +298,17 @@ void egui_input_polling_work(egui_core_t *core)
             }
         }
 
-        // handle motion event
+        // Hand the normalized event to the rest of the input pipeline.
         egui_core_process_input_motion(core, motion_event);
 
-        // Put the motion event back to the pool
+        // Return the node to the fixed pool so the next producer can reuse it.
         level = egui_hw_interrupt_disable_core(core);
         SIMPLE_POOL_ENQUEUE(&input_motion_pool, motion_event);
         egui_hw_interrupt_enable_core(core, level);
     }
 }
 
+/** Initialize the touch-side queues, pools, velocity tracker, and previous sampled state. */
 void egui_input_init(egui_core_t *core)
 {
     simple_pool_init(&input_motion_pool, input_motion_pool_fifo_storage, (uint8_t *)input_motion_pool_data_storage, EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT,
@@ -311,6 +332,7 @@ void egui_input_init(egui_core_t *core)
 #define input_key_pool_fifo_storage (egui_input_info.key_pool_fifo_storage)
 #define input_key_pool_data_storage (egui_input_info.key_pool_data_storage)
 
+/** Queue one key event into the fixed-capacity FIFO used by keyboard dispatch. */
 int egui_input_add_key(egui_core_t *core, uint8_t type, uint8_t key_code, uint8_t is_shift, uint8_t is_ctrl)
 {
     int locked;
@@ -338,11 +360,13 @@ int egui_input_add_key(egui_core_t *core, uint8_t type, uint8_t key_code, uint8_
     return 1;
 }
 
+/** Report whether the queued key-event list is currently empty. */
 int egui_input_check_key_idle(egui_core_t *core)
 {
     return egui_slist_is_empty(&egui_input_info.key_list);
 }
 
+/** Drain the queued key events and forward them into the core in FIFO order. */
 void egui_input_key_dispatch_work(egui_core_t *core)
 {
     egui_key_event_t *key_event;
@@ -357,6 +381,7 @@ void egui_input_key_dispatch_work(egui_core_t *core)
     }
 }
 
+/** Initialize the key-event queue and its fixed pool storage. */
 void egui_input_key_init(egui_core_t *core)
 {
     simple_pool_init(&input_key_pool, input_key_pool_fifo_storage, (uint8_t *)input_key_pool_data_storage, EGUI_CONFIG_INPUT_KEY_CACHE_COUNT,
@@ -369,6 +394,7 @@ void egui_input_key_init(egui_core_t *core)
 
 #if !EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && !EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 
+/** No-op stub used when both touch and key support are compiled out. */
 int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_dim_t y)
 {
     EGUI_UNUSED(type);
@@ -377,25 +403,30 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
     return 0;
 }
 
+/** No-op stub used when both touch and key support are compiled out. */
 egui_float_t egui_input_get_velocity_x(egui_core_t *core)
 {
     return 0;
 }
 
+/** No-op stub used when both touch and key support are compiled out. */
 egui_float_t egui_input_get_velocity_y(egui_core_t *core)
 {
     return 0;
 }
 
+/** No-op stub used when both touch and key support are compiled out. */
 int egui_input_check_idle(egui_core_t *core)
 {
     return 1;
 }
 
+/** No-op stub used when both touch and key support are compiled out. */
 void egui_input_polling_work(egui_core_t *core)
 {
 }
 
+/** No-op stub used when both touch and key support are compiled out. */
 void egui_input_init(egui_core_t *core)
 {
 }

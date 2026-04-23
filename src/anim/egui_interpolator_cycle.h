@@ -13,11 +13,12 @@ struct egui_interpolator_cycle
 {
     egui_interpolator_t base;
 
-    egui_float_t cycles; // Amount of anticipation. When tension equals 0.0f, there is no anticipation and the interpolator becomes a simple acceleration
-                         // interpolator.
+    egui_float_t cycles; // number of sine cycles completed while input goes from 0 to 1
 };
 
-void egui_interpolator_cycle_tension_set(egui_interpolator_t *self, egui_float_t tension);
+/** Set how many sine-wave cycles are completed while the input moves from `0` to `1`. */
+void egui_interpolator_cycle_tension_set(egui_interpolator_t *self, egui_float_t cycles);
+/** Initialize a cycle interpolator that oscillates around zero. */
 void egui_interpolator_cycle_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

@@ -6,6 +6,21 @@
 #include "resource/egui_resource.h"
 #include "utils/egui_sprintf.h"
 
+/**
+ * @file egui_view_stopwatch.c
+ * @brief Stopwatch label that formats elapsed time into a local text buffer.
+ *
+ * It is a useful study case for text
+ * widgets:
+ * - elapsed time is stored numerically,
+ * - formatting writes into an internal buffer,
+ * - redraw tries to invalidate only the previous and new
+ * text bounds.
+ */
+
+/**
+ * @brief Estimate the text region used by one stopwatch string.
+ */
 static uint8_t stopwatch_get_text_dirty_region(egui_view_t *self, const egui_view_label_t *label, const char *text, egui_region_t *dirty_region)
 {
     egui_region_t work_region;
@@ -72,6 +87,9 @@ static uint8_t stopwatch_get_text_dirty_region(egui_view_t *self, const egui_vie
     return egui_region_is_empty(dirty_region) ? 0 : 1;
 }
 
+/**
+ * @brief Update the label text pointer and invalidate the union of old and new text.
+ */
 static void stopwatch_update_text(egui_view_t *self, egui_view_stopwatch_t *local, const egui_region_t *old_region, uint8_t has_old_region)
 {
     egui_region_t new_region;
@@ -119,6 +137,9 @@ static void stopwatch_update_text(egui_view_t *self, egui_view_stopwatch_t *loca
     egui_view_invalidate_region(self, &dirty_region);
 }
 
+/**
+ * @brief Reformat `elapsed_ms` into the local text buffer and refresh drawing.
+ */
 static void format_elapsed(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_stopwatch_t);
@@ -183,6 +204,9 @@ static void format_elapsed(egui_view_t *self)
     stopwatch_update_text(self, local, &old_text_region, has_old_text_region);
 }
 
+/**
+ * @brief Store a new elapsed time and refresh the formatted label when needed.
+ */
 void egui_view_stopwatch_set_elapsed(egui_view_t *self, uint32_t elapsed_ms)
 {
     EGUI_LOCAL_INIT(egui_view_stopwatch_t);
@@ -194,24 +218,36 @@ void egui_view_stopwatch_set_elapsed(egui_view_t *self, uint32_t elapsed_ms)
     format_elapsed(self);
 }
 
+/**
+ * @brief Return the stored elapsed milliseconds.
+ */
 uint32_t egui_view_stopwatch_get_elapsed(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_stopwatch_t);
     return local->elapsed_ms;
 }
 
+/**
+ * @brief Store the logical stopwatch state flag.
+ */
 void egui_view_stopwatch_set_state(egui_view_t *self, uint8_t state)
 {
     EGUI_LOCAL_INIT(egui_view_stopwatch_t);
     local->state = state;
 }
 
+/**
+ * @brief Return the logical stopwatch state flag.
+ */
 uint8_t egui_view_stopwatch_get_state(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_stopwatch_t);
     return local->state;
 }
 
+/**
+ * @brief Toggle whether centiseconds are shown in the formatted label.
+ */
 void egui_view_stopwatch_set_show_ms(egui_view_t *self, uint8_t show)
 {
     EGUI_LOCAL_INIT(egui_view_stopwatch_t);
@@ -223,6 +259,9 @@ void egui_view_stopwatch_set_show_ms(egui_view_t *self, uint8_t show)
     format_elapsed(self);
 }
 
+/**
+ * @brief Initialize the stopwatch as a label-backed time formatter.
+ */
 void egui_view_stopwatch_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_stopwatch_t);
@@ -241,6 +280,9 @@ void egui_view_stopwatch_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_stopwatch");
 }
 
+/**
+ * @brief Convenience initializer that chains stopwatch init and label params.
+ */
 void egui_view_stopwatch_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params)
 {
     egui_view_stopwatch_init(self, core);

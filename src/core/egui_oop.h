@@ -3,11 +3,12 @@
 
 /**
  * @file egui_oop.h
- * @brief C OOP helper macros for reducing explicit type casts
+ * @brief C OOP helper macros used by EmbeddedGUI's struct-embedding pattern.
  *
- * This file provides macros to simplify C OOP patterns used in EmbeddedGUI.
- * All macros are compile-time expanded with zero runtime overhead.
- * Compatible with C99 standard.
+ * EmbeddedGUI models inheritance by embedding a base struct as the first
+ * member of a derived struct. These macros keep the resulting upcasts and
+ * downcasts readable while still expanding to plain C casts with zero
+ * runtime overhead.
  */
 
 #include "config/egui_config.h"
@@ -23,10 +24,12 @@ extern "C" {
  * ============================================================================*/
 
 /**
- * @brief Declare and initialize derived class local pointer
- * @param _type Derived class type name (e.g., egui_view_label_t)
+ * @brief Downcast the incoming `self` pointer and expose it as `local`.
+ * @param _type Derived type name (for example `egui_view_label_t`)
  *
- * Usage:
+ * Use this at the top of instance-style functions whose first parameter is a base pointer named `self`.
+ *
+ * Example:
  *   void egui_view_label_set_text(egui_view_t *self, const char *text) {
  *       EGUI_LOCAL_INIT(egui_view_label_t);
  *       local->text = text;
@@ -37,19 +40,21 @@ extern "C" {
     (void)(local)
 
 /**
- * @brief Self cast with custom variable name (no type checking)
- * @param _type Derived class type name
- * @param _var  Custom variable name
+ * @brief Downcast the incoming `self` pointer with a custom local variable name.
+ * @param _type Derived type name
+ * @param _var  Custom variable name that will receive the cast result
  */
 #define EGUI_LOCAL_INIT_VAR(_type, _var)                                                                                                                       \
     _type *_var = (_type *)self;                                                                                                                               \
     (void)(_var)
 
 /**
- * @brief Self cast for init functions
- * @param _type Derived class type name
+ * @brief Same as `EGUI_LOCAL_INIT`, but named for constructor/init functions.
+ * @param _type Derived type name
  *
- * Usage:
+ * The generated code is identical to `EGUI_LOCAL_INIT`; the separate name simply makes initialization code read more naturally.
+ *
+ * Example:
  *   void egui_view_label_init(egui_view_t *self, egui_core_t *core) {
  *       EGUI_INIT_LOCAL(egui_view_label_t);
  *       egui_view_init(self, core);
@@ -67,10 +72,10 @@ extern "C" {
  * ============================================================================*/
 
 /**
- * @brief Get base class pointer from embedded member (upcast)
- * @param _ptr Derived class struct pointer or base member pointer
+ * @brief Upcast a derived object or embedded base member to the base API type.
+ * @param _ptr Pointer whose address is layout-compatible with the requested base type
  *
- * Usage:
+ * Example:
  *   egui_view_group_add_child(EGUI_VIEW_OF(&local->container), child);
  */
 #define EGUI_VIEW_OF(_ptr)   ((egui_view_t *)(_ptr))
@@ -81,10 +86,10 @@ extern "C" {
 #define EGUI_FONT_OF(_ptr)   ((egui_font_t *)(_ptr))
 
 /**
- * @brief Get base pointer via derived class's base member
- * @param _derived_ptr Derived class pointer
+ * @brief Get the address of a derived object's `base` member.
+ * @param _derived_ptr Derived object pointer whose base field is named `base`
  *
- * Assumes derived class has 'base' as first member
+ * This macro assumes the derived type embeds a member named `base`.
  */
 #define EGUI_BASE_OF(_derived_ptr) ((void *)&((_derived_ptr)->base))
 
@@ -94,11 +99,13 @@ extern "C" {
  * ============================================================================*/
 
 /**
- * @brief Explicit downcast (intentional unsafe operation)
- * @param _type Target derived class type
- * @param _ptr  Base class pointer
+ * @brief Explicitly downcast a base pointer when the real dynamic type is known.
+ * @param _type Target derived type
+ * @param _ptr  Base pointer or compatible object pointer
  *
- * Usage:
+ * No runtime type checking is performed.
+ *
+ * Example:
  *   egui_view_label_t *label = EGUI_CAST_TO(egui_view_label_t, base_ptr);
  */
 #define EGUI_CAST_TO(_type, _ptr) ((_type *)(_ptr))
@@ -109,13 +116,13 @@ extern "C" {
  * ============================================================================*/
 
 /**
- * @brief Get view's parent pointer (typed as egui_view_t*)
- * @param _view egui_view_t pointer or derived class pointer
+ * @brief Fetch one view's parent pointer as `egui_view_t *`.
+ * @param _view `egui_view_t *` or any derived view pointer
  */
 #define EGUI_VIEW_PARENT(_view) ((egui_view_t *)(((egui_view_t *)(_view))->parent))
 
 /**
- * @brief Check if view has parent
+ * @brief Check whether one view is already attached to a parent container.
  */
 #define EGUI_VIEW_HAS_PARENT(_view) (((egui_view_t *)(_view))->parent != NULL)
 

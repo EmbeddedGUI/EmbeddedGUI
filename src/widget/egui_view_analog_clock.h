@@ -41,13 +41,20 @@ struct egui_view_analog_clock_params
 #define EGUI_VIEW_ANALOG_CLOCK_PARAMS_INIT(_name, _x, _y, _w, _h, _hour, _min, _sec)                                                                           \
     static const egui_view_analog_clock_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .hour = (_hour), .minute = (_min), .second = (_sec)}
 
+/** Apply an analog clock parameter block after initialization. */
 void egui_view_analog_clock_apply_params(egui_view_t *self, const egui_view_analog_clock_params_t *params);
+/** Initialize an analog clock and immediately apply its parameter block. */
 void egui_view_analog_clock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_analog_clock_params_t *params);
 
+/** Update the displayed time. Hours are normalized to 0-11 and minutes or seconds are clamped to 59. */
 void egui_view_analog_clock_set_time(egui_view_t *self, uint8_t h, uint8_t m, uint8_t s);
+/** Show or hide the second hand. */
 void egui_view_analog_clock_show_second(egui_view_t *self, uint8_t show);
+/** Show or hide the dial tick marks. */
 void egui_view_analog_clock_show_ticks(egui_view_t *self, uint8_t show);
+/** Default draw hook used by the analog clock API table. */
 void egui_view_analog_clock_on_draw(egui_view_t *self);
+/** Initialize an analog clock with the second hand and ticks enabled. */
 void egui_view_analog_clock_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

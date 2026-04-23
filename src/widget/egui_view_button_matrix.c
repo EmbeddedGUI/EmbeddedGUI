@@ -13,8 +13,22 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_button_matrix.c
+ * @brief Equal-sized button grid with optional icons and persistent selection.
+ *
+ * Reading notes:
+ * - cell geometry
+ * is recomputed from the current work region on every draw;
+ * - press and selection transitions invalidate only the affected cells when possible;
+ * - icon
+ * and text painting is clipped per cell so neighboring buttons stay isolated.
+ */
+
+/* Expand dirty regions slightly so active borders redraw without clipped edges. */
 #define EGUI_VIEW_BUTTON_MATRIX_DIRTY_PAD 2
 
+/** Resolve the icon font, falling back to an automatically sized built-in font. */
 static const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_button_matrix_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
@@ -25,6 +39,7 @@ static const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_button
     return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
+/** Draw text under a temporary cell clip and then restore the previous clip state. */
 static void egui_view_button_matrix_draw_text_clipped(egui_canvas_t *canvas, const egui_font_t *font, const char *text, const egui_region_t *text_rect,
                                                       const egui_region_t *clip_rect, uint8_t align, egui_color_t color, egui_alpha_t alpha)
 {
@@ -59,6 +74,7 @@ static void egui_view_button_matrix_draw_text_clipped(egui_canvas_t *canvas, con
     }
 }
 
+/** Map one cell index to its padded work-region rectangle for local invalidation. */
 static uint8_t egui_view_button_matrix_get_cell_region(egui_view_t *self, egui_view_button_matrix_t *local, uint8_t index, egui_region_t *cell_region)
 {
     egui_region_t work_region;
@@ -106,6 +122,7 @@ static uint8_t egui_view_button_matrix_get_cell_region(egui_view_t *self, egui_v
     return egui_region_is_empty(cell_region) ? 0 : 1;
 }
 
+/** Merge the dirty regions for a short list of changed cell indices and invalidate once. */
 static void egui_view_button_matrix_invalidate_indices(egui_view_t *self, egui_view_button_matrix_t *local, const uint8_t *indices, uint8_t count)
 {
     egui_region_t dirty_region;
@@ -181,6 +198,7 @@ static void egui_view_button_matrix_invalidate_indices(egui_view_t *self, egui_v
     egui_view_invalidate_region(self, &dirty_region);
 }
 
+/** Borrow new label data, clamp the cell count, and reset invalid stored selection. */
 void egui_view_button_matrix_set_labels(egui_view_t *self, const char **labels, uint8_t count, uint8_t cols)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -198,12 +216,14 @@ void egui_view_button_matrix_set_labels(egui_view_t *self, const char **labels, 
     egui_view_invalidate(self);
 }
 
+/** Store the callback fired when a touch-up completes inside the same cell. */
 void egui_view_button_matrix_set_on_click(egui_view_t *self, egui_view_button_matrix_click_cb_t callback)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     local->on_click = callback;
 }
 
+/** Toggle persistent single selection and redraw only cells whose highlight changes. */
 void egui_view_button_matrix_set_selection_enabled(egui_view_t *self, uint8_t enabled)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -234,6 +254,7 @@ void egui_view_button_matrix_set_selection_enabled(egui_view_t *self, uint8_t en
     egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, dirty_count);
 }
 
+/** Update the stored selection, clamping invalid input and redrawing old and new cells. */
 void egui_view_button_matrix_set_selected_index(egui_view_t *self, uint8_t index)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -265,12 +286,14 @@ void egui_view_button_matrix_set_selected_index(egui_view_t *self, uint8_t index
     egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, EGUI_ARRAY_SIZE(dirty_indices));
 }
 
+/** Return the stored selected cell index, or `SELECTED_NONE`. */
 uint8_t egui_view_button_matrix_get_selected_index(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->selected_index;
 }
 
+/** Override the idle background color used by every cell. */
 void egui_view_button_matrix_set_btn_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -278,6 +301,7 @@ void egui_view_button_matrix_set_btn_color(egui_view_t *self, egui_color_t color
     egui_view_invalidate(self);
 }
 
+/** Override the highlight color used for pressed and selected cells. */
 void egui_view_button_matrix_set_btn_pressed_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -285,6 +309,7 @@ void egui_view_button_matrix_set_btn_pressed_color(egui_view_t *self, egui_color
     egui_view_invalidate(self);
 }
 
+/** Override the shared text and icon tint color. */
 void egui_view_button_matrix_set_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -292,6 +317,7 @@ void egui_view_button_matrix_set_text_color(egui_view_t *self, egui_color_t colo
     egui_view_invalidate(self);
 }
 
+/** Change the spacing between neighboring cells. */
 void egui_view_button_matrix_set_gap(egui_view_t *self, uint8_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -299,6 +325,7 @@ void egui_view_button_matrix_set_gap(egui_view_t *self, uint8_t gap)
     egui_view_invalidate(self);
 }
 
+/** Change the rounded corner radius shared by all cells. */
 void egui_view_button_matrix_set_corner_radius(egui_view_t *self, uint8_t radius)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -306,6 +333,7 @@ void egui_view_button_matrix_set_corner_radius(egui_view_t *self, uint8_t radius
     egui_view_invalidate(self);
 }
 
+/** Override the border color used by idle cells. */
 void egui_view_button_matrix_set_border_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -313,6 +341,7 @@ void egui_view_button_matrix_set_border_color(egui_view_t *self, egui_color_t co
     egui_view_invalidate(self);
 }
 
+/** Override the font used for button labels. */
 void egui_view_button_matrix_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -320,6 +349,7 @@ void egui_view_button_matrix_set_font(egui_view_t *self, const egui_font_t *font
     egui_view_invalidate(self);
 }
 
+/** Borrow an optional icon array parallel to the current label array. */
 void egui_view_button_matrix_set_icons(egui_view_t *self, const char **icons)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -332,6 +362,7 @@ void egui_view_button_matrix_set_icons(egui_view_t *self, const char **icons)
     egui_view_invalidate(self);
 }
 
+/** Override the icon font used by cells that show glyph strings. */
 void egui_view_button_matrix_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -344,6 +375,7 @@ void egui_view_button_matrix_set_icon_font(egui_view_t *self, const egui_font_t 
     egui_view_invalidate(self);
 }
 
+/** Change the vertical spacing between one icon and one label inside the same cell. */
 void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -356,6 +388,7 @@ void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap
     egui_view_invalidate(self);
 }
 
+/** Draw every visible cell by recomputing equal-width geometry from the work region. */
 void egui_view_button_matrix_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -369,6 +402,7 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
     egui_region_t region;
     egui_view_get_work_region(self, &region);
 
+    /* Recompute equal cell geometry from the current inner work region. */
     egui_dim_t x = region.location.x;
     egui_dim_t y = region.location.y;
     egui_dim_t w = region.size.width;
@@ -394,6 +428,7 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
         egui_dim_t btn_x = x + col * (btn_w + gap);
         egui_dim_t btn_y = y + row * (btn_h + gap);
 
+        /* Highlight the actively pressed cell, or the stored selection when enabled. */
         egui_color_t bg_color = local->btn_color;
         if (i == local->pressed_index)
         {
@@ -450,6 +485,7 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
         {
             if (label != NULL && label[0] != '\0')
             {
+                /* Stack icon above text and keep the combined block centered vertically. */
                 const egui_font_t *icon_font = egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
                 if (icon_font == NULL)
                 {
@@ -533,6 +569,7 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/** Translate pointer events into pressed and selected cell state plus click callbacks. */
 static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -563,11 +600,11 @@ static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion
     egui_dim_t touch_x = event->location.x - self->region_screen.location.x;
     egui_dim_t touch_y = event->location.y - self->region_screen.location.y;
 
-    // Calculate which button was touched
+    // Calculate which button was touched.
     uint8_t hit_index = EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE;
     if (btn_w > 0 && btn_h > 0)
     {
-        // Account for gap: check if touch is within a button or in a gap
+        // Account for gaps so touches between cells do not activate either neighbor.
         uint8_t col;
         uint8_t row;
         egui_dim_t cell_w = btn_w + gap;
@@ -578,7 +615,7 @@ static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion
             col = (uint8_t)(touch_x / cell_w);
             row = (uint8_t)(touch_y / cell_h);
 
-            // Check if within button area (not in gap)
+            // Check whether the touch lands inside the actual cell body.
             egui_dim_t local_x = touch_x - col * cell_w;
             egui_dim_t local_y = touch_y - row * cell_h;
 
@@ -638,6 +675,7 @@ static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
+/* Use default view hooks for everything except button-matrix drawing and touch hit testing. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_matrix_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -659,6 +697,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_matrix_t) = {
 #endif
 };
 
+/** Initialize default geometry, colors, and sentinel state for one button matrix. */
 void egui_view_button_matrix_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_button_matrix_t);
@@ -689,6 +728,7 @@ void egui_view_button_matrix_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_button_matrix");
 }
 
+/** Apply a parameter block that configures region, columns, and inter-cell gap. */
 void egui_view_button_matrix_apply_params(egui_view_t *self, const egui_view_button_matrix_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -700,6 +740,7 @@ void egui_view_button_matrix_apply_params(egui_view_t *self, const egui_view_but
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that chains default initialization and parameter application. */
 void egui_view_button_matrix_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_button_matrix_params_t *params)
 {
     egui_view_button_matrix_init(self, core);

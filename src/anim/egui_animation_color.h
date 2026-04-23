@@ -37,7 +37,9 @@ struct egui_animation_color
     const egui_animation_color_params_t *params;
 };
 
+/** Bind the start/end colors used during interpolation. The parameter pointer is borrowed. */
 void egui_animation_color_params_set(egui_animation_color_t *self, const egui_animation_color_params_t *params);
+/** Initialize an animation that updates the target label's font color over time. */
 void egui_animation_color_init(egui_animation_t *self);
 
 /* Ends C function definitions when using C++ */

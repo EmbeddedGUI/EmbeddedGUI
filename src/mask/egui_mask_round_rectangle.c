@@ -13,6 +13,13 @@
 extern const egui_circle_info_t egui_res_circle_info_arr[];
 
 /* Basic-range circle info lookup — no canvas needed. */
+/**
+ * @brief Fetch the precomputed circle table used by rounded corners.
+ *
+ * Rounded-rectangle masking reuses the same circle lookup data as canvas
+ *
+ * drawing. This keeps small-radius corner sampling fast and consistent.
+ */
 __EGUI_STATIC_INLINE__ const egui_circle_info_t *egui_mask_get_circle_info_basic(egui_dim_t r)
 {
     if (r < EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE)
@@ -26,6 +33,14 @@ __EGUI_STATIC_INLINE__ const egui_circle_info_t *egui_mask_get_circle_info_basic
     return NULL;
 }
 
+/**
+ * @brief Clamp and store the corner radius for the current mask region.
+ *
+ * The radius cannot exceed half of the shorter side, otherwise the rounded
+ *
+ * rectangle would collapse into itself. A zero radius intentionally leaves the
+ * mask as a plain rectangle.
+ */
 void egui_mask_round_rectangle_set_radius(egui_mask_t *self, egui_dim_t radius)
 {
     EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);
@@ -50,6 +65,14 @@ void egui_mask_round_rectangle_set_radius(egui_mask_t *self, egui_dim_t radius)
     }
 }
 
+/**
+ * @brief Apply the rounded-rectangle mask to one point sample.
+ *
+ * The shape is decomposed into a center rectangle, two side rectangles, and
+ * four
+ * quarter-circle corners. If the point lands inside any of those pieces,
+ * the incoming pixel stays visible.
+ */
 void egui_mask_round_rectangle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);
@@ -120,6 +143,13 @@ void egui_mask_round_rectangle_mask_point(egui_mask_t *self, egui_dim_t x, egui_
     *alpha = 0;
 }
 
+/**
+ * @brief Blend one contiguous fully covered scanline span.
+ *
+ * Rounded corners still need per-pixel coverage, but the rectangular middle
+ * strip is
+ * completely inside the mask and can use this tighter helper.
+ */
 static void egui_mask_round_rectangle_blend_solid_row(egui_color_int_t *dst, egui_dim_t count, egui_color_t color, egui_alpha_t alpha)
 {
     if (count <= 0 || alpha == 0)
@@ -139,6 +169,14 @@ static void egui_mask_round_rectangle_blend_solid_row(egui_color_int_t *dst, egu
     }
 }
 
+/**
+ * @brief Paint one scanline segment through the rounded-rectangle mask.
+ *
+ * Rows in the middle band behave like a normal rectangle. Rows near the top or
+
+ * * bottom are split into left corner, center strip, and right corner so only
+ * the curved edge pixels pay the per-pixel alpha cost.
+ */
 int egui_mask_round_rectangle_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, egui_dim_t y, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
                                                egui_alpha_t alpha)
 {
@@ -243,6 +281,14 @@ int egui_mask_round_rectangle_fill_row_segment(egui_mask_t *self, egui_color_int
     return 1;
 }
 
+/**
+ * @brief Blend one corner-side span for RGB565 image data with alpha8 coverage.
+ *
+ * This is the image-oriented equivalent of the solid-color edge path:
+ * combine
+ * source alpha, rounded-corner coverage, and optional canvas alpha before
+ * blending each surviving pixel into the destination row.
+ */
 static void egui_mask_round_rectangle_blend_rgb565_alpha8_range(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                                 const egui_dim_t *src_x_map, egui_dim_t start_index, egui_dim_t end_index,
                                                                 egui_dim_t mask_col_start, int mask_col_step, const egui_circle_info_t *info,
@@ -302,6 +348,13 @@ static void egui_mask_round_rectangle_blend_rgb565_alpha8_range(egui_color_int_t
     }
 }
 
+/**
+ * @brief Blend the fully visible middle strip for an RGB565 image row.
+ *
+ * No extra corner lookup is needed here because every pixel in this span is
+ *
+ * already guaranteed to be inside the rounded-rectangle mask.
+ */
 static void egui_mask_round_rectangle_blend_rgb565_alpha8_middle(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                                  const egui_dim_t *src_x_map, egui_dim_t start_index, egui_dim_t end_index,
                                                                  egui_alpha_t canvas_alpha)
@@ -356,6 +409,14 @@ static void egui_mask_round_rectangle_blend_rgb565_alpha8_middle(egui_color_int_
     }
 }
 
+/**
+ * @brief Blend an image row through the rounded-rectangle mask.
+ *
+ * The routine partitions the row the same way as the solid-color fill path:
+ * left
+ * corner, middle strip, right corner. Using the same geometry keeps both
+ * rendering paths visually aligned.
+ */
 int egui_mask_round_rectangle_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                           const egui_dim_t *src_x_map, egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y,
                                                           egui_alpha_t canvas_alpha)
@@ -429,8 +490,14 @@ int egui_mask_round_rectangle_blend_rgb565_alpha8_segment(egui_mask_t *self, egu
     return 1;
 }
 
-// Compute the opaque boundary column for a circle corner quadrant at a given row.
-// Returns the first column index (in corner coords 0..radius-1) that is guaranteed fully opaque.
+/**
+ * @brief Find where the fully opaque interior of one corner row begins.
+ *
+ * The lookup table stores only one quadrant, so this helper checks both the
+ *
+ * direct row data and its mirrored counterpart to find the earliest column that
+ * is guaranteed to be fully inside the rounded corner.
+ */
 static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_corner, const egui_circle_info_t *info)
 {
     const egui_circle_item_t *items = (const egui_circle_item_t *)info->items;
@@ -482,6 +549,13 @@ static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_
     return left_boundary;
 }
 
+/**
+ * @brief Find where a corner row first becomes visible, including AA pixels.
+ *
+ * This boundary is looser than the opaque one above: it marks the first
+ * column
+ * whose alpha is non-zero, which is useful for broad clipping decisions.
+ */
 static egui_dim_t egui_mask_circle_corner_get_visible_boundary(egui_dim_t row_in_corner, const egui_circle_info_t *info)
 {
     const egui_circle_item_t *items = (const egui_circle_item_t *)info->items;
@@ -527,6 +601,14 @@ static egui_dim_t egui_mask_circle_corner_get_visible_boundary(egui_dim_t row_in
     return left_boundary;
 }
 
+/**
+ * @brief Compute floor(sqrt(n)) for the fallback corner-geometry path.
+ *
+ * When no precomputed circle table exists, the visible-range helper falls back
+
+ * * to integer circle math. This keeps the code free of floating point while
+ * still recovering a horizontal half-width from squared distance.
+ */
 static uint32_t egui_mask_round_rectangle_isqrt(uint32_t n)
 {
     uint32_t root = 0;
@@ -554,6 +636,14 @@ static uint32_t egui_mask_round_rectangle_isqrt(uint32_t n)
     return root;
 }
 
+/**
+ * @brief Report the fully opaque horizontal span for one scanline.
+ *
+ * Middle rows are opaque across the whole width. Corner rows are narrower, so
+ * the
+ * function asks the corner helper where the guaranteed-solid interior
+ * begins and returns only that center band.
+ */
 int egui_mask_round_rectangle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
 {
     EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);
@@ -616,6 +706,13 @@ int egui_mask_round_rectangle_get_row_range(egui_mask_t *self, egui_dim_t y, egu
     return EGUI_MASK_ROW_PARTIAL;
 }
 
+/**
+ * @brief Return the broad visible span for one scanline of the mask.
+ *
+ * This includes the anti-aliased corner fringe, so it can be wider than the
+ *
+ * opaque span returned by `egui_mask_round_rectangle_get_row_range`.
+ */
 static int egui_mask_round_rectangle_get_row_visible_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start,
                                                            egui_dim_t *x_end)
 {
@@ -675,6 +772,13 @@ const egui_mask_api_t egui_mask_round_rectangle_t_api_table = {
         .mask_get_row_overlay = NULL,
 };
 
+/**
+ * @brief Initialize the rounded-rectangle mask and reset its radius.
+ *
+ * The radius is configured later by callers, so init only wires up the shared
+ *
+ * mask API table and leaves the shape in its simplest rectangular form.
+ */
 void egui_mask_round_rectangle_init(egui_mask_t *self)
 {
     EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);

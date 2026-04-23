@@ -12,8 +12,23 @@
 #include "shadow/egui_shadow.h"
 #endif
 
+/**
+ * @file egui_view_switch.c
+ * @brief Toggle switch widget with theme-aware track and thumb rendering.
+ *
+ * It demonstrates a common egui pattern:
+ * - one
+ * helper resolves geometry and colors from state,
+ * - drawing reuses that prepared data,
+ * - `perform_click` flips the checked state through the public
+ * setter.
+ */
+
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_switch_t);
 
+/**
+ * @brief Resolve draw geometry plus track/thumb colors for the current state.
+ */
 static uint8_t egui_view_switch_prepare_draw(egui_view_t *self, egui_region_t *region, egui_dim_t *thumb_x, egui_dim_t *thumb_y, egui_dim_t *thumb_radius,
                                              egui_color_t *track_color, egui_color_t *thumb_color)
 {
@@ -98,6 +113,9 @@ static uint8_t egui_view_switch_prepare_draw(egui_view_t *self, egui_region_t *r
     return 1;
 }
 
+/**
+ * @brief Draw the rounded track and movable thumb circle.
+ */
 static void egui_view_switch_draw_track_and_thumb(egui_view_t *self, const egui_region_t *region, egui_dim_t thumb_x, egui_dim_t thumb_y,
                                                   egui_dim_t thumb_radius, egui_color_t track_color, egui_color_t thumb_color)
 {
@@ -136,6 +154,9 @@ static void egui_view_switch_draw_track_and_thumb(egui_view_t *self, const egui_
 #endif
 }
 
+/**
+ * @brief Draw the switch body and optional state icon inside the thumb.
+ */
 void egui_view_switch_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
@@ -178,12 +199,18 @@ void egui_view_switch_on_draw(egui_view_t *self)
     egui_canvas_draw_text_in_rect(canvas, icon_font, icon_text, &icon_region, EGUI_ALIGN_CENTER, icon_color, local->alpha);
 }
 
+/**
+ * @brief Register the callback fired after checked-state changes.
+ */
 void egui_view_switch_set_on_checked_listener(egui_view_t *self, egui_view_on_checked_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
     local->on_checked_changed = listener;
 }
 
+/**
+ * @brief Update the checked state, notify listeners, and redraw on real changes.
+ */
 void egui_view_switch_set_checked(egui_view_t *self, uint8_t is_checked)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
@@ -199,6 +226,9 @@ void egui_view_switch_set_checked(egui_view_t *self, uint8_t is_checked)
     }
 }
 
+/**
+ * @brief Replace the optional on/off icon glyph pointers.
+ */
 void egui_view_switch_set_state_icons(egui_view_t *self, const char *icon_on, const char *icon_off)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
@@ -212,6 +242,9 @@ void egui_view_switch_set_state_icons(egui_view_t *self, const char *icon_on, co
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Override the icon font used by optional state glyphs.
+ */
 void egui_view_switch_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
@@ -225,6 +258,9 @@ void egui_view_switch_set_icon_font(egui_view_t *self, const egui_font_t *font)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/**
+ * @brief Toggle the checked state when the normal click pipeline completes.
+ */
 static int egui_view_switch_perform_click(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
@@ -254,6 +290,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_switch_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the switch with clickable toggle behavior and theme defaults.
+ */
 void egui_view_switch_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_switch_t);
@@ -281,6 +320,9 @@ void egui_view_switch_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_switch");
 }
 
+/**
+ * @brief Apply geometry and initial checked state from one parameter block.
+ */
 void egui_view_switch_apply_params(egui_view_t *self, const egui_view_switch_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
@@ -292,6 +334,9 @@ void egui_view_switch_apply_params(egui_view_t *self, const egui_view_switch_par
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains switch init and params.
+ */
 void egui_view_switch_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_switch_params_t *params)
 {
     egui_view_switch_init(self, core);

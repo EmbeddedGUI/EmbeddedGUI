@@ -14,17 +14,24 @@
 #include "image/egui_image_svg.h"
 #include "mask/egui_mask_circle.h"
 
+/**
+ * @file egui_core.c
+ * @brief Main per-core runtime loop: root view ownership, dirty-tile rendering, refresh scheduling, and power/display bootstrap.
+ */
+
 #if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
 #define EGUI_CORE_USER_ROOT_VIEW_PTR(_core) ((egui_view_t *)&(_core)->scene.user_root_view_group)
 #else
 #define EGUI_CORE_USER_ROOT_VIEW_PTR(_core) ((egui_view_t *)&(_core)->scene.root_view_group)
 #endif
 
+/** Return the built-in root view group that ultimately owns every visible tree on this core. */
 egui_view_group_t *egui_core_get_root_view(egui_core_t *core)
 {
     return (egui_view_group_t *)&core->scene.root_view_group;
 }
 
+/** Attach a view directly under the core root, moving it from any previous parent first. */
 void egui_core_add_root_view(egui_core_t *core, egui_view_t *view)
 {
     egui_view_group_t *target_parent;
@@ -48,11 +55,13 @@ void egui_core_add_root_view(egui_core_t *core, egui_view_t *view)
     }
 }
 
+/** Return the user-facing root group used for activities, dialogs, toast roots, and app-owned content. */
 egui_view_group_t *egui_core_get_user_root_view(egui_core_t *core)
 {
     return (egui_view_group_t *)EGUI_CORE_USER_ROOT_VIEW_PTR(core);
 }
 
+/** Attach a view under the core's user root using the view's already bound core pointer. */
 void egui_core_add_user_root_view(egui_view_t *view)
 {
     egui_core_t *core;
@@ -81,28 +90,32 @@ void egui_core_add_user_root_view(egui_view_t *view)
     }
 }
 
+/** Remove a child from the user root and dirty the scene so the gap is repainted. */
 void egui_core_remove_user_root_view(egui_core_t *core, egui_view_t *view)
 {
     egui_view_group_remove_child(EGUI_CORE_USER_ROOT_VIEW_PTR(core), view);
     egui_core_update_region_dirty_all(core);
 }
 
+/** Run the generic group-layout helper on the user root container. */
 void egui_core_layout_childs_user_root_view(egui_core_t *core, uint8_t is_orientation_horizontal, uint8_t align_type)
 {
     egui_view_group_layout_childs(EGUI_CORE_USER_ROOT_VIEW_PTR(core), is_orientation_horizontal, 0, 0, align_type);
 }
 
+/** Run per-frame pre-work on the root tree before any dirty tiles are rendered. */
 void egui_core_draw_view_group_pre_work(egui_core_t *core)
 {
     egui_view_group_t *view_group = (egui_view_group_t *)&core->scene.root_view_group;
 
-    // Calculate the layout of the view group
+    // Scroll offsets can affect layout and hit testing, so update them first.
     view_group->base.api->compute_scroll((egui_view_t *)view_group);
 
-    // Calculate the layout of the view group
+    // Recalculate layout once per frame before dirty rectangles are split into tiles.
     view_group->base.api->calculate_layout((egui_view_t *)view_group);
 }
 
+/** Draw optional debug overlays on top of the tile that was just rendered. */
 void egui_core_render_tile_debug_decorate(egui_core_t *core, const egui_region_t *p_region_dirty, int is_debug_mode)
 {
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
@@ -141,6 +154,7 @@ void egui_core_render_tile_debug_decorate(egui_core_t *core, const egui_region_t
 #endif
 }
 
+/** Submit one rendered tile and optionally pause/refresh immediately in debug stepping modes. */
 void egui_core_render_tile_present(egui_core_t *core, egui_region_t *region, int is_debug_mode)
 {
     egui_core_draw_data(core, region);
@@ -156,6 +170,11 @@ void egui_core_render_tile_present(egui_core_t *core, egui_region_t *region, int
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
 }
 
+/**
+ * Render one dirty region by splitting it into PFB-sized tiles.
+ * The tile probe can be reshaped logically to reuse the same pixel budget while
+ * scanning the dirty rectangle in the configured X/Y order.
+ */
 void egui_core_draw_view_group(egui_core_t *core, egui_region_t *p_region_dirty, int is_debug_mode)
 {
     egui_view_group_t *view_group = (egui_view_group_t *)&core->scene.root_view_group;
@@ -176,9 +195,10 @@ void egui_core_draw_view_group(egui_core_t *core, egui_region_t *p_region_dirty,
     EGUI_LOG_DBG("region_dirty, x: %d, y: %d, width: %d, height: %d\n", p_region_dirty->location.x, p_region_dirty->location.y, p_region_dirty->size.width,
                  p_region_dirty->size.height);
 
+    // Some ports prefer a different logical tile aspect ratio while keeping the same total pixel count.
     egui_core_apply_logical_pfb_probe_shape(core, &pfb_width, &pfb_height, pfb_total_pixel_count);
 
-    // change pfb size to fit the dirty region
+    // Shrink the probe if the dirty rectangle is smaller than the nominal tile shape.
     if (pfb_width > width_dirty)
     {
         pfb_width = width_dirty;
@@ -196,7 +216,7 @@ void egui_core_draw_view_group(egui_core_t *core, egui_region_t *p_region_dirty,
     EGUI_LOG_DBG("pfb_update, pfb_width_count: %d, pfb_height_count: %d, pfb_width: %d, pfb_height: %d\n", pfb_width_count, pfb_height_count, pfb_width,
                  pfb_height);
 
-    // start draw
+    // Render tile by tile so one small PFB buffer can cover an arbitrarily large dirty rectangle.
     for (y = 0; y < pfb_height_count; y++)
     {
         egui_dim_t tile_y = reverse_y ? (pfb_height_count - 1 - y) : y;
@@ -217,6 +237,7 @@ void egui_core_draw_view_group(egui_core_t *core, egui_region_t *p_region_dirty,
             egui_core_dirty_region_stats_count_tile(core, &region);
 #endif
 
+            // Acquire the next writable render buffer before binding the canvas to this tile.
             core->pfb = egui_pfb_manager_get_render_buffer(&core->render.pfb_mgr);
 
             egui_canvas_init(&core->canvas, core, core->pfb, &region);
@@ -233,6 +254,7 @@ void egui_core_draw_view_group(egui_core_t *core, egui_region_t *p_region_dirty,
 
 #define EGUI_CORE_REFRESH_INTERVAL_MS (1000 / EGUI_CONFIG_MAX_FPS)
 
+/** Timer callback that keeps the auto-refresh loop close to the configured FPS cap. */
 void egui_refresh_timer_callback(egui_timer_t *timer)
 {
     egui_core_t *core = (egui_core_t *)timer->user_data;
@@ -241,6 +263,7 @@ void egui_refresh_timer_callback(egui_timer_t *timer)
     egui_core_refresh_screen(core);
     start_time = egui_api_timer_get_current_core(core) - start_time;
 
+    // If one frame already consumed the budget, wake again immediately on the next tick.
     if (start_time >= EGUI_CORE_REFRESH_INTERVAL_MS)
     {
         egui_timer_start_timer(core, timer, 1, 0);
@@ -251,10 +274,15 @@ void egui_refresh_timer_callback(egui_timer_t *timer)
     }
 }
 
+/** Weak hook for ports that want a notification after one frame is fully rendered and flushed. */
 __EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
 {
 }
 
+/**
+ * Render all pending dirty regions immediately.
+ * This is the core of the polling-mode renderer and is also reused by the auto-refresh timer.
+ */
 void egui_polling_refresh_display(egui_core_t *core)
 {
 #if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
@@ -265,7 +293,7 @@ void egui_polling_refresh_display(egui_core_t *core)
 
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
 #if EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR == 0
-    // clear last all dirty region
+    // In stepped debug modes, clear the previous highlight pass before drawing the current dirty regions.
     EGUI_REGION_DEFINE(region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_core_draw_view_group(core, &region, false);
 #endif
@@ -284,6 +312,7 @@ void egui_polling_refresh_display(egui_core_t *core)
 
         if (egui_region_is_empty(p_region_dirty))
         {
+            // Dirty slots are compacted, so the first empty slot means no more work this frame.
             break;
         }
 
@@ -297,7 +326,7 @@ void egui_polling_refresh_display(egui_core_t *core)
     }
 #endif
 
-    // clear the dirty region
+    // All queued dirty regions have been rendered for this frame.
     egui_core_clear_region_dirty(core);
 
 #if EGUI_DEBUG_MONITOR_SHOW
@@ -308,7 +337,7 @@ void egui_polling_refresh_display(egui_core_t *core)
     render_end_time = egui_api_timer_get_current_core(core);
 #endif
 
-    // wait for all PFB flush complete before next frame, to avoid too many pending buffers in the PFB manager when the screen is updated frequently.
+    // Drain outstanding flushes so the next frame does not outrun the PFB manager queue.
     egui_pfb_manager_wait_all_complete(&core->render.pfb_mgr);
 
     /* Release per-frame heap caches after the full dirty-frame finishes.
@@ -326,6 +355,7 @@ void egui_polling_refresh_display(egui_core_t *core)
 #endif
 }
 
+/** Return non-zero when at least one dirty slot still contains pending render work. */
 int egui_check_need_refresh(egui_core_t *core)
 {
     int i;
@@ -341,12 +371,18 @@ int egui_check_need_refresh(egui_core_t *core)
     return 0;
 }
 
+/**
+ * Execute one frame tick for this core.
+ * The frame updates monitors, polls animations/layout, optionally waits for frame-sync policy, renders pending dirty regions, and finally kicks the panel
+ * refresh.
+ */
 void egui_core_refresh_screen(egui_core_t *core)
 {
 #if EGUI_DEBUG_MONITOR_SHOW
     egui_debug_update_monitors(core, egui_api_timer_get_current_core(core));
 #endif
 
+    // Suspended cores keep their scene state but do not spend time on refresh work.
     if (core->system.is_suspended)
     {
         return;
@@ -363,6 +399,7 @@ void egui_core_refresh_screen(egui_core_t *core)
         {
             if (drv->frame_sync_enabled)
             {
+                // Non-blocking frame sync: only render after the port notifies one ready slot.
                 if (!drv->frame_sync_ready)
                 {
                     return;
@@ -371,6 +408,7 @@ void egui_core_refresh_screen(egui_core_t *core)
             }
             else if (drv->ops->wait_vsync != NULL)
             {
+                // Blocking frame sync: let the port wait before rendering the next frame.
                 drv->ops->wait_vsync(core);
             }
         }
@@ -385,11 +423,13 @@ void egui_core_refresh_screen(egui_core_t *core)
     }
 }
 
+/** Stop the auto-refresh timer without otherwise changing the current scene state. */
 void egui_core_stop_auto_refresh_screen(egui_core_t *core)
 {
     egui_timer_stop_timer(core, &core->system.refresh_timer);
 }
 
+/** Poll timers plus touch/key input once for polling-mode ports. */
 void egui_polling_work(egui_core_t *core)
 {
     egui_timer_polling_work(core);
@@ -406,22 +446,26 @@ void egui_polling_work(egui_core_t *core)
 #endif
 }
 
+/** Power helper that stops the refresh timer while the display is powered down. */
 void egui_core_power_off(egui_core_t *core)
 {
     egui_timer_stop_timer(core, &core->system.refresh_timer);
 }
 
+/** Power helper that restarts the refresh timer for an active display. */
 void egui_core_power_on(egui_core_t *core)
 {
     egui_timer_start_timer(core, &core->system.refresh_timer, 0, 0);
 }
 
+/** Suspend this core so refresh work stops while the scene tree remains allocated. */
 void egui_core_suspend(egui_core_t *core)
 {
     core->system.is_suspended = 1;
     egui_core_stop_auto_refresh_screen(core);
 }
 
+/** Resume this core, dirty the whole scene, and restart automatic refresh. */
 void egui_core_resume(egui_core_t *core)
 {
     core->system.is_suspended = 0;
@@ -429,11 +473,13 @@ void egui_core_resume(egui_core_t *core)
     egui_core_power_on(core);
 }
 
+/** Return non-zero when the core is currently suspended. */
 int egui_core_is_suspended(egui_core_t *core)
 {
     return core->system.is_suspended;
 }
 
+/** Clear the physical panel by repeatedly flushing black PFB tiles over the whole screen. */
 void egui_core_clear_screen(egui_core_t *core)
 {
     int16_t screen_w = egui_display_get_width(core);
@@ -441,10 +487,10 @@ void egui_core_clear_screen(egui_core_t *core)
     int16_t pfb_w = core->pfb_width;
     int16_t pfb_h = core->pfb_height;
 
-    // Clear PFB buffer to black
+    // Pre-clear the current PFB buffer once; single-buffer mode reuses it for every tile.
     egui_api_pfb_clear(core->pfb, core->pfb_total_buffer_size);
 
-    // Send black tiles to cover entire screen
+    // Cover the whole physical panel tile by tile so stale controller memory is overwritten.
     for (int16_t y = 0; y < screen_h; y += pfb_h)
     {
         for (int16_t x = 0; x < screen_w; x += pfb_w)
@@ -456,7 +502,7 @@ void egui_core_clear_screen(egui_core_t *core)
             if (core->render.pfb_mgr.buffer_count > 1)
             {
                 core->pfb = egui_pfb_manager_get_render_buffer(&core->render.pfb_mgr);
-                // Clear PFB buffer to black
+                // Multi-buffer mode needs to clear whichever render buffer was acquired for this tile.
                 egui_api_pfb_clear(core->pfb, core->pfb_total_buffer_size);
             }
 
@@ -467,47 +513,50 @@ void egui_core_clear_screen(egui_core_t *core)
     egui_pfb_manager_wait_all_complete(&core->render.pfb_mgr);
 }
 
+/** Turn the display off in a safe order: suspend the core first, then power down the panel. */
 void egui_screen_off(egui_core_t *core)
 {
-    // 1. Suspend core: stop rendering and refresh timer
+    // 1. Suspend core: stop rendering and refresh timer.
     egui_core_suspend(core);
 
-    // 2. Turn off display hardware
+    // 2. Turn off display hardware.
     egui_display_set_power(core, 0);
 }
 
+/** Turn the display on, clear stale pixels, then resume normal UI refresh. */
 void egui_screen_on(egui_core_t *core)
 {
-    // 1. Turn on display hardware
+    // 1. Turn on display hardware.
     egui_display_set_power(core, 1);
 
-    // 2. Clear screen to avoid garbage (GRAM may contain random data)
+    // 2. Clear screen to avoid garbage left in controller memory.
     egui_core_clear_screen(core);
 
-    // 3. Resume core: mark all dirty, restart refresh timer
-    // The first refresh cycle will redraw the entire UI
+    // 3. Resume core: mark all dirty, restart refresh timer. The first refresh redraws the whole UI.
     egui_core_resume(core);
 }
 
+/** Update runtime screen size metadata and resize the built-in root groups to match. */
 void egui_core_set_screen_size(egui_core_t *core, int16_t width, int16_t height)
 {
     core->screen_width = width;
     core->screen_height = height;
 
-    // Recalculate PFB tile counts for the new screen size
+    // Recalculate how many nominal PFB tiles cover the new logical screen.
     core->pfb_width_count = (width + core->pfb_width - 1) / core->pfb_width;
     core->pfb_height_count = (height + core->pfb_height - 1) / core->pfb_height;
 
-    // Update root view group sizes
+    // Keep the built-in roots in lockstep with the logical display size.
     egui_view_set_size((egui_view_t *)&core->scene.root_view_group, width, height);
 #if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_set_size((egui_view_t *)&core->scene.user_root_view_group, width, height);
 #endif
 
-    // Force full screen refresh
+    // Layout and rendering need a full refresh after the logical screen size changes.
     egui_core_update_region_dirty_all(core);
 }
 
+/** Finish the second half of display setup after the core and PFB manager are already initialized. */
 void egui_core_setup_display_start(egui_core_t *core, const egui_display_setup_t *setup)
 {
     egui_platform_register(core, setup->platform);
@@ -526,6 +575,7 @@ void egui_core_setup_display_start(egui_core_t *core, const egui_display_setup_t
     egui_screen_on(core);
 }
 
+/** Initialize scene-side lists, built-in roots, debug hooks, and the refresh timer callback. */
 void egui_core_init_display_scene(egui_core_t *core, int16_t screen_w, int16_t screen_h)
 {
     egui_core_update_region_dirty_all(core);
@@ -567,6 +617,7 @@ void egui_core_init_display_scene(egui_core_t *core, int16_t screen_w, int16_t s
     core->system.refresh_timer.user_data = core;
 }
 
+/** Initialize one core instance, bind its PFB manager/canvas, and bootstrap every runtime subsystem. */
 void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, egui_color_int_t **pfb_bufs, int buf_count, int pfb_w, int pfb_h)
 {
     int i;
@@ -613,6 +664,7 @@ void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, eg
     egui_core_init_display_scene(core, screen_w, screen_h);
 }
 
+/** One-call setup helper that initializes a core from a prepared setup descriptor and starts the display. */
 void egui_setup_display(egui_core_t *core, const egui_display_setup_t *setup)
 {
     EGUI_ASSERT(core != NULL);
@@ -628,6 +680,7 @@ void egui_setup_display(egui_core_t *core, const egui_display_setup_t *setup)
     egui_core_setup_display_start(core, setup);
 }
 
+/** Primary-display convenience wrapper that builds the PFB pointer array from the compile-time buffer declaration. */
 void egui_init(egui_core_t *core, egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT])
 {
     egui_color_int_t *pfb_bufs[EGUI_CONFIG_PFB_BUFFER_COUNT];

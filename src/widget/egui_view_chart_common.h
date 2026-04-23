@@ -4,6 +4,13 @@
 #include "egui_view.h"
 #include "font/egui_font_std.h"
 
+/**
+ * @brief Shared data structures and helpers for egui chart widgets.
+ *
+ * Axis-based charts reuse this file for series definitions, axis configuration,
+ * viewport math, and the default axis/legend rendering helpers.
+ */
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
@@ -12,14 +19,19 @@ extern "C" {
 // ============== Legend Position ==============
 typedef enum egui_chart_legend_pos
 {
+    /** Hide the legend entirely. */
     EGUI_CHART_LEGEND_NONE = 0,
+    /** Place the legend above the plot area. */
     EGUI_CHART_LEGEND_TOP,
+    /** Place the legend below the plot area. */
     EGUI_CHART_LEGEND_BOTTOM,
+    /** Place the legend to the right of the plot area. */
     EGUI_CHART_LEGEND_RIGHT,
 } egui_chart_legend_pos_t;
 
 // ============== Data Point ==============
 typedef struct egui_chart_point egui_chart_point_t;
+/** One `(x, y)` sample used by line, scatter, and bar charts. */
 struct egui_chart_point
 {
     int16_t x;
@@ -28,6 +40,7 @@ struct egui_chart_point
 
 // ============== Data Series (line/scatter/bar) ==============
 typedef struct egui_chart_series egui_chart_series_t;
+/** One colored data series. The `points` pointer is borrowed from caller storage. */
 struct egui_chart_series
 {
     const egui_chart_point_t *points;
@@ -38,6 +51,7 @@ struct egui_chart_series
 
 // ============== Pie Slice ==============
 typedef struct egui_chart_pie_slice egui_chart_pie_slice_t;
+/** One slice in a pie chart. The `name` pointer is borrowed from caller storage. */
 struct egui_chart_pie_slice
 {
     uint16_t value;
@@ -47,6 +61,7 @@ struct egui_chart_pie_slice
 
 // ============== Axis Configuration ==============
 typedef struct egui_chart_axis_config egui_chart_axis_config_t;
+/** Axis configuration shared by line, scatter, and bar charts. */
 struct egui_chart_axis_config
 {
     int16_t min_value;
@@ -64,9 +79,12 @@ struct egui_chart_axis_config
 // ============== Axis Base (shared by line/scatter/bar) ==============
 typedef struct egui_chart_axis_base egui_chart_axis_base_t;
 typedef struct egui_chart_text_ops egui_chart_text_ops_t;
+/** Strategy hook used internally to draw either categorical or continuous X axes. */
 typedef void (*egui_chart_draw_axis_x_fn)(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min,
                                           int16_t view_x_max);
+/** Optional legend hook that lets specialized chart widgets override the shared legend layout. */
 typedef void (*egui_chart_draw_legend_series_fn)(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
+/** Shared runtime state used by axis-based charts. This is public mainly for custom chart subclasses. */
 struct egui_chart_axis_base
 {
     // series data
@@ -86,6 +104,7 @@ struct egui_chart_axis_base
     egui_color_t grid_color;
     egui_color_t text_color;
     const egui_font_t *font;
+    /* Internal text operation table selected by `egui_chart_axis_base_set_font`. */
     const egui_chart_text_ops_t *text_ops;
     egui_chart_draw_axis_x_fn draw_axis_x;
     egui_chart_draw_legend_series_fn draw_legend_series;
@@ -120,41 +139,50 @@ struct egui_chart_axis_base
 
 // ============== Shared Utility Functions ==============
 
-// Initialize axis base with default values
+/** Initialize an axis-base state block with default colors, axes, and legend settings. */
 void egui_chart_axis_base_init_defaults(egui_chart_axis_base_t *ab);
+/** Switch the X axis between continuous and categorical drawing modes. */
 void egui_chart_axis_base_set_axis_x_categorical(egui_chart_axis_base_t *ab, uint8_t is_categorical);
+/** Set the font used by shared chart text helpers. Passing NULL enables the lightweight fallback text ops. */
 void egui_chart_axis_base_set_font(egui_chart_axis_base_t *ab, const egui_font_t *font);
 
-// Convert int16_t to string without snprintf (embedded-safe)
+/** Convert a signed 16-bit integer to text without relying on `snprintf`. */
 void egui_chart_int_to_str(int16_t value, char *buf, int buf_size);
 
-// Get font height with fallback
+/** Return the font height, or a small built-in fallback when `font` is NULL. */
 egui_dim_t egui_chart_get_font_height(const egui_font_t *font);
 
-// Get the effective viewport min/max (considers zoom)
+/** Return the effective X viewport range, taking zoom state into account when enabled. */
 void egui_chart_get_view_x(egui_chart_axis_base_t *ab, int16_t *out_min, int16_t *out_max);
+/** Return the effective Y viewport range, taking zoom state into account when enabled. */
 void egui_chart_get_view_y(egui_chart_axis_base_t *ab, int16_t *out_min, int16_t *out_max);
 
-// Map data coordinates to pixel coordinates
+/** Map one data-space X value into plot-space pixels. */
 egui_dim_t egui_chart_map_x(egui_chart_axis_base_t *ab, int16_t data_x, egui_dim_t plot_x, egui_dim_t plot_w);
+/** Map one data-space Y value into plot-space pixels. */
 egui_dim_t egui_chart_map_y(egui_chart_axis_base_t *ab, int16_t data_y, egui_dim_t plot_y, egui_dim_t plot_h);
 
-// Calculate plot area (the area where data is drawn, excluding axes/legend)
+/** Calculate the plot rectangle after reserving room for axes, labels, and legend. */
 void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
 
-// Draw axes (ticks, grid, labels)
+/** Draw axes, ticks, grid lines, labels, and titles for one axis-based chart. */
 void egui_chart_draw_axes(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
 
-// Draw legend for series data (line/scatter/bar)
+/** Draw the shared legend layout for line, scatter, and bar series. */
 void egui_chart_draw_legend_series(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
 
 // ============== Zoom Functions (multi-touch) ==============
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
 
+/** Clamp the zoom viewport so it stays inside the configured axis ranges. */
 void egui_chart_clamp_viewport(egui_chart_axis_base_t *ab);
+/** Return nonzero when the chart is currently zoomed away from the full configured range. */
 int egui_chart_is_zoomed(egui_chart_axis_base_t *ab);
+/** Zoom both axes in or out around the current viewport center. */
 void egui_chart_apply_zoom(egui_chart_axis_base_t *ab, int zoom_in);
+/** Zoom only the selected axes in or out. */
 void egui_chart_apply_zoom_axis(egui_chart_axis_base_t *ab, int zoom_in, int axis_x, int axis_y);
+/** Shared multi-touch handler used by axis-based chart widgets for pinch-zoom and pan. */
 int egui_chart_axis_on_touch_event(egui_view_t *self, egui_chart_axis_base_t *ab, egui_motion_event_t *event);
 
 #endif

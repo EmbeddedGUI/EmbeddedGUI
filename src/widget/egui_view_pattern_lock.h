@@ -12,7 +12,9 @@ extern "C" {
 #define EGUI_VIEW_PATTERN_LOCK_GRID_SIZE 3
 #define EGUI_VIEW_PATTERN_LOCK_MAX_NODES (EGUI_VIEW_PATTERN_LOCK_GRID_SIZE * EGUI_VIEW_PATTERN_LOCK_GRID_SIZE)
 
+/** Listener fired after a gesture ends with enough nodes to count as a valid pattern. */
 typedef void (*egui_view_on_pattern_complete_listener_t)(egui_view_t *self, uint8_t node_count);
+/** Listener fired when the gesture ends. `nodes` points to the internal node-order buffer and `valid` reports the min-node check result. */
 typedef void (*egui_view_on_pattern_finish_listener_t)(egui_view_t *self, const uint8_t *nodes, uint8_t node_count, uint8_t valid);
 
 typedef struct egui_view_pattern_lock egui_view_pattern_lock_t;
@@ -55,27 +57,46 @@ struct egui_view_pattern_lock_params
 #define EGUI_VIEW_PATTERN_LOCK_PARAMS_INIT(_name, _x, _y, _w, _h, _min_nodes, _touch_expand)                                                                   \
     static const egui_view_pattern_lock_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .min_nodes = (_min_nodes), .touch_expand = (_touch_expand)}
 
+/** Apply region, minimum-node count, and touch hit expansion from one parameter block. */
 void egui_view_pattern_lock_apply_params(egui_view_t *self, const egui_view_pattern_lock_params_t *params);
+/** Initialize a pattern-lock view and immediately apply its parameter block. */
 void egui_view_pattern_lock_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_pattern_lock_params_t *params);
 
+/** Set the minimum number of nodes required for a valid pattern. Values clamp to the 3x3 grid capacity. */
 void egui_view_pattern_lock_set_min_nodes(egui_view_t *self, uint8_t min_nodes);
+/** Return the minimum node count currently required for validity. */
 uint8_t egui_view_pattern_lock_get_min_nodes(egui_view_t *self);
+/** Return how many nodes are currently stored in the active or finished pattern. */
 uint8_t egui_view_pattern_lock_get_node_count(egui_view_t *self);
+/** Return the internal node-order buffer. The pointer stays owned by the widget and may change after reset or new input. */
 const uint8_t *egui_view_pattern_lock_get_nodes(egui_view_t *self);
+/** Clear the tracked pattern, error state, and pressed state. */
 void egui_view_pattern_lock_clear_pattern(egui_view_t *self);
+/** Expand the circular hit area used for touch selection. Values clamp to an internal maximum. */
 void egui_view_pattern_lock_set_touch_expand(egui_view_t *self, uint8_t touch_expand);
+/** Return the configured touch hit-area expansion in pixels. */
 uint8_t egui_view_pattern_lock_get_touch_expand(egui_view_t *self);
 
+/** Register the listener fired only when the finished pattern is valid. */
 void egui_view_pattern_lock_set_on_pattern_complete_listener(egui_view_t *self, egui_view_on_pattern_complete_listener_t listener);
+/** Register the listener fired whenever the gesture ends, including invalid patterns. */
 void egui_view_pattern_lock_set_on_pattern_finish_listener(egui_view_t *self, egui_view_on_pattern_finish_listener_t listener);
+/** Set the background color of the pattern-lock panel. */
 void egui_view_pattern_lock_set_bg_color(egui_view_t *self, egui_color_t color);
+/** Set the border color of the panel and selected nodes. */
 void egui_view_pattern_lock_set_border_color(egui_view_t *self, egui_color_t color);
+/** Set the outline color used by idle nodes. */
 void egui_view_pattern_lock_set_node_color(egui_view_t *self, egui_color_t color);
+/** Set the fill color used by selected nodes in a normal pattern. */
 void egui_view_pattern_lock_set_active_node_color(egui_view_t *self, egui_color_t color);
+/** Set the line color used to connect selected nodes in a normal pattern. */
 void egui_view_pattern_lock_set_line_color(egui_view_t *self, egui_color_t color);
+/** Set the color used when the finished pattern is invalid. */
 void egui_view_pattern_lock_set_error_color(egui_view_t *self, egui_color_t color);
 
+/** Default draw hook used by the pattern-lock API table. */
 void egui_view_pattern_lock_on_draw(egui_view_t *self);
+/** Initialize the 3x3 pattern-lock widget. Dragging across two-step gaps automatically inserts the bridge node. */
 void egui_view_pattern_lock_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

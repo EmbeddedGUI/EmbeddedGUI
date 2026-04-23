@@ -3,6 +3,14 @@
 
 #include "egui_view_chart_axis.h"
 
+/**
+ * @brief Axis-based polyline chart widget with optional point markers.
+ *
+ * Series data is rendered as connected line segments, and each point can also
+ *
+ * draw a circular marker on top of the stroke.
+ */
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
@@ -10,13 +18,15 @@ extern "C" {
 
 // ============== Line Chart Widget ==============
 typedef struct egui_view_chart_line egui_view_chart_line_t;
+/** Line-chart widget built on top of the shared axis base. */
 struct egui_view_chart_line
 {
-    egui_view_chart_axis_t axis_base; // inherits axis base
+    egui_view_chart_axis_t axis_base;
 
-    // line chart specific
-    uint8_t line_width;   // default 2
-    uint8_t point_radius; // default 3
+    /* Stroke width used when drawing the polyline. */
+    uint8_t line_width;
+    /* Marker radius used when drawing each data point. */
+    uint8_t point_radius;
 };
 
 // ============== Line Chart Params ==============
@@ -26,17 +36,23 @@ struct egui_view_chart_line_params
     egui_region_t region;
 };
 
+/** Convenience macro for one static line-chart parameter block. */
 #define EGUI_VIEW_CHART_LINE_PARAMS_INIT(_name, _x, _y, _w, _h) static const egui_view_chart_line_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 // ============== API ==============
 
 // lifecycle
+/** Initialize a line chart with shared axis defaults, line width `2`, and point radius `3`. */
 void egui_view_chart_line_init(egui_view_t *self, egui_core_t *core);
+/** Apply the chart region from one parameter block. */
 void egui_view_chart_line_apply_params(egui_view_t *self, const egui_view_chart_line_params_t *params);
+/** Initialize a line chart and immediately apply its parameter block. */
 void egui_view_chart_line_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_line_params_t *params);
 
 // line chart specific setters
+/** Set the stroke width used for line segments. */
 void egui_view_chart_line_set_line_width(egui_view_t *self, uint8_t width);
+/** Set the radius used when drawing each data point marker. */
 void egui_view_chart_line_set_point_radius(egui_view_t *self, uint8_t radius);
 
 // ============== Backward-compatible macros (delegate to axis base) ==============

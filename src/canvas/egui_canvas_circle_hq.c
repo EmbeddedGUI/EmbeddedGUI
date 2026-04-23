@@ -23,6 +23,14 @@ __EGUI_STATIC_INLINE__ int32_t circle_hq_precompute_inv128(int32_t radius)
     return (128 << CIRCLE_HQ_INV_SHIFT) / radius;
 }
 
+/**
+ * @brief Convert one circle edge sample into coverage alpha.
+ *
+ * The caller passes the point offset from the circle center. This helper uses
+ * the
+ * SDF-inspired `dx^2 + dy^2 - r^2` form and the precomputed reciprocal to
+ * avoid division inside the inner pixel loops.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_get_edge_alpha(int32_t dx, int32_t dy, int32_t r_sq, int32_t inv128_r)
 {
     /* SDF-based anti-aliasing for circles using precomputed reciprocal.
@@ -41,7 +49,9 @@ __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_get_edge_alpha(int32_t dx, int32_t
     return (egui_alpha_t)alpha;
 }
 
-/* Variant that takes pre-computed d_sq to avoid redundant dx*dx+dy*dy */
+/**
+ * @brief Same as `circle_hq_get_edge_alpha`, but reuse a cached squared distance.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_get_edge_alpha_from_dsq(int32_t d_sq, int32_t r_sq, int32_t inv128_r)
 {
     int32_t diff = d_sq - r_sq;
@@ -54,6 +64,9 @@ __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_get_edge_alpha_from_dsq(int32_t d_
     return (egui_alpha_t)alpha;
 }
 
+/**
+ * @brief Integer square root used to derive scanline half-widths.
+ */
 __EGUI_STATIC_INLINE__ int32_t circle_hq_isqrt(int32_t n)
 {
     if (n <= 0)
@@ -68,6 +81,9 @@ __EGUI_STATIC_INLINE__ int32_t circle_hq_isqrt(int32_t n)
     return x;
 }
 
+/**
+ * @brief Blend one pixel directly into the already-mapped PFB buffer.
+ */
 __EGUI_STATIC_INLINE__ void circle_hq_blend_direct(egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
     if (alpha == 0)
@@ -85,6 +101,9 @@ __EGUI_STATIC_INLINE__ void circle_hq_blend_direct(egui_color_t *dst, egui_color
     }
 }
 
+/**
+ * @brief Fill one contiguous span directly inside the current PFB row.
+ */
 __EGUI_STATIC_INLINE__ void circle_hq_fill_direct_span(egui_canvas_t *self, egui_color_t *dst_base, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
                                                        egui_alpha_t alpha)
 {
@@ -111,6 +130,17 @@ __EGUI_STATIC_INLINE__ void circle_hq_fill_direct_span(egui_canvas_t *self, egui
 
 /* ========================== Circle Fill HQ ========================== */
 
+/**
+ * @brief Draw a high-quality filled circle with SDF-style anti-aliasing.
+ *
+ * Reading tip:
+ * - Each scanline is clipped against the work region first.
+ *
+ * - The row is then split into an outer AA fringe and a solid interior span.
+ * - When no mask is active, the function writes straight into the PFB row for
+ *
+ * speed; otherwise it falls back to the generic point/fill helpers.
+ */
 void egui_canvas_draw_circle_fill_hq(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color, egui_alpha_t alpha)
 {
 
@@ -343,6 +373,9 @@ static const egui_float_t circle_hq_cos_val_list[91] = {
 
 #define CIRCLE_HQ_ARC_AA_HALF 49152
 
+/**
+ * @brief Convert signed distance to an arc boundary into soft coverage alpha.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_arc_edge_smoothstep(egui_float_t signed_dist)
 {
     if (signed_dist >= CIRCLE_HQ_ARC_AA_HALF)
@@ -361,6 +394,13 @@ __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_arc_edge_smoothstep(egui_float_t s
     return (a > EGUI_ALPHA_100) ? EGUI_ALPHA_100 : a;
 }
 
+/**
+ * @brief Evaluate angular coverage for one first-quadrant point.
+ *
+ * `start_angle` and `end_angle` are local quadrant angles in the [0, 90]
+ * range. The
+ * result is the AA mask contributed by the two radial boundaries.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_arc_angle_alpha(egui_dim_t x, egui_dim_t y, int16_t start_angle, int16_t end_angle)
 {
     egui_float_t px = EGUI_FLOAT_VALUE_INT(x);
@@ -394,6 +434,9 @@ typedef struct circle_hq_arc_row_ctx_t
     uint8_t has_end;
 } circle_hq_arc_row_ctx_t;
 
+/**
+ * @brief Precompute per-row arc boundary distances for fast horizontal stepping.
+ */
 static void circle_hq_arc_row_ctx_init(circle_hq_arc_row_ctx_t *ctx, egui_dim_t qx, egui_dim_t qy, int16_t start_angle, int16_t end_angle, int32_t qx_step)
 {
     egui_float_t qx_f = EGUI_FLOAT_VALUE_INT(qx);
@@ -435,6 +478,9 @@ static void circle_hq_arc_row_ctx_init(circle_hq_arc_row_ctx_t *ctx, egui_dim_t 
     }
 }
 
+/**
+ * @brief Read arc angle alpha from the already-prepared row context.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_arc_angle_alpha_from_ctx(const circle_hq_arc_row_ctx_t *ctx)
 {
     egui_alpha_t alpha_start = EGUI_ALPHA_100;
@@ -461,6 +507,9 @@ __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_arc_angle_alpha_from_ctx(const cir
     return egui_color_alpha_mix(alpha_start, alpha_end);
 }
 
+/**
+ * @brief Advance the arc row context by one X step.
+ */
 __EGUI_STATIC_INLINE__ void circle_hq_arc_row_ctx_step(egui_canvas_t *self, circle_hq_arc_row_ctx_t *ctx)
 {
     if (ctx->has_start)
@@ -483,6 +532,9 @@ enum
 
 /* ========================== Quadrant bounding box helper ========================== */
 
+/**
+ * @brief Return the minimal canvas region that contains one circle quadrant.
+ */
 static void circle_hq_get_quadrant_region(egui_dim_t cx, egui_dim_t cy, egui_dim_t r, int type, egui_region_t *out)
 {
     switch (type)
@@ -503,6 +555,9 @@ static void circle_hq_get_quadrant_region(egui_dim_t cx, egui_dim_t cy, egui_dim
     }
 }
 
+/**
+ * @brief Convert canvas coordinates into a quadrant-local first-quadrant frame.
+ */
 static void circle_hq_to_quadrant_coords(egui_dim_t x, egui_dim_t y, egui_dim_t cx, egui_dim_t cy, int type, egui_dim_t *qx, egui_dim_t *qy)
 {
     switch (type)
@@ -529,6 +584,14 @@ static void circle_hq_to_quadrant_coords(egui_dim_t x, egui_dim_t y, egui_dim_t 
 
 /* ========================== Circle Stroke HQ ========================== */
 
+/**
+ * @brief Draw a high-quality circle outline.
+ *
+ * The stroke is modeled as `outer coverage - inner coverage`, which keeps both
+ * the inner and outer
+ * edges anti-aliased. If the stroke fully consumes the
+ * radius, the function intentionally falls back to filled-circle rendering.
+ */
 void egui_canvas_draw_circle_hq(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
                                 egui_alpha_t alpha)
 {
@@ -657,6 +720,14 @@ void egui_canvas_draw_circle_hq(egui_canvas_t *self, egui_dim_t center_x, egui_d
 
 /* ========================== Arc Corner Fill HQ ========================== */
 
+/**
+ * @brief Draw one quadrant-local filled arc slice.
+ *
+ * This is the core worker behind filled arc rendering. The public arc API
+ * decomposes an arbitrary
+ * angle range into one or more calls to this helper,
+ * each operating in a first-quadrant coordinate system.
+ */
 static void circle_hq_draw_arc_corner_fill(egui_canvas_t *self, egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t sa, int16_t ea, int type,
                                            egui_color_t color, egui_alpha_t alpha)
 {
@@ -907,6 +978,9 @@ static void circle_hq_draw_arc_corner_fill(egui_canvas_t *self, egui_dim_t cx, e
 
 /* ========================== Arc Fill HQ ========================== */
 
+/**
+ * @brief Detect the fast path where an arc lies fully inside one quadrant.
+ */
 static int circle_hq_try_get_single_quadrant(int16_t start_angle, int16_t end_angle, int *type, int16_t *sa_local, int16_t *ea_local)
 {
     int16_t quadrant;
@@ -945,6 +1019,14 @@ static int circle_hq_try_get_single_quadrant(int16_t start_angle, int16_t end_an
     }
 }
 
+/**
+ * @brief Draw a filled high-quality arc by splitting it into quadrant slices.
+ *
+ * Angles may span multiple quadrants or even wrap past 360 degrees, so
+ * the
+ * function normalizes the request into one or more calls to
+ * `circle_hq_draw_arc_corner_fill`.
+ */
 void egui_canvas_draw_arc_fill_hq(egui_canvas_t *self, egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
                                   egui_color_t color, egui_alpha_t alpha)
 {
@@ -1021,6 +1103,14 @@ void egui_canvas_draw_arc_fill_hq(egui_canvas_t *self, egui_dim_t cx, egui_dim_t
 
 /* ========================== Arc Corner Stroke HQ ========================== */
 
+/**
+ * @brief Draw one quadrant-local stroked arc slice.
+ *
+ * The implementation mirrors `egui_canvas_draw_circle_hq`: first compute outer
+ * and inner circle
+ * coverages, then gate the result by the arc-angle coverage
+ * that belongs to the current quadrant slice.
+ */
 static void circle_hq_draw_arc_corner(egui_canvas_t *self, egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t sa, int16_t ea, egui_dim_t stroke_width,
                                       int type, egui_color_t color, egui_alpha_t alpha)
 {
@@ -1255,6 +1345,9 @@ static void circle_hq_draw_arc_corner(egui_canvas_t *self, egui_dim_t cx, egui_d
 
 /* ========================== Arc Stroke HQ ========================== */
 
+/**
+ * @brief Draw a stroked high-quality arc by splitting it into quadrant slices.
+ */
 void egui_canvas_draw_arc_hq(egui_canvas_t *self, egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
                              egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {

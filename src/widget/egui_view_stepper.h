@@ -12,10 +12,18 @@ typedef struct egui_view_stepper egui_view_stepper_t;
 
 typedef enum
 {
+    /** Reuse the simple page-indicator dot drawing. */
     EGUI_VIEW_STEPPER_MARK_STYLE_DOT = 0,
+    /** Draw connectors and completed-step badges with one icon glyph. */
     EGUI_VIEW_STEPPER_MARK_STYLE_ICON = 1,
 } egui_view_stepper_mark_style_t;
 
+/**
+ * @brief Progress step indicator built on top of `egui_view_page_indicator_t`.
+ *
+ * The embedded `indicator` keeps the shared count, current index, and colors.
+ * Stepper-specific fields only extend how completed steps are rendered.
+ */
 struct egui_view_stepper
 {
     egui_view_page_indicator_t indicator;
@@ -25,6 +33,9 @@ struct egui_view_stepper
 };
 
 typedef struct egui_view_stepper_params egui_view_stepper_params_t;
+/**
+ * @brief Construction-time parameter block for one stepper widget.
+ */
 struct egui_view_stepper_params
 {
     egui_region_t region;
@@ -32,19 +43,30 @@ struct egui_view_stepper_params
     uint8_t current_step;
 };
 
+/** Build a stepper parameter block with region and initial step state. */
 #define EGUI_VIEW_STEPPER_PARAMS_INIT(_name, _x, _y, _w, _h, _total, _current)                                                                                 \
     static const egui_view_stepper_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .total_steps = (_total), .current_step = (_current)}
 
+/** Apply a stepper parameter block after initialization. */
 void egui_view_stepper_apply_params(egui_view_t *self, const egui_view_stepper_params_t *params);
+/** Initialize a stepper and immediately apply its parameter block. */
 void egui_view_stepper_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_stepper_params_t *params);
 
+/** Set the total step count. The count is clamped to at least 1. */
 void egui_view_stepper_set_total_steps(egui_view_t *self, uint8_t total_steps);
+/** Return the total number of steps currently shown. */
 uint8_t egui_view_stepper_get_total_steps(egui_view_t *self);
+/** Set the current active step. Values past the end are clamped. */
 void egui_view_stepper_set_current_step(egui_view_t *self, uint8_t current_step);
+/** Return the current active step index. */
 uint8_t egui_view_stepper_get_current_step(egui_view_t *self);
+/** Choose between plain dots and icon-enhanced completed-step marks. */
 void egui_view_stepper_set_mark_style(egui_view_t *self, egui_view_stepper_mark_style_t style);
+/** Set the icon glyph drawn for completed steps when using icon mark style. */
 void egui_view_stepper_set_completed_icon(egui_view_t *self, const char *icon);
+/** Override the icon font used for completed-step marks. */
 void egui_view_stepper_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Initialize the page-indicator-based stepper widget. */
 void egui_view_stepper_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

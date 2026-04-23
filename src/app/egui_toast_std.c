@@ -5,16 +5,21 @@
 #include "egui_toast_std.h"
 #include "core/egui_core_internal.h"
 
+/**
+ * @file egui_toast_std.c
+ * @brief Default toast implementation that renders one rounded label overlay near the bottom of the screen.
+ */
+
 EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_toast_param_normal, EGUI_COLOR_BLACK, EGUI_ALPHA_50, 30);
 EGUI_BACKGROUND_PARAM_INIT(bg_toast_params, &bg_toast_param_normal, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_toast, &bg_toast_params);
 
 static void egui_toast_std_on_set_default(egui_toast_t *self);
 
+/** Show the standard toast by sizing and placing its shared label overlay around the text. */
 void egui_toast_std_on_show(egui_toast_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_toast_std_t);
-    // Call super on_show
     egui_toast_on_show(self, text);
 
     egui_dim_t width = 0;
@@ -27,16 +32,16 @@ void egui_toast_std_on_show(egui_toast_t *self, const char *text)
     egui_view_set_visible((egui_view_t *)&local->label, 1);
 }
 
+/** Hide the standard toast by hiding its shared label overlay. */
 void egui_toast_std_on_hide(egui_toast_t *self)
 {
     EGUI_LOCAL_INIT(egui_toast_std_t);
-    // Call super on_hide
     egui_toast_on_hide(self);
 
-    // Hide all views
     egui_view_set_visible((egui_view_t *)&local->label, 0);
 }
 
+/** Return the persistent text buffer stored inside the standard-toast instance. */
 char *egui_toast_std_get_str_buf(egui_toast_t *self)
 {
     EGUI_LOCAL_INIT(egui_toast_std_t);
@@ -46,11 +51,12 @@ char *egui_toast_std_get_str_buf(egui_toast_t *self)
 
 static const egui_toast_api_t EGUI_TOAST_API_TABLE_NAME(egui_toast_std_t) = {
         .on_set_default = egui_toast_std_on_set_default,
-        .on_show = egui_toast_std_on_show,         // changed
-        .on_hide = egui_toast_std_on_hide,         // changed
-        .get_str_buf = egui_toast_std_get_str_buf, // changed
+        .on_show = egui_toast_std_on_show,
+        .on_hide = egui_toast_std_on_hide,
+        .get_str_buf = egui_toast_std_get_str_buf,
 };
 
+/** Ensure the shared label overlay is attached to the owning core root when this toast becomes the default toast. */
 static void egui_toast_std_on_set_default(egui_toast_t *self)
 {
     EGUI_LOCAL_INIT(egui_toast_std_t);
@@ -81,20 +87,17 @@ static void egui_toast_std_on_set_default(egui_toast_t *self)
     }
 }
 
+/** Initialize the stock toast implementation and create its hidden shared label overlay. */
 void egui_toast_std_init(egui_toast_t *self, egui_core_t *core)
 {
     EGUI_LOCAL_INIT(egui_toast_std_t);
 
-    // call super init.
     egui_toast_init(self, core);
-    // update api.
     self->api = &EGUI_TOAST_API_TABLE_NAME(egui_toast_std_t);
 
-    // init local data.
     egui_toast_set_name(self, "egui_toast_std");
 
-    // Init all views
-    // label
+    // Shared label view that is positioned and shown on demand for each toast message.
     egui_view_label_init((egui_view_t *)&local->label, core);
     egui_view_label_set_align_type((egui_view_t *)&local->label, EGUI_ALIGN_CENTER);
     egui_view_label_set_font((egui_view_t *)&local->label, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
@@ -103,7 +106,6 @@ void egui_toast_std_init(egui_toast_t *self, egui_core_t *core)
 
     egui_view_set_visible((egui_view_t *)&local->label, 0);
 
-    // Set Background
     egui_view_set_background((egui_view_t *)&local->label, (egui_background_t *)&bg_toast);
 
     egui_core_add_root_view(core, EGUI_VIEW_OF(&local->label));

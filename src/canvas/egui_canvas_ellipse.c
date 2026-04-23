@@ -235,6 +235,13 @@ typedef struct
     int64_t inv_grad_q24;
 } ellipse_scanline_info_t;
 
+/**
+ * @brief Convert a signed distance in Q8 pixel units into coverage alpha.
+ *
+ * Negative values are inside the ellipse, positive values are outside, and
+ * the
+ * interval around zero becomes the anti-aliased transition band.
+ */
 __EGUI_STATIC_INLINE__ egui_alpha_t ellipse_alpha_from_dist_q8(int64_t dist_q8)
 {
     if (dist_q8 < -128)
@@ -315,6 +322,17 @@ __EGUI_STATIC_INLINE__ void ellipse_edge_iter_step_x_inc(ellipse_edge_iter_t *it
     }
 }
 
+/**
+ * @brief Precompute all scanline-specific ellipse metrics for one absolute Y.
+ *
+ * The result tells later draw code:
+ * - whether this row intersects the
+ * ellipse,
+ * - the furthest covered X used for scan clipping,
+ * - the guaranteed solid interior width,
+ * - and the reciprocal gradient term used for fast AA
+ * edge evaluation.
+ */
 static void ellipse_prepare_scanline_info(egui_dim_t abs_dy, int32_t rx_sq, int32_t ry_sq, int64_t rxry_sq, uint32_t *warm_dx_max,
                                           ellipse_scanline_info_t *info)
 {
@@ -389,6 +407,9 @@ static void ellipse_prepare_scanline_info(egui_dim_t abs_dy, int32_t rx_sq, int3
     }
 }
 
+/**
+ * @brief Fill one already-clipped horizontal span directly into the PFB row.
+ */
 __EGUI_STATIC_INLINE__ void ellipse_draw_direct_span(egui_canvas_t *self, egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t x_start, egui_dim_t x_end,
                                                      egui_color_t color, egui_alpha_t alpha)
 {
@@ -438,6 +459,13 @@ typedef struct
     uint8_t apply_canvas_alpha;
 } ellipse_outline_draw_ctx_t;
 
+/**
+ * @brief Prepare outer and inner ellipse scanline metrics for one outline row.
+ *
+ * The outer ellipse is mandatory. The inner ellipse is present only when
+ * the
+ * stroke still leaves a hollow center at the current row.
+ */
 static int ellipse_prepare_outline_scanline(egui_dim_t abs_dy, int32_t iry, int32_t irx_sq, int32_t iry_sq, int64_t irxry_sq, uint32_t *warm_i_dx_max,
                                             int32_t orx_sq, int32_t ory_sq, int64_t orxry_sq, uint32_t *warm_o_dx_max, ellipse_scanline_info_t *outer_info,
                                             ellipse_scanline_info_t *inner_info)
@@ -458,6 +486,14 @@ static int ellipse_prepare_outline_scanline(egui_dim_t abs_dy, int32_t iry, int3
     return 1;
 }
 
+/**
+ * @brief Render one outline scanline from the prepared outer/inner row data.
+ *
+ * The visible band is split into a left segment and a right segment around
+ * the
+ * inner ellipse hole. Each side then mixes the outer AA coverage minus the
+ * inner AA coverage to obtain the final stroke alpha.
+ */
 static void ellipse_draw_outline_scanline(const ellipse_outline_draw_ctx_t *ctx, egui_dim_t abs_y, egui_dim_t abs_dy, const ellipse_scanline_info_t *outer_info,
                                           const ellipse_scanline_info_t *inner_info)
 {
@@ -630,13 +666,16 @@ static void ellipse_draw_outline_scanline(const ellipse_outline_draw_ctx_t *ctx,
 }
 
 /**
- * \brief           Draw filled ellipse with anti-aliased edges
- * \param[in]       center_x: Center X position
- * \param[in]       center_y: Center Y position
- * \param[in]       radius_x: Horizontal radius
- * \param[in]       radius_y: Vertical radius
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw a filled ellipse with anti-aliased edges.
+ *
+ * Reading tip:
+ * - Circle cases are forwarded to the circle renderer.
+ * - Each visible
+ * scanline is split into a fully solid interior span and two AA
+ *   edge bands.
+ * - The no-mask path writes directly into the PFB for speed, while the
+ * masked
+ *   path falls back to regular point/fill helpers.
  */
 void egui_canvas_draw_ellipse_fill(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_color_t color,
                                    egui_alpha_t alpha)
@@ -842,14 +881,12 @@ void egui_canvas_draw_ellipse_fill(egui_canvas_t *self, egui_dim_t center_x, egu
 }
 
 /**
- * \brief           Draw ellipse outline with anti-aliased edges
- * \param[in]       center_x: Center X position
- * \param[in]       center_y: Center Y position
- * \param[in]       radius_x: Horizontal radius
- * \param[in]       radius_y: Vertical radius
- * \param[in]       stroke_width: Width of the outline
- * \param[in]       color: Color used for drawing operation
- * \param[in]       alpha: Alpha value for blending
+ * @brief Draw an anti-aliased ellipse outline.
+ *
+ * The outline is modeled as `outer ellipse - inner ellipse`. When the stroke is
+ * thick enough to erase
+ * the hole, the function deliberately degrades to
+ * `egui_canvas_draw_ellipse_fill`.
  */
 void egui_canvas_draw_ellipse(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_dim_t stroke_width,
                               egui_color_t color, egui_alpha_t alpha)

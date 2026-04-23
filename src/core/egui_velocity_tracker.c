@@ -5,6 +5,15 @@
 #include "egui_velocity_tracker.h"
 #include "egui_api.h"
 
+/**
+ * @file egui_velocity_tracker.c
+ * @brief Velocity estimation helper used to convert recent motion history into fling speed.
+ */
+
+/**
+ * Append one sampled point to the fixed-size history window.
+ * Points older than the configured age limit are discarded first; if the buffer is still full, the oldest remaining point is evicted.
+ */
 void egui_velocity_tracker_add_point(egui_velocity_tracker_t *self, egui_dim_t x, egui_dim_t y, uint32_t time)
 {
     int drop = -1;
@@ -55,12 +64,20 @@ void egui_velocity_tracker_add_point(egui_velocity_tracker_t *self, egui_dim_t x
     }
 }
 
-// Reset the velocity tracker back to its initial state
+/**
+ * Reset the tracker to an empty history.
+ * Clearing only the first slot is enough because the rest of the array is no longer reachable once the sentinel `time == 0` appears at index 0.
+ */
 void egui_velocity_tracker_clear(egui_velocity_tracker_t *self)
 {
     self->points[0].time = 0;
 }
 
+/**
+ * Estimate velocity from the currently buffered history points.
+ * The implementation averages the velocity from the oldest sample to each newer sample, and intentionally ignores the newest point when enough data exists
+ * because the final sample is often the noisiest.
+ */
 void egui_velocity_tracker_compute_velocity(egui_velocity_tracker_t *self)
 {
     egui_dim_t oldest_x = self->points[0].x;
@@ -119,6 +136,9 @@ void egui_velocity_tracker_compute_velocity(egui_velocity_tracker_t *self)
     self->velocity_y = accum_y;
 }
 
+/**
+ * Feed one motion event into the tracker and update the exported velocity after a gesture ends.
+ */
 void egui_velocity_tracker_add_motion(egui_velocity_tracker_t *self, egui_motion_event_t *event)
 {
     if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
@@ -140,6 +160,7 @@ void egui_velocity_tracker_add_motion(egui_velocity_tracker_t *self, egui_motion
     }
 }
 
+/** Initialize the tracker to an empty history with zero output velocity. */
 void egui_velocity_tracker_init(egui_velocity_tracker_t *self)
 {
     egui_velocity_tracker_clear(self);

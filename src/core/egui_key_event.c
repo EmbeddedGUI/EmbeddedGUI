@@ -2,10 +2,17 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 
+/**
+ * @file egui_key_event.c
+ * @brief Small helpers that expose key-event debug strings and ASCII conversion.
+ */
+
+/* Indexed by `enum egui_key_event_type`. */
 static const char *key_event_type_strings[] = {
         "NONE", "DOWN", "UP", "LONG_PRESS", "REPEAT",
 };
 
+/** Return a short printable name for one key-event type. */
 const char *egui_key_event_type_string(uint8_t type)
 {
     if (type < EGUI_ARRAY_SIZE(key_event_type_strings))
@@ -15,6 +22,10 @@ const char *egui_key_event_type_string(uint8_t type)
     return "UNKNOWN";
 }
 
+/**
+ * Convert one key event into printable ASCII when the logical key map allows it.
+ * Navigation and control keys intentionally return 0 because they do not have a direct printable representation.
+ */
 char egui_key_event_to_char(const egui_key_event_t *event)
 {
     uint8_t code = event->key_code;

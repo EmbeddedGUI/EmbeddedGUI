@@ -14,7 +14,7 @@ struct egui_interpolator_linear
     egui_interpolator_t base;
 };
 
-void egui_interpolator_linear_draw(egui_interpolator_t *self, egui_canvas_t *canvas, egui_region_t *region, int is_disabled, int is_pressed);
+/** Initialize a strictly linear interpolator with no easing. */
 void egui_interpolator_linear_init(egui_interpolator_t *self);
 
 /* Ends C function definitions when using C++ */

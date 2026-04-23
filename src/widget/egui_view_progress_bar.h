@@ -8,9 +8,16 @@
 extern "C" {
 #endif
 
+/** Listener fired when the progress value changes. */
 typedef void (*egui_view_on_progress_changed_listener_t)(egui_view_t *self, uint8_t progress);
 
 typedef struct egui_view_progress_bar egui_view_progress_bar_t;
+/**
+ * @brief Horizontal progress indicator with optional thumb-style control knob.
+ *
+ * The widget stores one progress value in the `0..100` range and uses shared
+ * linear-value helpers to compute track, fill, and knob geometry.
+ */
 struct egui_view_progress_bar
 {
     egui_view_t base;
@@ -26,21 +33,31 @@ struct egui_view_progress_bar
 
 // ============== Progress Bar Params ==============
 typedef struct egui_view_progress_bar_params egui_view_progress_bar_params_t;
+/**
+ * @brief Construction-time parameter block for one progress bar.
+ */
 struct egui_view_progress_bar_params
 {
     egui_region_t region;
     uint8_t process;
 };
 
+/** Build a progress-bar parameter block with region and initial percentage. */
 #define EGUI_VIEW_PROGRESS_BAR_PARAMS_INIT(_name, _x, _y, _w, _h, _val)                                                                                        \
     static const egui_view_progress_bar_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .process = (_val)}
 
+/** Apply a progress-bar parameter block after initialization. */
 void egui_view_progress_bar_apply_params(egui_view_t *self, const egui_view_progress_bar_params_t *params);
+/** Initialize a progress bar and immediately apply its parameter block. */
 void egui_view_progress_bar_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_progress_bar_params_t *params);
 
+/** Register the callback fired when the progress changes. */
 void egui_view_progress_bar_set_on_progress_listener(egui_view_t *self, egui_view_on_progress_changed_listener_t listener);
+/** Set the progress percentage in the range `0..100`. */
 void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process);
+/** Default draw hook used by the progress-bar API table. */
 void egui_view_progress_bar_on_draw(egui_view_t *self);
+/** Initialize the base progress bar widget. */
 void egui_view_progress_bar_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

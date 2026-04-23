@@ -5,7 +5,7 @@
 #include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "font/egui_font.h"
-#include "egui_view.h" // Fixed include path
+#include "egui_view.h"
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
 
@@ -16,6 +16,19 @@
 
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_t);
 
+/**
+ * @file egui_view_button.c
+ * @brief Rounded push button that combines label behavior with optional icon-text layout.
+ *
+ * Reading notes:
+ * - the widget
+ * inherits text storage and alignment from `egui_view_label_t`;
+ * - button chrome is drawn separately from content so theme styles can replace the
+ * background;
+ * - when both icon and text exist, layout centers the combined content block as one unit.
+ */
+
+/** Resolve the effective text font, falling back to the default configured UI font. */
 static const egui_font_t *egui_view_button_get_text_font(const egui_view_button_t *local)
 {
     if (local->base.font != NULL)
@@ -26,6 +39,7 @@ static const egui_font_t *egui_view_button_get_text_font(const egui_view_button_
     return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
 
+/** Draw text-only, icon-only, or combined icon-plus-text content inside the button work region. */
 static void egui_view_button_draw_content(egui_canvas_t *canvas, egui_view_button_t *local, const egui_region_t *region, egui_color_t text_color,
                                           egui_alpha_t text_alpha)
 {
@@ -147,6 +161,7 @@ static void egui_view_button_draw_content(egui_canvas_t *canvas, egui_view_butto
     }
 }
 
+/** Draw the themed button background first, then return the effective text color and alpha. */
 static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *local, egui_color_t *text_color, egui_alpha_t *text_alpha)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -276,6 +291,7 @@ static void egui_view_button_draw_frame(egui_view_t *self, egui_view_button_t *l
     }
 }
 
+/** Draw button chrome and then paint centered content on top. */
 void egui_view_button_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_button_t);
@@ -290,6 +306,7 @@ void egui_view_button_on_draw(egui_view_t *self)
     egui_view_button_draw_content(canvas, local, &text_region, text_color, text_alpha);
 }
 
+/* Use standard view behavior and replace only the draw hook with button-specific rendering. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
         .on_touch_event = egui_view_on_touch_event,
@@ -307,6 +324,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_t) = {
 #endif
 };
 
+/** Initialize label behavior, enable clicking, and install the default themed button appearance. */
 void egui_view_button_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_button_t);
@@ -347,17 +365,20 @@ void egui_view_button_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_button");
 }
 
+/** Reuse the label parameter application path because the button shares the same text fields. */
 void egui_view_button_apply_params(egui_view_t *self, const egui_view_label_params_t *params)
 {
     egui_view_label_apply_params(self, params);
 }
 
+/** Convenience helper that initializes the button before applying label-style params. */
 void egui_view_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params)
 {
     egui_view_button_init(self, core);
     egui_view_button_apply_params(self, params);
 }
 
+/** Replace the optional icon string shown before the main label text. */
 void egui_view_button_set_icon(egui_view_t *self, const char *icon)
 {
     EGUI_LOCAL_INIT(egui_view_button_t);
@@ -371,6 +392,7 @@ void egui_view_button_set_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+/** Override the font used when the button draws an icon string. */
 void egui_view_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_button_t);
@@ -384,6 +406,7 @@ void egui_view_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+/** Set the horizontal gap between the icon and main text when both are present. */
 void egui_view_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_button_t);

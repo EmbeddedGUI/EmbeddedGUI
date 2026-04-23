@@ -4,6 +4,18 @@
 #include "egui_view_line.h"
 #include "core/egui_core.h"
 
+/**
+ * @file egui_view_line.c
+ * @brief Polyline widget that forwards segment rasterization to canvas helpers.
+ *
+ * The point array is interpreted in
+ * widget-local coordinates, then translated
+ * by the work-region origin before each segment is drawn.
+ */
+
+/**
+ * @brief Replace the borrowed point array used by the polyline.
+ */
 void egui_view_line_set_points(egui_view_t *self, const egui_view_line_point_t *points, uint8_t count)
 {
     EGUI_LOCAL_INIT(egui_view_line_t);
@@ -12,6 +24,9 @@ void egui_view_line_set_points(egui_view_t *self, const egui_view_line_point_t *
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Change the shared stroke width for all segments.
+ */
 void egui_view_line_set_line_width(egui_view_t *self, uint8_t width)
 {
     EGUI_LOCAL_INIT(egui_view_line_t);
@@ -23,6 +38,9 @@ void egui_view_line_set_line_width(egui_view_t *self, uint8_t width)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Change the shared stroke color for all segments.
+ */
 void egui_view_line_set_line_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_line_t);
@@ -34,6 +52,9 @@ void egui_view_line_set_line_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Toggle rounded segment caps versus the basic line helper.
+ */
 void egui_view_line_set_use_round_cap(egui_view_t *self, uint8_t enable)
 {
     EGUI_LOCAL_INIT(egui_view_line_t);
@@ -45,6 +66,9 @@ void egui_view_line_set_use_round_cap(egui_view_t *self, uint8_t enable)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Draw the current polyline by emitting one segment per adjacent point pair.
+ */
 void egui_view_line_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_line_t);
@@ -97,6 +121,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_line_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize an empty line widget with themed stroke defaults.
+ */
 void egui_view_line_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_line_t);
@@ -115,6 +142,9 @@ void egui_view_line_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_line");
 }
 
+/**
+ * @brief Apply line geometry and initial stroke fields from one parameter block.
+ */
 void egui_view_line_apply_params(egui_view_t *self, const egui_view_line_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_line_t);
@@ -127,6 +157,9 @@ void egui_view_line_apply_params(egui_view_t *self, const egui_view_line_params_
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains line init and params.
+ */
 void egui_view_line_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_line_params_t *params)
 {
     egui_view_line_init(self, core);

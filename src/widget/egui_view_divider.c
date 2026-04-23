@@ -5,6 +5,18 @@
 #include "core/egui_core.h"
 #include "canvas/egui_canvas_gradient.h"
 
+/**
+ * @file egui_view_divider.c
+ * @brief Simple divider widget used for horizontal or vertical separation.
+ *
+ * The widget deliberately stays small: callers choose the region dimensions,
+ * and draw simply fills that rectangle using either a flat color or a small
+ * enhanced gradient for a slightly raised look.
+ */
+
+/**
+ * @brief Update the divider fill color and redraw only when it really changes.
+ */
 void egui_view_divider_set_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_divider_t);
@@ -16,6 +28,9 @@ void egui_view_divider_set_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Draw the divider strip inside the current work region.
+ */
 void egui_view_divider_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_divider_t);
@@ -61,6 +76,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_divider_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the divider with a theme-border default color.
+ */
 void egui_view_divider_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_divider_t);
@@ -76,6 +94,9 @@ void egui_view_divider_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_divider");
 }
 
+/**
+ * @brief Apply divider geometry and color from one parameter block.
+ */
 void egui_view_divider_apply_params(egui_view_t *self, const egui_view_divider_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_divider_t);
@@ -87,6 +108,9 @@ void egui_view_divider_apply_params(egui_view_t *self, const egui_view_divider_p
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains divider init and params.
+ */
 void egui_view_divider_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_divider_params_t *params)
 {
     egui_view_divider_init(self, core);

@@ -17,26 +17,36 @@ typedef struct egui_view_deferred_image_loader egui_view_deferred_image_loader_t
 
 typedef enum
 {
+    /** No request is scheduled or running. */
     EGUI_VIEW_DEFERRED_IMAGE_STATUS_IDLE = 0,
+    /** Waiting for `load_delay_ms` before starting the loader. */
     EGUI_VIEW_DEFERRED_IMAGE_STATUS_DELAY,
+    /** The loader request has started and is being polled. */
     EGUI_VIEW_DEFERRED_IMAGE_STATUS_LOADING,
+    /** The requested image finished loading and is now displayed. */
     EGUI_VIEW_DEFERRED_IMAGE_STATUS_READY,
+    /** The last load attempt failed. */
     EGUI_VIEW_DEFERRED_IMAGE_STATUS_FAILED,
 } egui_view_deferred_image_status_t;
 
 typedef enum
 {
+    /** Keep polling; the request has not reached a terminal state yet. */
     EGUI_VIEW_DEFERRED_IMAGE_LOADER_POLL_PENDING = 0,
+    /** The request finished successfully. */
     EGUI_VIEW_DEFERRED_IMAGE_LOADER_POLL_SUCCESS,
+    /** The request finished with an error. */
     EGUI_VIEW_DEFERRED_IMAGE_LOADER_POLL_FAILED,
 } egui_view_deferred_image_loader_poll_result_t;
 
 struct egui_view_deferred_image_loader
 {
     void *user_data;
+    /** Start loading `source_uri` and optionally write to `cache_path`. Return 0 on success and fill `request_handle`. */
     int (*start)(void *user_data, const char *source_uri, const char *cache_path, void **request_handle);
+    /** Poll the outstanding request until it reports success or failure. */
     egui_view_deferred_image_loader_poll_result_t (*poll)(void *user_data, void *request_handle);
-    /* Must be safe for explicit cancellation and terminal-state cleanup. */
+    /** Cancel or finalize one request handle. This must be safe for both explicit cancel and terminal-state cleanup. */
     void (*cancel)(void *user_data, void *request_handle);
 };
 
@@ -74,20 +84,34 @@ struct egui_view_deferred_image_params
 #define EGUI_VIEW_DEFERRED_IMAGE_PARAMS_INIT(_name, _x, _y, _w, _h)                                                                                            \
     static const egui_view_deferred_image_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
+/** Apply the region from one parameter block. */
 void egui_view_deferred_image_apply_params(egui_view_t *self, const egui_view_deferred_image_params_t *params);
+/** Initialize a deferred-image view and immediately apply its parameter block. */
 void egui_view_deferred_image_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_deferred_image_params_t *params);
 
+/** Copy a new source URI, reset back to the placeholder, and return to `IDLE`. Auto-start may schedule a new load. */
 void egui_view_deferred_image_set_source_uri(egui_view_t *self, const char *source_uri);
+/** Copy a new cache path, reset back to the placeholder, and return to `IDLE`. */
 void egui_view_deferred_image_set_cache_path(egui_view_t *self, const char *cache_path);
+/** Set the in-memory placeholder image shown while idle, delayed, loading, or failed before a real image is ready. */
 void egui_view_deferred_image_set_placeholder_image(egui_view_t *self, const egui_image_t *image);
+/** Set the placeholder forwarded to the internal file-image loader for file decode fallback states. */
 void egui_view_deferred_image_set_file_placeholder(egui_view_t *self, const egui_image_t *image);
+/** Borrow a loader vtable, reset the current state to the placeholder, and optionally auto-start a new request. */
 void egui_view_deferred_image_set_loader(egui_view_t *self, const egui_view_deferred_image_loader_t *loader);
+/** Enable or disable automatic loading when the view is attached. Enabling it may start loading immediately from `IDLE`. */
 void egui_view_deferred_image_set_auto_start_on_attach(egui_view_t *self, int auto_start_on_attach);
+/** Set the delay before the loader starts after scheduling. */
 void egui_view_deferred_image_set_load_delay_ms(egui_view_t *self, uint16_t delay_ms);
+/** Reset to the placeholder, return to `IDLE`, and then schedule a fresh load attempt. */
 void egui_view_deferred_image_reload(egui_view_t *self);
+/** Cancel the active request, stop timers, and return to the placeholder `IDLE` state. */
 void egui_view_deferred_image_cancel(egui_view_t *self);
+/** Return the current deferred-load status. */
 egui_view_deferred_image_status_t egui_view_deferred_image_get_status(const egui_view_t *self);
+/** Release timers, request handles, copied strings, and the internal file-image object. */
 void egui_view_deferred_image_deinit(egui_view_t *self);
+/** Initialize the deferred-image view with auto-start enabled and default 50 ms delay/poll intervals. */
 void egui_view_deferred_image_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

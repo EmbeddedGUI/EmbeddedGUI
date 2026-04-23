@@ -3,6 +3,12 @@
 #include "egui_view_lyric_scroller.h"
 #include "core/egui_core.h"
 
+/*
+ * The lyric scroller is implemented as a clipping group plus one moving label child.
+ * It only starts a timer when the text is wider than the visible work
+ * region.
+ */
+
 static void egui_view_lyric_scroller_stop_internal(egui_view_lyric_scroller_t *local)
 {
     egui_view_t *self = EGUI_VIEW_OF(&local->base);
@@ -24,6 +30,7 @@ static uint16_t egui_view_lyric_scroller_get_pause_ticks(const egui_view_lyric_s
         return 0;
     }
 
+    // Convert the pause duration from milliseconds into timer ticks, rounded up.
     return (uint16_t)EGUI_MAX(1, (local->pause_duration_ms + local->interval_ms - 1) / local->interval_ms);
 }
 
@@ -31,6 +38,7 @@ static void egui_view_lyric_scroller_apply_offset(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
 
+    // Scrolling is implemented by moving the child label left/right inside the clipped group.
     if (EGUI_VIEW_OF(&local->label)->region.location.x != -local->scroll_offset_x || EGUI_VIEW_OF(&local->label)->region.location.y != 0)
     {
         egui_view_set_position(EGUI_VIEW_OF(&local->label), -local->scroll_offset_x, 0);
@@ -48,6 +56,7 @@ static void egui_view_lyric_scroller_update_timer_state(egui_view_t *self)
 
     uint8_t should_run = local->is_attached && local->max_scroll_offset > 0 && local->scroll_step > 0 && local->interval_ms > 0;
 
+    // The timer is only useful when the widget is live and the text actually overflows.
     if (!should_run)
     {
         egui_view_lyric_scroller_stop_internal(local);
@@ -86,6 +95,7 @@ static void egui_view_lyric_scroller_update_label_layout(egui_view_t *self)
         font->api->get_str_size(font, text, 0, 0, &local->text_width, &local->text_height);
     }
 
+    // Overflow distance determines both whether scrolling is needed and the end-stop position.
     local->max_scroll_offset = local->text_width - work_region.size.width;
     if (local->max_scroll_offset < 0)
     {
@@ -105,6 +115,7 @@ static void egui_view_lyric_scroller_update_label_layout(egui_view_t *self)
     label_width = EGUI_MAX(local->text_width, work_region.size.width);
     label_height = EGUI_MAX(local->text_height, work_region.size.height);
 
+    // The label stays at least as large as the viewport so alignment and clipping remain stable.
     if (EGUI_VIEW_OF(&local->label)->region.size.width != label_width || EGUI_VIEW_OF(&local->label)->region.size.height != label_height)
     {
         egui_view_set_size(EGUI_VIEW_OF(&local->label), label_width, label_height);
@@ -130,6 +141,7 @@ static void egui_view_lyric_scroller_timer_callback(egui_timer_t *timer)
         return;
     }
 
+    // Direction flips at each end so the text bounces instead of wrapping.
     next_offset = local->scroll_offset_x + (local->scroll_direction > 0 ? local->scroll_step : -local->scroll_step);
     if (next_offset >= local->max_scroll_offset)
     {
@@ -159,6 +171,7 @@ static void egui_view_lyric_scroller_draw(egui_view_t *self)
     const egui_region_t *prev_clip = egui_canvas_get_extra_clip(canvas);
     const egui_region_t *active_clip = &self->region_screen;
 
+    // Intersect with any existing clip so the moving label never paints outside the scroller viewport.
     if (prev_clip != NULL)
     {
         egui_region_intersect(&self->region_screen, prev_clip, &clip_region);
@@ -196,6 +209,7 @@ static void egui_view_lyric_scroller_on_detach_from_window(egui_view_t *self)
 
 static void egui_view_lyric_scroller_calculate_layout(egui_view_t *self)
 {
+    // Recompute overflow before delegating layout to the group so the child size/offset stay in sync.
     egui_view_lyric_scroller_update_label_layout(self);
     egui_view_group_calculate_layout(self);
 }
@@ -204,6 +218,7 @@ void egui_view_lyric_scroller_set_text(egui_view_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
 
+    // New text always restarts from the leftmost position and recalculates overflow.
     egui_view_label_set_text(EGUI_VIEW_OF(&local->label), text);
     local->scroll_offset_x = 0;
     local->scroll_direction = 1;
@@ -216,6 +231,7 @@ void egui_view_lyric_scroller_set_font(egui_view_t *self, const egui_font_t *fon
 {
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
 
+    // Changing the font changes measured text width, so restart and recompute layout.
     egui_view_label_set_font(EGUI_VIEW_OF(&local->label), font);
     local->scroll_offset_x = 0;
     local->scroll_direction = 1;
@@ -276,6 +292,7 @@ void egui_view_lyric_scroller_restart(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
 
+    // Restart keeps content/style intact and only rewinds the scrolling state machine.
     local->scroll_offset_x = 0;
     local->scroll_direction = 1;
     local->pause_ticks_remaining = 0;
@@ -316,9 +333,11 @@ void egui_view_lyric_scroller_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_lyric_scroller_t);
 
+    // The outer widget is a group so it can own and clip its internal label child.
     egui_view_group_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_lyric_scroller_t);
 
+    // The child label does all text rendering; the scroller only manages its size and x-offset.
     egui_view_label_init(EGUI_VIEW_OF(&local->label), core);
     egui_view_set_parent(EGUI_VIEW_OF(&local->label), &local->base);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&local->label), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
@@ -344,6 +363,7 @@ void egui_view_lyric_scroller_apply_params(egui_view_t *self, const egui_view_ly
 {
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
 
+    // Params first seed scrolling behavior, then configure the embedded label and text content.
     self->region = params->region;
     local->scroll_step = params->scroll_step > 0 ? params->scroll_step : 1;
     local->interval_ms = params->interval_ms > 0 ? params->interval_ms : 1;

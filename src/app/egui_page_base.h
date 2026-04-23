@@ -33,25 +33,42 @@ struct egui_page_base
 
     const egui_page_base_api_t *api; // api of the view
 };
+/** Add one child view to the page root container. */
 void egui_page_base_add_view(egui_page_base_t *self, egui_view_t *view);
+/** Set the debug name shown by tracing/log helpers. */
 void egui_page_base_set_name(egui_page_base_t *self, const char *name);
+/** Return the core that owns this page object. */
 egui_core_t *egui_page_base_get_core(egui_page_base_t *self);
+/** Return the default toast bound to the same core. */
 egui_toast_t *egui_page_base_get_toast(egui_page_base_t *self);
+/** Show an info toast from this page with an explicit duration. */
 void egui_page_base_show_toast_info_with_duration(egui_page_base_t *self, const char *text, uint16_t duration);
+/** Show an info toast from this page using the default toast duration. */
 void egui_page_base_show_toast_info(egui_page_base_t *self, const char *text);
+/** Start a timer that is automatically associated with this page's core. */
 int egui_page_base_start_timer(egui_page_base_t *self, egui_timer_t *handle, uint32_t ms, uint32_t period);
+/** Stop a timer previously started from this page. */
 void egui_page_base_stop_timer(egui_page_base_t *self, egui_timer_t *handle);
+/** Return non-zero if the timer is already running on this page's core. */
 int egui_page_base_check_timer_start(egui_page_base_t *self, egui_timer_t *handle);
 
+/** Open the page and attach its root view to the user root tree. */
 void egui_page_base_open(egui_page_base_t *self);
+/** Close the page and remove its root view from the user root tree. */
 void egui_page_base_close(egui_page_base_t *self);
+/** Run the optional page refresh callback. */
 void egui_page_base_refresh(egui_page_base_t *self);
+/** Forward a key press into the page callback interface. */
 void egui_page_base_key_pressed(egui_page_base_t *self, uint16_t keycode);
 
+/** Default open hook used by the base page implementation. */
 void egui_page_base_on_open(egui_page_base_t *self);
+/** Default close hook used by the base page implementation. */
 void egui_page_base_on_close(egui_page_base_t *self);
+/** Default key hook used by the base page implementation. */
 void egui_page_base_on_key_pressed(egui_page_base_t *self, uint16_t keycode);
 
+/** Initialize the base page object and its full-screen root container. */
 void egui_page_base_init(egui_page_base_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

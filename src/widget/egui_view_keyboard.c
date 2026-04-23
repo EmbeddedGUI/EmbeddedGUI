@@ -11,6 +11,15 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
+/*
+ * The keyboard widget is built from a flat key index space shared by:
+ * 1. visible label tables,
+ * 2. emitted character tables,
+ * 3. the button array
+ * created at init time.
+ * This keeps mode switching cheap because only labels/fonts need to be refreshed.
+ */
+
 // ============== Key label tables for each mode ==============
 
 // Index order: Row0[0..9], Row1[10..18], Row2[19..27], Row3[28..30]
@@ -216,6 +225,7 @@ static const egui_font_t *egui_view_keyboard_get_icon_font(const egui_view_keybo
 
 static const char *egui_view_keyboard_get_mode_label_table(uint8_t mode, int key_idx)
 {
+    // Labels may differ from emitted characters because some positions are mode/action keys.
     switch (mode)
     {
     case EGUI_KEYBOARD_MODE_UPPERCASE:
@@ -229,6 +239,7 @@ static const char *egui_view_keyboard_get_mode_label_table(uint8_t mode, int key
 
 static const char *egui_view_keyboard_get_key_label_for_mode(const egui_view_keyboard_t *keyboard, uint8_t mode, int key_idx)
 {
+    // Special keys can override the generic mode table with configurable icon glyphs.
     if (key_idx == EGUI_KEYBOARD_KEY_IDX_SHIFT && mode != EGUI_KEYBOARD_MODE_SYMBOLS)
     {
         return keyboard->shift_icon;
@@ -249,6 +260,7 @@ static const char *egui_view_keyboard_get_key_label_for_mode(const egui_view_key
 
 static int egui_view_keyboard_key_uses_icon(const egui_view_keyboard_t *keyboard, int key_idx)
 {
+    // Shift only uses the icon in alphabetic modes; in symbols mode that slot becomes an "ABC" label.
     if (key_idx == EGUI_KEYBOARD_KEY_IDX_BACKSPACE || key_idx == EGUI_KEYBOARD_KEY_IDX_ENTER)
     {
         return 1;
@@ -264,6 +276,7 @@ static int egui_view_keyboard_key_uses_icon(const egui_view_keyboard_t *keyboard
 
 static const egui_font_t *egui_view_keyboard_get_label_font(const egui_view_keyboard_t *keyboard, int key_idx)
 {
+    // Icon-bearing keys can use a separate font from normal text keys.
     if (egui_view_keyboard_key_uses_icon(keyboard, key_idx))
     {
         return egui_view_keyboard_get_icon_font(keyboard);
@@ -280,6 +293,8 @@ static const egui_font_t *egui_view_keyboard_get_label_font(const egui_view_keyb
 static void egui_view_keyboard_apply_key_label(egui_view_keyboard_t *keyboard, int key_idx, const char *label)
 {
     egui_view_t *key_view = EGUI_VIEW_OF(&keyboard->keys[key_idx]);
+
+    // Each key is implemented as a button with an embedded label child, so text/font updates reuse button APIs.
     egui_view_label_set_text(key_view, label);
     egui_view_label_set_font(key_view, egui_view_keyboard_get_label_font(keyboard, key_idx));
 }
@@ -300,7 +315,7 @@ static void egui_view_keyboard_key_click_cb(egui_view_t *self)
         return;
     }
 
-    // Handle Shift key
+    // Shift toggles only between lowercase/uppercase; symbols mode uses this slot as a return-to-ABC shortcut.
     if (key_idx == EGUI_KEYBOARD_KEY_IDX_SHIFT)
     {
         if (keyboard->mode == EGUI_KEYBOARD_MODE_LOWERCASE)
@@ -319,14 +334,14 @@ static void egui_view_keyboard_key_click_cb(egui_view_t *self)
         return;
     }
 
-    // Handle Backspace key
+    // Backspace delegates editing to the active textinput.
     if (key_idx == EGUI_KEYBOARD_KEY_IDX_BACKSPACE)
     {
         egui_view_textinput_delete_char(keyboard->target);
         return;
     }
 
-    // Handle Mode key (?123 / ABC)
+    // The mode key switches between symbol layout and the normal alphabet layout.
     if (key_idx == EGUI_KEYBOARD_KEY_IDX_MODE)
     {
         if (keyboard->mode == EGUI_KEYBOARD_MODE_SYMBOLS)
@@ -340,7 +355,7 @@ static void egui_view_keyboard_key_click_cb(egui_view_t *self)
         return;
     }
 
-    // Handle Enter key
+    // Enter forwards the submit callback instead of inserting a newline.
     if (key_idx == EGUI_KEYBOARD_KEY_IDX_ENTER)
     {
         egui_view_textinput_t *ti = (egui_view_textinput_t *)keyboard->target;
@@ -351,14 +366,14 @@ static void egui_view_keyboard_key_click_cb(egui_view_t *self)
         return;
     }
 
-    // Handle regular character keys
+    // Normal keys emit one byte from the current mode table into the target textinput.
     const char *char_table = egui_view_keyboard_get_char_table(keyboard->mode);
     char c = char_table[key_idx];
     if (c != 0)
     {
         egui_view_textinput_insert_char(keyboard->target, c);
 
-        // Auto-return to lowercase after typing one uppercase letter
+        // Uppercase behaves like a temporary shift state rather than caps lock.
         if (keyboard->mode == EGUI_KEYBOARD_MODE_UPPERCASE)
         {
             egui_view_keyboard_set_mode(EGUI_VIEW_OF(keyboard), EGUI_KEYBOARD_MODE_LOWERCASE);
@@ -373,6 +388,7 @@ void egui_view_keyboard_set_mode(egui_view_t *self, uint8_t mode)
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
     uint8_t i;
 
+    // Invalid inputs degrade to lowercase so callers can safely pass unchecked values.
     if (mode > EGUI_KEYBOARD_MODE_SYMBOLS)
     {
         mode = EGUI_KEYBOARD_MODE_LOWERCASE;
@@ -391,6 +407,7 @@ void egui_view_keyboard_set_font(egui_view_t *self, const egui_font_t *font)
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
     uint8_t i;
 
+    // Keep a usable default so callers do not need to provide a font explicitly.
     local->font = font != NULL ? font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 
     for (i = 0; i < EGUI_KEYBOARD_TOTAL_KEYS; i++)
@@ -409,6 +426,7 @@ void egui_view_keyboard_set_icon_font(egui_view_t *self, const egui_font_t *font
         return;
     }
 
+    // Only icon-backed keys need to be refreshed when the icon font changes.
     local->icon_font = font;
 
     for (i = 0; i < EGUI_KEYBOARD_TOTAL_KEYS; i++)
@@ -425,6 +443,7 @@ void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shi
 {
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
 
+    // Null inputs restore the built-in Material Symbols defaults.
     if (shift_icon == NULL)
     {
         shift_icon = EGUI_ICON_MS_KEYBOARD_ARROW_UP;
@@ -446,6 +465,8 @@ void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shi
     local->shift_icon = shift_icon;
     local->backspace_icon = backspace_icon;
     local->enter_icon = enter_icon;
+
+    // Re-enter the current mode so any visible special-key labels are refreshed together.
     egui_view_keyboard_set_mode(self, local->mode);
 }
 
@@ -453,7 +474,7 @@ void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
 {
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
 
-    // Restore any previous position adjustment first (e.g. switching between textinputs)
+    // Restore any previous root-view offset first so switching targets does not accumulate shifts.
     if (local->adjusted_view != NULL)
     {
         egui_view_update_region_dirty(self, &local->adjusted_view->region_screen);
@@ -465,33 +486,31 @@ void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
     self->is_visible = true;
     self->is_gone = false;
 
-    // Keyboard avoidance: check if target textinput is obscured by keyboard
+    // If the target would be covered, move its root ancestor upward instead of moving only the textinput itself.
     egui_dim_t kbd_top = self->region.location.y;
     egui_dim_t target_bottom = target_textinput->region_screen.location.y + target_textinput->region_screen.size.height;
 
     if (target_bottom + 4 > kbd_top)
     {
-        // Find the root-level ancestor of the target (walk up until parent is NULL)
+        // Walk to the topmost ancestor so the whole page/dialog shifts together.
         egui_view_t *root_view = target_textinput;
         while (EGUI_VIEW_PARENT(root_view) != NULL)
         {
             root_view = EGUI_VIEW_PARENT(root_view);
         }
 
-        // Don't adjust the keyboard itself
+        // Skip adjustment if the discovered root is the keyboard itself.
         if (root_view != self)
         {
-            // Calculate shift: move target just above keyboard with 4px gap
+            // Move the root just enough to keep a small gap between the target and the keyboard top edge.
             egui_dim_t shift = target_bottom - kbd_top + 4;
 
-            // Save original position
             local->adjusted_view = root_view;
             local->saved_y = root_view->region.location.y;
 
-            // Mark old position as dirty before moving
+            // Dirty the old screen region before moving so the renderer repaints the vacated area.
             egui_view_update_region_dirty(self, &root_view->region_screen);
 
-            // Move root view up
             egui_view_set_position(root_view, root_view->region.location.x, local->saved_y - shift);
         }
     }
@@ -504,7 +523,7 @@ void egui_view_keyboard_hide(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
     local->target = NULL;
 
-    // Restore position adjustment before hiding
+    // Restore the root view before hiding so the page returns to its original layout.
     if (local->adjusted_view != NULL)
     {
         egui_view_update_region_dirty(self, &local->adjusted_view->region_screen);
@@ -512,8 +531,7 @@ void egui_view_keyboard_hide(egui_view_t *self)
         local->adjusted_view = NULL;
     }
 
-    // Invalidate BEFORE hiding, so the framework marks the keyboard area as dirty
-    // (egui_view_invalidate skips invisible views)
+    // Invalidate before toggling visibility because invisible views no longer contribute dirty regions.
     egui_view_invalidate(self);
     self->is_visible = false;
     self->is_gone = true;
@@ -527,6 +545,7 @@ static void egui_view_keyboard_init_key(egui_view_keyboard_t *keyboard, int key_
     egui_view_button_t *key = &keyboard->keys[key_idx];
     egui_view_t *key_view = EGUI_VIEW_OF(key);
 
+    // Keys are ordinary buttons; appearance differences come from width/background/font choices.
     egui_view_button_init(key_view, EGUI_VIEW_OF(keyboard)->core);
     egui_view_set_size(key_view, width, EGUI_KEYBOARD_KEY_HEIGHT);
     egui_view_label_set_text(key_view, label);
@@ -534,8 +553,7 @@ static void egui_view_keyboard_init_key(egui_view_keyboard_t *keyboard, int key_
     egui_view_set_on_click_listener(key_view, egui_view_keyboard_key_click_cb);
     egui_view_set_background(key_view, is_special ? EGUI_BG_OF(&bg_kb_special) : EGUI_BG_OF(&bg_kb_key));
     egui_view_set_margin(key_view, 1, 1, 1, 1);
-    // Keyboard keys must not trigger focus-clear on touch, or they would dismiss the keyboard
-    // before the click handler fires (ACTION_DOWN clears focus, ACTION_UP fires click).
+    // Prevent ACTION_DOWN on a key from clearing focus on the target textinput before ACTION_UP fires the click.
     key_view->is_no_focus_clear = 1;
     egui_view_group_add_child(EGUI_VIEW_OF(row), key_view);
 }
@@ -546,15 +564,14 @@ void egui_view_keyboard_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_keyboard_t);
 
-    // Init base group
+    // The keyboard itself is a group whose children are row layouts, which in turn own the key buttons.
     egui_view_group_init(self, core);
 
-    // Set keyboard background
     egui_view_set_background(self, EGUI_BG_OF(&bg_kb));
 
-    // Make keyboard clickable to consume touch events on gaps between keys
+    // Gap touches should be consumed by the keyboard surface instead of leaking to views underneath.
     self->is_clickable = true;
-    // Do not let touches on the keyboard root (gap areas) clear the textinput focus
+    // Gap touches also must not clear textinput focus, or the keyboard would dismiss itself while in use.
     self->is_no_focus_clear = 1;
 
     local->mode = EGUI_KEYBOARD_MODE_LOWERCASE;
@@ -568,7 +585,7 @@ void egui_view_keyboard_init(egui_view_t *self, egui_core_t *core)
     local->saved_y = 0;
     int key_idx = 0;
 
-    // Initialize 4 row LinearLayouts
+    // Build four horizontal rows, then let the outer group stack those rows vertically.
     for (int r = 0; r < EGUI_KEYBOARD_ROW_COUNT; r++)
     {
         egui_view_linearlayout_init(EGUI_VIEW_OF(&local->rows[r]), core);
@@ -640,20 +657,19 @@ void egui_view_keyboard_init(egui_view_t *self, egui_core_t *core)
         egui_view_keyboard_init_key(local, key_idx, w, egui_view_keyboard_get_key_label_for_mode(local, local->mode, key_idx), is_special, &local->rows[3]);
     }
 
-    // Layout each row's children horizontally, then add row to keyboard
+    // First layout keys within each row, then register the row as a child of the keyboard group.
     for (int r = 0; r < EGUI_KEYBOARD_ROW_COUNT; r++)
     {
         egui_view_linearlayout_layout_childs(EGUI_VIEW_OF(&local->rows[r]));
         egui_view_group_add_child(self, EGUI_VIEW_OF(&local->rows[r]));
     }
 
-    // Set keyboard total size
     egui_view_set_size(self, EGUI_KEYBOARD_DEFAULT_WIDTH, EGUI_KEYBOARD_DEFAULT_HEIGHT);
 
-    // Layout rows vertically within keyboard
+    // The group helper stacks row layouts top-to-bottom inside the keyboard body.
     egui_view_group_layout_childs(self, 0, 0, 0, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
 
-    // Start hidden
+    // The keyboard is created hidden and only becomes active through `show()`.
     self->is_visible = false;
     self->is_gone = true;
 

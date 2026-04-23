@@ -10,11 +10,25 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 
+/**
+ * @brief Resolve the source x coordinate for one destination column.
+ *
+ * Some callers provide a direct x-map for resampled rows, while simpler paths
+ *
+ * use a one-to-one index. This helper hides that difference.
+ */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_mask_image_get_src_x(const egui_dim_t *src_x_map, egui_dim_t index)
 {
     return (src_x_map != NULL) ? src_x_map[index] : index;
 }
 
+/**
+ * @brief Reset all per-row caches derived from the current image mask.
+ *
+ * The mask keeps one cache for repeated point sampling and one for row-level
+ *
+ * visible/opaque range queries so scanline renderers can reuse alpha data.
+ */
 static void egui_mask_image_invalidate_row_cache(egui_mask_image_t *local)
 {
     local->point_cached_y = -32768;
@@ -32,6 +46,15 @@ static void egui_mask_image_invalidate_row_cache(egui_mask_image_t *local)
     local->row_opaque_x_end = 0;
 }
 
+/**
+ * @brief Refresh cached geometry, scaling, and fast-path flags after a change.
+ *
+ * The public mask only knows its destination rectangle and image
+ * pointer. This
+ * helper converts them into the values the rasterizer needs: bounds, source
+ * size, scaling ratios, alpha buffer metadata, and optimization
+ * availability.
+ */
 static void egui_mask_image_refresh_cache(egui_mask_image_t *local)
 {
     egui_mask_t *self = &local->base;
@@ -92,16 +115,29 @@ static void egui_mask_image_refresh_cache(egui_mask_image_t *local)
     egui_mask_image_invalidate_row_cache(local);
 }
 
+/**
+ * @brief Report whether the mask can read an internal alpha8 buffer directly.
+ */
 static int egui_mask_image_supports_internal_alpha8_fast_path(const egui_mask_image_t *local)
 {
     return local->fast_path_supported;
 }
 
+/**
+ * @brief Report whether destination pixels map 1:1 onto source pixels.
+ */
 static int egui_mask_image_is_identity_scale(const egui_mask_image_t *local)
 {
     return local->identity_scale;
 }
 
+/**
+ * @brief Blend a solid-color run into the destination buffer.
+ *
+ * This helper is used when a contiguous destination span is fully covered by
+ * the mask
+ * and only the caller-provided color and alpha matter.
+ */
 static void egui_mask_image_blend_solid_row(egui_color_int_t *dst, egui_dim_t count, egui_color_t color, egui_alpha_t alpha)
 {
     if (count <= 0 || alpha == 0)
@@ -121,6 +157,13 @@ static void egui_mask_image_blend_solid_row(egui_color_int_t *dst, egui_dim_t co
     }
 }
 
+/**
+ * @brief Copy one RGB565 row as cheaply as possible.
+ *
+ * Fully opaque paths can bypass per-pixel blending and copy source pixels
+ * directly, including
+ * aligned 32-bit bulk copies on 16-bit color builds.
+ */
 static void egui_mask_image_copy_rgb565_row(egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t count)
 {
     if (count <= 0)
@@ -182,6 +225,9 @@ static void egui_mask_image_copy_rgb565_row(egui_color_int_t *dst_row, const uin
 #endif
 }
 
+/**
+ * @brief Blend one RGB565 row with a uniform alpha multiplier.
+ */
 static void egui_mask_image_blend_rgb565_row(egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t count, egui_alpha_t alpha)
 {
     if (count <= 0 || alpha == 0)
@@ -201,6 +247,13 @@ static void egui_mask_image_blend_rgb565_row(egui_color_int_t *dst_row, const ui
     }
 }
 
+/**
+ * @brief Blend one identity-scale RGB565 row with both source alpha and mask alpha.
+ *
+ * The loop recognizes long transparent and fully opaque runs so
+ * common cases
+ * can skip work or fall back to row copies instead of blending pixel-by-pixel.
+ */
 static void egui_mask_image_blend_rgb565_alpha8_identity_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                              const uint8_t *mask_alpha_row, egui_dim_t count, egui_alpha_t canvas_alpha)
 {
@@ -314,6 +367,13 @@ static void egui_mask_image_blend_rgb565_alpha8_identity_row(egui_color_int_t *d
     }
 }
 
+/**
+ * @brief Blend one identity-scale RGB565 row using mask alpha only.
+ *
+ * This is the simpler sibling of the function above for sources that do not
+ *
+ * carry their own per-pixel alpha channel.
+ */
 static void egui_mask_image_blend_rgb565_identity_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *mask_alpha_row, egui_dim_t count,
                                                       egui_alpha_t canvas_alpha)
 {
@@ -418,11 +478,25 @@ static void egui_mask_image_blend_rgb565_identity_row(egui_color_int_t *dst_row,
     }
 }
 
+/**
+ * @brief Ask whether one destination span maps to a linear source span.
+ *
+ * If so, callers can still reuse the identity-row helpers even when an
+ *
+ * external source x-map is present.
+ */
 static int egui_mask_image_get_linear_src_segment(const egui_dim_t *src_x_map, egui_dim_t start, egui_dim_t end, egui_dim_t *src_x_start)
 {
     return egui_image_std_get_linear_src_x_segment(src_x_map, start, end, src_x_start);
 }
 
+/**
+ * @brief Scan one mask row and cache its visible and opaque horizontal ranges.
+ *
+ * For internal alpha8 images, this summarizes the row into two useful
+ * spans:
+ * the first-to-last non-zero coverage and the longest fully opaque run.
+ */
 static int egui_mask_image_refresh_row_scan(egui_mask_image_t *local, egui_dim_t y)
 {
     egui_dim_t local_y;
@@ -533,6 +607,9 @@ static int egui_mask_image_refresh_row_scan(egui_mask_image_t *local, egui_dim_t
     return 1;
 }
 
+/**
+ * @brief Attach a new image resource to the mask and rebuild derived caches.
+ */
 void egui_mask_image_set_image(egui_mask_t *self, egui_image_t *img)
 {
     EGUI_LOCAL_INIT(egui_mask_image_t);
@@ -540,6 +617,13 @@ void egui_mask_image_set_image(egui_mask_t *self, egui_image_t *img)
     egui_mask_image_refresh_cache(local);
 }
 
+/**
+ * @brief Query the image mask coverage at one destination pixel.
+ *
+ * Fast-path mode samples the cached alpha8 row directly. Otherwise the code
+ * falls
+ * back to the generic image API and uses that pixel's alpha as coverage.
+ */
 void egui_mask_image_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     EGUI_LOCAL_INIT(egui_mask_image_t);
@@ -619,6 +703,13 @@ void egui_mask_image_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, e
     }
 }
 
+/**
+ * @brief Fill one destination scanline segment through the image mask.
+ *
+ * Identity-scale rows can skip empty runs and bulk-fill opaque runs, while
+ *
+ * scaled rows compute the matching source x coordinate per destination pixel.
+ */
 int egui_mask_image_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, egui_dim_t y, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
                                      egui_alpha_t alpha)
 {
@@ -762,6 +853,13 @@ int egui_mask_image_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, e
     return 1;
 }
 
+/**
+ * @brief Blend an RGB565+alpha8 source row through the image mask.
+ *
+ * Source alpha and mask alpha are combined first, then optional canvas alpha is
+ *
+ * applied on top. Identity-scale rows delegate to a run-aware helper.
+ */
 int egui_mask_image_blend_rgb565_alpha8_row_segment(egui_mask_t *self, egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                     egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha)
 {
@@ -867,6 +965,13 @@ int egui_mask_image_blend_rgb565_alpha8_row_segment(egui_mask_t *self, egui_colo
     return 1;
 }
 
+/**
+ * @brief Blend a block of RGB565+alpha8 rows when mask and source use identity scale.
+ *
+ * This batched version amortizes setup across consecutive rows
+ * while reusing
+ * the same identity-row optimization as the segment path.
+ */
 int egui_mask_image_blend_rgb565_alpha8_row_block(egui_mask_t *self, egui_color_int_t *dst_row, egui_dim_t dst_stride, const uint16_t *src_row,
                                                   egui_dim_t src_stride, const uint8_t *src_alpha_row, egui_dim_t alpha_stride, egui_dim_t row_count,
                                                   egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha)
@@ -937,6 +1042,13 @@ int egui_mask_image_blend_rgb565_alpha8_row_block(egui_mask_t *self, egui_color_
     return 1;
 }
 
+/**
+ * @brief Blend an RGB565 source row through the image mask.
+ *
+ * This is the non-source-alpha sibling of the function above: coverage comes
+ * only from
+ * the image mask itself plus the optional canvas alpha.
+ */
 int egui_mask_image_blend_rgb565_row_segment(egui_mask_t *self, egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t count, egui_dim_t screen_x,
                                              egui_dim_t screen_y, egui_alpha_t canvas_alpha)
 {
@@ -1046,6 +1158,9 @@ int egui_mask_image_blend_rgb565_row_segment(egui_mask_t *self, egui_color_int_t
     return 1;
 }
 
+/**
+ * @brief Blend a block of RGB565 rows when the image mask is identity-scaled.
+ */
 int egui_mask_image_blend_rgb565_row_block(egui_mask_t *self, egui_color_int_t *dst_row, egui_dim_t dst_stride, const uint16_t *src_row, egui_dim_t src_stride,
                                            egui_dim_t row_count, egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha)
 {
@@ -1113,6 +1228,13 @@ int egui_mask_image_blend_rgb565_row_block(egui_mask_t *self, egui_color_int_t *
     return 1;
 }
 
+/**
+ * @brief Blend an RGB565+alpha8 segment that may use an external source x-map.
+ *
+ * When the x-map still resolves to one linear source span, the code
+ * reuses the
+ * identity helper. Otherwise it samples the mapped source coordinate per pixel.
+ */
 int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                 const egui_dim_t *src_x_map, egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y,
                                                 egui_alpha_t canvas_alpha)
@@ -1226,6 +1348,14 @@ int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_in
     return 1;
 }
 
+/**
+ * @brief Report the fully opaque horizontal span for one mask row.
+ *
+ * Rows with no alpha buffer behave like a plain rectangular mask. Alpha8 rows
+ * use
+ * the cached row scan to expose the best opaque run while still returning
+ * PARTIAL when only translucent coverage exists.
+ */
 static int egui_mask_image_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
 {
     EGUI_LOCAL_INIT(egui_mask_image_t);
@@ -1305,6 +1435,13 @@ static int egui_mask_image_get_row_range(egui_mask_t *self, egui_dim_t y, egui_d
     return EGUI_MASK_ROW_PARTIAL;
 }
 
+/**
+ * @brief Report the broad visible horizontal span for one mask row.
+ *
+ * This includes all non-zero coverage, not just the fully opaque run, so
+ * callers
+ * can use it as a cheap clipping bound before per-pixel work.
+ */
 static int egui_mask_image_get_row_visible_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
 {
     EGUI_LOCAL_INIT(egui_mask_image_t);
@@ -1366,6 +1503,13 @@ const egui_mask_api_t egui_mask_image_t_api_table = {
         .mask_get_row_overlay = NULL,
 };
 
+/**
+ * @brief Initialize the image mask and clear all derived cache state.
+ *
+ * The actual image and scaling information are attached later, so init mostly
+ *
+ * wires the API table and resets every cached field to an empty sentinel value.
+ */
 void egui_mask_image_init(egui_mask_t *self)
 {
     EGUI_LOCAL_INIT(egui_mask_image_t);

@@ -6,6 +6,12 @@
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+/**
+ * @file egui_core_key.c
+ * @brief Core-side keyboard dispatch that bridges focus navigation and root fallback delivery.
+ */
+
+/** Dispatch one key event, giving focus navigation priority before falling back to normal view delivery. */
 void egui_core_process_input_key(egui_core_t *core, egui_key_event_t *key_event)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
@@ -26,7 +32,7 @@ void egui_core_process_input_key(egui_core_t *core, egui_key_event_t *key_event)
         }
     }
 
-    // Dispatch to focused view if available
+    // Focused views get the first chance to consume ordinary key input.
     egui_view_t *focused = egui_focus_manager_get_focused_view(core);
     if (focused != NULL)
     {
@@ -35,7 +41,7 @@ void egui_core_process_input_key(egui_core_t *core, egui_key_event_t *key_event)
     }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
-    // Fallback: dispatch to root view group
+    // Without focus support, or when nothing is focused, route the event through the root view tree.
     egui_view_group_dispatch_key_event((egui_view_t *)egui_core_get_root_view(core), key_event);
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY

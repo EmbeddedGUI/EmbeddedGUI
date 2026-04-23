@@ -8,6 +8,11 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Top-level theme bundle that groups style tables for common widgets.
+ *
+ * Each field points at one widget family's `(part, state)` style descriptor.
+ */
 typedef struct egui_theme
 {
     const char *name;
@@ -24,7 +29,14 @@ typedef struct egui_theme
 extern const egui_theme_t egui_theme_light;
 extern const egui_theme_t egui_theme_dark;
 
+/**
+ * @brief Apply a theme to one core.
+ */
 void egui_theme_set(egui_core_t *core, const egui_theme_t *theme);
+
+/**
+ * @brief Query the theme currently active on one core.
+ */
 const egui_theme_t *egui_theme_get(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */

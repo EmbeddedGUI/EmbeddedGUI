@@ -4,6 +4,21 @@
 #include "core/egui_core.h"
 #include "image/egui_image.h"
 
+/**
+ * @file egui_view_image.c
+ * @brief Small image view that forwards drawing to the canvas helpers.
+ *
+ * Learning path:
+ * - the widget stores only draw
+ * mode, resource pointer, and optional tint,
+ * - draw decides between original-size and stretched rendering,
+ * - tinting is enabled only when
+ * `image_color_alpha` is non-zero.
+ */
+
+/**
+ * @brief Draw the configured image resource inside the current work region.
+ */
 void egui_view_image_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_image_t);
@@ -39,6 +54,9 @@ void egui_view_image_on_draw(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Switch between source-size drawing and stretched drawing.
+ */
 void egui_view_image_set_image_type(egui_view_t *self, int image_type)
 {
     EGUI_LOCAL_INIT(egui_view_image_t);
@@ -50,6 +68,9 @@ void egui_view_image_set_image_type(egui_view_t *self, int image_type)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Replace the borrowed image resource pointer.
+ */
 void egui_view_image_set_image(egui_view_t *self, egui_image_t *image)
 {
     EGUI_LOCAL_INIT(egui_view_image_t);
@@ -61,6 +82,11 @@ void egui_view_image_set_image(egui_view_t *self, egui_image_t *image)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Configure the optional image tint path.
+ *
+ * Passing alpha `0` disables tinting and falls back to the normal draw helper.
+ */
 void egui_view_image_set_image_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha)
 {
     EGUI_LOCAL_INIT(egui_view_image_t);
@@ -90,6 +116,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_image_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the image widget with no resource and normal draw mode.
+ */
 void egui_view_image_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_image_t);
@@ -108,6 +137,9 @@ void egui_view_image_init(egui_view_t *self, egui_core_t *core)
     local->image_color_alpha = 0;
 }
 
+/**
+ * @brief Apply region and initial image resource from one parameter block.
+ */
 void egui_view_image_apply_params(egui_view_t *self, const egui_view_image_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_image_t);
@@ -119,6 +151,9 @@ void egui_view_image_apply_params(egui_view_t *self, const egui_view_image_param
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains image init and params.
+ */
 void egui_view_image_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_image_params_t *params)
 {
     egui_view_image_init(self, core);

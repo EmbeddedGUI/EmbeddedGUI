@@ -3,6 +3,14 @@
 
 #include "egui_view_chart_axis.h"
 
+/**
+ * @brief Axis-based scatter chart widget with circular point markers.
+ *
+ * Unlike the line chart, points are rendered independently and are not joined
+ *
+ * by connecting segments.
+ */
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
@@ -10,12 +18,13 @@ extern "C" {
 
 // ============== Scatter Chart Widget ==============
 typedef struct egui_view_chart_scatter egui_view_chart_scatter_t;
+/** Scatter-chart widget built on top of the shared axis base. */
 struct egui_view_chart_scatter
 {
     egui_view_chart_axis_t axis_base;
 
-    // scatter chart specific
-    uint8_t point_radius; // default 3
+    /* Marker radius used when drawing each scatter point. */
+    uint8_t point_radius;
 };
 
 // ============== Scatter Chart Params ==============
@@ -25,17 +34,22 @@ struct egui_view_chart_scatter_params
     egui_region_t region;
 };
 
+/** Convenience macro for one static scatter-chart parameter block. */
 #define EGUI_VIEW_CHART_SCATTER_PARAMS_INIT(_name, _x, _y, _w, _h)                                                                                             \
     static const egui_view_chart_scatter_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 // ============== API ==============
 
 // lifecycle
+/** Initialize a scatter chart with shared axis defaults and point radius `3`. */
 void egui_view_chart_scatter_init(egui_view_t *self, egui_core_t *core);
+/** Apply the chart region from one parameter block. */
 void egui_view_chart_scatter_apply_params(egui_view_t *self, const egui_view_chart_scatter_params_t *params);
+/** Initialize a scatter chart and immediately apply its parameter block. */
 void egui_view_chart_scatter_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_chart_scatter_params_t *params);
 
 // scatter-specific
+/** Set the radius used when drawing each scatter point. */
 void egui_view_chart_scatter_set_point_radius(egui_view_t *self, uint8_t radius);
 
 // ============== Backward-compatible macros (delegate to axis base) ==============

@@ -11,6 +11,16 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_radio_button.c
+ * @brief Radio button widget with optional grouping and single-selection behavior.
+ *
+ * Radio buttons look similar to checkboxes, but their state transition is
+ * asymmetric: clicking selects the current button and, when grouped, clears any
+ * previously selected peer in the same group.
+ */
+
+/** Return the effective label font, falling back to the default UI font. */
 static const egui_font_t *egui_view_radio_button_get_text_font(const egui_view_radio_button_t *local)
 {
     if (local->font != NULL)
@@ -23,6 +33,7 @@ static const egui_font_t *egui_view_radio_button_get_text_font(const egui_view_r
 
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_radio_button_t);
 
+/** Calculate the smallest dirty region that still fully covers the circular indicator. */
 static uint8_t egui_view_radio_button_get_indicator_dirty_region(egui_view_t *self, egui_view_radio_button_t *local, egui_region_t *dirty_region)
 {
     egui_region_t region;
@@ -57,10 +68,12 @@ static uint8_t egui_view_radio_button_get_indicator_dirty_region(egui_view_t *se
         center_x = region.location.x + size / 2 + 1;
     }
 
+    // Only the circular indicator needs refresh when selection changes.
     egui_view_circle_dirty_add_circle_region(dirty_region, center_x, center_y, outer_radius + 1, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
     return egui_region_is_empty(dirty_region) ? 0 : 1;
 }
 
+/** Replace the optional label text and redraw the whole widget row. */
 void egui_view_radio_button_set_text(egui_view_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -68,6 +81,7 @@ void egui_view_radio_button_set_text(egui_view_t *self, const char *text)
     egui_view_invalidate(self);
 }
 
+/** Override the label font used when drawing optional radio-button text. */
 void egui_view_radio_button_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -75,6 +89,7 @@ void egui_view_radio_button_set_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+/** Set the text color used for the optional label while enabled. */
 void egui_view_radio_button_set_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -82,6 +97,7 @@ void egui_view_radio_button_set_text_color(egui_view_t *self, egui_color_t color
     egui_view_invalidate(self);
 }
 
+/** Switch between inner-dot rendering and icon-font rendering for checked state. */
 void egui_view_radio_button_set_mark_style(egui_view_t *self, egui_view_radio_button_mark_style_t style)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -94,6 +110,7 @@ void egui_view_radio_button_set_mark_style(egui_view_t *self, egui_view_radio_bu
     egui_view_invalidate(self);
 }
 
+/** Replace the icon glyph used when the checked mark style is `ICON`. */
 void egui_view_radio_button_set_mark_icon(egui_view_t *self, const char *icon)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -106,6 +123,7 @@ void egui_view_radio_button_set_mark_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+/** Override the icon font used for icon-style checked marks. */
 void egui_view_radio_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -118,6 +136,7 @@ void egui_view_radio_button_set_icon_font(egui_view_t *self, const egui_font_t *
     egui_view_invalidate(self);
 }
 
+/** Set the gap between the indicator ring and the optional label text. */
 void egui_view_radio_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -137,25 +156,31 @@ void egui_view_radio_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 }
 
 // ============== Radio Group ==============
+/** Reset one radio-group list plus its optional selection callback. */
 void egui_view_radio_group_init(egui_view_radio_group_t *group)
 {
+    // The group is only a small linked-list wrapper plus one optional callback.
     egui_slist_init(&group->buttons);
     group->on_changed = NULL;
 }
 
+/** Append one radio button to the group so it participates in mutual exclusion. */
 void egui_view_radio_group_add(egui_view_radio_group_t *group, egui_view_t *button)
 {
+    // Append order becomes the logical index reported by the group callback.
     egui_view_radio_button_t *rb = (egui_view_radio_button_t *)button;
     rb->group = group;
     egui_slist_append(&group->buttons, &rb->group_node);
 }
 
+/** Register the callback fired when the group selects a new button index. */
 void egui_view_radio_group_set_on_changed_listener(egui_view_radio_group_t *group, egui_view_on_radio_changed_listener_t listener)
 {
     group->on_changed = listener;
 }
 
 // ============== Radio Button ==============
+/** Set the checked state, clear grouped peers, and invalidate only indicator regions when possible. */
 void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -168,8 +193,7 @@ void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
 
     local->is_checked = is_checked;
 
-    // If checking this button and it belongs to a group,
-    // uncheck all others in the group
+    // Selecting one grouped radio button immediately clears every other selected peer.
     if (is_checked && local->group != NULL)
     {
         egui_snode_t *sn;
@@ -198,7 +222,7 @@ void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
             index++;
         }
 
-        // Fire group listener
+        // The group listener reports the selected button by append order.
         if (local->group->on_changed)
         {
             local->group->on_changed(self, selected_index);
@@ -216,11 +240,12 @@ void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/** Select this button when a completed click lands on it. */
 static int egui_view_radio_button_perform_click(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
 
-    // Only allow checking (not unchecking by clicking same button)
+    // Radio buttons only transition toward "checked"; clicking the active one keeps it selected.
     if (!local->is_checked)
     {
         egui_view_radio_button_set_checked(self, 1);
@@ -229,6 +254,7 @@ static int egui_view_radio_button_perform_click(egui_view_t *self)
 }
 #endif
 
+/** Draw the circular indicator using either a filled dot or an icon glyph. */
 static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use_icon_mark)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -249,10 +275,10 @@ static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use
         center_x = region.location.x + size / 2 + 1;
     }
 
+    // The outer ring is always visible so the control remains identifiable even when unchecked.
     egui_color_t outer_color = local->is_checked ? local->dot_color : local->circle_color;
     egui_color_t ring_color = egui_view_get_enable(self) ? outer_color : EGUI_THEME_DISABLED;
 
-    // Draw outer circle (always)
     egui_canvas_draw_circle_basic(canvas, center_x, center_y, outer_radius, stroke, ring_color, local->alpha);
 
     if (local->is_checked)
@@ -278,7 +304,7 @@ static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use
         }
         else
         {
-            // Draw inner filled circle (about 50% of outer radius)
+            // The default checked mark is a smaller filled dot centered inside the ring.
             egui_dim_t inner_radius = outer_radius * 5 / 10;
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
             {
@@ -305,6 +331,7 @@ static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use
     }
 }
 
+/** Draw the indicator first, then place the optional label to its right. */
 void egui_view_radio_button_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -318,6 +345,7 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
 
     if (EGUI_VIEW_TEXT_VALID(local->text))
     {
+        // Label layout is derived from the indicator diameter so text starts after the ring.
         const egui_font_t *font = egui_view_radio_button_get_text_font(local);
         egui_color_t text_color = egui_view_get_enable(self) ? local->text_color : EGUI_THEME_DISABLED;
 
@@ -337,6 +365,7 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
     }
 }
 
+/** API table for the radio-button widget. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_radio_button_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
         .on_touch_event = egui_view_on_touch_event,
@@ -357,15 +386,16 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_radio_button_t) = {
 #endif
 };
 
+/** Initialize the radio button with clickable selection behavior and stock defaults. */
 void egui_view_radio_button_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_radio_button_t);
-    // call super init.
+    // Initialize the base view before installing radio-button-specific behavior.
     egui_view_init(self, core);
-    // update api.
+    // Replace generic draw/click callbacks with the radio button API table.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_radio_button_t);
 
-    // init local data.
+    // Defaults produce a standalone radio button; grouping is opt-in via egui_view_radio_group_add.
     local->group_node.next = NULL;
     local->group = NULL;
     local->is_checked = false;
@@ -384,6 +414,7 @@ void egui_view_radio_button_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_radio_button");
 }
 
+/** Apply geometry, initial checked state, and optional label from one parameter block. */
 void egui_view_radio_button_apply_params(egui_view_t *self, const egui_view_radio_button_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -396,6 +427,7 @@ void egui_view_radio_button_apply_params(egui_view_t *self, const egui_view_radi
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the radio button before applying params. */
 void egui_view_radio_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_radio_button_params_t *params)
 {
     egui_view_radio_button_init(self, core);

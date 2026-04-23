@@ -8,6 +8,18 @@
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 
+/**
+ * @file egui_view_spangroup.c
+ * @brief Fixed-capacity span renderer for simple multi-style text runs.
+ *
+ * The renderer is intentionally lightweight: it
+ * measures each whole span,
+ * places spans from left to right, and wraps only at span boundaries.
+ */
+
+/**
+ * @brief Render all configured spans in order with whole-span line wrapping.
+ */
 static void egui_view_spangroup_on_draw(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -63,6 +75,9 @@ static void egui_view_spangroup_on_draw(egui_view_t *self)
     }
 }
 
+/**
+ * @brief Append one span entry to the fixed local span array.
+ */
 int egui_view_spangroup_add_span(egui_view_t *self, const char *text, const egui_font_t *font, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_spangroup_t);
@@ -82,6 +97,9 @@ int egui_view_spangroup_add_span(egui_view_t *self, const char *text, const egui
     return local->span_count - 1;
 }
 
+/**
+ * @brief Remove all stored spans and redraw the widget as empty.
+ */
 void egui_view_spangroup_clear(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spangroup_t);
@@ -90,6 +108,9 @@ void egui_view_spangroup_clear(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Store the alignment hint for future or custom span-group renderers.
+ */
 void egui_view_spangroup_set_align(egui_view_t *self, uint8_t align)
 {
     EGUI_LOCAL_INIT(egui_view_spangroup_t);
@@ -102,6 +123,9 @@ void egui_view_spangroup_set_align(egui_view_t *self, uint8_t align)
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Change the vertical gap inserted between wrapped span rows.
+ */
 void egui_view_spangroup_set_line_spacing(egui_view_t *self, uint8_t spacing)
 {
     EGUI_LOCAL_INIT(egui_view_spangroup_t);
@@ -131,6 +155,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_spangroup_t) = {
 #endif
 };
 
+/**
+ * @brief Initialize the span group with empty content and default wrapping state.
+ */
 void egui_view_spangroup_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_spangroup_t);
@@ -151,12 +178,18 @@ void egui_view_spangroup_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_spangroup");
 }
 
+/**
+ * @brief Apply span-group geometry from one parameter block.
+ */
 void egui_view_spangroup_apply_params(egui_view_t *self, const egui_view_spangroup_params_t *params)
 {
     self->region = params->region;
     egui_view_invalidate(self);
 }
 
+/**
+ * @brief Convenience initializer that chains span-group init and params.
+ */
 void egui_view_spangroup_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_spangroup_params_t *params)
 {
     egui_view_spangroup_init(self, core);

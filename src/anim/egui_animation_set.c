@@ -5,6 +5,12 @@
 #include "widget/egui_view.h"
 #include "core/egui_api.h"
 
+/**
+ * @file egui_animation_set.c
+ * @brief Animation-set helper that starts multiple child animations together and mirrors their overall lifecycle.
+ */
+
+/** Append one child animation to the set and mark it as owned by a parent animation set. */
 void egui_animation_set_add_animation(egui_animation_set_t *self, egui_animation_t *anim)
 {
     egui_slist_append(&self->childs, (egui_snode_t *)&anim->node);
@@ -12,6 +18,7 @@ void egui_animation_set_add_animation(egui_animation_set_t *self, egui_animation
     anim->is_inside_animation = true;
 }
 
+/** Choose which parent properties should be copied into every child before the set starts them. */
 void egui_animation_set_set_mask(egui_animation_set_t *self, int is_mask_repeat_count, int is_mask_repeat_mode, int is_mask_duration, int is_mask_target_view,
                                  int is_mask_interpolator)
 {
@@ -22,6 +29,7 @@ void egui_animation_set_set_mask(egui_animation_set_t *self, int is_mask_repeat_
     self->is_mask_interpolator = is_mask_interpolator;
 }
 
+/** Start all child animations, optionally overriding child settings with the parent-set mask flags. */
 void egui_animation_set_on_start(egui_animation_t *self)
 {
     EGUI_LOCAL_INIT(egui_animation_set_t);
@@ -66,15 +74,17 @@ void egui_animation_set_on_start(egui_animation_t *self)
     }
 }
 
+/** Placeholder update hook: the set itself does not apply a property each frame. */
 void egui_animation_set_on_update(egui_animation_t *self, egui_float_t fraction)
 {
-    EGUI_LOCAL_INIT(egui_animation_set_t);
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(fraction);
 }
 
+/** Drive every child animation and translate their aggregate started/ended state into one parent lifecycle. */
 void egui_animation_set_update(egui_animation_t *self, uint32_t current_time)
 {
     EGUI_LOCAL_INIT(egui_animation_set_t);
-    // uint32_t duration = self->duration;
 
     int started = 0;
     int ended = 1;
@@ -116,14 +126,12 @@ const egui_animation_api_t egui_animation_set_t_api_table = {
         .on_update = egui_animation_set_on_update,
 };
 
+/** Initialize an animation set and replace the base API table with the group-aware implementation. */
 void egui_animation_set_init(egui_animation_t *self)
 {
     EGUI_LOCAL_INIT(egui_animation_set_t);
-    // call super init.
     egui_animation_init(self);
-    // update api.
     self->api = &egui_animation_set_t_api_table;
 
-    // init local data.
     egui_slist_init(&local->childs);
 }

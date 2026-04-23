@@ -3,6 +3,12 @@
 #include "canvas/egui_canvas.h"
 #include "egui_core.h"
 
+/**
+ * @file egui_core_touch.c
+ * @brief Core-side touch routing plus optional debug trace capture and drawing helpers.
+ */
+
+/** Initialize touch-side core state, including debug trace bookkeeping when that feature is enabled. */
 void egui_core_touch_init(egui_core_t *core)
 {
     if (core == NULL)
@@ -17,6 +23,7 @@ void egui_core_touch_init(egui_core_t *core)
 #endif
 }
 
+/** Route one motion event into the root view tree, with optional trace recording for debug overlays. */
 void egui_core_process_input_motion(egui_core_t *core, egui_motion_event_t *motion_event)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -31,6 +38,7 @@ void egui_core_process_input_motion(egui_core_t *core, egui_motion_event_t *moti
 }
 
 #if EGUI_CONFIG_DEBUG_TOUCH_TRACE && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS > 0
+/** Clear the cached debug path so the next gesture starts from a blank record. */
 static void egui_core_touch_trace_reset_record(egui_core_touch_trace_record_t *record)
 {
     if (record == NULL)
@@ -43,6 +51,7 @@ static void egui_core_touch_trace_reset_record(egui_core_touch_trace_record_t *r
     egui_region_init_empty(&record->bounds);
 }
 
+/** Expand one touch point into a tiny dirty rectangle so it remains visible when drawn as a point. */
 static void egui_core_touch_trace_get_point_region(egui_dim_t x, egui_dim_t y, egui_region_t *region)
 {
     if (region == NULL)
@@ -53,6 +62,7 @@ static void egui_core_touch_trace_get_point_region(egui_dim_t x, egui_dim_t y, e
     egui_region_init(region, x - 1, y - 1, 3, 3);
 }
 
+/** Build the dirty rectangle that covers one drawn line segment in the touch trace. */
 static void egui_core_touch_trace_get_segment_region(const egui_location_t *from, const egui_location_t *to, egui_region_t *region)
 {
     egui_dim_t min_x;
@@ -72,6 +82,7 @@ static void egui_core_touch_trace_get_segment_region(const egui_location_t *from
     egui_region_init(region, min_x, min_y, max_x - min_x + 1, max_y - min_y + 1);
 }
 
+/** Mark the last recorded touch trace bounds dirty so the overlay can be erased or redrawn. */
 static void egui_core_touch_trace_invalidate_record(egui_core_t *core, const egui_core_touch_trace_record_t *record)
 {
     if (record == NULL || egui_region_is_empty((egui_region_t *)&record->bounds))
@@ -82,12 +93,14 @@ static void egui_core_touch_trace_invalidate_record(egui_core_t *core, const egu
     egui_core_update_region_dirty(core, (egui_region_t *)&record->bounds);
 }
 
+/** Remove the previous trace from the screen before starting a new gesture path. */
 static void egui_core_touch_trace_clear_last(egui_core_t *core)
 {
     egui_core_touch_trace_invalidate_record(core, &core->touch.trace_record);
     egui_core_touch_trace_reset_record(&core->touch.trace_record);
 }
 
+/** Append one point to the debug trace and dirty only the incremental segment that changed. */
 static void egui_core_touch_trace_append_point(egui_core_t *core, egui_core_touch_trace_record_t *record, egui_dim_t x, egui_dim_t y)
 {
     egui_region_t dirty_region;
@@ -114,6 +127,7 @@ static void egui_core_touch_trace_append_point(egui_core_t *core, egui_core_touc
         }
         else
         {
+            // Keep the newest endpoint even after the debug trace reaches its configured storage limit.
             record->points[record->point_count - 1U] = point;
         }
     }
@@ -136,6 +150,7 @@ static void egui_core_touch_trace_append_point(egui_core_t *core, egui_core_touc
     egui_core_update_region_dirty(core, &dirty_region);
 }
 
+/** Start recording a new touch trace from the first contact point. */
 static void egui_core_touch_trace_begin(egui_core_t *core, egui_dim_t x, egui_dim_t y)
 {
     egui_core_touch_trace_clear_last(core);
@@ -143,6 +158,7 @@ static void egui_core_touch_trace_begin(egui_core_t *core, egui_dim_t x, egui_di
     egui_core_touch_trace_append_point(core, &core->touch.trace_record, x, y);
 }
 
+/** Extend the active touch trace, or start a new one if the begin event was missed. */
 static void egui_core_touch_trace_move(egui_core_t *core, egui_dim_t x, egui_dim_t y)
 {
     if (!core->touch.trace_record.active)
@@ -154,6 +170,7 @@ static void egui_core_touch_trace_move(egui_core_t *core, egui_dim_t x, egui_dim
     egui_core_touch_trace_append_point(core, &core->touch.trace_record, x, y);
 }
 
+/** Finish the current touch trace while keeping the final path visible for the debug overlay. */
 static void egui_core_touch_trace_end(egui_core_t *core, egui_dim_t x, egui_dim_t y)
 {
     if (!core->touch.trace_record.active)
@@ -166,6 +183,7 @@ static void egui_core_touch_trace_end(egui_core_t *core, egui_dim_t x, egui_dim_
 }
 #endif
 
+/** Update the optional debug trace from one motion event. */
 void egui_core_touch_record_motion(egui_core_t *core, const egui_motion_event_t *motion_event)
 {
 #if EGUI_CONFIG_DEBUG_TOUCH_TRACE && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS > 0
@@ -195,6 +213,7 @@ void egui_core_touch_record_motion(egui_core_t *core, const egui_motion_event_t 
 #endif
 }
 
+/** Draw the cached touch trace onto the current canvas tile when the overlay intersects that tile. */
 void egui_core_touch_draw_trace(egui_core_t *core)
 {
 #if EGUI_CONFIG_DEBUG_TOUCH_TRACE && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS > 0
@@ -218,6 +237,7 @@ void egui_core_touch_draw_trace(egui_core_t *core)
 
     egui_canvas_calc_work_region(canvas, &region_screen);
 
+    // Skip tiles that do not overlap the cached trace bounds to keep the debug overlay cheap.
     if (pfb_region != NULL && !egui_region_is_intersect(&core->touch.trace_record.bounds, pfb_region))
     {
         return;

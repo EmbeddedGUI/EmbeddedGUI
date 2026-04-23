@@ -10,8 +10,24 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
+/**
+ * @file egui_view_toggle_button.c
+ * @brief Full-surface toggle button with optional icon and text content.
+ *
+ * Reading notes:
+ * - the frame color reflects the persistent on or off state while press feedback is only an overlay;
+ * - content layout centers icon and text as one combined block when both are present;
+ * - touch handling flips the state only after a complete press-and-release inside the button.
+ */
+
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t);
 
+/*
+ * Unlike checkbox and radio button widgets, this control treats the whole button face as the toggle target.
+ * It manages its own pressed state so the frame can show a full-surface press overlay.
+ */
+
+/** Resolve the label font, falling back to the default configured font. */
 static const egui_font_t *egui_view_toggle_button_get_text_font(const egui_view_toggle_button_t *local)
 {
     if (local->font != NULL)
@@ -22,6 +38,7 @@ static const egui_font_t *egui_view_toggle_button_get_text_font(const egui_view_
     return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
 
+/** Draw icon and text content centered within the button's work region. */
 static void egui_view_toggle_button_draw_content(egui_canvas_t *canvas, egui_view_toggle_button_t *local, const egui_region_t *region, egui_color_t text_color)
 {
     const char *icon = local->icon;
@@ -98,6 +115,7 @@ static void egui_view_toggle_button_draw_content(egui_canvas_t *canvas, egui_vie
             gap = 0;
         }
 
+        // Measure icon and label first, then center the combined content block as one unit.
         content_width = icon_width + gap + text_width;
         if (content_width < 0)
         {
@@ -128,6 +146,7 @@ static void egui_view_toggle_button_draw_content(egui_canvas_t *canvas, egui_vie
     }
 }
 
+/** Draw the button frame for the current toggle and pressed state, then return the content color. */
 static egui_color_t egui_view_toggle_button_draw_frame(egui_view_t *self, egui_view_toggle_button_t *local, egui_region_t *region)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -141,7 +160,7 @@ static egui_color_t egui_view_toggle_button_draw_frame(egui_view_t *self, egui_v
         bg_color = EGUI_THEME_DISABLED;
     }
 
-    // Draw background rounded rectangle
+    // Background color reflects the logical toggle state before content is rendered.
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {
         egui_color_t color_light = egui_rgb_mix(bg_color, EGUI_COLOR_WHITE, 80);
@@ -163,7 +182,7 @@ static egui_color_t egui_view_toggle_button_draw_frame(egui_view_t *self, egui_v
                                           bg_color, EGUI_ALPHA_100);
 #endif
 
-    // Draw pressed overlay
+    // Press feedback is a transient overlay, separate from the persistent on/off background color.
     if (self->is_pressed)
     {
         egui_canvas_draw_round_rectangle_fill(canvas, region->location.x, region->location.y, region->size.width, region->size.height, local->corner_radius,
@@ -183,12 +202,14 @@ static egui_color_t egui_view_toggle_button_draw_frame(egui_view_t *self, egui_v
     return EGUI_THEME_TEXT_PRIMARY;
 }
 
+/** Store the callback fired after the toggle state changes. */
 void egui_view_toggle_button_set_on_toggled_listener(egui_view_t *self, egui_view_on_toggled_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
     local->on_toggled = listener;
 }
 
+/** Update the stored state, notify listeners, and redraw only when it really changes. */
 void egui_view_toggle_button_set_toggled(egui_view_t *self, uint8_t is_toggled)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -203,12 +224,14 @@ void egui_view_toggle_button_set_toggled(egui_view_t *self, uint8_t is_toggled)
     }
 }
 
+/** Return whether the button is currently toggled on. */
 uint8_t egui_view_toggle_button_is_toggled(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
     return local->is_toggled;
 }
 
+/** Replace the optional icon pointer shown by the button. */
 void egui_view_toggle_button_set_icon(egui_view_t *self, const char *icon)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -222,6 +245,7 @@ void egui_view_toggle_button_set_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+/** Replace the borrowed label text shown by the button. */
 void egui_view_toggle_button_set_text(egui_view_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -229,6 +253,7 @@ void egui_view_toggle_button_set_text(egui_view_t *self, const char *text)
     egui_view_invalidate(self);
 }
 
+/** Override the font used for label text. */
 void egui_view_toggle_button_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -240,6 +265,7 @@ void egui_view_toggle_button_set_font(egui_view_t *self, const egui_font_t *font
     egui_view_invalidate(self);
 }
 
+/** Override the icon font used when the button shows a glyph string. */
 void egui_view_toggle_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -253,6 +279,7 @@ void egui_view_toggle_button_set_icon_font(egui_view_t *self, const egui_font_t 
     egui_view_invalidate(self);
 }
 
+/** Change the horizontal spacing between icon and text when both exist. */
 void egui_view_toggle_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -266,6 +293,7 @@ void egui_view_toggle_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap
     egui_view_invalidate(self);
 }
 
+/** Override the content color used while the button is toggled on. */
 void egui_view_toggle_button_set_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -273,6 +301,7 @@ void egui_view_toggle_button_set_text_color(egui_view_t *self, egui_color_t colo
     egui_view_invalidate(self);
 }
 
+/** Draw the frame first and then paint icon and text content on top. */
 void egui_view_toggle_button_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -284,6 +313,7 @@ void egui_view_toggle_button_on_draw(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/** Convert pointer press and release events into full-face pressed state plus toggle commits. */
 int egui_view_toggle_button_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -298,6 +328,7 @@ int egui_view_toggle_button_on_touch_event(egui_view_t *self, egui_motion_event_
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
     {
+        // Press state tracks the full button face, not a smaller sub-region.
         egui_view_set_pressed(self, is_inside);
         break;
     }
@@ -315,6 +346,7 @@ int egui_view_toggle_button_on_touch_event(egui_view_t *self, egui_motion_event_
         egui_view_set_pressed(self, false);
         if (was_pressed && is_inside)
         {
+            // Only a complete press-and-release inside the button commits the state flip.
             egui_view_toggle_button_set_toggled(self, !local->is_toggled);
         }
         break;
@@ -332,6 +364,7 @@ int egui_view_toggle_button_on_touch_event(egui_view_t *self, egui_motion_event_
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
+/* Use default view hooks except for toggle-button drawing and full-face touch handling. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -353,14 +386,15 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t) = {
 #endif
 };
 
+/** Initialize default colors, fonts, and full-surface toggle behavior for one button. */
 void egui_view_toggle_button_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_toggle_button_t);
-    // call super init.
+    // Initialize the base view first so touch dispatch and invalidation are available.
     egui_view_init(self, core);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t);
 
-    // init local data.
+    // Defaults describe a pill-like button with no content yet and an "off" state.
     local->on_toggled = NULL;
     local->is_toggled = 0;
     local->icon = NULL;
@@ -376,6 +410,7 @@ void egui_view_toggle_button_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_toggle_button");
 }
 
+/** Apply geometry, text, and initial toggled state from one parameter block. */
 void egui_view_toggle_button_apply_params(egui_view_t *self, const egui_view_toggle_button_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -388,6 +423,7 @@ void egui_view_toggle_button_apply_params(egui_view_t *self, const egui_view_tog
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that chains toggle-button init and params. */
 void egui_view_toggle_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_toggle_button_params_t *params)
 {
     egui_view_toggle_button_init(self, core);

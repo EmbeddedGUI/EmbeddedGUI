@@ -6,6 +6,12 @@
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 
+/*
+ * The plain label is the simplest text widget in egui.
+ * It borrows the caller's string pointer and delegates layout-aware drawing to the font/canvas
+ * helpers.
+ */
+
 void egui_view_label_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_label_t);
@@ -18,6 +24,7 @@ void egui_view_label_on_draw(egui_view_t *self)
     egui_region_t region;
     egui_view_get_work_region(self, &region);
 
+    // The canvas helper handles alignment, wrapping, and extra line spacing in one call.
     egui_canvas_draw_text_in_rect_with_line_space(canvas, local->font, local->text, &region, local->align_type, local->line_space, local->color, local->alpha);
 }
 
@@ -37,6 +44,7 @@ void egui_view_label_set_font_with_std_height(egui_view_t *self, const egui_font
     EGUI_LOCAL_INIT(egui_view_label_t);
     egui_dim_t height = EGUI_FONT_STD_GET_FONT_HEIGHT(font);
 
+    // This convenience helper keeps the view height aligned with the font's standard line height.
     egui_view_label_set_font(self, font);
     if (height == self->region.size.height)
     {
@@ -87,6 +95,7 @@ int egui_view_label_get_str_size(egui_view_t *self, const void *string, egui_dim
 {
     EGUI_LOCAL_INIT(egui_view_label_t);
 
+    // Measurement uses the same font and line-spacing settings as actual rendering.
     local->font->api->get_str_size(local->font, string, 1, local->line_space, width, height);
 
     return 0;
@@ -96,6 +105,7 @@ int egui_view_label_get_str_size_with_padding(egui_view_t *self, const void *str
 {
     if (!egui_view_label_get_str_size(self, string, width, height))
     {
+        // This version reports the outer widget size needed to contain the measured text.
         *width += self->padding.left + self->padding.right;
         *height += self->padding.top + self->padding.bottom;
     }
@@ -112,7 +122,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_label_t) = {
         .request_layout = egui_view_request_layout,
         .draw = egui_view_draw,
         .on_attach_to_window = egui_view_on_attach_to_window,
-        .on_draw = egui_view_label_on_draw, // changed
+        .on_draw = egui_view_label_on_draw,
         .on_detach_from_window = egui_view_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
@@ -124,12 +134,12 @@ void egui_view_label_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_label_t);
 
-    // call super init.
+    // Initialize the base view first so invalidation and shared view behavior are available.
     egui_view_init(self, core);
-    // update api.
+    // Replace the generic draw callback with the label-specific implementation.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_label_t);
 
-    // init local data.
+    // Defaults describe a centered text widget with no borrowed font/text yet.
     local->line_space = 0;
 
     local->align_type = EGUI_ALIGN_CENTER;
@@ -146,6 +156,7 @@ void egui_view_label_apply_params(egui_view_t *self, const egui_view_label_param
 {
     EGUI_LOCAL_INIT(egui_view_label_t);
 
+    // Params directly seed the borrowed text/font pointers and visual style.
     self->region = params->region;
 
     local->text = params->text;

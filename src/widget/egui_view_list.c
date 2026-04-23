@@ -19,6 +19,19 @@
 void egui_view_scroll_draw(egui_view_t *self);
 #endif
 
+/**
+ * @file egui_view_list.c
+ * @brief Fixed-capacity scrollable list that reuses button rows and custom row drawing.
+ *
+ * Reading notes:
+ * - each logical
+ * row owns an internal button for press and click behavior;
+ * - icon and text painting is centralized here so all rows align consistently;
+ * - layout is
+ * delegated to the embedded scroll container after row sizes update.
+ */
+
+/** Resolve the icon font, falling back to an automatic size based on row height. */
 static const egui_font_t *egui_view_list_get_icon_font(egui_view_list_t *local)
 {
     if (local->icon_font != NULL)
@@ -29,6 +42,7 @@ static const egui_font_t *egui_view_list_get_icon_font(egui_view_list_t *local)
     return egui_view_icon_font_get_auto(local->item_height, 30, 36);
 }
 
+/** Measure the widest icon slot needed across all rows that currently show icons. */
 static egui_dim_t egui_view_list_get_icon_area_width(egui_view_list_t *local)
 {
     const egui_font_t *icon_font = egui_view_list_get_icon_font(local);
@@ -106,6 +120,7 @@ static egui_dim_t egui_view_list_get_icon_area_width(egui_view_list_t *local)
     return width;
 }
 
+/** Return the usable row width after outer margins and optional scrollbar reserve. */
 static egui_dim_t egui_view_list_get_item_width(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -135,6 +150,7 @@ static egui_dim_t egui_view_list_get_item_width(egui_view_t *self)
     return item_width;
 }
 
+/** Sync one row button's size and basic label alignment with current list settings. */
 static void egui_view_list_update_item_style(egui_view_t *self, uint8_t index)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -151,6 +167,7 @@ static void egui_view_list_update_item_style(egui_view_t *self, uint8_t index)
     egui_view_label_set_align_type(item_view, EGUI_ALIGN_CENTER);
 }
 
+/** Refresh every row size, then ask the scroll container to relayout them vertically. */
 static void egui_view_list_update_all_items(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -164,6 +181,7 @@ static void egui_view_list_update_all_items(egui_view_t *self)
     egui_view_scroll_layout_childs(self);
 }
 
+/** Draw row icons and labels on top of the button backgrounds inside the list clip. */
 static void egui_view_list_draw_item_contents(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -252,6 +270,7 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
     }
 }
 
+/** Draw the scroll container first, then overlay the list's custom icon and text content. */
 static void egui_view_list_draw(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -274,6 +293,7 @@ static void egui_view_list_draw(egui_view_t *self)
     egui_canvas_set_alpha(canvas, alpha);
 }
 
+/** Translate one internal row-button click back into the owning list and row index. */
 static void egui_view_list_item_click_handler(egui_view_t *self)
 {
     egui_view_t *container = (egui_view_t *)self->parent;
@@ -307,6 +327,7 @@ static void egui_view_list_item_click_handler(egui_view_t *self)
     }
 }
 
+/** Create one internal row button, append borrowed icon/text data, and relayout the list. */
 static int8_t egui_view_list_add_item_internal(egui_view_t *self, const char *icon, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -323,6 +344,7 @@ static int8_t egui_view_list_add_item_internal(egui_view_t *self, const char *ic
 
     egui_view_button_init(item_view, self->core);
     egui_view_label_set_font(item_view, (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    /* Row labels are drawn by the list itself so icon and text can share one layout rule. */
     egui_view_label_set_text(item_view, NULL);
     egui_view_set_position(item_view, 0, 0);
     egui_view_set_margin(item_view, EGUI_VIEW_LIST_ITEM_MARGIN_X, EGUI_VIEW_LIST_ITEM_MARGIN_X, EGUI_VIEW_LIST_ITEM_MARGIN_Y, EGUI_VIEW_LIST_ITEM_MARGIN_Y);
@@ -340,16 +362,19 @@ static int8_t egui_view_list_add_item_internal(egui_view_t *self, const char *ic
     return (int8_t)idx;
 }
 
+/** Append one text-only row to the list. */
 int8_t egui_view_list_add_item(egui_view_t *self, const char *text)
 {
     return egui_view_list_add_item_internal(self, NULL, text);
 }
 
+/** Append one row that shows both an icon glyph and a text label. */
 int8_t egui_view_list_add_item_with_icon(egui_view_t *self, const char *icon, const char *text)
 {
     return egui_view_list_add_item_internal(self, icon, text);
 }
 
+/** Remove all rows, clear borrowed icon and text pointers, and redraw the widget. */
 void egui_view_list_clear(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -362,6 +387,7 @@ void egui_view_list_clear(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+/** Update the shared row height and restyle all existing rows when it changes. */
 void egui_view_list_set_item_height(egui_view_t *self, egui_dim_t height)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -376,6 +402,7 @@ void egui_view_list_set_item_height(egui_view_t *self, egui_dim_t height)
     egui_view_invalidate(self);
 }
 
+/** Replace the icon glyph for one row and refresh layout that depends on icon width. */
 void egui_view_list_set_item_icon(egui_view_t *self, uint8_t index, const char *icon)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -391,6 +418,7 @@ void egui_view_list_set_item_icon(egui_view_t *self, uint8_t index, const char *
     egui_view_invalidate(self);
 }
 
+/** Override the icon font and restyle rows so icon-space measurement stays current. */
 void egui_view_list_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -405,6 +433,7 @@ void egui_view_list_set_icon_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+/** Set the horizontal gap between an icon and its label, clamping negative values to zero. */
 void egui_view_list_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -424,6 +453,7 @@ void egui_view_list_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
     egui_view_invalidate(self);
 }
 
+/** Set the tint color used for row icons. */
 void egui_view_list_set_icon_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -437,6 +467,7 @@ void egui_view_list_set_icon_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+/** Store the callback fired when an internal row button is clicked. */
 void egui_view_list_set_on_item_click(egui_view_t *self, egui_view_list_item_click_cb_t callback)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -466,6 +497,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_list_t) = {
 #endif
 };
 
+/** Initialize the list as a scroll view with zero rows and stock icon styling. */
 void egui_view_list_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_INIT_LOCAL(egui_view_list_t);
@@ -485,6 +517,7 @@ void egui_view_list_init(egui_view_t *self, egui_core_t *core)
     egui_view_set_view_name(self, "egui_view_list");
 }
 
+/** Apply geometry and shared row height from one parameter block. */
 void egui_view_list_apply_params(egui_view_t *self, const egui_view_list_params_t *params)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
@@ -497,6 +530,7 @@ void egui_view_list_apply_params(egui_view_t *self, const egui_view_list_params_
     egui_view_invalidate(self);
 }
 
+/** Convenience helper that initializes the list before applying params. */
 void egui_view_list_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_list_params_t *params)
 {
     egui_view_list_init(self, core);

@@ -1,21 +1,41 @@
 #include "egui_style_transition.h"
 
+/**
+ * @file egui_style_transition.c
+ * @brief Helpers for animating between two immutable style records.
+ */
+
+/**
+ * @brief Linearly interpolate two colors using the existing RGB mixer.
+ */
 egui_color_t egui_color_lerp(egui_color_t from, egui_color_t to, uint8_t fraction)
 {
     /* Use existing egui_rgb_mix: fore_alpha=0 means all back(from), 255 means all fore(to) */
     return egui_rgb_mix(from, to, fraction);
 }
 
+/**
+ * @brief Linearly interpolate two alpha values.
+ */
 egui_alpha_t egui_alpha_lerp(egui_alpha_t from, egui_alpha_t to, uint8_t fraction)
 {
     return (egui_alpha_t)((uint16_t)from + (((int16_t)to - (int16_t)from) * fraction / 255));
 }
 
+/**
+ * @brief Linearly interpolate two dimensions in integer space.
+ */
 egui_dim_t egui_dim_lerp(egui_dim_t from, egui_dim_t to, uint8_t fraction)
 {
     return (egui_dim_t)(from + ((int32_t)(to - from) * fraction / 255));
 }
 
+/**
+ * @brief Start a transition from one style record to another.
+ *
+ * Only the properties listed in `prop_mask` are animated. Other pointer-based
+ * fields are switched later by `egui_style_transition_update`.
+ */
 void egui_style_transition_init(egui_style_transition_t *trans, const egui_style_t *from, const egui_style_t *to, uint16_t prop_mask)
 {
     if (from == NULL || to == NULL)
@@ -32,6 +52,13 @@ void egui_style_transition_init(egui_style_transition_t *trans, const egui_style
     trans->current.flags = from->flags | to->flags;
 }
 
+/**
+ * @brief Advance the transition toward the target style with a 0..255 fraction.
+ *
+ * Scalar properties are linearly interpolated. Pointer properties such as
+ * fonts, gradients, and shadows switch at the midpoint to avoid inventing
+ * temporary blended resources that do not really exist.
+ */
 void egui_style_transition_update(egui_style_transition_t *trans, uint8_t fraction)
 {
     if (!trans->is_active)
@@ -81,6 +108,9 @@ void egui_style_transition_update(egui_style_transition_t *trans, uint8_t fracti
     }
 }
 
+/**
+ * @brief Snap the transition to the final style and mark it inactive.
+ */
 void egui_style_transition_finish(egui_style_transition_t *trans)
 {
     if (trans->is_active && trans->to)
@@ -90,6 +120,9 @@ void egui_style_transition_finish(egui_style_transition_t *trans)
     trans->is_active = 0;
 }
 
+/**
+ * @brief Return the currently visible style record for rendering.
+ */
 const egui_style_t *egui_style_transition_get_current(const egui_style_transition_t *trans)
 {
     if (trans->is_active)

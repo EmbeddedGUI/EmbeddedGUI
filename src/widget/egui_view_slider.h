@@ -8,9 +8,16 @@
 extern "C" {
 #endif
 
+/** Listener fired when the slider value changes. */
 typedef void (*egui_view_on_value_changed_listener_t)(egui_view_t *self, uint8_t value);
 
 typedef struct egui_view_slider egui_view_slider_t;
+/**
+ * @brief Draggable horizontal value control backed by one thumb and track.
+ *
+ * The widget stores one logical value and converts it through the shared
+ * linear-value helper so drawing and touch math stay in sync.
+ */
 struct egui_view_slider
 {
     egui_view_t base;
@@ -27,22 +34,33 @@ struct egui_view_slider
 
 // ============== Slider Params ==============
 typedef struct egui_view_slider_params egui_view_slider_params_t;
+/**
+ * @brief Construction-time parameter block for one slider widget.
+ */
 struct egui_view_slider_params
 {
     egui_region_t region;
     uint8_t value;
 };
 
+/** Build a slider parameter block with region and initial value. */
 #define EGUI_VIEW_SLIDER_PARAMS_INIT(_name, _x, _y, _w, _h, _val)                                                                                              \
     static const egui_view_slider_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .value = (_val)}
 
+/** Apply a slider parameter block after initialization. */
 void egui_view_slider_apply_params(egui_view_t *self, const egui_view_slider_params_t *params);
+/** Initialize a slider and immediately apply its parameter block. */
 void egui_view_slider_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_slider_params_t *params);
 
+/** Register the callback fired when the value changes. */
 void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view_on_value_changed_listener_t listener);
+/** Set the slider value. The default range is `0..100`. */
 void egui_view_slider_set_value(egui_view_t *self, uint8_t value);
+/** Return the current slider value. */
 uint8_t egui_view_slider_get_value(egui_view_t *self);
+/** Default draw hook used by the slider API table. */
 void egui_view_slider_on_draw(egui_view_t *self);
+/** Initialize the slider widget with default colors and range. */
 void egui_view_slider_init(egui_view_t *self, egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
