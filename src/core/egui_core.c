@@ -12,7 +12,9 @@
 #include "font/egui_font_std.h"
 #include "image/egui_image_std.h"
 #include "image/egui_image_svg.h"
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 #include "mask/egui_mask_circle.h"
+#endif
 
 /**
  * @file egui_core.c
@@ -346,7 +348,9 @@ void egui_polling_refresh_display(egui_core_t *core)
     egui_image_std_release_frame_cache(core);
     egui_image_svg_release_frame_cache();
     egui_canvas_transform_release_frame_cache(&core->canvas);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     egui_mask_circle_release_frame_cache(core);
+#endif
     egui_font_std_release_frame_cache(core);
 
 #if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW

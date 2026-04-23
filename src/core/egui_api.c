@@ -169,43 +169,41 @@ static void egui_api_free_raw(egui_core_t *core, void *ptr)
 /** Emit a consistent allocation-failure log including both payload and tracked sizes. */
 static void egui_api_log_alloc_fail(const char *reason, size_t payload_size, size_t tracked_size)
 {
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu\r\n", reason, (unsigned long)payload_size, (unsigned long)tracked_size);
-#else
-    EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu\r\n", reason, (unsigned long)payload_size, (unsigned long)tracked_size);
-#endif
 }
 
-#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF && EGUI_PORT == EGUI_PORT_TYPE_QEMU
-extern void qemu_vlog(const char *format, va_list args);
+#if (EGUI_LOG_LEVEL > EGUI_LOG_IMPL_LEVEL_NONE) || EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE || EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS || EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+void egui_api_log(const char *format, ...)
+{
+    va_list args;
+    egui_platform_t *plat = egui_platform_get_default();
 
-/** Log through the QEMU-specific backend when that port supplies one. */
-void egui_api_log(const char *format, ...)
-{
-    va_list args;
     va_start(args, format);
-    qemu_vlog(format, args);
+
+    if (plat != NULL && plat->ops != NULL && plat->ops->vlog != NULL)
+    {
+        plat->ops->vlog(format, args);
+    }
+
     va_end(args);
-}
-#elif EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
-/** Log through the currently selected stdio backend. */
-void egui_api_log(const char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    vprintf(format, args);
-    va_end(args);
-    fflush(stdout);
 }
 #else
-/** Default logging path that forwards to `vprintf`. */
 void egui_api_log(const char *format, ...)
 {
     va_list args;
+
     va_start(args, format);
+
     vprintf(format, args);
-    va_end(args);
     fflush(stdout);
+    va_end(args);
+}
+#endif // EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+#else
+void egui_api_log(const char *format, ...)
+{
+    EGUI_UNUSED(format);
 }
 #endif
 
@@ -313,27 +311,6 @@ int egui_api_get_mem_monitor(egui_core_t *core, egui_mem_monitor_t *monitor)
     return 1;
 }
 
-#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
-/** Small formatting wrapper kept for consistency with the rest of the egui API layer. */
-void egui_api_sprintf(char *str, const char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    vsprintf(str, format, args);
-    va_end(args);
-}
-#else
-/** Small formatting wrapper kept for consistency with the rest of the egui API layer. */
-void egui_api_sprintf(char *str, const char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    vsprintf(str, format, args);
-    va_end(args);
-}
-#endif
-
-/** Draw one pixel block immediately through the current display driver and wait when the driver is asynchronous. */
 void egui_api_draw_data(egui_core_t *core, int16_t x, int16_t y, int16_t width, int16_t height, const egui_color_int_t *data)
 {
     egui_display_driver_t *drv = egui_display_driver_get(core);

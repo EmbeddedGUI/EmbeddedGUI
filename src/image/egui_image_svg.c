@@ -135,6 +135,14 @@ void egui_svg_alloc_free(void *ptr)
 #error "PlutoSVG backend requires EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565=1 and EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8=1."
 #endif
 
+#ifndef PLUTOVG_BUILD_STATIC
+#define PLUTOVG_BUILD_STATIC 1
+#endif
+
+#ifndef PLUTOSVG_BUILD_STATIC
+#define PLUTOSVG_BUILD_STATIC 1
+#endif
+
 #include "plutosvg.h"
 
 typedef struct egui_svg_doc

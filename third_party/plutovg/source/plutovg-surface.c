@@ -1,3 +1,11 @@
+#include "config/egui_config.h"
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
+
+#ifndef PLUTOVG_BUILD_STATIC
+#define PLUTOVG_BUILD_STATIC 1
+#endif
+
 #include "plutovg-private.h"
 #include "plutovg-utils.h"
 
@@ -333,3 +341,4 @@ void plutovg_convert_rgba_to_argb(unsigned char *dst, const unsigned char *src, 
         }
     }
 }
+#endif

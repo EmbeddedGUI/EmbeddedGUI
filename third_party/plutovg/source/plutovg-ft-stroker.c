@@ -1,4 +1,8 @@
 
+#include "config/egui_config.h"
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
+
 /***************************************************************************/
 /*                                                                         */
 /*  ftstroke.c                                                             */
@@ -1917,3 +1921,4 @@ Invalid_Outline:
 }
 
 /* END */
+#endif

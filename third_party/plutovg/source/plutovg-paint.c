@@ -1,3 +1,11 @@
+#include "config/egui_config.h"
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
+
+#ifndef PLUTOVG_BUILD_STATIC
+#define PLUTOVG_BUILD_STATIC 1
+#endif
+
 #include "plutovg-private.h"
 #include "plutovg-utils.h"
 
@@ -522,3 +530,4 @@ int plutovg_paint_get_reference_count(const plutovg_paint_t *paint)
         return paint->ref_count;
     return 0;
 }
+#endif

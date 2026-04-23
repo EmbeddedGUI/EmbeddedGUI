@@ -1,3 +1,7 @@
+#include "config/egui_config.h"
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
+
 /***************************************************************************/
 /*                                                                         */
 /*  fttrigon.c                                                             */
@@ -490,3 +494,4 @@ PVG_FT_Angle PVG_FT_Angle_Diff(PVG_FT_Angle angle1, PVG_FT_Angle angle2)
 }
 
 /* END */
+#endif

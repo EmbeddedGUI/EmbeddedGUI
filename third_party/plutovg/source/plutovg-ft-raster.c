@@ -1,3 +1,7 @@
+#include "config/egui_config.h"
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
+
 /***************************************************************************/
 /*                                                                         */
 /*  ftgrays.c                                                              */
@@ -1813,3 +1817,4 @@ void PVG_FT_Raster_Render(const PVG_FT_Raster_Params *params)
 }
 
 /* END */
+#endif

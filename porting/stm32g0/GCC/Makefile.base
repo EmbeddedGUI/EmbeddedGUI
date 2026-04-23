@@ -190,8 +190,9 @@ COMMON_FLAGS += $(COMPILE_OPT_LEVEL)
 COMMON_FLAGS += $(COMPILE_DEBUG)
 
 
-STDCLIB_LDFLAGS ?= -lc_nano -lnosys -lgcc
-#STDCLIB_LDFLAGS ?= --specs=nano.specs --specs=nosys.specs
+STDCLIB_DEFAULT_LDFLAGS ?= --specs=nano.specs --specs=nosys.specs
+STDCLIB_LDFLAGS ?=
+#STDCLIB_DEFAULT_LDFLAGS ?= -lc_nano -lnosys -lgcc
 #STDCLIB_LDFLAGS := -nostdlib -nostdinc
 #STDCLIB_LDFLAGS := -nostdlib
 
@@ -233,7 +234,7 @@ ASMFLAGS += -x assembler-with-cpp $(COMMON_FLAGS) $(APP_ASMFLAGS) $(ASM_INCLUDE_
 LIB_OPT = $(addprefix -L, $(sort $(LIBDIRS)))
 
 LDFLAGS += -T $(LINKER_SCRIPT) -Wl,-Map=$(TARGET).map -Wl,--no-warn-rwx-segments\
-		$(APP_LDFLAGS) $(GC_LDFLAGS) $(STDCLIB_LDFLAGS) \
+		$(APP_LDFLAGS) $(GC_LDFLAGS) $(STDCLIB_DEFAULT_LDFLAGS) $(STDCLIB_LDFLAGS) \
 		$(LIB_OPT) -Wl,--start-group $(LDLIBS) -Wl,--end-group
 
 

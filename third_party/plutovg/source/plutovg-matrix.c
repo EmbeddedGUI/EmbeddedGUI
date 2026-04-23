@@ -1,3 +1,11 @@
+#include "config/egui_config.h"
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
+
+#ifndef PLUTOVG_BUILD_STATIC
+#define PLUTOVG_BUILD_STATIC 1
+#endif
+
 #include "plutovg.h"
 #include "plutovg-utils.h"
 
@@ -259,3 +267,4 @@ bool plutovg_matrix_parse(plutovg_matrix_t *matrix, const char *data, int length
 
     return !has_trailing_comma;
 }
+#endif

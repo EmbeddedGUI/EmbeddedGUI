@@ -1,3 +1,11 @@
+#include "config/egui_config.h"
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
+
+#ifndef PLUTOVG_BUILD_STATIC
+#define PLUTOVG_BUILD_STATIC 1
+#endif
+
 #include "plutovg-private.h"
 #include "plutovg-utils.h"
 
@@ -1030,3 +1038,4 @@ bool plutovg_path_parse(plutovg_path_t *path, const char *data, int length)
 
     return true;
 }
+#endif

@@ -12,6 +12,7 @@
  * The binding is write-once during normal startup, but re-registering the
  * same instance is accepted so repeated init paths remain idempotent.
  */
+static egui_platform_t *s_default_platform = NULL;
 void egui_platform_register(egui_core_t *core, egui_platform_t *platform)
 {
     EGUI_ASSERT(core != NULL);
@@ -25,6 +26,11 @@ void egui_platform_register(egui_core_t *core, egui_platform_t *platform)
     {
         core->render.platform = platform;
     }
+
+    if (s_default_platform == NULL)
+    {
+        s_default_platform = platform;
+    }
 }
 
 /** Return the platform services currently attached to the given core. */
@@ -32,4 +38,9 @@ egui_platform_t *egui_platform_get(egui_core_t *core)
 {
     EGUI_ASSERT(core != NULL);
     return core->render.platform;
+}
+
+egui_platform_t *egui_platform_get_default(void)
+{
+    return s_default_platform;
 }

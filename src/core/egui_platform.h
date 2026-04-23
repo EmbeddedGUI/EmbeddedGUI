@@ -107,6 +107,8 @@ struct egui_platform
 void egui_platform_register(egui_core_t *core, egui_platform_t *platform);
 /** Return the platform currently registered on `core`, or `NULL` when none has been bound yet. */
 egui_platform_t *egui_platform_get(egui_core_t *core);
+/* Returns the default registered platform used by core-less helper paths such as logging. */
+egui_platform_t *egui_platform_get_default(void);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

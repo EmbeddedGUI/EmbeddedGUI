@@ -1,3 +1,15 @@
+#include "config/egui_config.h"
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
+
+#ifndef PLUTOVG_BUILD_STATIC
+#define PLUTOVG_BUILD_STATIC 1
+#endif
+
+#ifndef PLUTOSVG_BUILD_STATIC
+#define PLUTOSVG_BUILD_STATIC 1
+#endif
+
 #include "plutosvg.h"
 
 #include <stdint.h>
@@ -2883,3 +2895,4 @@ const void *plutosvg_ft_svg_hooks(void)
     return NULL;
 }
 #endif // PLUTOSVG_HAS_FREETYPE
+#endif

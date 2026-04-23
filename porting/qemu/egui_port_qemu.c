@@ -620,7 +620,7 @@ static void qemu_load_external_resource(egui_core_t *core, void *dest, uint32_t 
 
 #endif /* EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER */
 
-void qemu_vlog(const char *format, va_list args)
+static void qemu_vlog(const char *format, va_list args)
 {
     char buffer[384];
 
