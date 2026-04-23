@@ -626,7 +626,7 @@ void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, eg
 {
     int i;
 
-    memset(core, 0, sizeof(egui_core_t));
+    egui_api_memset(core, 0, sizeof(egui_core_t));
     core->render.pfb_mgr.core = core;
     core->canvas.core = core;
     core->screen_width = screen_w;

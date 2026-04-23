@@ -81,7 +81,7 @@ void *egui_svg_alloc_calloc(size_t count, size_t size)
     ptr = egui_svg_alloc_malloc(total);
     if (ptr != NULL)
     {
-        memset(ptr, 0, total);
+        egui_api_memset(ptr, 0, total);
     }
     return ptr;
 }
@@ -514,7 +514,7 @@ static int egui_svg_build_raster_from_argb32(int width, int height, int stride, 
         }
     }
 
-    memset(out_info, 0, sizeof(*out_info));
+    egui_api_memset(out_info, 0, sizeof(*out_info));
     out_info->data_buf = data_buf;
     out_info->alpha_buf = alpha_buf;
     out_info->data_type = EGUI_IMAGE_DATA_TYPE_RGB565;
@@ -717,7 +717,7 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
         egui_free(NULL, owned_data_buf);
         return 0;
     }
-    memset(doc, 0, sizeof(*doc));
+    egui_api_memset(doc, 0, sizeof(*doc));
     doc->document = document;
     doc->natural_width = natural_width;
     doc->natural_height = natural_height;

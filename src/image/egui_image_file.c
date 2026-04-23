@@ -1239,7 +1239,7 @@ void egui_image_file_clear_decoders(egui_core_t *core)
     }
 
     core->asset.image_file_decoder_count = 0;
-    memset(core->asset.image_file_decoders, 0, sizeof(core->asset.image_file_decoders));
+    egui_api_memset(core->asset.image_file_decoders, 0, sizeof(core->asset.image_file_decoders));
 }
 
 int egui_image_file_set_path(egui_image_file_t *self, const char *path)

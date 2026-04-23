@@ -1,6 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "uicode_disp0.h"
 
 static egui_view_radio_button_t radio_home;
