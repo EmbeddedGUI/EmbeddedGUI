@@ -65,6 +65,7 @@ PC 端已经把多屏启动入口收敛为 descriptor 流程，不再在 `portin
 
 - `egui_core_t` 初始化
 - display driver 注册
+- 可选的 per-core render_config 应用
 - 可选的 touch driver 注册
 - 调用 `uicode_dispN_init(core)`
 - 调用 `egui_screen_on(core)`
@@ -78,10 +79,25 @@ PC 多屏应用推荐通过这个钩子返回额外屏幕描述。每个 descrip
 - `screen_width` / `screen_height`
 - `pfb_width` / `pfb_height`
 - `pfb_buffers` / `pfb_buffer_count`
+- 可选的 `render_config`
 - `touch_register`
 - `uicode_init`
 
 主屏仍由 PC 入口直接构造，副屏由 descriptor 扩展。
+
+`render_config` 适合描述“同一个应用里不同 core 的运行时渲染策略”，例如副屏需要 `color_16_swap=1`、主屏保持 0，或者只有某块屏幕启用软件旋转。几何尺寸仍建议保留在宏或 descriptor 的 width/height/PFB 字段里。
+
+如果某块屏的策略需要在启动后继续变化，也可以直接对对应 core 调用 `egui_core_set_render_config()`；框架会把该屏标记为整屏刷新，并在软件旋转策略改变当前逻辑宽高时同步刷新尺寸状态。
+
+```c
+static egui_core_render_config_t disp1_render_config = {
+    .color_16_swap = 1,
+    .software_rotation = 1,
+    .rotation_scratch = NULL,
+};
+
+descriptors[0].render_config = &disp1_render_config;
+```
 
 ## 线程模型
 
@@ -229,4 +245,4 @@ runtime scope 的终端摘要里还会带上 `checks=...`、`stages=...` 和 `sh
 4. 显式接收 `core` 的 API 必须传目标屏幕自己的 `core`，例如 `egui_timer_start_timer(core, ...)`。
 5. 不显式接收 `core` 的对象式 API 依赖对象初始化时绑定的 `core`，对象必须从一开始就构造在正确屏幕上。
 6. 对 foreign core 的跨线程 UI 操作不要直接调用对象 API，优先通过 `egui_port_post_core_task()` 投递。
-7. PC 当前已支持 descriptor 化扩展，但新增更多屏幕时仍需同步检查线程退出、窗口销毁和录制输出是否完整。
+7. PC 当前已支持 descriptor 化扩展，但新增更多屏幕时仍需同步检查线程退出、窗口销毁、录制输出以及每块屏幕自己的 render_config 是否符合预期。

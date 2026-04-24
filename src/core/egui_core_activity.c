@@ -640,7 +640,7 @@ void egui_core_activity_force_finish_to_activity(egui_core_t *core, egui_activit
         activity->api->on_resume(activity);
 
         egui_view_set_position((egui_view_t *)&activity->root_view, 0, 0);
-        egui_view_set_size((egui_view_t *)&activity->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+        egui_view_set_size((egui_view_t *)&activity->root_view, core->screen_width, core->screen_height);
     }
 
     // Force a full redraw because the visible foreground activity may have changed completely.

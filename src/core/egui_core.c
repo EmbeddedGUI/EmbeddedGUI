@@ -296,7 +296,7 @@ void egui_polling_refresh_display(egui_core_t *core)
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
 #if EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR == 0
     // In stepped debug modes, clear the previous highlight pass before drawing the current dirty regions.
-    EGUI_REGION_DEFINE(region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    EGUI_REGION_DEFINE(region, 0, 0, core->screen_width, core->screen_height);
     egui_core_draw_view_group(core, &region, false);
 #endif
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
@@ -560,6 +560,98 @@ void egui_core_set_screen_size(egui_core_t *core, int16_t width, int16_t height)
     egui_core_update_region_dirty_all(core);
 }
 
+static void egui_core_release_rotation_scratch(egui_core_t *core)
+{
+    if (core == NULL)
+    {
+        return;
+    }
+
+    if (core->render.rotation_scratch_owned && core->render.rotation_scratch != NULL)
+    {
+        egui_api_free(core, core->render.rotation_scratch);
+    }
+
+    core->render.rotation_scratch = NULL;
+    core->render.rotation_scratch_owned = 0;
+}
+
+static void egui_core_apply_render_config(egui_core_t *core, const egui_core_render_config_t *config)
+{
+    uint8_t color_16_swap = EGUI_CONFIG_COLOR_16_SWAP ? 1U : 0U;
+    uint8_t software_rotation = EGUI_CONFIG_SOFTWARE_ROTATION ? 1U : 0U;
+    egui_color_int_t *rotation_scratch = NULL;
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    if (config != NULL)
+    {
+        color_16_swap = config->color_16_swap ? 1U : 0U;
+        software_rotation = config->software_rotation ? 1U : 0U;
+        rotation_scratch = config->rotation_scratch;
+    }
+
+    core->render.color_16_swap = color_16_swap;
+
+    if (!software_rotation)
+    {
+        egui_core_release_rotation_scratch(core);
+        core->render.software_rotation = 0;
+        return;
+    }
+
+    if (rotation_scratch != NULL)
+    {
+        egui_core_release_rotation_scratch(core);
+        core->render.rotation_scratch = rotation_scratch;
+        core->render.software_rotation = 1;
+        return;
+    }
+
+    if (core->render.rotation_scratch == NULL || !core->render.rotation_scratch_owned)
+    {
+        egui_core_release_rotation_scratch(core);
+        core->render.rotation_scratch = (egui_color_int_t *)egui_api_malloc(core, core->pfb_total_buffer_size);
+        if (core->render.rotation_scratch == NULL)
+        {
+            EGUI_LOG_ERR("rotation scratch alloc failed, bytes=%d\n", core->pfb_total_buffer_size);
+            core->render.software_rotation = 0;
+            return;
+        }
+        core->render.rotation_scratch_owned = 1;
+    }
+
+    core->render.software_rotation = 1;
+}
+
+void egui_core_set_render_config(egui_core_t *core, const egui_core_render_config_t *config)
+{
+    int16_t new_w;
+    int16_t new_h;
+
+    EGUI_ASSERT(core != NULL);
+    EGUI_ASSERT(core->screen_width > 0);
+    EGUI_ASSERT(core->screen_height > 0);
+    EGUI_ASSERT(core->pfb_total_buffer_size > 0);
+    if (config != NULL)
+    {
+        EGUI_ASSERT(config->color_16_swap <= 1);
+        EGUI_ASSERT(config->software_rotation <= 1);
+    }
+
+    egui_core_apply_render_config(core, config);
+    new_w = egui_display_get_width(core);
+    new_h = egui_display_get_height(core);
+    if (new_w > 0 && new_h > 0 && (core->screen_width != new_w || core->screen_height != new_h))
+    {
+        egui_core_set_screen_size(core, new_w, new_h);
+    }
+    egui_core_force_refresh(core);
+}
+
 /** Finish the second half of display setup after the core and PFB manager are already initialized. */
 void egui_core_setup_display_start(egui_core_t *core, const egui_display_setup_t *setup)
 {
@@ -625,6 +717,15 @@ void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, eg
 {
     int i;
 
+    EGUI_ASSERT(core != NULL);
+    EGUI_ASSERT(pfb_bufs != NULL);
+    EGUI_ASSERT(pfb_bufs[0] != NULL);
+    EGUI_ASSERT(buf_count > 0 && buf_count <= EGUI_PFB_BUFFER_MAX_COUNT);
+    EGUI_ASSERT(screen_w > 0 && screen_h > 0);
+    EGUI_ASSERT(screen_w <= 32767 && screen_h <= 32767);
+    EGUI_ASSERT(pfb_w > 0 && pfb_h > 0);
+    EGUI_ASSERT(pfb_w <= 32767 && pfb_h <= 32767);
+
     egui_api_memset(core, 0, sizeof(egui_core_t));
     core->render.pfb_mgr.core = core;
     core->canvas.core = core;
@@ -638,6 +739,7 @@ void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, eg
 
     for (i = 1; i < buf_count && i < EGUI_PFB_BUFFER_MAX_COUNT; i++)
     {
+        EGUI_ASSERT(pfb_bufs[i] != NULL);
         egui_pfb_manager_add_buffer(&core->render.pfb_mgr, pfb_bufs[i]);
     }
 
@@ -647,6 +749,7 @@ void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, eg
     core->system.is_suspended = 1;
     core->scene.dirty_epoch = 0;
     core->asset.theme_current = EGUI_CONFIG_THEME_DEFAULT;
+    egui_core_apply_render_config(core, NULL);
 
     egui_timer_init(core);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -675,10 +778,29 @@ void egui_setup_display(egui_core_t *core, const egui_display_setup_t *setup)
     EGUI_ASSERT(egui_platform_get() != NULL);
     EGUI_ASSERT(setup->pfb_buffers != NULL);
     EGUI_ASSERT(setup->pfb_buffer_count > 0);
+    EGUI_ASSERT(setup->pfb_buffer_count <= EGUI_PFB_BUFFER_MAX_COUNT);
+    EGUI_ASSERT(setup->screen_width > 0);
+    EGUI_ASSERT(setup->screen_height > 0);
+    EGUI_ASSERT(setup->screen_width <= 32767);
+    EGUI_ASSERT(setup->screen_height <= 32767);
+    EGUI_ASSERT(setup->pfb_width > 0);
+    EGUI_ASSERT(setup->pfb_height > 0);
+    EGUI_ASSERT(setup->pfb_width <= 32767);
+    EGUI_ASSERT(setup->pfb_height <= 32767);
     EGUI_ASSERT(setup->display_driver != NULL);
+    EGUI_ASSERT(setup->display_id < EGUI_CONFIG_MAX_DISPLAY_COUNT);
+    if (setup->render_config != NULL)
+    {
+        EGUI_ASSERT(setup->render_config->color_16_swap <= 1);
+        EGUI_ASSERT(setup->render_config->software_rotation <= 1);
+    }
 
     egui_init_display(core, (int16_t)setup->screen_width, (int16_t)setup->screen_height, setup->pfb_buffers, setup->pfb_buffer_count, setup->pfb_width,
                       setup->pfb_height);
+    if (setup->render_config != NULL)
+    {
+        egui_core_set_render_config(core, setup->render_config);
+    }
     core->id = setup->display_id;
     egui_core_setup_display_start(core, setup);
 }

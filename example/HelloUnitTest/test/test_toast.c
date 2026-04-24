@@ -166,6 +166,34 @@ static void test_toast_set_as_default_uses_explicit_init_core(void)
     egui_toast_clear_as_default((egui_toast_t *)&test_toast_std);
 }
 
+static void test_toast_std_show_positions_label_using_bound_core_dimensions(void)
+{
+    egui_core_t local_core;
+    static egui_color_int_t local_pfb[16 * 8];
+    egui_color_int_t *pfb_bufs[1] = {local_pfb};
+    egui_view_t *label = EGUI_VIEW_OF(&test_toast_std.label);
+    static const char *test_text = "toast local";
+    egui_dim_t expected_width = 0;
+    egui_dim_t expected_height = 0;
+
+    egui_init_display(&local_core, 128, 64, pfb_bufs, 1, 16, 8);
+    egui_toast_std_init((egui_toast_t *)&test_toast_std, &local_core);
+    egui_toast_set_as_default((egui_toast_t *)&test_toast_std);
+    egui_view_label_get_str_size_with_padding(label, test_text, &expected_width, &expected_height);
+
+    egui_toast_show_info((egui_toast_t *)&test_toast_std, test_text);
+
+    EGUI_TEST_ASSERT_TRUE(egui_toast_get_core((egui_toast_t *)&test_toast_std) == &local_core);
+    EGUI_TEST_ASSERT_TRUE(label->is_visible);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_width, label->region.size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_height, label->region.size.height);
+    EGUI_TEST_ASSERT_EQUAL_INT((128 - expected_width) / 2, label->region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(64 - expected_height - 20, label->region.location.y);
+
+    egui_toast_stop_timer((egui_toast_t *)&test_toast_std, &test_toast_std.base.hide_timer);
+    egui_toast_clear_as_default((egui_toast_t *)&test_toast_std);
+}
+
 static void test_toast_default_helpers_use_init_core_when_active_is_null(void)
 {
     egui_core_t *core = test_toast_get_core();
@@ -322,6 +350,7 @@ void test_toast_run(void)
     EGUI_TEST_RUN(test_toast_set_as_default_reattaches_detached_std_label_same_core);
     EGUI_TEST_RUN(test_toast_std_show_uses_init_core_when_active_is_null);
     EGUI_TEST_RUN(test_toast_set_as_default_uses_explicit_init_core);
+    EGUI_TEST_RUN(test_toast_std_show_positions_label_using_bound_core_dimensions);
     EGUI_TEST_RUN(test_toast_default_helpers_use_init_core_when_active_is_null);
     EGUI_TEST_RUN(test_view_toast_helpers_use_view_init_core);
     EGUI_TEST_RUN(test_page_base_toast_helpers_use_init_core);

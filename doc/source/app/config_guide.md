@@ -74,6 +74,8 @@ egui_config.h
 #define EGUI_CONFIG_PFB_1_HEIGHT   8
 ```
 
+这些多屏宏更适合表达“默认尺寸 / 默认 PFB”这类编译期几何信息，用来减少样板代码。像 `RGB565 byte swap`、`software rotation` 这种能力是否启用，尤其是在多屏应用里不同 core 可能不同的时候，优先放到运行时配置里处理，例如 `egui_display_setup_t.render_config`。
+
 ## 颜色选项
 
 ```c
@@ -83,6 +85,12 @@ egui_config.h
 // SDL 原生 RGB565 显示（PC 模拟器，模拟嵌入式色彩效果）
 #define EGUI_CONFIG_SDL_NATIVE_COLOR      0
 ```
+
+说明：
+
+- `EGUI_CONFIG_COLOR_16_SWAP` 现在是主屏初始化辅助接口的默认 runtime 值。
+- 如果走 `egui_setup_display()`，可以通过 `egui_display_setup_t.render_config->color_16_swap` 按 core 覆盖。
+- 多屏场景下不要假设所有屏幕都共用同一个 byte swap 策略。
 
 ## PFB 参数
 
@@ -118,6 +126,8 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 ```
 
 多缓冲需要显示驱动的 `draw_area` 支持异步传输，DMA 完成中断中调用 `egui_pfb_notify_flush_complete(&core)`。
+
+当前 `EGUI_CONFIG_PFB_BUFFER_COUNT` 的有效范围是 `1..4`。`EGUI_CONFIG_PFB_WIDTH` / `EGUI_CONFIG_PFB_HEIGHT` / `EGUI_CONFIG_DIRTY_AREA_COUNT` 也要求大于 0，这些约束现在统一由 `src/config/egui_config_validate.h` 做编译期检查。
 
 ## 性能参数
 
@@ -177,6 +187,35 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 
 // 软件旋转（90/270 度需要额外缓冲区）
 #define EGUI_CONFIG_SOFTWARE_ROTATION           0
+```
+
+说明：
+
+- `EGUI_CONFIG_SOFTWARE_ROTATION` 现在也是主屏初始化辅助接口的默认 runtime 值。
+- 如果走 `egui_setup_display()`，推荐通过 `egui_display_setup_t.render_config->software_rotation` 按 core 控制。
+- 如果 display 已经初始化完成，后续也可以调用 `egui_core_set_render_config(core, &config)` 在运行时切换，框架会自动触发一次整屏重绘；如果当前旋转策略会改变该 core 的逻辑宽高，逻辑尺寸也会同步更新。
+- 90/270 度软件旋转需要 scratch buffer。若 `render_config.rotation_scratch == NULL`，框架会按当前 PFB 大小在 heap 上按需申请；也可以由调用方自行提供。
+
+示例：
+
+```c
+static egui_core_render_config_t disp1_render_config = {
+    .color_16_swap = 1,
+    .software_rotation = 1,
+    .rotation_scratch = NULL,
+};
+
+egui_display_setup_t setup = {0};
+setup.screen_width = 128;
+setup.screen_height = 64;
+setup.pfb_width = 16;
+setup.pfb_height = 8;
+setup.pfb_buffers = disp1_pfb_bufs;
+setup.pfb_buffer_count = 1;
+setup.display_driver = disp1_driver;
+setup.render_config = &disp1_render_config;
+setup.uicode_init = uicode_disp1_init;
+setup.display_id = 1;
 ```
 
 ### 图片格式支持

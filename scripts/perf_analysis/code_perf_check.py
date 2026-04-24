@@ -28,6 +28,8 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
+CONFIG_MACRO_EVAL_FILE = PROJECT_ROOT / "scripts" / "config_macro_eval.py"
+CONFIG_DEFAULT_PATH = PROJECT_ROOT / "src" / "config" / "egui_config_default.h"
 PROFILES_FILE = SCRIPT_DIR / "perf_cpu_profiles.json"
 OUTPUT_DIR = PROJECT_ROOT / "perf_output"
 RESULTS_FILE = OUTPUT_DIR / "perf_results.json"
@@ -37,6 +39,18 @@ SCENE_INDEX_FILE = OUTPUT_DIR / "perf_scenes_index.json"
 
 DEFAULT_TIMEOUT = 300
 DEFAULT_THRESHOLD = 10
+
+
+def load_config_macro_eval():
+    spec = importlib.util.spec_from_file_location("config_macro_eval", CONFIG_MACRO_EVAL_FILE)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"failed to load {CONFIG_MACRO_EVAL_FILE}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+get_macro_int_from_config = load_config_macro_eval().get_macro_int_from_config
 
 
 def find_qemu_executable():
@@ -319,39 +333,15 @@ def merge_extra_cflags(user_extra_cflags=None):
 def read_screen_size():
     """Read EGUI_CONFIG_SCEEN_WIDTH/HEIGHT from app_egui_config.h.
 
+    Supports local include chains, macro aliases, and integer expressions.
     Falls back per-dimension to the library defaults if one side is omitted.
     """
-    default_w = 240
-    default_h = 320
-
-    def _read_macros(path):
-        text = path.read_text(encoding="utf-8")
-        width = height = None
-        for line in text.splitlines():
-            m = re.match(r"\s*#\s*define\s+EGUI_CONFIG_SCEEN_WIDTH\s+(\d+)", line)
-            if m:
-                width = int(m.group(1))
-            m = re.match(r"\s*#\s*define\s+EGUI_CONFIG_SCEEN_HEIGHT\s+(\d+)", line)
-            if m:
-                height = int(m.group(1))
-        return text, width, height
+    default_w = get_macro_int_from_config(CONFIG_DEFAULT_PATH, "EGUI_CONFIG_SCEEN_WIDTH", 240)
+    default_h = get_macro_int_from_config(CONFIG_DEFAULT_PATH, "EGUI_CONFIG_SCEEN_HEIGHT", 320)
 
     try:
-        text, w, h = _read_macros(APP_CONFIG_PATH)
-        if w is None or h is None:
-            match = re.search(
-                r'^\s*#\s*include\s+"(?P<path>[^"]*app_egui_config_designer\.h)"\s*$',
-                text,
-                re.MULTILINE,
-            )
-            if match:
-                designer_path = (APP_CONFIG_PATH.parent / match.group("path")).resolve()
-                if designer_path.exists():
-                    _, designer_w, designer_h = _read_macros(designer_path)
-                    if w is None:
-                        w = designer_w
-                    if h is None:
-                        h = designer_h
+        w = get_macro_int_from_config(APP_CONFIG_PATH, "EGUI_CONFIG_SCEEN_WIDTH", None)
+        h = get_macro_int_from_config(APP_CONFIG_PATH, "EGUI_CONFIG_SCEEN_HEIGHT", None)
         return (w if w is not None else default_w, h if h is not None else default_h)
     except Exception:
         pass

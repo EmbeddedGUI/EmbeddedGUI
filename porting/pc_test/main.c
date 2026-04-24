@@ -11,8 +11,16 @@ static egui_core_t core;
 
 int main(int argc, const char *argv[])
 {
-    EGUI_UNUSED(argc);
-    EGUI_UNUSED(argv);
+    const char *test_filter = NULL;
+
+    if (argc > 1)
+    {
+        test_filter = argv[1];
+    }
+    if ((test_filter == NULL || test_filter[0] == '\0'))
+    {
+        test_filter = getenv("EGUI_TEST_FILTER");
+    }
 
     printf("EmbeddedGUI Test Runner\n");
 
@@ -24,6 +32,7 @@ int main(int argc, const char *argv[])
     egui_init(&core, egui_pfb);
     egui_port_init(&core);
     egui_display_driver_register(&core, egui_port_get_display_driver());
+    uicode_set_test_filter(test_filter);
 
     uicode_disp0_init(&core);
     egui_screen_on(&core);

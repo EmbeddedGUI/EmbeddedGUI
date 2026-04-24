@@ -924,6 +924,167 @@ static void test_setup_display_registers_driver_platform_and_hooks(void)
     EGUI_TEST_ASSERT_TRUE(g_test_setup_uicode_init_core == &local_core);
 }
 
+static void test_setup_display_applies_render_config_override(void)
+{
+    egui_core_t local_core;
+    static egui_color_int_t local_pfb[32 * 24];
+    static egui_color_int_t rotation_scratch[32 * 24];
+    egui_color_int_t *pfb_bufs[1] = {local_pfb};
+    static egui_display_driver_ops_t driver_ops = {
+            .init = test_setup_display_driver_init,
+            .draw_area = test_setup_display_driver_draw_area,
+            .flush = test_setup_display_driver_flush,
+            .set_brightness = test_setup_display_driver_set_brightness,
+            .set_power = test_setup_display_driver_set_power,
+            .set_rotation = test_setup_display_driver_set_rotation,
+    };
+    static egui_display_driver_t driver = {
+            .ops = &driver_ops,
+            .physical_width = 320,
+            .physical_height = 240,
+            .rotation = EGUI_DISPLAY_ROTATION_0,
+            .brightness = 255,
+    };
+    static const egui_core_render_config_t render_config = {
+            .color_16_swap = 1,
+            .software_rotation = 1,
+            .rotation_scratch = rotation_scratch,
+    };
+    egui_display_setup_t setup = {
+            .screen_width = 320,
+            .screen_height = 240,
+            .pfb_width = 32,
+            .pfb_height = 24,
+            .pfb_buffers = pfb_bufs,
+            .pfb_buffer_count = 1,
+            .display_driver = &driver,
+            .render_config = &render_config,
+            .touch_register = test_setup_touch_register,
+            .uicode_init = test_setup_uicode_init,
+            .display_id = 1,
+    };
+
+    memset(&local_core, 0, sizeof(local_core));
+    test_setup_display_reset_state();
+
+    egui_setup_display(&local_core, &setup);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(1, local_core.render.color_16_swap);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, local_core.render.software_rotation);
+    EGUI_TEST_ASSERT_TRUE(local_core.render.rotation_scratch == rotation_scratch);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, local_core.render.rotation_scratch_owned);
+}
+
+static void test_core_set_render_config_updates_runtime_flags_and_forces_full_refresh(void)
+{
+    egui_core_t local_core;
+    static egui_color_int_t local_pfb[32 * 24];
+    static egui_color_int_t rotation_scratch[32 * 24];
+    egui_color_int_t *pfb_bufs[1] = {local_pfb};
+    egui_region_t expected_dirty;
+    egui_region_t *dirty_arr;
+    static const egui_core_render_config_t render_config = {
+            .color_16_swap = 1,
+            .software_rotation = 1,
+            .rotation_scratch = rotation_scratch,
+    };
+
+    memset(&local_core, 0, sizeof(local_core));
+
+    egui_init_display(&local_core, 320, 240, pfb_bufs, 1, 32, 24);
+    egui_core_clear_region_dirty(&local_core);
+
+    dirty_arr = egui_core_get_region_dirty_arr(&local_core);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&dirty_arr[0]));
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&dirty_arr[1]));
+
+    egui_core_set_render_config(&local_core, &render_config);
+
+    egui_region_init(&expected_dirty, 0, 0, 320, 240);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, local_core.render.color_16_swap);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, local_core.render.software_rotation);
+    EGUI_TEST_ASSERT_TRUE(local_core.render.rotation_scratch == rotation_scratch);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, local_core.render.rotation_scratch_owned);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected_dirty, &dirty_arr[0]);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&dirty_arr[1]));
+
+    egui_core_clear_region_dirty(&local_core);
+    egui_core_set_render_config(&local_core, NULL);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_CONFIG_COLOR_16_SWAP ? 1 : 0, local_core.render.color_16_swap);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_CONFIG_SOFTWARE_ROTATION ? 1 : 0, local_core.render.software_rotation);
+#if EGUI_CONFIG_SOFTWARE_ROTATION
+    EGUI_TEST_ASSERT_TRUE(local_core.render.rotation_scratch != NULL);
+#else
+    EGUI_TEST_ASSERT_NULL(local_core.render.rotation_scratch);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, local_core.render.rotation_scratch_owned);
+#endif
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected_dirty, &dirty_arr[0]);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&dirty_arr[1]));
+}
+
+static void test_display_get_size_without_driver_uses_core_dimensions(void)
+{
+    egui_core_t local_core;
+    static egui_color_int_t local_pfb[16 * 8];
+    egui_color_int_t *pfb_bufs[1] = {local_pfb};
+
+    memset(&local_core, 0, sizeof(local_core));
+
+    egui_init_display(&local_core, 128, 64, pfb_bufs, 1, 16, 8);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(128, egui_display_get_width(&local_core));
+    EGUI_TEST_ASSERT_EQUAL_INT(64, egui_display_get_height(&local_core));
+}
+
+static void test_core_set_render_config_updates_logical_size_for_rotated_software_rotation(void)
+{
+    egui_core_t local_core;
+    static egui_color_int_t local_pfb[32 * 24];
+    static egui_color_int_t rotation_scratch[32 * 24];
+    egui_color_int_t *pfb_bufs[1] = {local_pfb};
+    static egui_display_driver_ops_t driver_ops = {0};
+    static egui_display_driver_t driver = {
+            .ops = &driver_ops,
+            .physical_width = 320,
+            .physical_height = 240,
+            .rotation = EGUI_DISPLAY_ROTATION_90,
+            .brightness = 255,
+    };
+    static const egui_core_render_config_t enable_config = {
+            .color_16_swap = 0,
+            .software_rotation = 1,
+            .rotation_scratch = rotation_scratch,
+    };
+    static const egui_core_render_config_t disable_config = {
+            .color_16_swap = 0,
+            .software_rotation = 0,
+            .rotation_scratch = NULL,
+    };
+
+    memset(&local_core, 0, sizeof(local_core));
+
+    egui_init_display(&local_core, 320, 240, pfb_bufs, 1, 32, 24);
+    egui_display_driver_register(&local_core, &driver);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(320, local_core.screen_width);
+    EGUI_TEST_ASSERT_EQUAL_INT(240, local_core.screen_height);
+
+    egui_core_set_render_config(&local_core, &enable_config);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(240, local_core.screen_width);
+    EGUI_TEST_ASSERT_EQUAL_INT(320, local_core.screen_height);
+    EGUI_TEST_ASSERT_EQUAL_INT(240, egui_display_get_width(&local_core));
+    EGUI_TEST_ASSERT_EQUAL_INT(320, egui_display_get_height(&local_core));
+
+    egui_core_set_render_config(&local_core, &disable_config);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(320, local_core.screen_width);
+    EGUI_TEST_ASSERT_EQUAL_INT(240, local_core.screen_height);
+    EGUI_TEST_ASSERT_EQUAL_INT(320, egui_display_get_width(&local_core));
+    EGUI_TEST_ASSERT_EQUAL_INT(240, egui_display_get_height(&local_core));
+}
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 static void test_view_focus_helpers_bridge_core_focus_manager(void)
 {
@@ -1045,6 +1206,10 @@ void test_view_run(void)
     EGUI_TEST_RUN(test_view_velocity_helpers_use_bound_core_when_active_is_null);
     EGUI_TEST_RUN(test_init_display_sets_canvas_core);
     EGUI_TEST_RUN(test_setup_display_registers_driver_platform_and_hooks);
+    EGUI_TEST_RUN(test_setup_display_applies_render_config_override);
+    EGUI_TEST_RUN(test_core_set_render_config_updates_runtime_flags_and_forces_full_refresh);
+    EGUI_TEST_RUN(test_display_get_size_without_driver_uses_core_dimensions);
+    EGUI_TEST_RUN(test_core_set_render_config_updates_logical_size_for_rotated_software_rotation);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     EGUI_TEST_RUN(test_view_focus_helpers_bridge_core_focus_manager);
     EGUI_TEST_RUN(test_view_request_focus_uses_bound_core_when_active_is_null);

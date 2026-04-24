@@ -10,6 +10,7 @@ extern "C" {
 
 void uicode_disp0_init(egui_core_t *core);
 egui_core_t *uicode_get_core(void);
+void uicode_set_test_filter(const char *filter);
 
 extern void test_init_ui(void);
 

@@ -513,6 +513,7 @@ int main(void)
     setup.pfb_buffers = pfb_bufs;
     setup.pfb_buffer_count = EGUI_CONFIG_PFB_BUFFER_COUNT;
     setup.display_driver = egui_port_get_display_driver();
+    setup.render_config = NULL;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     setup.touch_register = egui_port_register_touch_driver;
 #else
@@ -558,6 +559,7 @@ void gui_task(void *arg)
     setup.pfb_buffers = pfb_bufs;
     setup.pfb_buffer_count = EGUI_CONFIG_PFB_BUFFER_COUNT;
     setup.display_driver = egui_port_get_display_driver();
+    setup.render_config = NULL;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     setup.touch_register = egui_port_register_touch_driver;
 #else
@@ -601,6 +603,32 @@ void gui_task(void *arg)
 #define EGUI_CONFIG_SOFTWARE_ROTATION        0
 ```
 
+这里的 `EGUI_CONFIG_COLOR_16_SWAP` 和 `EGUI_CONFIG_SOFTWARE_ROTATION` 主要表达“默认 runtime 值”。如果你的 port 需要按屏幕实例动态决定这些能力，优先通过 `egui_display_setup_t.render_config` 覆盖，而不是继续扩散全局宏。
+
+如果 display 已经启动，后续仍可调用 `egui_core_set_render_config(core, &config)` 动态切换；框架会自动触发一次整屏重绘来收敛新策略。
+
+示例：
+
+```c
+static egui_core_render_config_t sub_render_config = {
+    .color_16_swap = 1,
+    .software_rotation = 1,
+    .rotation_scratch = NULL,
+};
+
+egui_display_setup_t setup = {0};
+setup.screen_width = 128;
+setup.screen_height = 64;
+setup.pfb_width = 16;
+setup.pfb_height = 8;
+setup.pfb_buffers = sub_pfb_bufs;
+setup.pfb_buffer_count = 1;
+setup.display_driver = sub_driver;
+setup.render_config = &sub_render_config;
+setup.uicode_init = uicode_disp1_init;
+setup.display_id = 1;
+```
+
 ### 8.3 按键参数
 
 如果平台启用了按键输入，可按需配置长按、重复触发等相关参数。
@@ -609,7 +637,7 @@ void gui_task(void *arg)
 
 建议优先保证：
 
-- `EGUI_CONFIG_PFB_WIDTH` 和 `EGUI_CONFIG_PFB_HEIGHT` 是屏幕尺寸的整数约数
+- `EGUI_CONFIG_PFB_WIDTH` 和 `EGUI_CONFIG_PFB_HEIGHT` 优先选为屏幕尺寸的整数约数
 - PFB 不要太小，否则 LCD 窗口切换过于频繁
 - PFB 也不要盲目太大，否则会推高 RAM 占用
 
@@ -656,9 +684,11 @@ static void my_load_external_resource(egui_core_t *core, void *dest, uint32_t re
 
 如果 LCD 控制器本身不支持旋转，可以：
 
-- 开启 `EGUI_CONFIG_SOFTWARE_ROTATION`
+- 对默认单屏路径，开启 `EGUI_CONFIG_SOFTWARE_ROTATION`
 - 让 LCD 驱动的 `set_rotation` 为空
 - 由框架在 PFB 输出阶段完成旋转
+
+如果是多屏或运行时动态配置，优先改为设置 `egui_display_setup_t.render_config->software_rotation`。90/270 度旋转需要 scratch buffer；未显式提供 `rotation_scratch` 时，框架会按当前 PFB 大小在 heap 上按需申请。
 
 ### 9.5 屏幕开关机
 

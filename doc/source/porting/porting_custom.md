@@ -42,11 +42,11 @@ extern "C" {
 // 色深
 #define EGUI_CONFIG_COLOR_DEPTH  16    // RGB565
 
-// PFB 大小（必须是屏幕尺寸的整数约数）
+// PFB 大小（建议优先选为屏幕尺寸的整数约数）
 #define EGUI_CONFIG_PFB_WIDTH    30    // 240 / 8
 #define EGUI_CONFIG_PFB_HEIGHT   40    // 320 / 8
 
-// RGB565 字节交换（SPI 8-bit 接口常用）
+// RGB565 字节交换默认值（SPI 8-bit 接口常用）
 #define EGUI_CONFIG_COLOR_16_SWAP 0
 
 #ifdef __cplusplus
@@ -236,7 +236,7 @@ void port_main(void)
     setup.pfb_buffers = pfb_bufs;
     setup.pfb_buffer_count = 1;
     setup.display_driver = &my_display;
-    setup.platform = &my_platform;
+    setup.render_config = NULL;
     setup.touch_register = NULL;   // 有触摸时填 egui_port_register_touch_driver
     setup.uicode_init = uicode_disp0_init;
     setup.display_id = 0;
@@ -295,7 +295,7 @@ EmbeddedGUI 提供三个独立的平台扩展宏，控制是否通过 `egui_plat
 如果屏幕花屏或无显示：
 - 检查 SPI 时序和 GPIO 配置
 - 检查 LCD 初始化命令序列
-- 检查 `EGUI_CONFIG_COLOR_16_SWAP` 是否需要设为 1
+- 检查 `EGUI_CONFIG_COLOR_16_SWAP` 这个默认值是否需要设为 1；多屏或异构屏更推荐通过 `setup.render_config->color_16_swap` 按屏覆盖
 - 用示波器或逻辑分析仪检查 SPI 信号
 
 ### 检查点 2：矩形绘制
@@ -384,9 +384,9 @@ void uicode_disp0_init(egui_core_t *core)
 
 ### 屏幕花屏
 
-1. `EGUI_CONFIG_COLOR_16_SWAP`：SPI 8-bit 模式下通常需要设为 1
+1. `EGUI_CONFIG_COLOR_16_SWAP`：SPI 8-bit 模式下通常需要设为 1；如果不同屏幕需求不同，优先改为 `setup.render_config->color_16_swap`
 2. 检查 `draw_area` 中的坐标计算
-3. 确认 PFB 宽高是屏幕宽高的整数约数
+3. 优先确认 PFB 宽高选成了屏幕宽高的整数约数
 
 ### 画面撕裂
 

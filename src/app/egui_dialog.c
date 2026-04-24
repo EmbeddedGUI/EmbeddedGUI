@@ -314,7 +314,7 @@ void egui_dialog_init(egui_dialog_t *self, egui_core_t *core)
     // Root view group: the dimmed full-screen modal layer.
     egui_view_root_group_init((egui_view_t *)&self->root_view, core);
     egui_view_set_position((egui_view_t *)&self->root_view, 0, 0);
-    egui_view_set_size((egui_view_t *)&self->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size((egui_view_t *)&self->root_view, core->screen_width, core->screen_height);
 
     egui_view_set_background((egui_view_t *)&self->root_view, (egui_background_t *)&bg_dialog);
 
@@ -325,7 +325,7 @@ void egui_dialog_init(egui_dialog_t *self, egui_core_t *core)
     // User view group: the actual dialog content tree that sits above the modal background.
     egui_view_root_group_init((egui_view_t *)&self->user_root_view, core);
     egui_view_set_position((egui_view_t *)&self->user_root_view, 0, 0);
-    egui_view_set_size((egui_view_t *)&self->user_root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size((egui_view_t *)&self->user_root_view, core->screen_width, core->screen_height);
 
     egui_view_set_view_name((egui_view_t *)&self->user_root_view, "egui_dialog_user_root_view");
 

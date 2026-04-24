@@ -189,6 +189,7 @@ typedef struct egui_core_render_state
     egui_display_driver_t *driver;      // registered display driver implementation
     uint8_t color_16_swap;              // non-zero when RGB565 output bytes must be swapped before flush
     uint8_t software_rotation;          // non-zero when runtime rotation is handled in software instead of hardware
+    uint8_t rotation_scratch_owned;     // non-zero when rotation_scratch was allocated by the core and must be freed by the core
     egui_color_int_t *rotation_scratch; // temporary tile buffer used while rotating PFB data in software
 } egui_core_render_state_t;
 

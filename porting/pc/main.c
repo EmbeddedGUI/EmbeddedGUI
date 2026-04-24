@@ -783,6 +783,7 @@ static void parse_recording_params(int argc, const char *argv[])
 
 static int pc_setup_display(egui_core_t *core, uint8_t display_id, int screen_width, int screen_height, int pfb_width, int pfb_height,
                             egui_color_int_t **pfb_buffers, int pfb_buffer_count, egui_display_driver_t *display_driver,
+                            const egui_core_render_config_t *render_config,
                             egui_touch_register_func_t touch_register, egui_uicode_init_func_t uicode_init)
 {
     egui_display_setup_t setup;
@@ -792,6 +793,7 @@ static int pc_setup_display(egui_core_t *core, uint8_t display_id, int screen_wi
         return -1;
     }
 
+    memset(&setup, 0, sizeof(setup));
     setup.screen_width = screen_width;
     setup.screen_height = screen_height;
     setup.pfb_width = pfb_width;
@@ -799,6 +801,7 @@ static int pc_setup_display(egui_core_t *core, uint8_t display_id, int screen_wi
     setup.pfb_buffers = pfb_buffers;
     setup.pfb_buffer_count = pfb_buffer_count;
     setup.display_driver = display_driver;
+    setup.render_config = render_config;
     setup.touch_register = touch_register;
     setup.uicode_init = uicode_init;
     setup.display_id = display_id;
@@ -922,7 +925,7 @@ int main(int argc, const char *argv[])
     egui_port_init();
 
     if (pc_setup_display(&g_cores[0], 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT, pfb_bufs,
-                         EGUI_CONFIG_PFB_BUFFER_COUNT, egui_port_get_display_driver(),
+                         EGUI_CONFIG_PFB_BUFFER_COUNT, egui_port_get_display_driver(), NULL,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
                          egui_port_register_touch_driver,
 #else
@@ -938,7 +941,10 @@ int main(int argc, const char *argv[])
 #if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
     {
         egui_port_extra_display_descriptor_t extra_displays[EGUI_CONFIG_MAX_DISPLAY_COUNT - 1];
-        int extra_display_count = egui_port_get_additional_display_descriptors(extra_displays, EGUI_CONFIG_MAX_DISPLAY_COUNT - 1);
+        int extra_display_count;
+
+        memset(extra_displays, 0, sizeof(extra_displays));
+        extra_display_count = egui_port_get_additional_display_descriptors(extra_displays, EGUI_CONFIG_MAX_DISPLAY_COUNT - 1);
 
         if (extra_display_count < 0 || extra_display_count > (EGUI_CONFIG_MAX_DISPLAY_COUNT - 1))
         {
@@ -962,7 +968,8 @@ int main(int argc, const char *argv[])
             }
 
             if (pc_setup_display(&g_cores[display_id], (uint8_t)display_id, descriptor->screen_width, descriptor->screen_height, descriptor->pfb_width,
-                                 descriptor->pfb_height, descriptor->pfb_buffers, descriptor->pfb_buffer_count, sub_driver, descriptor->touch_register,
+                                 descriptor->pfb_height, descriptor->pfb_buffers, descriptor->pfb_buffer_count, sub_driver, descriptor->render_config,
+                                 descriptor->touch_register,
                                  descriptor->uicode_init) != 0)
             {
                 printf("Failed to setup additional display %d.\n", display_id);

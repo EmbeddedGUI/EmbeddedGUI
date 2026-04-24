@@ -28,6 +28,11 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 SCRIPTS_ROOT = SCRIPT_DIR.parent
 ROOT_DIR = SCRIPTS_ROOT.parent
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+from config_macro_eval import get_macro_int_from_config
+
 CUSTOM_WIDGETS_REPO = "https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets"
 
 FILE_OP_RETRY_COUNT = 40
@@ -160,18 +165,6 @@ def copy2_with_retries(src, dst):
         raise last_error
 
 
-def parse_define_int(content, macro_name, default):
-    """Parse integer value from #define macro."""
-    match = re.search(rf'^\s*#\s*define\s+{re.escape(macro_name)}\s+(.+)$', content, re.MULTILINE)
-    if not match:
-        return default
-    value = match.group(1).split('//', 1)[0].strip()
-    number_match = re.search(r'\d+', value)
-    if not number_match:
-        return default
-    return int(number_match.group(0))
-
-
 def get_designer_config_path(config_path):
     """Resolve a local app_egui_config_designer.h include from one wrapper header."""
     try:
@@ -246,13 +239,14 @@ def get_screen_size(root_dir, app, app_sub=None):
     """Read app screen size from the most specific app_egui_config.h."""
     width = None
     height = None
-    for config_path in get_effective_config_paths(root_dir, app, app_sub):
-        with open(config_path, "r", encoding="utf-8") as f:
-            content = f.read()
+    for config_path in get_config_paths(root_dir, app, app_sub):
+        config_path = Path(config_path)
+        if not config_path.exists():
+            continue
         if width is None:
-            width = parse_define_int(content, "EGUI_CONFIG_SCEEN_WIDTH", None)
+            width = get_macro_int_from_config(config_path, "EGUI_CONFIG_SCEEN_WIDTH", None)
         if height is None:
-            height = parse_define_int(content, "EGUI_CONFIG_SCEEN_HEIGHT", None)
+            height = get_macro_int_from_config(config_path, "EGUI_CONFIG_SCEEN_HEIGHT", None)
         if width is not None and height is not None:
             break
 

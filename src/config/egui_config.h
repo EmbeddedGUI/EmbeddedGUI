@@ -8,6 +8,7 @@
 #include "egui_config_widget_default.h"
 #include "egui_config_theme_default.h"
 #include "egui_config_debug_default.h"
+#include "egui_config_validate.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus

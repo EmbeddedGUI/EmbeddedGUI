@@ -20,6 +20,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from config_macro_eval import get_macro_int_from_config
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
 SCREENSHOT_DIR = "runtime_check_output"
@@ -92,7 +94,6 @@ RUNTIME_SELF_CHECK_SUMMARIES = {
     ("HelloMultiDisplay", None): "checks=click-isolation(primary),concurrent-activity-anims(primary/sub)",
     ("HelloMultiDisplayHetero", None): "checks=sub-tick-continuity,sub-click-reset",
 }
-MAX_DISPLAY_COUNT_PATTERN = re.compile(r"^\s*#\s*define\s+EGUI_CONFIG_MAX_DISPLAY_COUNT\s+(\d+)\b", re.MULTILINE)
 
 # Examples not suitable for runtime testing (headless/performance/test-only)
 SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance", "HelloPerformance",
@@ -261,11 +262,9 @@ def get_config_max_display_count(app, app_sub=None):
         if not config_path.exists():
             continue
 
-        match = MAX_DISPLAY_COUNT_PATTERN.search(config_path.read_text(encoding='utf-8'))
-        if match is not None:
-            value = int(match.group(1))
-            if value > 0:
-                return value
+        value = get_macro_int_from_config(config_path, "EGUI_CONFIG_MAX_DISPLAY_COUNT", None)
+        if value is not None and value > 0:
+            return value
 
     return 1
 

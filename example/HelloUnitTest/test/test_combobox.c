@@ -487,6 +487,42 @@ static void test_combobox_input_polling_prefers_reported_release_coords(void)
     egui_view_group_clear_childs(EGUI_VIEW_OF(user_root));
 }
 
+static void test_combobox_expand_clamps_to_bound_core_screen_height(void)
+{
+    egui_core_t local_core;
+    static egui_color_int_t local_pfb[16 * 8];
+    egui_color_int_t *pfb_bufs[1] = {local_pfb};
+    egui_view_group_t *user_root;
+    egui_view_group_t *root_view;
+    egui_view_combobox_t *local = (egui_view_combobox_t *)EGUI_VIEW_OF(&test_box);
+    egui_dim_t expected_height;
+
+    egui_init_display(&local_core, 128, 64, pfb_bufs, 1, 16, 8);
+    user_root = egui_core_get_user_root_view(&local_core);
+    root_view = egui_core_get_root_view(&local_core);
+    egui_view_group_clear_childs(EGUI_VIEW_OF(user_root));
+
+    egui_view_combobox_init(EGUI_VIEW_OF(&test_box), &local_core);
+    egui_view_set_position(EGUI_VIEW_OF(&test_box), 8, 5);
+    egui_view_set_size(EGUI_VIEW_OF(&test_box), 120, 30);
+    egui_view_combobox_set_items(EGUI_VIEW_OF(&test_box), g_items, 3);
+    egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&test_box), 3);
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&test_box));
+
+    EGUI_VIEW_OF(root_view)->api->calculate_layout(EGUI_VIEW_OF(root_view));
+
+    expected_height = local->collapsed_height + local->item_height;
+    egui_view_combobox_expand(EGUI_VIEW_OF(&test_box));
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_combobox_is_expanded(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_TRUE(egui_view_get_core(EGUI_VIEW_OF(&test_box)) == &local_core);
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_PARENT(EGUI_VIEW_OF(&test_box)) == EGUI_VIEW_OF(user_root));
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_height, EGUI_VIEW_OF(&test_box)->region.size.height);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_height, EGUI_VIEW_OF(&test_box)->region_screen.size.height);
+
+    egui_view_group_clear_childs(EGUI_VIEW_OF(user_root));
+}
+
 void test_combobox_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(combobox);
@@ -496,5 +532,6 @@ void test_combobox_run(void)
     EGUI_TEST_RUN(test_combobox_release_on_different_item_does_not_commit_selection);
     EGUI_TEST_RUN(test_combobox_input_polling_reuses_last_pressed_coords_for_release);
     EGUI_TEST_RUN(test_combobox_input_polling_prefers_reported_release_coords);
+    EGUI_TEST_RUN(test_combobox_expand_clamps_to_bound_core_screen_height);
     EGUI_TEST_SUITE_END();
 }

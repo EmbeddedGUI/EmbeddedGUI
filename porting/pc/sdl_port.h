@@ -108,6 +108,7 @@ typedef struct egui_port_extra_display_descriptor
     int pfb_height;
     egui_color_int_t **pfb_buffers;
     int pfb_buffer_count;
+    const egui_core_render_config_t *render_config;
     egui_touch_register_func_t touch_register;
     egui_uicode_init_func_t uicode_init;
 } egui_port_extra_display_descriptor_t;

@@ -180,6 +180,31 @@ static void test_page_open_uses_init_core_when_active_is_null(void)
     EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&page.root_view)->is_attached_to_window);
 }
 
+static void test_page_open_uses_explicit_bound_core_dimensions(void)
+{
+    egui_core_t local_core;
+    egui_page_base_t page;
+    static egui_color_int_t local_pfb[16 * 8];
+    egui_color_int_t *pfb_bufs[1] = {local_pfb};
+    egui_view_group_t *user_root;
+
+    egui_init_display(&local_core, 128, 64, pfb_bufs, 1, 16, 8);
+    user_root = egui_core_get_user_root_view(&local_core);
+    egui_view_group_clear_childs(EGUI_VIEW_OF(user_root));
+
+    egui_page_base_init(&page, &local_core);
+    egui_page_base_open(&page);
+
+    EGUI_TEST_ASSERT_TRUE(egui_page_base_get_core(&page) == &local_core);
+    EGUI_TEST_ASSERT_TRUE(egui_view_get_core(EGUI_VIEW_OF(&page.root_view)) == &local_core);
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_PARENT(EGUI_VIEW_OF(&page.root_view)) == EGUI_VIEW_OF(user_root));
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&page.root_view)->is_attached_to_window);
+    EGUI_TEST_ASSERT_EQUAL_INT(128, EGUI_VIEW_OF(&page.root_view)->region.size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(64, EGUI_VIEW_OF(&page.root_view)->region.size.height);
+
+    egui_page_base_close(&page);
+}
+
 static void test_page_open_requires_bound_core_when_unbound(void)
 {
     egui_core_t *core = test_page_activity_lifecycle_get_core();
@@ -428,12 +453,12 @@ static void test_activity_start_uses_explicit_bound_core(void)
 {
     egui_core_t *core = test_page_activity_lifecycle_get_core();
     egui_core_t local_core;
-    static egui_color_int_t local_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+    static egui_color_int_t local_pfb[16 * 8];
     egui_color_int_t *pfb_bufs[1] = {local_pfb};
 
     test_lifecycle_activity_init(&test_activity_a);
 
-    egui_init_display(&local_core, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, pfb_bufs, 1, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
+    egui_init_display(&local_core, 128, 64, pfb_bufs, 1, 16, 8);
     egui_activity_init((egui_activity_t *)&test_activity_b, &local_core);
 
     egui_activity_start((egui_activity_t *)&test_activity_a, NULL);
@@ -447,6 +472,8 @@ static void test_activity_start_uses_explicit_bound_core(void)
     EGUI_TEST_ASSERT_TRUE(egui_view_get_core(EGUI_VIEW_OF(&test_activity_b.base.root_view)) == &local_core);
     EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_PARENT(EGUI_VIEW_OF(&test_activity_b.base.root_view)) == EGUI_VIEW_OF(egui_core_get_user_root_view(&local_core)));
     EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_activity_b.base.root_view)->is_attached_to_window);
+    EGUI_TEST_ASSERT_EQUAL_INT(128, EGUI_VIEW_OF(&test_activity_b.base.root_view)->region.size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(64, EGUI_VIEW_OF(&test_activity_b.base.root_view)->region.size.height);
     EGUI_TEST_ASSERT_TRUE(egui_activity_check_in_process((egui_activity_t *)&test_activity_b));
 
     egui_activity_finish((egui_activity_t *)&test_activity_b);
@@ -515,12 +542,12 @@ static void test_dialog_start_uses_explicit_bound_core(void)
 {
     egui_core_t *core = test_page_activity_lifecycle_get_core();
     egui_core_t local_core;
-    static egui_color_int_t local_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+    static egui_color_int_t local_pfb[16 * 8];
     egui_color_int_t *pfb_bufs[1] = {local_pfb};
 
     test_lifecycle_activity_init(&test_activity_a);
 
-    egui_init_display(&local_core, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, pfb_bufs, 1, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
+    egui_init_display(&local_core, 128, 64, pfb_bufs, 1, 16, 8);
     egui_dialog_init(&test_dialog, &local_core);
 
     egui_activity_start((egui_activity_t *)&test_activity_a, NULL);
@@ -536,6 +563,10 @@ static void test_dialog_start_uses_explicit_bound_core(void)
     EGUI_TEST_ASSERT_TRUE(egui_view_get_core(EGUI_VIEW_OF(&test_dialog.user_root_view)) == &local_core);
     EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_PARENT(EGUI_VIEW_OF(&test_dialog.root_view)) == EGUI_VIEW_OF(egui_core_get_user_root_view(&local_core)));
     EGUI_TEST_ASSERT_TRUE(egui_dialog_check_in_process(&test_dialog));
+    EGUI_TEST_ASSERT_EQUAL_INT(128, EGUI_VIEW_OF(&test_dialog.root_view)->region.size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(64, EGUI_VIEW_OF(&test_dialog.root_view)->region.size.height);
+    EGUI_TEST_ASSERT_EQUAL_INT(128, EGUI_VIEW_OF(&test_dialog.user_root_view)->region.size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(64, EGUI_VIEW_OF(&test_dialog.user_root_view)->region.size.height);
 
     egui_dialog_finish(&test_dialog);
     egui_activity_finish((egui_activity_t *)&test_activity_a);
@@ -548,6 +579,7 @@ void test_page_activity_lifecycle_run(void)
     EGUI_TEST_SUITE_BEGIN(page_activity_lifecycle);
     EGUI_TEST_RUN(test_page_open_close_propagates_attach_detach_to_dynamic_children);
     EGUI_TEST_RUN(test_page_open_uses_init_core_when_active_is_null);
+    EGUI_TEST_RUN(test_page_open_uses_explicit_bound_core_dimensions);
     EGUI_TEST_RUN(test_page_open_requires_bound_core_when_unbound);
     EGUI_TEST_RUN(test_activity_switch_detaches_background_resources_and_resume_reattaches);
     EGUI_TEST_RUN(test_dialog_anim_requires_bound_core_when_unbound);

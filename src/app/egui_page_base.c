@@ -209,7 +209,7 @@ void egui_page_base_init(egui_page_base_t *self, egui_core_t *core)
     self->core = core;
     egui_view_group_init((egui_view_t *)&self->root_view, core);
     egui_view_set_position((egui_view_t *)&self->root_view, 0, 0);
-    egui_view_set_size((egui_view_t *)&self->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size((egui_view_t *)&self->root_view, core->screen_width, core->screen_height);
 
     egui_view_set_view_name((egui_view_t *)&self->root_view, "egui_page_base_root_view");
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_page_base_t);

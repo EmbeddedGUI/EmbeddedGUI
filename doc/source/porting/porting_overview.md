@@ -151,6 +151,8 @@ typedef struct egui_platform_ops {
 #define EGUI_CONFIG_SOFTWARE_ROTATION 1
 ```
 
+如果是多屏应用，或者不同 core 需要不同旋转策略，优先通过 `egui_display_setup_t.render_config->software_rotation` 在运行时逐屏配置；`EGUI_CONFIG_SOFTWARE_ROTATION` 更适合作为默认值。
+
 ### 2D 硬件加速
 
 如果 MCU 有 DMA2D 或 GPU，实现 `fill_rect`、`blit`、`blend` 可加速渲染。
@@ -235,7 +237,7 @@ void port_main(void)
         .pfb_buffers = pfb_bufs,
         .pfb_buffer_count = 1,
         .display_driver = &my_display,
-        .platform = &my_platform,
+        .render_config = NULL,
         .touch_register = egui_port_register_touch_driver, // 可选
         .uicode_init = uicode_disp0_init,
         .display_id = 0,
@@ -257,7 +259,7 @@ void port_main(void)
 | `EGUI_CONFIG_SCEEN_WIDTH` | 240 | 屏幕宽度 |
 | `EGUI_CONFIG_SCEEN_HEIGHT` | 320 | 屏幕高度 |
 | `EGUI_CONFIG_COLOR_DEPTH` | 16 | 色深（16=RGB565, 32=ARGB8888） |
-| `EGUI_CONFIG_COLOR_16_SWAP` | 0 | RGB565 字节交换 |
+| `EGUI_CONFIG_COLOR_16_SWAP` | 0 | RGB565 字节交换（默认 runtime 值） |
 | `EGUI_CONFIG_PFB_WIDTH` | 屏宽/8 | PFB 块宽度 |
 | `EGUI_CONFIG_PFB_HEIGHT` | 屏高/8 | PFB 块高度 |
 | `EGUI_CONFIG_MAX_FPS` | 60 | 最大帧率 |
@@ -269,12 +271,14 @@ void port_main(void)
 | `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH` | 1 | 触摸支持 |
 | `EGUI_CONFIG_FUNCTION_SUPPORT_KEY` | 0 | 按键支持 |
 | `EGUI_CONFIG_PFB_BUFFER_COUNT` | 2 | PFB 缓冲区数量 |
-| `EGUI_CONFIG_SOFTWARE_ROTATION` | 0 | 软件旋转 |
+| `EGUI_CONFIG_SOFTWARE_ROTATION` | 0 | 软件旋转（默认 runtime 值） |
 | `EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE` | 0 | 外部资源 |
 
 ### PFB 大小选择
 
-PFB 宽高必须是屏幕宽高的整数约数。
+复杂 port 或多屏场景下，`EGUI_CONFIG_COLOR_16_SWAP` / `EGUI_CONFIG_SOFTWARE_ROTATION` 更适合只保留为默认值，真正启用与否通过 `egui_display_setup_t.render_config` 按 display/core 覆盖。
+
+PFB 宽高建议是屏幕宽高的整数约数。
 
 | 场景 | 建议 PFB 大小 | RAM 占用（RGB565） |
 |------|--------------|--------------------|
@@ -290,7 +294,7 @@ PFB 宽高必须是屏幕宽高的整数约数。
 - [ ] `get_tick_ms()` 返回单调递增的毫秒时间戳
 - [ ] 默认配置下标准库 `memset` / `memcpy` 可用；若启用 `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP`，`memset_fast()` / `memcpy_fast()` 工作正确
 - [ ] `app_egui_config.h` 中配置了正确的屏幕尺寸和 PFB 大小
-- [ ] PFB 宽高是屏幕宽高的整数约数
+- [ ] PFB 宽高优先选为屏幕宽高的整数约数
 - [ ] 主循环中按正确顺序调用初始化函数
 - [ ] （如有触摸）Touch Driver 返回正确的坐标
 - [ ] 编译通过且运行时屏幕有正确渲染输出

@@ -309,7 +309,7 @@ void egui_activity_init(egui_activity_t *self, egui_core_t *core)
     egui_dlist_init(&self->node);
     egui_view_root_group_init((egui_view_t *)&self->root_view, core);
     egui_view_set_position((egui_view_t *)&self->root_view, 0, 0);
-    egui_view_set_size((egui_view_t *)&self->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size((egui_view_t *)&self->root_view, core->screen_width, core->screen_height);
 
     egui_view_set_view_name((egui_view_t *)&self->root_view, "egui_activity_root_view");
     self->api = &EGUI_ACTIVITY_API_TABLE_NAME(egui_activity_t);

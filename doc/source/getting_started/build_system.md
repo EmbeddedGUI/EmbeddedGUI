@@ -276,7 +276,7 @@ EGUI_CODE_INCLUDE += $(EGUI_APP_PATH)/my_module
 // 色深: 16-bit RGB565
 #define EGUI_CONFIG_COLOR_DEPTH  16
 
-// PFB 大小 (宽/高必须是屏幕尺寸的整数约数)
+// PFB 大小 (宽/高建议优先选为屏幕尺寸的整数约数)
 #define EGUI_CONFIG_PFB_WIDTH    (240 / 8)   // 30 像素
 #define EGUI_CONFIG_PFB_HEIGHT   (320 / 8)   // 40 像素
 

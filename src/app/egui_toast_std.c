@@ -20,14 +20,20 @@ static void egui_toast_std_on_set_default(egui_toast_t *self);
 void egui_toast_std_on_show(egui_toast_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_toast_std_t);
+    egui_core_t *core = egui_toast_get_core(self);
     egui_toast_on_show(self, text);
+
+    if (core == NULL)
+    {
+        return;
+    }
 
     egui_dim_t width = 0;
     egui_dim_t height = 0;
     egui_view_label_get_str_size_with_padding((egui_view_t *)&local->label, text, &width, &height);
 
     egui_view_label_set_text((egui_view_t *)&local->label, self->info);
-    egui_view_set_position((egui_view_t *)&local->label, (EGUI_CONFIG_SCEEN_WIDTH - width) / 2, (EGUI_CONFIG_SCEEN_HEIGHT - height - 20));
+    egui_view_set_position((egui_view_t *)&local->label, (core->screen_width - width) / 2, (core->screen_height - height - 20));
     egui_view_set_size((egui_view_t *)&local->label, width, height);
     egui_view_set_visible((egui_view_t *)&local->label, 1);
 }

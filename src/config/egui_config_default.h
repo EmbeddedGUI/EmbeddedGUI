@@ -25,17 +25,21 @@ extern "C" {
 
 /**
  * Color options.
- * Swap the 2 bytes of RGB565 color. Useful if the display has a 8 bit interface (e.g. SPI)
- * and the hardware SPI/DMA controller does NOT support automatic byte-swap.
+ * Default runtime value for RGB565 byte-swap on the primary display helpers.
+ * Useful if the display has a 8 bit interface (e.g. SPI) and the hardware
+ * SPI/DMA controller does NOT support automatic byte-swap.
  *
- * When set to 1, the byte-swap is performed as a bulk in-place pass over the PFB tile
- * inside egui_pfb_manager_start_flush(), immediately before draw_area() is called.
- * This keeps all internal rendering (egui_rgb_mix, EGUI_COLOR_MAKE, etc.) in the
- * normal RGB565 layout, eliminating the green-field split and per-pixel overhead
- * that the old approach (swapped internal layout) imposed.
+ * When the runtime flag is enabled, the byte-swap is performed as a bulk in-place
+ * pass over the PFB tile inside egui_pfb_manager_start_flush(), immediately before
+ * draw_area() is called. This keeps all internal rendering (egui_rgb_mix,
+ * EGUI_COLOR_MAKE, etc.) in the normal RGB565 layout, eliminating the green-field
+ * split and per-pixel overhead that the old approach (swapped internal layout)
+ * imposed.
  *
  * Cost: (PFB_WIDTH * PFB_HEIGHT / 2) uint32 ops per tile flush — typically <0.1 ms
  * on a 100 MHz Cortex-M0 for a 60x60 PFB.
+ *
+ * Multi-display setups can override this per core via egui_display_setup_t.render_config.
  */
 #ifndef EGUI_CONFIG_COLOR_16_SWAP
 #define EGUI_CONFIG_COLOR_16_SWAP 0
@@ -43,14 +47,14 @@ extern "C" {
 
 /* ---- PFB (Partial Frame Buffer) ---- */
 
-/* For speed, we assume that the PFB width and height are multiples of the screen width and height */
+/* Divisor-sized PFB tiles are usually the best default, but edge tiles can also be handled safely. */
 
-/* Width of the PFB block, suggest be a divisor of EGUI_CONFIG_SCEEN_WIDTH */
+/* Width of the PFB block, suggested to be a divisor of EGUI_CONFIG_SCEEN_WIDTH */
 #ifndef EGUI_CONFIG_PFB_WIDTH
 #define EGUI_CONFIG_PFB_WIDTH (EGUI_CONFIG_SCEEN_WIDTH / 8)
 #endif
 
-/* Height of the PFB block, suggest be a divisor of EGUI_CONFIG_SCEEN_HEIGHT */
+/* Height of the PFB block, suggested to be a divisor of EGUI_CONFIG_SCEEN_HEIGHT */
 #ifndef EGUI_CONFIG_PFB_HEIGHT
 #define EGUI_CONFIG_PFB_HEIGHT (EGUI_CONFIG_SCEEN_HEIGHT / 8)
 #endif
@@ -108,9 +112,12 @@ extern "C" {
 #endif
 
 /**
- * Software rotation support.
- * When enabled, core can rotate PFB output in software if hardware does not support it.
- * Requires a rotation scratch buffer of PFB size for 90/270 degree rotation.
+ * Default runtime value for software rotation on the primary display helpers.
+ * When the runtime flag is enabled, core can rotate PFB output in software if
+ * hardware does not support it. A PFB-sized scratch buffer is required for 90/270
+ * degree rotation and is allocated on demand unless the caller provides one.
+ *
+ * Multi-display setups can override this per core via egui_display_setup_t.render_config.
  */
 #ifndef EGUI_CONFIG_SOFTWARE_ROTATION
 #define EGUI_CONFIG_SOFTWARE_ROTATION 0

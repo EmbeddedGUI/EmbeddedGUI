@@ -44,55 +44,79 @@ static inline uint32_t rgb888_pack(uint8_t red, uint8_t green, uint8_t blue)
     return ((uint32_t)red << 16) | ((uint32_t)green << 8) | (uint32_t)blue;
 }
 
-static inline uint32_t rgb565_to_rgb888(uint16_t color)
+static inline uint8_t sdl_get_color_16_swap(egui_core_t *core_ctx)
 {
-#if EGUI_CONFIG_COLOR_16_SWAP == 1
-    uint8_t red = rgb565_expand5((uint8_t)((color >> 3) & 0x1FU));
-    uint8_t green = rgb565_expand6((uint8_t)((((color & 0x7U) << 3) | ((color >> 13) & 0x7U)) & 0x3FU));
-    uint8_t blue = rgb565_expand5((uint8_t)((color >> 8) & 0x1FU));
-#else
-    uint8_t red = rgb565_expand5((uint8_t)((color >> 11) & 0x1FU));
-    uint8_t green = rgb565_expand6((uint8_t)((color >> 5) & 0x3FU));
-    uint8_t blue = rgb565_expand5((uint8_t)(color & 0x1FU));
-#endif
+    if (core_ctx != NULL)
+    {
+        return core_ctx->render.color_16_swap ? 1U : 0U;
+    }
+
+    return EGUI_CONFIG_COLOR_16_SWAP ? 1U : 0U;
+}
+
+static inline uint32_t rgb565_to_rgb888(uint16_t color, uint8_t color_16_swap)
+{
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+
+    if (color_16_swap)
+    {
+        red = rgb565_expand5((uint8_t)((color >> 3) & 0x1FU));
+        green = rgb565_expand6((uint8_t)((((color & 0x7U) << 3) | ((color >> 13) & 0x7U)) & 0x3FU));
+        blue = rgb565_expand5((uint8_t)((color >> 8) & 0x1FU));
+    }
+    else
+    {
+        red = rgb565_expand5((uint8_t)((color >> 11) & 0x1FU));
+        green = rgb565_expand6((uint8_t)((color >> 5) & 0x3FU));
+        blue = rgb565_expand5((uint8_t)(color & 0x1FU));
+    }
+
     return rgb888_pack(red, green, blue);
 }
 
-#if EGUI_CONFIG_COLOR_16_SWAP == 0
-#define RGB565_2_RGB888(color) rgb565_to_rgb888((uint16_t)(color))
-#else
-// After bulk swap at flush, tft_fb stores byte-swapped RGB565:
-// bits[7:3]=R5, bits[12:8]=B5, bits[2:0]=G_high3, bits[15:13]=G_low3
-#define RGB565_2_RGB888(color) rgb565_to_rgb888((uint16_t)(color))
-#endif
+static inline uint16_t rgb888_to_rgb565(uint32_t color, uint8_t color_16_swap)
+{
+    uint16_t rgb565 = (uint16_t)(((((color)&0xFF0000U) >> 19U) << 11U) | ((((color)&0xFF00U) >> 10U) << 5U) | (((color)&0xFFU) >> 3U));
 
-#define RGB888_2_monochrome(color) ((color) ? 0 : 1)
-#define RGB888_2_GRAY8(color)      (((((color & 0xff0000) >> 16)) + (((color & 0xff00) >> 8)) + (((color & 0xff)))) / 3)
-#if EGUI_CONFIG_COLOR_16_SWAP == 0
-#define RGB888_2_RGB565(color) ((((color & 0xff0000) >> 19) << 11) + (((color & 0xff00) >> 10) << 5) + (((color & 0xff) >> 3)))
-#else
-// Produce byte-swapped RGB565: compute normal value then swap bytes
-#define RGB888_2_RGB565(_c)                                                                                                                                    \
-    ({                                                                                                                                                         \
-        uint16_t _n = (uint16_t)(((((_c) & 0xFF0000U) >> 19U) << 11U) | ((((_c) & 0xFF00U) >> 10U) << 5U) | (((_c) & 0xFFU) >> 3U));                           \
-        (uint16_t)((_n >> 8) | (_n << 8));                                                                                                                     \
-    })
-#endif
+    if (color_16_swap)
+    {
+        rgb565 = (uint16_t)((rgb565 >> 8) | (rgb565 << 8));
+    }
 
-// 1 8(233) 16(565) 24(888) 32(8888)
+    return rgb565;
+}
+
+static inline uint32_t sdl_color_to_rgb888(egui_core_t *core_ctx, egui_color_int_t color)
+{
 #if VT_COLOR_DEPTH == 1
-#define DEV_2_VT_RGB(color) monochrome_2_RGB888(color)
-#define VT_RGB_2_DEV(color) RGB888_2_monochrome(color)
+    return monochrome_2_RGB888(color);
 #elif VT_COLOR_DEPTH == 8
-#define DEV_2_VT_RGB(color) GRAY8_2_RGB888(color)
-#define VT_RGB_2_DEV(color) RGB888_2_GRAY8(color)
+    return GRAY8_2_RGB888(color);
 #elif VT_COLOR_DEPTH == 16
-#define DEV_2_VT_RGB(color) RGB565_2_RGB888(color)
-#define VT_RGB_2_DEV(color) RGB888_2_RGB565(color)
+    return rgb565_to_rgb888((uint16_t)color, sdl_get_color_16_swap(core_ctx));
 #elif VT_COLOR_DEPTH == 24 || VT_COLOR_DEPTH == 32
-#define DEV_2_VT_RGB(color) (color)
-#define VT_RGB_2_DEV(color) (color)
+    return (uint32_t)color;
+#else
+    return 0;
 #endif
+}
+
+static inline egui_color_int_t sdl_rgb888_to_color(egui_core_t *core_ctx, uint32_t color)
+{
+#if VT_COLOR_DEPTH == 1
+    return (egui_color_int_t)((color & 0x00FFFFFFU) ? 0 : 1);
+#elif VT_COLOR_DEPTH == 8
+    return (egui_color_int_t)(((((color & 0xff0000) >> 16)) + (((color & 0xff00) >> 8)) + (((color & 0xff)))) / 3);
+#elif VT_COLOR_DEPTH == 16
+    return (egui_color_int_t)rgb888_to_rgb565(color, sdl_get_color_16_swap(core_ctx));
+#elif VT_COLOR_DEPTH == 24 || VT_COLOR_DEPTH == 32
+    return (egui_color_int_t)color;
+#else
+    return 0;
+#endif
+}
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -239,6 +263,7 @@ static void sdl_extra_touch_read(int idx, uint8_t *pressed, int16_t *x, int16_t 
 static void sdl_extra_fill_colors(int idx, int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p)
 {
     sdl_extra_display_t *ctx = &sdl_extra[idx];
+    egui_core_t *core_ctx = egui_port_get_core_by_display_id(idx + 1);
     int16_t w = ctx->width;
     int16_t h = ctx->height;
 
@@ -256,7 +281,7 @@ static void sdl_extra_fill_colors(int idx, int32_t x1, int32_t y1, int32_t x2, i
     {
         for (int32_t x = act_x1; x <= act_x2; x++)
         {
-            ctx->tft_fb[y * w + x] = 0xff000000 | DEV_2_VT_RGB(*color_p);
+            ctx->tft_fb[y * w + x] = 0xff000000U | sdl_color_to_rgb888(core_ctx, *color_p);
             color_p++;
         }
         color_p += x2 - act_x2;
@@ -266,6 +291,7 @@ static void sdl_extra_fill_colors(int idx, int32_t x1, int32_t y1, int32_t x2, i
 static void sdl_extra_fill_single_color(int idx, int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t color)
 {
     sdl_extra_display_t *ctx = &sdl_extra[idx];
+    egui_core_t *core_ctx = egui_port_get_core_by_display_id(idx + 1);
     int16_t w = ctx->width;
     int16_t h = ctx->height;
 
@@ -283,7 +309,7 @@ static void sdl_extra_fill_single_color(int idx, int32_t x1, int32_t y1, int32_t
     {
         for (int32_t x = act_x1; x <= act_x2; x++)
         {
-            ctx->tft_fb[y * w + x] = 0xff000000 | DEV_2_VT_RGB(color);
+            ctx->tft_fb[y * w + x] = 0xff000000U | sdl_color_to_rgb888(core_ctx, color);
         }
     }
 }
@@ -291,6 +317,7 @@ static void sdl_extra_fill_single_color(int idx, int32_t x1, int32_t y1, int32_t
 static void sdl_extra_set_point(int idx, int32_t x, int32_t y, egui_color_int_t color)
 {
     sdl_extra_display_t *ctx = &sdl_extra[idx];
+    egui_core_t *core_ctx = egui_port_get_core_by_display_id(idx + 1);
     int16_t w = ctx->width;
     int16_t h = ctx->height;
 
@@ -299,12 +326,13 @@ static void sdl_extra_set_point(int idx, int32_t x, int32_t y, egui_color_int_t 
         return;
     }
 
-    ctx->tft_fb[y * w + x] = 0xff000000 | DEV_2_VT_RGB(color);
+    ctx->tft_fb[y * w + x] = 0xff000000U | sdl_color_to_rgb888(core_ctx, color);
 }
 
 static egui_color_int_t sdl_extra_get_point(int idx, int32_t x, int32_t y)
 {
     sdl_extra_display_t *ctx = &sdl_extra[idx];
+    egui_core_t *core_ctx = egui_port_get_core_by_display_id(idx + 1);
     int16_t w = ctx->width;
     int16_t h = ctx->height;
 
@@ -313,7 +341,7 @@ static egui_color_int_t sdl_extra_get_point(int idx, int32_t x, int32_t y)
         return 0;
     }
 
-    return VT_RGB_2_DEV(ctx->tft_fb[y * w + x]);
+    return sdl_rgb888_to_color(core_ctx, ctx->tft_fb[y * w + x]);
 }
 
 static void sdl_extra_commit_frame(int idx)
@@ -1496,7 +1524,7 @@ static void VT_Fill_Single_Color_Core(egui_core_t *core_ctx, int32_t x1, int32_t
 #if VT_SDL_NATIVE_RGB565
             tft_fb[y * VT_WIDTH + x] = color;
 #else
-            tft_fb[y * VT_WIDTH + x] = 0xff000000 | DEV_2_VT_RGB(color);
+            tft_fb[y * VT_WIDTH + x] = 0xff000000U | sdl_color_to_rgb888(core_ctx, color);
 #endif
         }
     }
@@ -1543,7 +1571,7 @@ void VT_Fill_Multiple_Colors_Core(egui_core_t *core_ctx, int32_t x1, int32_t y1,
 #if VT_SDL_NATIVE_RGB565
             tft_fb[y * VT_WIDTH + x] = *color_p;
 #else
-            tft_fb[y * VT_WIDTH + x] = 0xff000000 | DEV_2_VT_RGB(*color_p);
+            tft_fb[y * VT_WIDTH + x] = 0xff000000U | sdl_color_to_rgb888(core_ctx, *color_p);
 #endif
             color_p++;
         }
@@ -1580,7 +1608,7 @@ static void VT_Set_Point_Core(egui_core_t *core_ctx, int32_t x, int32_t y, egui_
 #if VT_SDL_NATIVE_RGB565
     tft_fb[y * VT_WIDTH + x] = color;
 #else
-    tft_fb[y * VT_WIDTH + x] = 0xff000000 | DEV_2_VT_RGB(color);
+    tft_fb[y * VT_WIDTH + x] = 0xff000000U | sdl_color_to_rgb888(core_ctx, color);
 #endif
 }
 
@@ -1612,7 +1640,7 @@ static egui_color_int_t VT_Get_Point_Core(egui_core_t *core_ctx, int32_t x, int3
     return tft_fb[y * VT_WIDTH + x];
 #else
     uint32_t color = tft_fb[y * VT_WIDTH + x];
-    return VT_RGB_2_DEV(color);
+    return sdl_rgb888_to_color(core_ctx, color);
 #endif
 }
 
@@ -1625,6 +1653,7 @@ void snap_shot(const char *file_name)
 {
     // Large showcase-sized canvases can exceed the default Windows stack
     // if the RGB snapshot buffer lives on the stack.
+    egui_core_t *core_ctx = egui_port_get_core_by_display_id(0);
     size_t rgb_size = (size_t)VT_WIDTH * (size_t)VT_HEIGHT * 3U;
     unsigned char *rgb_data = (unsigned char *)malloc(rgb_size);
 
@@ -1638,7 +1667,7 @@ void snap_shot(const char *file_name)
 #if VT_SDL_NATIVE_RGB565
     for (int i = 0; i < VT_WIDTH * VT_HEIGHT; i++)
     {
-        uint32_t rgb888 = rgb565_to_rgb888(sdl_present_fb[i]);
+        uint32_t rgb888 = rgb565_to_rgb888(sdl_present_fb[i], sdl_get_color_16_swap(core_ctx));
         rgb_data[i * 3 + 0] = (uint8_t)((rgb888 >> 16) & 0xFFU);
         rgb_data[i * 3 + 1] = (uint8_t)((rgb888 >> 8) & 0xFFU);
         rgb_data[i * 3 + 2] = (uint8_t)(rgb888 & 0xFFU);
@@ -1931,7 +1960,6 @@ static void recording_execute_action_step(void)
 #define RECORDING_TOUCH_PUSH(pressed, x, y) sdl_port_touch_push_event((pressed), (x), (y))
 #endif
 
-#if EGUI_CONFIG_SOFTWARE_ROTATION
     // Recording actions use logical coordinates (from view region_screen),
     // but egui_input_add_motion expects physical coordinates (the polling layer
     // will transform physical -> logical). Convert logical -> physical here.
@@ -1982,7 +2010,6 @@ static void recording_execute_action_step(void)
             }
         }
     }
-#endif
 
     switch (action->type)
     {

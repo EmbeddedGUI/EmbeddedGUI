@@ -114,6 +114,10 @@ int16_t egui_display_get_width(egui_core_t *core)
 {
     if (core->render.driver == NULL)
     {
+        if (core != NULL && core->screen_width > 0)
+        {
+            return (int16_t)core->screen_width;
+        }
         return EGUI_CONFIG_SCEEN_WIDTH;
     }
     // Software rotation swaps the logical width/height for quarter turns.
@@ -132,6 +136,10 @@ int16_t egui_display_get_height(egui_core_t *core)
 {
     if (core->render.driver == NULL)
     {
+        if (core != NULL && core->screen_height > 0)
+        {
+            return (int16_t)core->screen_height;
+        }
         return EGUI_CONFIG_SCEEN_HEIGHT;
     }
     // Software rotation swaps the logical width/height for quarter turns.

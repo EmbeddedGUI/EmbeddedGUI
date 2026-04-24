@@ -19,6 +19,17 @@
 
 static egui_color_int_t designer_fb[EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT];
 static uint8_t designer_rgb888[EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT * 3];
+static egui_core_t *designer_primary_core = NULL;
+
+static uint8_t designer_get_color_16_swap(void)
+{
+    if (designer_primary_core != NULL)
+    {
+        return designer_primary_core->render.color_16_swap ? 1U : 0U;
+    }
+
+    return EGUI_CONFIG_COLOR_16_SWAP ? 1U : 0U;
+}
 
 static void designer_unpack_rgb888(egui_color_int_t color, uint8_t *r, uint8_t *g, uint8_t *b)
 {
@@ -29,9 +40,10 @@ static void designer_unpack_rgb888(egui_color_int_t color, uint8_t *r, uint8_t *
     *b = gray;
 #elif EGUI_CONFIG_COLOR_DEPTH == 16
     uint16_t rgb565 = (uint16_t)color;
-#if EGUI_CONFIG_COLOR_16_SWAP == 1
-    rgb565 = (uint16_t)((rgb565 >> 8) | (rgb565 << 8));
-#endif
+    if (designer_get_color_16_swap())
+    {
+        rgb565 = (uint16_t)((rgb565 >> 8) | (rgb565 << 8));
+    }
     uint8_t r5 = (uint8_t)((rgb565 >> 11) & 0x1F);
     uint8_t g6 = (uint8_t)((rgb565 >> 5) & 0x3F);
     uint8_t b5 = (uint8_t)(rgb565 & 0x1F);
@@ -415,6 +427,7 @@ static egui_platform_t designer_platform = {
 void egui_port_init(egui_core_t *core)
 {
     EGUI_ASSERT(core != NULL);
+    designer_primary_core = core;
     egui_platform_register(&designer_platform);
 
     egui_hal_lcd_config_t lcd_config = {

@@ -142,6 +142,9 @@ void egui_init(egui_core_t *core, egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH *
  * @param buf_count  Number of PFB buffers (1..EGUI_PFB_BUFFER_MAX_COUNT)
  * @param pfb_w      PFB tile width
  * @param pfb_h      PFB tile height
+ *
+ * Runtime render flags such as RGB565 byte-swap and software rotation default to
+ * the compile-time EGUI_CONFIG_* macros in this low-level helper.
  */
 void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, egui_color_int_t **pfb_bufs, int buf_count, int pfb_w, int pfb_h);
 
@@ -149,6 +152,13 @@ void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, eg
 typedef void (*egui_uicode_init_func_t)(egui_core_t *core);
 /** Optional port callback that registers the touch driver for one display. */
 typedef void (*egui_touch_register_func_t)(egui_core_t *core);
+
+typedef struct egui_core_render_config
+{
+    uint8_t color_16_swap;              // non-zero when RGB565 output bytes must be swapped before flush
+    uint8_t software_rotation;          // non-zero when runtime rotation is handled in software instead of hardware
+    egui_color_int_t *rotation_scratch; // optional caller-owned scratch buffer used for software rotation
+} egui_core_render_config_t;
 
 typedef struct egui_display_setup
 {
@@ -159,6 +169,7 @@ typedef struct egui_display_setup
     egui_color_int_t **pfb_buffers;            // array of PFB buffer pointers
     int pfb_buffer_count;                      // number of PFB buffers in the array
     egui_display_driver_t *display_driver;     // display driver bound to this core
+    const egui_core_render_config_t *render_config; // optional per-core runtime render config; NULL uses compile-time defaults
     egui_touch_register_func_t touch_register; // optional touch-driver registration callback
     egui_uicode_init_func_t uicode_init;       // UI bootstrap callback that creates the initial scene
     uint8_t display_id;                        // runtime display index used by multi-display ports
@@ -170,9 +181,18 @@ typedef struct egui_display_setup
  * This is the recommended startup helper once the port has already registered
  * the process-global platform callbacks and prepared the display driver,
  *
- * optional touch registration, and the UI bootstrap callback.
+ * optional touch registration, per-core render config, and the UI bootstrap callback.
  */
 void egui_setup_display(egui_core_t *core, const egui_display_setup_t *setup);
+
+/**
+ * Update one core's runtime render policy after initialization.
+ *
+ * Passing `NULL` reverts to the compile-time default runtime values from the
+ * EGUI_CONFIG_* macros. The core is marked fully dirty so the next frame redraws
+ * with the new render policy.
+ */
+void egui_core_set_render_config(egui_core_t *core, const egui_core_render_config_t *config);
 
 /** Force the entire screen to be marked dirty and refreshed on the next frame. */
 void egui_core_force_refresh(egui_core_t *core);
