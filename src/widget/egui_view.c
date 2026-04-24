@@ -500,10 +500,17 @@ void egui_view_scroll_by(egui_view_t *self, egui_dim_t x, egui_dim_t y)
 
 void egui_view_get_work_region(egui_view_t *self, egui_region_t *region)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
     region->location.x = self->padding.left;
     region->location.y = self->padding.top;
     region->size.width = self->region.size.width - (self->padding.left + self->padding.right);
     region->size.height = self->region.size.height - (self->padding.top + self->padding.bottom);
+#else
+    region->location.x = 0;
+    region->location.y = 0;
+    region->size.width = self->region.size.width;
+    region->size.height = self->region.size.height;
+#endif
 }
 
 void egui_view_copy_api(egui_view_t *self, egui_view_api_t *api)
@@ -720,12 +727,12 @@ void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow)
 #endif
 }
 
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
 void egui_view_set_view_name(egui_view_t *self, const char *name)
 {
-#if EGUI_CONFIG_DEBUG_CLASS_NAME
     self->name = name;
-#endif
 }
+#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 int egui_view_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
@@ -980,10 +987,16 @@ void egui_view_calculate_layout(egui_view_t *self)
         // get parent raw pos, the parent raw pos is already calculated.
         if (p_parent)
         {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
             egui_region_intersect_with_size(&self->region, p_parent->region_screen.size.width - (p_parent->padding.left + p_parent->padding.right),
                                             p_parent->region_screen.size.height - (p_parent->padding.top + p_parent->padding.bottom), p_raw_region);
             p_raw_region->location.x += p_parent->region_screen.location.x + p_parent->padding.left;
             p_raw_region->location.y += p_parent->region_screen.location.y + p_parent->padding.top;
+#else
+            egui_region_intersect_with_size(&self->region, p_parent->region_screen.size.width, p_parent->region_screen.size.height, p_raw_region);
+            p_raw_region->location.x += p_parent->region_screen.location.x;
+            p_raw_region->location.y += p_parent->region_screen.location.y;
+#endif
 
             // EGUI_LOG_DBG("id: 0x%x\n", self->id);
             // EGUI_LOG_DBG("parent, raw_region: %d %d %d %d\n", p_parent->region_screen.location.x, p_parent->region_screen.location.y,

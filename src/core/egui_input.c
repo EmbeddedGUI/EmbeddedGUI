@@ -7,7 +7,9 @@
 
 #include "egui_core.h"
 
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
 #include "egui_rotation.h"
+#endif
 #include "egui_display_driver.h"
 
 #include "utils/simple_ringbuffer/simple_pool.h"
@@ -256,6 +258,7 @@ void egui_input_polling_work(egui_core_t *core)
         // EGUI_LOG_DBG("egui_input_polling_work type:%d x:%d y:%d\n", motion_event->type, motion_event->location.x, motion_event->location.y);
 
         // Convert native panel coordinates back into logical GUI coordinates when software rotation owns the panel transform.
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
         if (core->render.software_rotation)
         {
             egui_display_driver_t *drv = egui_display_driver_get(core);
@@ -264,6 +267,7 @@ void egui_input_polling_work(egui_core_t *core)
                 egui_rotation_transform_touch(drv->rotation, drv->physical_width, drv->physical_height, &motion_event->location.x, &motion_event->location.y);
             }
         }
+#endif
 
         // Hand the normalized event to the rest of the input pipeline.
         egui_core_process_input_motion(core, motion_event);

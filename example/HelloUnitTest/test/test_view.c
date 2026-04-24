@@ -910,8 +910,13 @@ static void test_setup_display_registers_driver_platform_and_hooks(void)
     EGUI_TEST_ASSERT_TRUE(egui_display_driver_get(&local_core) == &driver);
     EGUI_TEST_ASSERT_TRUE(registered_platform != NULL);
     EGUI_TEST_ASSERT_TRUE(egui_platform_get() == registered_platform);
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
+    EGUI_TEST_ASSERT_EQUAL_INT(240, egui_display_get_width(&local_core));
+    EGUI_TEST_ASSERT_EQUAL_INT(320, egui_display_get_height(&local_core));
+#else
     EGUI_TEST_ASSERT_EQUAL_INT(320, egui_display_get_width(&local_core));
     EGUI_TEST_ASSERT_EQUAL_INT(240, egui_display_get_height(&local_core));
+#endif
     EGUI_TEST_ASSERT_EQUAL_INT(1, g_test_setup_driver_init_count);
     EGUI_TEST_ASSERT_TRUE(g_test_setup_driver_init_core == &local_core);
     EGUI_TEST_ASSERT_EQUAL_INT(1, g_test_setup_driver_rotation_count);
@@ -1012,8 +1017,8 @@ static void test_core_set_render_config_updates_runtime_flags_and_forces_full_re
     egui_core_set_render_config(&local_core, NULL);
 
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_CONFIG_COLOR_16_SWAP ? 1 : 0, local_core.render.color_16_swap);
-    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_CONFIG_SOFTWARE_ROTATION ? 1 : 0, local_core.render.software_rotation);
-#if EGUI_CONFIG_SOFTWARE_ROTATION
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE ? 1 : 0, local_core.render.software_rotation);
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
     EGUI_TEST_ASSERT_TRUE(local_core.render.rotation_scratch != NULL);
 #else
     EGUI_TEST_ASSERT_NULL(local_core.render.rotation_scratch);

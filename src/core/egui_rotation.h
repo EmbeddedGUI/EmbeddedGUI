@@ -25,8 +25,25 @@ extern "C" {
  * @param dst        Destination pixel buffer in native-panel row-major order
  * @param dst_size   Available capacity of `dst` in pixels
  */
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
 void egui_rotation_transform_pfb(egui_display_rotation_t rotation, int16_t phys_w, int16_t phys_h, int16_t *x, int16_t *y, int16_t *w, int16_t *h,
                                  const egui_color_int_t *src, egui_color_int_t *dst, int dst_size);
+#else
+__EGUI_STATIC_INLINE__ void egui_rotation_transform_pfb(egui_display_rotation_t rotation, int16_t phys_w, int16_t phys_h, int16_t *x, int16_t *y, int16_t *w,
+                                                        int16_t *h, const egui_color_int_t *src, egui_color_int_t *dst, int dst_size)
+{
+    EGUI_UNUSED(rotation);
+    EGUI_UNUSED(phys_w);
+    EGUI_UNUSED(phys_h);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+    EGUI_UNUSED(w);
+    EGUI_UNUSED(h);
+    EGUI_UNUSED(src);
+    EGUI_UNUSED(dst);
+    EGUI_UNUSED(dst_size);
+}
+#endif
 
 /**
  * Transform one touch coordinate from native panel space back into logical screen space.
@@ -38,7 +55,18 @@ void egui_rotation_transform_pfb(egui_display_rotation_t rotation, int16_t phys_
  * @param x         Native-panel touch X coordinate (in/out, rewritten to logical space)
  * @param y         Native-panel touch Y coordinate (in/out, rewritten to logical space)
  */
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
 void egui_rotation_transform_touch(egui_display_rotation_t rotation, int16_t phys_w, int16_t phys_h, egui_dim_t *x, egui_dim_t *y);
+#else
+__EGUI_STATIC_INLINE__ void egui_rotation_transform_touch(egui_display_rotation_t rotation, int16_t phys_w, int16_t phys_h, egui_dim_t *x, egui_dim_t *y)
+{
+    EGUI_UNUSED(rotation);
+    EGUI_UNUSED(phys_w);
+    EGUI_UNUSED(phys_h);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+}
+#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

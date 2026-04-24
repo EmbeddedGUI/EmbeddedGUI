@@ -186,12 +186,12 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 #define EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW        0
 
 // 软件旋转（90/270 度需要额外缓冲区）
-#define EGUI_CONFIG_SOFTWARE_ROTATION           0
+#define EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE 0
 ```
 
 说明：
 
-- `EGUI_CONFIG_SOFTWARE_ROTATION` 现在也是主屏初始化辅助接口的默认 runtime 值。
+- `EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE` 同时也是主屏初始化辅助接口的默认 runtime 值。
 - 如果走 `egui_setup_display()`，推荐通过 `egui_display_setup_t.render_config->software_rotation` 按 core 控制。
 - 如果 display 已经初始化完成，后续也可以调用 `egui_core_set_render_config(core, &config)` 在运行时切换，框架会自动触发一次整屏重绘；如果当前旋转策略会改变该 core 的逻辑宽高，逻辑尺寸也会同步更新。
 - 90/270 度软件旋转需要 scratch buffer。若 `render_config.rotation_scratch == NULL`，框架会按当前 PFB 大小在 heap 上按需申请；也可以由调用方自行提供。

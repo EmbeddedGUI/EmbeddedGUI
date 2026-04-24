@@ -229,9 +229,10 @@ make all APP=HelloStyleDemo && make run
 | `EGUI_CONFIG_DIRTY_AREA_COUNT` | 5 | 脏矩形区域槽位数 |
 | `EGUI_CONFIG_PERFORMANCE_USE_FLOAT` | 0 | 有 FPU 时启用浮点加速 |
 | `EGUI_CONFIG_COLOR_16_SWAP` | 0 | RGB565 字节交换，作为默认 runtime 值 |
-| `EGUI_CONFIG_SOFTWARE_ROTATION` | 0 | 软件旋转 PFB 输出，作为默认 runtime 值 |
+| `EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE` | 0 | 软件旋转编译裁剪开关，同时也是默认 runtime 值 |
 
-多屏或异构屏场景下，`EGUI_CONFIG_COLOR_16_SWAP` / `EGUI_CONFIG_SOFTWARE_ROTATION` 更推荐通过 `egui_display_setup_t.render_config` 按 core 覆盖；`EGUI_CONFIG_PFB_BUFFER_COUNT` 当前有效范围为 `1..4`。
+多屏或异构屏场景下，`EGUI_CONFIG_COLOR_16_SWAP` 更推荐通过 `egui_display_setup_t.render_config` 按 core 覆盖；
+软件旋转则建议通过 `egui_display_setup_t.render_config->software_rotation` 逐 core 覆盖；`EGUI_CONFIG_PFB_BUFFER_COUNT` 当前有效范围为 `1..4`。
 
 ### 主题系统
 

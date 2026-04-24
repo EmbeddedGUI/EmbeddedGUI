@@ -5,6 +5,8 @@
  * @brief Software rotation helpers for rendered PFB tiles and touch coordinates.
  */
 
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
+
 /**
  * Rotate PFB 180 degrees in-place (simple buffer reverse).
  */
@@ -140,3 +142,5 @@ void egui_rotation_transform_touch(egui_display_rotation_t rotation, int16_t phy
         break;
     }
 }
+
+#endif /* EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE */

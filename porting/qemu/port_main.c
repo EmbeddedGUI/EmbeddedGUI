@@ -217,33 +217,90 @@ static void qemu_send_touch(uint8_t type, int x, int y)
 
 static void qemu_execute_action(const egui_sim_action_t *action)
 {
+    egui_display_driver_t *driver = egui_display_driver_get(&core);
     int steps;
     int step;
+    int x1 = action->x1;
+    int y1 = action->y1;
+    int x2 = action->x2;
+    int y2 = action->y2;
     int x;
     int y;
+
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
+    if (driver != NULL && core.render.software_rotation && driver->ops->set_rotation == NULL && driver->rotation != EGUI_DISPLAY_ROTATION_0 &&
+        (action->type == EGUI_SIM_ACTION_CLICK || action->type == EGUI_SIM_ACTION_DRAG || action->type == EGUI_SIM_ACTION_SWIPE))
+    {
+        int16_t pw = driver->physical_width;
+        int16_t ph = driver->physical_height;
+        int lx;
+        int ly;
+
+        switch (driver->rotation)
+        {
+        case EGUI_DISPLAY_ROTATION_90:
+            lx = x1;
+            ly = y1;
+            x1 = pw - 1 - ly;
+            y1 = lx;
+            if (action->type != EGUI_SIM_ACTION_CLICK)
+            {
+                lx = x2;
+                ly = y2;
+                x2 = pw - 1 - ly;
+                y2 = lx;
+            }
+            break;
+        case EGUI_DISPLAY_ROTATION_180:
+            x1 = pw - 1 - x1;
+            y1 = ph - 1 - y1;
+            if (action->type != EGUI_SIM_ACTION_CLICK)
+            {
+                x2 = pw - 1 - x2;
+                y2 = ph - 1 - y2;
+            }
+            break;
+        case EGUI_DISPLAY_ROTATION_270:
+            lx = x1;
+            ly = y1;
+            x1 = ly;
+            y1 = ph - 1 - lx;
+            if (action->type != EGUI_SIM_ACTION_CLICK)
+            {
+                lx = x2;
+                ly = y2;
+                x2 = ly;
+                y2 = ph - 1 - lx;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+#endif
 
     switch (action->type)
     {
     case EGUI_SIM_ACTION_CLICK:
-        qemu_send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, action->x1, action->y1);
+        qemu_send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, x1, y1);
         qemu_run_for_ms(QEMU_HEAP_TOUCH_STEP_MS);
-        qemu_send_touch(EGUI_MOTION_EVENT_ACTION_UP, action->x1, action->y1);
+        qemu_send_touch(EGUI_MOTION_EVENT_ACTION_UP, x1, y1);
         qemu_run_for_ms(QEMU_HEAP_TOUCH_STEP_MS);
         break;
 
     case EGUI_SIM_ACTION_DRAG:
     case EGUI_SIM_ACTION_SWIPE:
         steps = action->steps > 0 ? action->steps : (action->type == EGUI_SIM_ACTION_SWIPE ? 5 : 10);
-        qemu_send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, action->x1, action->y1);
+        qemu_send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, x1, y1);
         qemu_run_for_ms(QEMU_HEAP_TOUCH_STEP_MS);
         for (step = 1; step <= steps; ++step)
         {
-            x = action->x1 + (action->x2 - action->x1) * step / steps;
-            y = action->y1 + (action->y2 - action->y1) * step / steps;
+            x = x1 + (x2 - x1) * step / steps;
+            y = y1 + (y2 - y1) * step / steps;
             qemu_send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, x, y);
             qemu_run_for_ms(QEMU_HEAP_DRAG_STEP_MS);
         }
-        qemu_send_touch(EGUI_MOTION_EVENT_ACTION_UP, action->x2, action->y2);
+        qemu_send_touch(EGUI_MOTION_EVENT_ACTION_UP, x2, y2);
         qemu_run_for_ms(QEMU_HEAP_TOUCH_STEP_MS);
         break;
 

@@ -112,15 +112,16 @@ extern "C" {
 #endif
 
 /**
- * Default runtime value for software rotation on the primary display helpers.
+ * Compile-time gate for software rotation support on the primary display helpers.
+ * The same flag is also used as the default runtime value when render_config is NULL.
  * When the runtime flag is enabled, core can rotate PFB output in software if
  * hardware does not support it. A PFB-sized scratch buffer is required for 90/270
  * degree rotation and is allocated on demand unless the caller provides one.
  *
  * Multi-display setups can override this per core via egui_display_setup_t.render_config.
  */
-#ifndef EGUI_CONFIG_SOFTWARE_ROTATION
-#define EGUI_CONFIG_SOFTWARE_ROTATION 0
+#ifndef EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
+#define EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE 0
 #endif
 
 /* ---- Timing & refresh ---- */

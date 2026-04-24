@@ -579,7 +579,7 @@ static void egui_core_release_rotation_scratch(egui_core_t *core)
 static void egui_core_apply_render_config(egui_core_t *core, const egui_core_render_config_t *config)
 {
     uint8_t color_16_swap = EGUI_CONFIG_COLOR_16_SWAP ? 1U : 0U;
-    uint8_t software_rotation = EGUI_CONFIG_SOFTWARE_ROTATION ? 1U : 0U;
+    uint8_t software_rotation = EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE ? 1U : 0U;
     egui_color_int_t *rotation_scratch = NULL;
 
     if (core == NULL)

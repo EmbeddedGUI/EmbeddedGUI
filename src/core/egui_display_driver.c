@@ -120,6 +120,7 @@ int16_t egui_display_get_width(egui_core_t *core)
         }
         return EGUI_CONFIG_SCEEN_WIDTH;
     }
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
     // Software rotation swaps the logical width/height for quarter turns.
     if (core->render.software_rotation)
     {
@@ -128,6 +129,7 @@ int16_t egui_display_get_width(egui_core_t *core)
             return core->render.driver->physical_height;
         }
     }
+#endif
     return core->render.driver->physical_width;
 }
 
@@ -142,6 +144,7 @@ int16_t egui_display_get_height(egui_core_t *core)
         }
         return EGUI_CONFIG_SCEEN_HEIGHT;
     }
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
     // Software rotation swaps the logical width/height for quarter turns.
     if (core->render.software_rotation)
     {
@@ -150,6 +153,7 @@ int16_t egui_display_get_height(egui_core_t *core)
             return core->render.driver->physical_width;
         }
     }
+#endif
     return core->render.driver->physical_height;
 }
 

@@ -148,10 +148,10 @@ typedef struct egui_platform_ops {
 实现 `set_rotation`，支持 0/90/180/270 度旋转。如果不实现，可启用软件旋转：
 
 ```c
-#define EGUI_CONFIG_SOFTWARE_ROTATION 1
+#define EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE 1
 ```
 
-如果是多屏应用，或者不同 core 需要不同旋转策略，优先通过 `egui_display_setup_t.render_config->software_rotation` 在运行时逐屏配置；`EGUI_CONFIG_SOFTWARE_ROTATION` 更适合作为默认值。
+如果是多屏应用，或者不同 core 需要不同旋转策略，优先通过 `egui_display_setup_t.render_config->software_rotation` 在运行时逐屏配置；`EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE` 只负责开启裁剪后的软件旋转支持，并作为默认 runtime 值。
 
 ### 2D 硬件加速
 
@@ -271,12 +271,13 @@ void port_main(void)
 | `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH` | 1 | 触摸支持 |
 | `EGUI_CONFIG_FUNCTION_SUPPORT_KEY` | 0 | 按键支持 |
 | `EGUI_CONFIG_PFB_BUFFER_COUNT` | 2 | PFB 缓冲区数量 |
-| `EGUI_CONFIG_SOFTWARE_ROTATION` | 0 | 软件旋转（默认 runtime 值） |
+| `EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE` | 0 | 软件旋转（编译期裁剪开关，同时也是默认 runtime 值） |
 | `EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE` | 0 | 外部资源 |
 
 ### PFB 大小选择
 
-复杂 port 或多屏场景下，`EGUI_CONFIG_COLOR_16_SWAP` / `EGUI_CONFIG_SOFTWARE_ROTATION` 更适合只保留为默认值，真正启用与否通过 `egui_display_setup_t.render_config` 按 display/core 覆盖。
+复杂 port 或多屏场景下，`EGUI_CONFIG_COLOR_16_SWAP` 更适合作为默认值，真正启用与否通过 `egui_display_setup_t.render_config` 按 display/core 覆盖；
+软件旋转则直接通过 `egui_display_setup_t.render_config->software_rotation` 控制，`EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE` 用于编译期裁剪并提供默认 runtime 值。
 
 PFB 宽高建议是屏幕宽高的整数约数。
 

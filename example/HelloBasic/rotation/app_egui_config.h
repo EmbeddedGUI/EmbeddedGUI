@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 // Enable software rotation
-#define EGUI_CONFIG_SOFTWARE_ROTATION 1
+#define EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE 1
 
 // PFB size must be common divisors of both 240 and 320 for rotation compatibility
 #define EGUI_CONFIG_PFB_WIDTH  20

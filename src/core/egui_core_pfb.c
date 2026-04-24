@@ -1,7 +1,9 @@
 #include "egui_core.h"
 #include "egui_core_internal.h"
 #include "egui_display_driver.h"
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
 #include "egui_rotation.h"
+#endif
 
 /**
  * @file egui_core_pfb.c
@@ -156,7 +158,8 @@ void egui_core_draw_data(egui_core_t *core, egui_region_t *p_region)
     int16_t h = p_region->size.height;
     const egui_color_int_t *data = core->pfb;
 
-    // Runtime software rotation (replaces compile-time EGUI_CONFIG_SOFTWARE_ROTATION)
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
+    // Runtime software rotation (replaces compile-time EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE)
     if (core->render.software_rotation)
     {
         egui_display_driver_t *drv = egui_display_driver_get(core);
@@ -172,6 +175,7 @@ void egui_core_draw_data(egui_core_t *core, egui_region_t *p_region)
             }
         }
     }
+#endif
 
     // The PFB manager hides whether this becomes a synchronous flush or an async queued transfer.
     egui_pfb_manager_submit(&core->render.pfb_mgr, x, y, w, h, data);

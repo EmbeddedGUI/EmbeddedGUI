@@ -284,7 +284,11 @@ void egui_view_set_margin_all(egui_view_t *self, egui_dim_margin_padding_t margi
 void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow);
 
 /** Set the debug name shown by tracing/log helpers. */
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
 void egui_view_set_view_name(egui_view_t *self, const char *name);
+#else
+#define egui_view_set_view_name(_self, _name) EGUI_UNUSED(_self)
+#endif
 
 /* Event-pipeline entry points. Custom widgets usually override these through api tables. */
 /** Default intercept hook for base views. It always returns 0. */

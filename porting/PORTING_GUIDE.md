@@ -600,10 +600,10 @@ void gui_task(void *arg)
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH   1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_KEY     0
 #define EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE 0
-#define EGUI_CONFIG_SOFTWARE_ROTATION        0
+#define EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE 0
 ```
 
-这里的 `EGUI_CONFIG_COLOR_16_SWAP` 和 `EGUI_CONFIG_SOFTWARE_ROTATION` 主要表达“默认 runtime 值”。如果你的 port 需要按屏幕实例动态决定这些能力，优先通过 `egui_display_setup_t.render_config` 覆盖，而不是继续扩散全局宏。
+这里的 `EGUI_CONFIG_COLOR_16_SWAP` 主要表达“默认 runtime 值”。软件旋转则由 `EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE` 同时承担编译裁剪和默认 runtime 值。如果你的 port 需要按屏幕实例动态决定这些能力，优先通过 `egui_display_setup_t.render_config` 覆盖，而不是继续扩散全局宏。
 
 如果 display 已经启动，后续仍可调用 `egui_core_set_render_config(core, &config)` 动态切换；框架会自动触发一次整屏重绘来收敛新策略。
 
@@ -684,7 +684,7 @@ static void my_load_external_resource(egui_core_t *core, void *dest, uint32_t re
 
 如果 LCD 控制器本身不支持旋转，可以：
 
-- 对默认单屏路径，开启 `EGUI_CONFIG_SOFTWARE_ROTATION`
+- 开启 `EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE`
 - 让 LCD 驱动的 `set_rotation` 为空
 - 由框架在 PFB 输出阶段完成旋转
 

@@ -1942,8 +1942,12 @@ static uint32_t recording_calc_frame_hash(void)
 static void recording_execute_action_step(void)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    egui_sim_action_t *action = &g_recording_current_action;
+    const egui_sim_action_t *action = &g_recording_current_action;
     int target_display = 0;
+    int x1 = action->x1;
+    int y1 = action->y1;
+    int x2 = action->x2;
+    int y2 = action->y2;
 
 #if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
     /* Route touch to the correct display's queue */
@@ -1960,9 +1964,13 @@ static void recording_execute_action_step(void)
 #define RECORDING_TOUCH_PUSH(pressed, x, y) sdl_port_touch_push_event((pressed), (x), (y))
 #endif
 
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
     // Recording actions use logical coordinates (from view region_screen),
     // but egui_input_add_motion expects physical coordinates (the polling layer
     // will transform physical -> logical). Convert logical -> physical here.
+    // Keep the converted coordinates in locals so one click uses the same
+    // physical point for both DOWN and UP.
+    if (action->type == EGUI_SIM_ACTION_CLICK || action->type == EGUI_SIM_ACTION_DRAG || action->type == EGUI_SIM_ACTION_SWIPE)
     {
         egui_core_t *target_core = NULL;
         egui_port_display_runtime_info_t runtime_info;
@@ -1978,50 +1986,60 @@ static void recording_execute_action_step(void)
             {
             case EGUI_DISPLAY_ROTATION_90:
                 // Inverse: lx,ly -> px=pw-1-ly, py=lx
-                lx = action->x1;
-                ly = action->y1;
-                action->x1 = pw - 1 - ly;
-                action->y1 = lx;
-                lx = action->x2;
-                ly = action->y2;
-                action->x2 = pw - 1 - ly;
-                action->y2 = lx;
+                lx = x1;
+                ly = y1;
+                x1 = pw - 1 - ly;
+                y1 = lx;
+                if (action->type != EGUI_SIM_ACTION_CLICK)
+                {
+                    lx = x2;
+                    ly = y2;
+                    x2 = pw - 1 - ly;
+                    y2 = lx;
+                }
                 break;
             case EGUI_DISPLAY_ROTATION_180:
                 // Inverse: lx,ly -> px=pw-1-lx, py=ph-1-ly
-                action->x1 = pw - 1 - action->x1;
-                action->y1 = ph - 1 - action->y1;
-                action->x2 = pw - 1 - action->x2;
-                action->y2 = ph - 1 - action->y2;
+                x1 = pw - 1 - x1;
+                y1 = ph - 1 - y1;
+                if (action->type != EGUI_SIM_ACTION_CLICK)
+                {
+                    x2 = pw - 1 - x2;
+                    y2 = ph - 1 - y2;
+                }
                 break;
             case EGUI_DISPLAY_ROTATION_270:
                 // Inverse: lx,ly -> px=ly, py=ph-1-lx
-                lx = action->x1;
-                ly = action->y1;
-                action->x1 = ly;
-                action->y1 = ph - 1 - lx;
-                lx = action->x2;
-                ly = action->y2;
-                action->x2 = ly;
-                action->y2 = ph - 1 - lx;
+                lx = x1;
+                ly = y1;
+                x1 = ly;
+                y1 = ph - 1 - lx;
+                if (action->type != EGUI_SIM_ACTION_CLICK)
+                {
+                    lx = x2;
+                    ly = y2;
+                    x2 = ly;
+                    y2 = ph - 1 - lx;
+                }
                 break;
             default:
                 break;
             }
         }
     }
+#endif
 
     switch (action->type)
     {
     case EGUI_SIM_ACTION_CLICK:
         if (!g_recording_click_release_pending)
         {
-            RECORDING_TOUCH_PUSH(1, action->x1, action->y1);
+            RECORDING_TOUCH_PUSH(1, x1, y1);
             g_recording_click_release_pending = true;
         }
         else
         {
-            RECORDING_TOUCH_PUSH(0, action->x1, action->y1);
+            RECORDING_TOUCH_PUSH(0, x1, y1);
             g_recording_click_release_pending = false;
         }
         break;
@@ -2034,19 +2052,19 @@ static void recording_execute_action_step(void)
 
         if (step == 0)
         {
-            RECORDING_TOUCH_PUSH(1, action->x1, action->y1);
+            RECORDING_TOUCH_PUSH(1, x1, y1);
             g_recording_drag_in_progress = true;
         }
         else if (step <= steps)
         {
-            int x = action->x1 + (action->x2 - action->x1) * step / steps;
-            int y = action->y1 + (action->y2 - action->y1) * step / steps;
+            int x = x1 + (x2 - x1) * step / steps;
+            int y = y1 + (y2 - y1) * step / steps;
             RECORDING_TOUCH_PUSH(1, x, y);
         }
 
         if (step >= steps)
         {
-            RECORDING_TOUCH_PUSH(0, action->x2, action->y2);
+            RECORDING_TOUCH_PUSH(0, x2, y2);
             g_recording_drag_in_progress = false;
         }
         break;
