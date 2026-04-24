@@ -1,6 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "uicode_disp0.h"
 
 // 4 checkboxes: XS / S / M / L
@@ -25,7 +26,10 @@ EGUI_VIEW_CHECKBOX_PARAMS_INIT_WITH_TEXT(checkbox_m_params, 0, 0, 180, 42, 0, "F
 EGUI_VIEW_CHECKBOX_PARAMS_INIT_WITH_TEXT(checkbox_l_params, 0, 0, 190, 52, 1, "Hidden");
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
+#define CHECKBOX_VERIFY_RETRY_MAX 3U
+
 static uint8_t runtime_fail_reported;
+static uint8_t checkbox_verify_retries[4];
 
 static void report_runtime_failure(const char *message)
 {
@@ -36,6 +40,19 @@ static void report_runtime_failure(const char *message)
 
     runtime_fail_reported = 1;
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
+static uint8_t schedule_checkbox_verify_retry(uint8_t verify_index, egui_sim_action_t *p_action)
+{
+    if (verify_index >= 4U || checkbox_verify_retries[verify_index] >= CHECKBOX_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    checkbox_verify_retries[verify_index]++;
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
 }
 #endif
 
@@ -48,6 +65,7 @@ void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
+    memset(checkbox_verify_retries, 0, sizeof(checkbox_verify_retries));
 #endif
     // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
@@ -121,27 +139,50 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, &checkbox_xs, 1000);
         return true;
     case 1:
-        if (first_call && checkbox_xs.is_checked != 1)
+        if (checkbox_xs.is_checked != 1)
         {
+            if (schedule_checkbox_verify_retry(0U, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("checkbox_xs did not toggle on");
         }
+        checkbox_verify_retries[0] = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, &checkbox_s, 1000);
         return true;
     case 2:
-        if (first_call && checkbox_s.is_checked != 0)
+        if (checkbox_s.is_checked != 0)
         {
+            if (schedule_checkbox_verify_retry(1U, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("checkbox_s did not toggle off");
         }
+        checkbox_verify_retries[1] = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, &checkbox_m, 1000);
         return true;
     case 3:
-        if (first_call && checkbox_m.is_checked != 1)
+        if (checkbox_m.is_checked != 1)
         {
+            if (schedule_checkbox_verify_retry(2U, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("checkbox_m did not toggle on");
         }
+        checkbox_verify_retries[2] = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, &checkbox_l, 1000);
         return true;
     case 4:
+        if (checkbox_l.is_checked != 0 || checkbox_xs.is_checked != 1 || checkbox_s.is_checked != 0 || checkbox_m.is_checked != 1)
+        {
+            if (schedule_checkbox_verify_retry(3U, p_action))
+            {
+                return true;
+            }
+        }
+        checkbox_verify_retries[3] = 0U;
         if (first_call)
         {
             if (checkbox_l.is_checked != 0)

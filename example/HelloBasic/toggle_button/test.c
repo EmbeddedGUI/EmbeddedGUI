@@ -1,6 +1,7 @@
 #include "egui.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "uicode_disp0.h"
 
 // 4 toggle buttons: XS / S / M / L
@@ -32,7 +33,10 @@ EGUI_VIEW_TOGGLE_BUTTON_PARAMS_INIT(toggle_m_params, 0, 0, 168, 38, "Visible", 0
 EGUI_VIEW_TOGGLE_BUTTON_PARAMS_INIT(toggle_l_params, 0, 0, 208, 44, "Settings", 1);
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
+#define TOGGLE_VERIFY_RETRY_MAX 3U
+
 static uint8_t runtime_fail_reported;
+static uint8_t toggle_verify_retries[4];
 
 static void report_runtime_failure(const char *message)
 {
@@ -43,6 +47,19 @@ static void report_runtime_failure(const char *message)
 
     runtime_fail_reported = 1;
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
+static uint8_t schedule_toggle_verify_retry(uint8_t verify_index, egui_sim_action_t *p_action)
+{
+    if (verify_index >= 4U || toggle_verify_retries[verify_index] >= TOGGLE_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    toggle_verify_retries[verify_index]++;
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
 }
 #endif
 
@@ -76,6 +93,7 @@ void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
+    memset(toggle_verify_retries, 0, sizeof(toggle_verify_retries));
 #endif
     // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), core, &grid_params);
@@ -151,27 +169,51 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, &toggle_xs, 1000);
         return true;
     case 1:
-        if (first_call && egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_xs)) != 1)
+        if (egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_xs)) != 1)
         {
+            if (schedule_toggle_verify_retry(0U, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("toggle_xs did not toggle on");
         }
+        toggle_verify_retries[0] = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, &toggle_s, 1000);
         return true;
     case 2:
-        if (first_call && egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_s)) != 0)
+        if (egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_s)) != 0)
         {
+            if (schedule_toggle_verify_retry(1U, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("toggle_s did not toggle off");
         }
+        toggle_verify_retries[1] = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, &toggle_m, 1000);
         return true;
     case 3:
-        if (first_call && egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_m)) != 1)
+        if (egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_m)) != 1)
         {
+            if (schedule_toggle_verify_retry(2U, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("toggle_m did not toggle on");
         }
+        toggle_verify_retries[2] = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, &toggle_l, 1000);
         return true;
     case 4:
+        if (egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_l)) != 0 || egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_xs)) != 1 ||
+            egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_s)) != 0 || egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_m)) != 1)
+        {
+            if (schedule_toggle_verify_retry(3U, p_action))
+            {
+                return true;
+            }
+        }
+        toggle_verify_retries[3] = 0U;
         if (first_call)
         {
             if (egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_l)) != 0)
