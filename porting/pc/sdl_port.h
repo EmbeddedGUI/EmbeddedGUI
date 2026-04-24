@@ -49,7 +49,6 @@ extern void sdl_port_sleep(uint32_t nMS);
 extern void sdl_port_touch_read(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y);
 extern void egui_port_init(void);
 extern egui_display_driver_t *egui_port_get_display_driver(void);
-extern egui_platform_t *egui_port_get_platform(void);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 extern void egui_port_register_touch_driver(egui_core_t *core);
 #endif

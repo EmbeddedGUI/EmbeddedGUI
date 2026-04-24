@@ -799,7 +799,6 @@ static int pc_setup_display(egui_core_t *core, uint8_t display_id, int screen_wi
     setup.pfb_buffers = pfb_buffers;
     setup.pfb_buffer_count = pfb_buffer_count;
     setup.display_driver = display_driver;
-    setup.platform = egui_port_get_platform();
     setup.touch_register = touch_register;
     setup.uicode_init = uicode_init;
     setup.display_id = display_id;

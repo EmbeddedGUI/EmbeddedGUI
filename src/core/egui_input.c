@@ -31,44 +31,11 @@
 
 #include "egui_touch_driver.h"
 
-/** Disable interrupts through the registered platform hooks when they exist. */
-static egui_base_t egui_input_interrupt_disable_if_available(egui_core_t *core, int *locked)
-{
-    if (locked != NULL)
-    {
-        *locked = 0;
-    }
-
-    if (core == NULL || core->render.platform == NULL || core->render.platform->ops == NULL || core->render.platform->ops->interrupt_disable == NULL)
-    {
-        return 0;
-    }
-
-    if (locked != NULL)
-    {
-        *locked = 1;
-    }
-
-    return core->render.platform->ops->interrupt_disable();
-}
-
-/** Re-enable interrupts only when `egui_input_interrupt_disable_if_available()` actually locked them. */
-static void egui_input_interrupt_enable_if_locked(egui_core_t *core, egui_base_t level, int locked)
-{
-    if (!locked || core == NULL || core->render.platform == NULL || core->render.platform->ops == NULL || core->render.platform->ops->interrupt_enable == NULL)
-    {
-        return;
-    }
-
-    core->render.platform->ops->interrupt_enable(level);
-}
-
 /** Queue one single-pointer motion event, coalescing consecutive MOVE events to save queue slots. */
 int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_dim_t y)
 {
     // EGUI_LOG_DBG("egui_input_add_motion type:%d x:%d y:%d\n", type, x, y);
-    int locked;
-    egui_base_t level = egui_input_interrupt_disable_if_available(core, &locked);
+    __egui_disable_isr();
 
     egui_motion_event_t *motion_event;
     // Merge move events with the same type and location
@@ -91,7 +58,7 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
         if (!SIMPLE_POOL_DEQUEUE(&input_motion_pool, motion_event))
         {
             EGUI_LOG_DBG("egui_input_add_motion failed type:%d x:%d y:%d\n", type, x, y);
-            egui_input_interrupt_enable_if_locked(core, level, locked);
+            __egui_enable_isr();
             return 0;
         }
     }
@@ -116,7 +83,7 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
         egui_slist_append(&egui_input_info.motion_list, &motion_event->node);
     }
 
-    egui_input_interrupt_enable_if_locked(core, level, locked);
+    __egui_enable_isr();
     return 1;
 }
 
@@ -124,8 +91,7 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
 /** Queue one multi-touch motion event, using the same MOVE coalescing policy as single-touch input. */
 int egui_input_add_motion_multi(egui_core_t *core, uint8_t type, uint8_t pointer_count, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2)
 {
-    int locked;
-    egui_base_t level = egui_input_interrupt_disable_if_available(core, &locked);
+    __egui_disable_isr();
     egui_motion_event_t *motion_event;
     egui_motion_event_t *last_motion_event;
     int is_reused = 0;
@@ -144,7 +110,7 @@ int egui_input_add_motion_multi(egui_core_t *core, uint8_t type, uint8_t pointer
     {
         if (!SIMPLE_POOL_DEQUEUE(&input_motion_pool, motion_event))
         {
-            egui_input_interrupt_enable_if_locked(core, level, locked);
+            __egui_enable_isr();
             return 0;
         }
     }
@@ -165,20 +131,19 @@ int egui_input_add_motion_multi(egui_core_t *core, uint8_t type, uint8_t pointer
     {
         egui_slist_append(&egui_input_info.motion_list, &motion_event->node);
     }
-    egui_input_interrupt_enable_if_locked(core, level, locked);
+    __egui_enable_isr();
     return 1;
 }
 
 /** Queue one scroll-wheel style motion event that carries a delta instead of a pressed state. */
 int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t delta)
 {
-    int locked;
-    egui_base_t level = egui_input_interrupt_disable_if_available(core, &locked);
+    __egui_disable_isr();
     egui_motion_event_t *motion_event;
 
     if (!SIMPLE_POOL_DEQUEUE(&input_motion_pool, motion_event))
     {
-        egui_input_interrupt_enable_if_locked(core, level, locked);
+        __egui_enable_isr();
         return 0;
     }
 
@@ -192,7 +157,7 @@ int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t
     motion_event->scroll_delta = delta;
 
     egui_slist_append(&egui_input_info.motion_list, &motion_event->node);
-    egui_input_interrupt_enable_if_locked(core, level, locked);
+    __egui_enable_isr();
     return 1;
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
@@ -277,9 +242,11 @@ void egui_input_polling_work(egui_core_t *core)
     // Drain the motion queue in FIFO order so producer-side interrupt handlers stay short.
     while (1)
     {
-        egui_base_t level = egui_hw_interrupt_disable_core(core);
-        motion_event = (egui_motion_event_t *)egui_slist_get(&egui_input_info.motion_list);
-        egui_hw_interrupt_enable_core(core, level);
+        {
+            __egui_disable_isr();
+            motion_event = (egui_motion_event_t *)egui_slist_get(&egui_input_info.motion_list);
+            __egui_enable_isr();
+        }
 
         if (motion_event == NULL)
         {
@@ -302,9 +269,11 @@ void egui_input_polling_work(egui_core_t *core)
         egui_core_process_input_motion(core, motion_event);
 
         // Return the node to the fixed pool so the next producer can reuse it.
-        level = egui_hw_interrupt_disable_core(core);
-        SIMPLE_POOL_ENQUEUE(&input_motion_pool, motion_event);
-        egui_hw_interrupt_enable_core(core, level);
+        {
+            __egui_disable_isr();
+            SIMPLE_POOL_ENQUEUE(&input_motion_pool, motion_event);
+            __egui_enable_isr();
+        }
     }
 }
 
@@ -335,15 +304,14 @@ void egui_input_init(egui_core_t *core)
 /** Queue one key event into the fixed-capacity FIFO used by keyboard dispatch. */
 int egui_input_add_key(egui_core_t *core, uint8_t type, uint8_t key_code, uint8_t is_shift, uint8_t is_ctrl)
 {
-    int locked;
-    egui_base_t level = egui_input_interrupt_disable_if_available(core, &locked);
+    __egui_disable_isr();
     egui_key_event_t *key_event;
 
     // Get a key event from the pool
     if (!SIMPLE_POOL_DEQUEUE(&input_key_pool, key_event))
     {
         EGUI_LOG_DBG("egui_input_add_key failed type:%d key_code:%d\n", type, key_code);
-        egui_input_interrupt_enable_if_locked(core, level, locked);
+        __egui_enable_isr();
         return 0;
     }
 
@@ -355,7 +323,7 @@ int egui_input_add_key(egui_core_t *core, uint8_t type, uint8_t key_code, uint8_
     key_event->timestamp = egui_api_timer_get_current_core(core);
 
     egui_slist_append(&egui_input_info.key_list, &key_event->node);
-    egui_input_interrupt_enable_if_locked(core, level, locked);
+    __egui_enable_isr();
 
     return 1;
 }

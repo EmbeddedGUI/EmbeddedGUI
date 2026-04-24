@@ -389,7 +389,6 @@ static void designer_load_external_resource(egui_core_t *core, void *dest, uint3
 static const egui_platform_ops_t designer_platform_ops = {
 #if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
         .vlog = designer_vlog,
-        .vsprintf = NULL,
 #endif
         .assert_handler = designer_assert_handler,
         .delay = designer_delay,
@@ -401,13 +400,8 @@ static const egui_platform_ops_t designer_platform_ops = {
 #else
         .load_external_resource = NULL,
 #endif
-        .mutex_create = NULL,
-        .mutex_lock = NULL,
-        .mutex_unlock = NULL,
-        .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .watchdog_feed = NULL,
 };
 
 static egui_platform_t designer_platform = {
@@ -421,6 +415,7 @@ static egui_platform_t designer_platform = {
 void egui_port_init(egui_core_t *core)
 {
     EGUI_ASSERT(core != NULL);
+    egui_platform_register(&designer_platform);
 
     egui_hal_lcd_config_t lcd_config = {
             .width = EGUI_CONFIG_SCEEN_WIDTH,
@@ -441,8 +436,6 @@ void egui_port_init(egui_core_t *core)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     designer_touch_setup(&designer_touch_driver);
 #endif
-
-    egui_platform_register(core, &designer_platform);
 }
 
 egui_display_driver_t *egui_port_get_display_driver(void)

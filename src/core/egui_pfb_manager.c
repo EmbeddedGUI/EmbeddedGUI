@@ -177,11 +177,11 @@ void egui_pfb_manager_submit(egui_pfb_manager_t *mgr, int16_t x, int16_t y, int1
     }
 
     // Update the shared queue state atomically because flush completion may happen in interrupt context.
-    egui_base_t level = egui_hw_interrupt_disable_core(mgr->core);
+    __egui_disable_isr();
     mgr->pending_count++;
     uint8_t was_idle = !mgr->dma_busy;
     uint8_t locked = mgr->bus_locked;
-    egui_hw_interrupt_enable_core(mgr->core, level);
+    __egui_enable_isr();
 
     // Kick the transfer engine only when no older tile is already in flight.
     if (was_idle && !locked)

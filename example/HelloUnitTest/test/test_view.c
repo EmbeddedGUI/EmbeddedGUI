@@ -871,6 +871,7 @@ static void test_setup_display_registers_driver_platform_and_hooks(void)
     egui_core_t local_core;
     static egui_color_int_t local_pfb[32 * 24];
     egui_color_int_t *pfb_bufs[1] = {local_pfb};
+    egui_platform_t *registered_platform = egui_platform_get();
     static egui_display_driver_ops_t driver_ops = {
             .init = test_setup_display_driver_init,
             .draw_area = test_setup_display_driver_draw_area,
@@ -886,7 +887,6 @@ static void test_setup_display_registers_driver_platform_and_hooks(void)
             .rotation = EGUI_DISPLAY_ROTATION_90,
             .brightness = 123,
     };
-    static egui_platform_t platform = {0};
     egui_display_setup_t setup = {
             .screen_width = 320,
             .screen_height = 240,
@@ -895,7 +895,6 @@ static void test_setup_display_registers_driver_platform_and_hooks(void)
             .pfb_buffers = pfb_bufs,
             .pfb_buffer_count = 1,
             .display_driver = &driver,
-            .platform = &platform,
             .touch_register = test_setup_touch_register,
             .uicode_init = test_setup_uicode_init,
             .display_id = 2,
@@ -909,7 +908,8 @@ static void test_setup_display_registers_driver_platform_and_hooks(void)
     EGUI_TEST_ASSERT_TRUE(local_core.id == 2);
     EGUI_TEST_ASSERT_TRUE(egui_canvas_get_core(&local_core.canvas) == &local_core);
     EGUI_TEST_ASSERT_TRUE(egui_display_driver_get(&local_core) == &driver);
-    EGUI_TEST_ASSERT_TRUE(egui_platform_get(&local_core) == &platform);
+    EGUI_TEST_ASSERT_TRUE(registered_platform != NULL);
+    EGUI_TEST_ASSERT_TRUE(egui_platform_get() == registered_platform);
     EGUI_TEST_ASSERT_EQUAL_INT(320, egui_display_get_width(&local_core));
     EGUI_TEST_ASSERT_EQUAL_INT(240, egui_display_get_height(&local_core));
     EGUI_TEST_ASSERT_EQUAL_INT(1, g_test_setup_driver_init_count);

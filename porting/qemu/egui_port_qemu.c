@@ -634,11 +634,6 @@ static void qemu_assert_handler(const char *file, int line)
     qemu_exit(1);
 }
 
-static void qemu_vsprintf(char *str, const char *format, va_list args)
-{
-    qemu_format_to_buffer(str, 0x7fffffff, format, args);
-}
-
 static uint32_t qemu_get_tick_ms(void)
 {
     return g_tick_ms;
@@ -981,7 +976,6 @@ static const egui_platform_ops_t qemu_platform_ops = {
 #endif
 #if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
         .vlog = qemu_vlog,
-        .vsprintf = qemu_vsprintf,
 #endif
         .assert_handler = qemu_assert_handler,
         .delay = qemu_delay,
@@ -993,13 +987,8 @@ static const egui_platform_ops_t qemu_platform_ops = {
 #else
         .load_external_resource = NULL,
 #endif
-        .mutex_create = NULL,
-        .mutex_lock = NULL,
-        .mutex_unlock = NULL,
-        .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .watchdog_feed = NULL,
 };
 
 static egui_platform_t qemu_platform = {
@@ -1014,6 +1003,7 @@ void egui_port_init(egui_core_t *core)
 {
     EGUI_ASSERT(core != NULL);
     s_qemu_core = core;
+    egui_platform_register(&qemu_platform);
 
 #if QEMU_SPI_SPEED_MHZ > 0
     /* Timing calibration: verify qemu_get_tick_us() accuracy */
@@ -1028,7 +1018,6 @@ void egui_port_init(egui_core_t *core)
     uint32_t cal_end = qemu_get_tick_us();
     qemu_log_printf("TIMING_CAL: loop=%luus delay10ms=%luus\n", (unsigned long)(cal_mid - cal_start), (unsigned long)(cal_end - cal_mid));
 #endif
-    egui_platform_register(core, &qemu_platform);
 }
 
 egui_display_driver_t *egui_port_get_display_driver(void)

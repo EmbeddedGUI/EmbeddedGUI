@@ -563,7 +563,6 @@ void egui_core_set_screen_size(egui_core_t *core, int16_t width, int16_t height)
 /** Finish the second half of display setup after the core and PFB manager are already initialized. */
 void egui_core_setup_display_start(egui_core_t *core, const egui_display_setup_t *setup)
 {
-    egui_platform_register(core, setup->platform);
     egui_display_driver_register(core, setup->display_driver);
 
     if (setup->touch_register != NULL)
@@ -673,10 +672,10 @@ void egui_setup_display(egui_core_t *core, const egui_display_setup_t *setup)
 {
     EGUI_ASSERT(core != NULL);
     EGUI_ASSERT(setup != NULL);
+    EGUI_ASSERT(egui_platform_get() != NULL);
     EGUI_ASSERT(setup->pfb_buffers != NULL);
     EGUI_ASSERT(setup->pfb_buffer_count > 0);
     EGUI_ASSERT(setup->display_driver != NULL);
-    EGUI_ASSERT(setup->platform != NULL);
 
     egui_init_display(core, (int16_t)setup->screen_width, (int16_t)setup->screen_height, setup->pfb_buffers, setup->pfb_buffer_count, setup->pfb_width,
                       setup->pfb_height);

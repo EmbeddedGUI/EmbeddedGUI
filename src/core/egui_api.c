@@ -27,17 +27,13 @@
  * hardware-accelerated or otherwise specialised implementation.
  */
 
-/** Resolve the platform service table bound to this core, or `NULL` when no platform is registered. */
-static egui_platform_t *egui_api_get_platform(egui_core_t *core)
-{
-    return core != NULL ? egui_platform_get(core) : NULL;
-}
-
 /** Allocate memory through the active platform hook when enabled, otherwise fall back to `malloc`. */
 static void *egui_api_platform_malloc(egui_core_t *core, int size)
 {
+    EGUI_UNUSED(core);
+
 #if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
-    egui_platform_t *plat = egui_api_get_platform(core);
+    egui_platform_t *plat = egui_platform_get();
     if (plat != NULL && plat->ops != NULL && plat->ops->malloc != NULL)
     {
         return plat->ops->malloc(size);
@@ -51,8 +47,10 @@ static void *egui_api_platform_malloc(egui_core_t *core, int size)
 /** Free memory through the active platform hook when enabled, otherwise fall back to `free`. */
 static void egui_api_platform_free(egui_core_t *core, void *ptr)
 {
+    EGUI_UNUSED(core);
+
 #if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
-    egui_platform_t *plat = egui_api_get_platform(core);
+    egui_platform_t *plat = egui_platform_get();
     if (plat != NULL && plat->ops != NULL && plat->ops->free != NULL)
     {
         plat->ops->free(ptr);
@@ -172,12 +170,13 @@ static void egui_api_log_alloc_fail(const char *reason, size_t payload_size, siz
     EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu\r\n", reason, (unsigned long)payload_size, (unsigned long)tracked_size);
 }
 
-#if (EGUI_LOG_LEVEL > EGUI_LOG_IMPL_LEVEL_NONE) || EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE || EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS || EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL
+#if (EGUI_LOG_LEVEL > EGUI_LOG_IMPL_LEVEL_NONE) || EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE || EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS ||                             \
+        EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL
 #if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
 void egui_api_log(const char *format, ...)
 {
     va_list args;
-    egui_platform_t *plat = egui_platform_get_default();
+    egui_platform_t *plat = egui_platform_get();
 
     va_start(args, format);
 
@@ -337,30 +336,32 @@ void egui_api_refresh_display(egui_core_t *core)
     }
 }
 
-/** Start or reprogram the platform timer associated with this core. */
+/** Start or reprogram the process-global platform timer for the target core. */
 void egui_api_timer_start(egui_core_t *core, uint32_t ms)
 {
-    egui_platform_t *plat = egui_api_get_platform(core);
+    egui_platform_t *plat = egui_platform_get();
     if (plat != NULL && plat->ops != NULL && plat->ops->timer_start != NULL)
     {
         plat->ops->timer_start(core, ms);
     }
 }
 
-/** Stop the platform timer associated with this core. */
+/** Stop the process-global platform timer for the target core. */
 void egui_api_timer_stop(egui_core_t *core)
 {
-    egui_platform_t *plat = egui_api_get_platform(core);
+    egui_platform_t *plat = egui_platform_get();
     if (plat != NULL && plat->ops != NULL && plat->ops->timer_stop != NULL)
     {
         plat->ops->timer_stop(core);
     }
 }
 
-/** Read the current platform tick counter for the given core context. */
+/** Read the current platform tick counter through the process-global platform. */
 uint32_t egui_api_timer_get_current_core(egui_core_t *core)
 {
-    egui_platform_t *plat = egui_api_get_platform(core);
+    EGUI_UNUSED(core);
+
+    egui_platform_t *plat = egui_platform_get();
     if (plat != NULL && plat->ops != NULL && plat->ops->get_tick_ms != NULL)
     {
         return plat->ops->get_tick_ms();
@@ -374,10 +375,12 @@ uint32_t egui_api_timer_get_current(void)
     return egui_api_timer_get_current_core(NULL);
 }
 
-/** Delay for `ms` milliseconds through the platform hook when available. */
+/** Delay for `ms` milliseconds through the process-global platform hook when available. */
 void egui_api_delay_core(egui_core_t *core, uint32_t ms)
 {
-    egui_platform_t *plat = egui_api_get_platform(core);
+    EGUI_UNUSED(core);
+
+    egui_platform_t *plat = egui_platform_get();
     if (ms == 0)
     {
         return;
@@ -440,7 +443,7 @@ void egui_api_memcpy(void *dst, const void *src, int n)
 void egui_api_load_external_resource(egui_canvas_t *canvas, void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size)
 {
     egui_core_t *core = canvas != NULL ? egui_canvas_get_core(canvas) : NULL;
-    egui_platform_t *plat = egui_api_get_platform(core);
+    egui_platform_t *plat = egui_platform_get();
     if (plat != NULL && plat->ops != NULL && plat->ops->load_external_resource != NULL)
     {
         if (canvas != NULL)
@@ -465,35 +468,26 @@ void egui_api_load_external_resource(egui_canvas_t *canvas, void *dest, const ui
     }
 }
 
-/** Disable interrupts through the registered platform hook and return the previous interrupt level. */
-egui_base_t egui_hw_interrupt_disable_core(egui_core_t *core)
+/** Disable interrupts without an explicit core context. */
+egui_base_t egui_hw_interrupt_disable(void)
 {
-    egui_platform_t *plat = egui_api_get_platform(core);
+    egui_platform_t *plat = egui_platform_get();
+
     if (plat != NULL && plat->ops != NULL && plat->ops->interrupt_disable != NULL)
     {
         return plat->ops->interrupt_disable();
     }
+
     return 0;
-}
-
-/** Disable interrupts without an explicit core context. */
-egui_base_t egui_hw_interrupt_disable(void)
-{
-    return egui_hw_interrupt_disable_core(NULL);
-}
-
-/** Restore interrupts through the registered platform hook using the saved level. */
-void egui_hw_interrupt_enable_core(egui_core_t *core, egui_base_t level)
-{
-    egui_platform_t *plat = egui_api_get_platform(core);
-    if (plat != NULL && plat->ops != NULL && plat->ops->interrupt_enable != NULL)
-    {
-        plat->ops->interrupt_enable(level);
-    }
 }
 
 /** Restore interrupts without an explicit core context. */
 void egui_hw_interrupt_enable(egui_base_t level)
 {
-    egui_hw_interrupt_enable_core(NULL, level);
+    egui_platform_t *plat = egui_platform_get();
+
+    if (plat != NULL && plat->ops != NULL && plat->ops->interrupt_enable != NULL)
+    {
+        plat->ops->interrupt_enable(level);
+    }
 }

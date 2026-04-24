@@ -7,40 +7,29 @@
  * @brief Registration helpers for the per-core platform service table.
  */
 
-/**
- * Attach one platform service table to the core.
- * The binding is write-once during normal startup, but re-registering the
- * same instance is accepted so repeated init paths remain idempotent.
- */
 static egui_platform_t *s_default_platform = NULL;
-void egui_platform_register(egui_core_t *core, egui_platform_t *platform)
+
+/**
+ * Attach the single platform service table used by the current process.
+ * Re-registering the same instance is accepted so repeated init paths remain
+ * idempotent.
+ */
+void egui_platform_register(egui_platform_t *platform)
 {
-    EGUI_ASSERT(core != NULL);
     EGUI_ASSERT(platform != NULL);
 
-    if (core->render.platform != NULL)
+    if (s_default_platform != NULL)
     {
-        EGUI_ASSERT(core->render.platform == platform);
+        EGUI_ASSERT(s_default_platform == platform);
     }
     else
-    {
-        core->render.platform = platform;
-    }
-
-    if (s_default_platform == NULL)
     {
         s_default_platform = platform;
     }
 }
 
-/** Return the platform services currently attached to the given core. */
-egui_platform_t *egui_platform_get(egui_core_t *core)
-{
-    EGUI_ASSERT(core != NULL);
-    return core->render.platform;
-}
-
-egui_platform_t *egui_platform_get_default(void)
+/** Return the process-global platform service table. */
+egui_platform_t *egui_platform_get(void)
 {
     return s_default_platform;
 }

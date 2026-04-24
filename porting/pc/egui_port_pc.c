@@ -276,13 +276,8 @@ static const egui_platform_ops_t pc_platform_ops = {
 #else
         .load_external_resource = NULL,
 #endif
-        .mutex_create = NULL,
-        .mutex_lock = NULL,
-        .mutex_unlock = NULL,
-        .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .watchdog_feed = NULL,
 };
 
 static egui_platform_t pc_platform = {
@@ -295,6 +290,8 @@ static egui_platform_t pc_platform = {
 
 void egui_port_init(void)
 {
+    egui_platform_register(&pc_platform);
+
     if (pc_isr_mutex == NULL)
     {
         pc_isr_mutex = SDL_CreateMutex();
@@ -333,11 +330,6 @@ void egui_port_init(void)
 egui_display_driver_t *egui_port_get_display_driver(void)
 {
     return &port_display_driver;
-}
-
-egui_platform_t *egui_port_get_platform(void)
-{
-    return &pc_platform;
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH

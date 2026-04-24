@@ -116,8 +116,8 @@ ifeq "$(HOST_OS)" "Windows"
 endif
 
 MKDEP_OPT = -MMD -MT $@ -MF $@.d
-C_INCLUDE_OPT = $(foreach dir,$(sort $(INCLUDE) $(C_INCDIRS)),-I$(dir))
-ASM_INCLUDE_OPT = $(foreach dir,$(sort $(INCLUDE) $(ASM_INCDIRS)),-I$(dir))
+C_INCLUDE_OPT = $(foreach dir,$(INCLUDE) $(C_INCDIRS),-I$(dir))
+ASM_INCLUDE_OPT = $(foreach dir,$(INCLUDE) $(ASM_INCDIRS),-I$(dir))
 
 ifeq ($(NOGC),1)
 GC_CFLAGS =

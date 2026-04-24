@@ -159,11 +159,6 @@ static void test_vlog(const char *format, va_list args)
 {
     vprintf(format, args);
 }
-
-static void test_vsprintf(char *str, const char *format, va_list args)
-{
-    vsprintf(str, format, args);
-}
 #endif
 
 static void test_assert_handler(const char *file, int line)
@@ -210,20 +205,14 @@ static const egui_platform_ops_t test_platform_ops = {
         .interrupt_disable = test_interrupt_disable,
         .interrupt_enable = test_interrupt_enable,
         .load_external_resource = NULL,
-        .mutex_create = NULL,
-        .mutex_lock = NULL,
-        .mutex_unlock = NULL,
-        .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .watchdog_feed = NULL,
 #if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
         .malloc = test_malloc,
         .free = test_free,
 #endif
 #if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
         .vlog = test_vlog,
-        .vsprintf = test_vsprintf,
 #endif
 #if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
         .memset_fast = test_memset_fast,
@@ -263,6 +252,7 @@ void egui_port_get_alloc_stats(egui_port_alloc_stats_t *out_stats)
 void egui_port_init(egui_core_t *core)
 {
     EGUI_ASSERT(core != NULL);
+    egui_platform_register(&test_platform);
 
     egui_hal_lcd_config_t lcd_config = {
             .width = EGUI_CONFIG_SCEEN_WIDTH,
@@ -279,8 +269,6 @@ void egui_port_init(egui_core_t *core)
 
     test_lcd_setup(&s_test_lcd_driver);
     egui_hal_lcd_register(&port_display_driver, &s_test_lcd_driver, &lcd_config);
-
-    egui_platform_register(core, &test_platform);
 }
 
 egui_display_driver_t *egui_port_get_display_driver(void)

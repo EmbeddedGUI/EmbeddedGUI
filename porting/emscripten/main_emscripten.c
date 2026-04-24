@@ -98,8 +98,6 @@ int main(int argc, const char *argv[])
     egui_port_register_touch_driver(&core);
 #endif
     extern egui_display_driver_t *egui_port_get_display_driver(void);
-    extern egui_platform_t *egui_port_get_platform(void);
-    egui_platform_register(&core, egui_port_get_platform());
     egui_display_driver_register(&core, egui_port_get_display_driver());
     uicode_disp0_init(&core);
     egui_screen_on(&core);

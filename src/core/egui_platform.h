@@ -35,8 +35,6 @@ struct egui_platform_ops
 #if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
     /** Logging hook in `va_list` form, for example semihosting or UART output. */
     void (*vlog)(const char *format, va_list args);
-    /** Formatting hook in `va_list` form when the port replaces `vsprintf`. */
-    void (*vsprintf)(char *str, const char *format, va_list args);
 #endif
 
     /** Assertion handler used by the framework's internal assert macros. */
@@ -63,20 +61,6 @@ struct egui_platform_ops
     /** Load part of one external resource into RAM for a specific core. Optional. */
     void (*load_external_resource)(egui_core_t *core, void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size);
 
-    /* ---- RTOS mutex (all optional, NULL = no mutex support) ---- */
-
-    /** Create a mutex and return an opaque handle. Leave `NULL` when mutexes are not used. */
-    void *(*mutex_create)(void);
-
-    /** Lock a mutex (blocking). */
-    void (*mutex_lock)(void *mutex);
-
-    /** Unlock a mutex. */
-    void (*mutex_unlock)(void *mutex);
-
-    /** Destroy a mutex. */
-    void (*mutex_destroy)(void *mutex);
-
     /* ---- Timer callback ---- */
 
     /**
@@ -88,27 +72,18 @@ struct egui_platform_ops
 
     /** Cancel the scheduled timer wakeup for a specific core. Optional when `timer_start` is unused. */
     void (*timer_stop)(egui_core_t *core);
-
-    /* ---- Misc ---- */
-
-    /** Feed the watchdog during long operations. Leave `NULL` when not needed. */
-    void (*watchdog_feed)(void);
 };
 
-/**
- * One platform-service instance registered on a core.
- */
+/** One process-global platform-service instance. */
 struct egui_platform
 {
     const egui_platform_ops_t *ops; // callback table implemented by the port or OS adapter
 };
 
-/** Bind one platform callback table to a core during startup. Re-registering the same instance is allowed. */
-void egui_platform_register(egui_core_t *core, egui_platform_t *platform);
-/** Return the platform currently registered on `core`, or `NULL` when none has been bound yet. */
-egui_platform_t *egui_platform_get(egui_core_t *core);
-/* Returns the default registered platform used by core-less helper paths such as logging. */
-egui_platform_t *egui_platform_get_default(void);
+/** Bind the process-global platform callback table during startup. Re-registering the same instance is allowed. */
+void egui_platform_register(egui_platform_t *platform);
+/** Return the process-global platform currently registered by the active port. */
+egui_platform_t *egui_platform_get(void);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

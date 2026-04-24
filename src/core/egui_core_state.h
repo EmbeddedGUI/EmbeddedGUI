@@ -187,7 +187,6 @@ typedef struct egui_core_render_state
 {
     egui_pfb_manager_t pfb_mgr;         // partial-framebuffer manager and buffer ring state
     egui_display_driver_t *driver;      // registered display driver implementation
-    egui_platform_t *platform;          // registered platform abstraction used for timing/logging/delay hooks
     uint8_t color_16_swap;              // non-zero when RGB565 output bytes must be swapped before flush
     uint8_t software_rotation;          // non-zero when runtime rotation is handled in software instead of hardware
     egui_color_int_t *rotation_scratch; // temporary tile buffer used while rotating PFB data in software

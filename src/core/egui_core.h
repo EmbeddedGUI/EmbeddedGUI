@@ -159,7 +159,6 @@ typedef struct egui_display_setup
     egui_color_int_t **pfb_buffers;            // array of PFB buffer pointers
     int pfb_buffer_count;                      // number of PFB buffers in the array
     egui_display_driver_t *display_driver;     // display driver bound to this core
-    egui_platform_t *platform;                 // platform callback table for timing, memory, and sync
     egui_touch_register_func_t touch_register; // optional touch-driver registration callback
     egui_uicode_init_func_t uicode_init;       // UI bootstrap callback that creates the initial scene
     uint8_t display_id;                        // runtime display index used by multi-display ports
@@ -168,10 +167,10 @@ typedef struct egui_display_setup
 /**
  * Initialize a display from a single setup descriptor.
  *
- * This is the recommended startup helper when the platform layer already has
- * the display
- * driver, platform callbacks, optional touch registration, and the
- * UI bootstrap callback prepared.
+ * This is the recommended startup helper once the port has already registered
+ * the process-global platform callbacks and prepared the display driver,
+ *
+ * optional touch registration, and the UI bootstrap callback.
  */
 void egui_setup_display(egui_core_t *core, const egui_display_setup_t *setup);
 

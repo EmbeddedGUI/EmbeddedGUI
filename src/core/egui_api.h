@@ -91,10 +91,6 @@ __EGUI_STATIC_INLINE__ char egui_level_to_char(int level)
 extern egui_base_t egui_hw_interrupt_disable(void);
 /** Restore the interrupt state saved by `egui_hw_interrupt_disable()`. */
 extern void egui_hw_interrupt_enable(egui_base_t level);
-/** Core-aware variant of `egui_hw_interrupt_disable()` for multi-core ports. */
-extern egui_base_t egui_hw_interrupt_disable_core(egui_core_t *core);
-/** Core-aware variant of `egui_hw_interrupt_enable()` for multi-core ports. */
-extern void egui_hw_interrupt_enable_core(egui_core_t *core, egui_base_t level);
 
 #define __egui_disable_isr() egui_base_t _egui_isr_level = egui_hw_interrupt_disable()
 #define __egui_enable_isr()  egui_hw_interrupt_enable(_egui_isr_level)
@@ -119,13 +115,13 @@ void egui_api_refresh_display(egui_core_t *core);
 void egui_api_timer_start(egui_core_t *core, uint32_t ms);
 /** Cancel the pending platform timer wake-up. */
 void egui_api_timer_stop(egui_core_t *core);
-/** Get the current platform tick in milliseconds through the core's bound platform. */
+/** Get the current platform tick in milliseconds through the process-global platform. */
 uint32_t egui_api_timer_get_current_core(egui_core_t *core);
-/** Get the current platform tick in milliseconds through the default platform binding. */
+/** Get the current platform tick in milliseconds through the process-global platform. */
 uint32_t egui_api_timer_get_current(void);
-/** Sleep for `ms` milliseconds using the core's bound platform. */
+/** Sleep for `ms` milliseconds using the process-global platform. */
 void egui_api_delay_core(egui_core_t *core, uint32_t ms);
-/** Sleep for `ms` milliseconds using the default platform binding. */
+/** Sleep for `ms` milliseconds using the process-global platform. */
 void egui_api_delay(uint32_t ms);
 /** Clear one PFB memory block. */
 void egui_api_pfb_clear(void *s, int n);

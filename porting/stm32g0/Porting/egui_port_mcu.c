@@ -114,13 +114,8 @@ static const egui_platform_ops_t mcu_platform_ops = {
         .interrupt_disable = mcu_interrupt_disable,
         .interrupt_enable = mcu_interrupt_enable,
         .load_external_resource = NULL,
-        .mutex_create = NULL,
-        .mutex_lock = NULL,
-        .mutex_unlock = NULL,
-        .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .watchdog_feed = NULL,
 };
 
 static egui_platform_t mcu_platform = {
@@ -200,7 +195,7 @@ void egui_port_init(egui_core_t *core)
     EGUI_ASSERT(core != NULL);
 
     /* Register platform */
-    egui_platform_register(core, &mcu_platform);
+    egui_platform_register(&mcu_platform);
 
     /* Create LCD SPI IO handle */
     egui_panel_io_spi_init(&s_lcd_io, egui_hal_stm32g0_get_lcd_spi_ops(), egui_hal_stm32g0_lcd_set_dc, NULL); /* CS is hardware-controlled */

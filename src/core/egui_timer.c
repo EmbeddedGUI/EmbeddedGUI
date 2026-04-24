@@ -62,7 +62,7 @@ static void _timer_refresh_timeout(egui_core_t *core)
 static int _timer_remove(egui_core_t *core, egui_timer_t *handle)
 {
     int is_refresh = 0;
-    egui_base_t level = egui_hw_interrupt_disable_core(core);
+    __egui_disable_isr();
     egui_timer_t *current = core->system.timer_root;
     egui_timer_t *prev = NULL;
 
@@ -88,7 +88,7 @@ static int _timer_remove(egui_core_t *core, egui_timer_t *handle)
         // Clear the intrusive next pointer so the handle looks idle again.
         handle->next = NULL;
     }
-    egui_hw_interrupt_enable_core(core, level);
+    __egui_enable_isr();
 
     return is_refresh;
 }
@@ -115,7 +115,7 @@ static int _timer_check_in_queue(egui_core_t *core, egui_timer_t *handle)
 static int _timer_insert(egui_core_t *core, egui_timer_t *handle)
 {
     int is_refresh;
-    egui_base_t level = egui_hw_interrupt_disable_core(core);
+    __egui_disable_isr();
     egui_timer_t *current;
     egui_timer_t *prev = NULL;
 
@@ -143,7 +143,7 @@ static int _timer_insert(egui_core_t *core, egui_timer_t *handle)
     {
         prev->next = handle;
     }
-    egui_hw_interrupt_enable_core(core, level);
+    __egui_enable_isr();
 
     return is_refresh;
 }
