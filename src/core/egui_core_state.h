@@ -106,7 +106,7 @@ typedef struct egui_core_debug_state
 /** Text measurement, glyph lookup, and transformed-text caches shared across one core. */
 typedef struct egui_core_text_state
 {
-#if EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE
+#if EGUI_FONT_STD_CODE_LOOKUP_CACHE_ENABLED
     egui_font_std_code_lookup_cache_t font_std_code_lookup_cache; // fast codepoint-to-glyph lookup cache
 #endif
 #if EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED
@@ -125,10 +125,10 @@ typedef struct egui_core_text_state
     egui_font_std_draw_prefix_cache_t font_std_draw_prefix_cache[EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS]; // cached prefix layout metrics
     uint32_t font_std_draw_prefix_cache_stamp;                                                                  // replacement stamp for prefix cache entries
 #endif
-#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
+#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
     text_transform_prepare_cache_t text_transform_prepare_cache; // cache for transformed-text preprocessing
 #endif
-#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
+#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
     text_transform_layout_cache_t text_transform_layout_cache; // cache for transformed-text layout results
 #endif
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
@@ -138,7 +138,7 @@ typedef struct egui_core_text_state
     int text_transform_layout_line_capacity;                     // number of line slots allocated in `text_transform_layout_lines`
 #endif
     text_transform_visible_tile_cache_t text_transform_visible_tile_cache; // visible-tile cache for rotated/scaled text drawing
-#if EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE
+#if EGUI_TEXT_TRANSFORM_SIZE_CACHE_ENABLED
     const egui_font_t *text_transform_axis_font;                           // font used by the cached axis text metrics
     const void *text_transform_axis_string;                                // string identity used by the cached axis text metrics
     egui_dim_t text_transform_axis_w;                                      // cached axis-aligned text width

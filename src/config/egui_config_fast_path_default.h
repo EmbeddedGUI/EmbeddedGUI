@@ -59,11 +59,13 @@ extern "C" {
 #error "EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW must be 0, 1 or 2"
 #endif
 
+#define EGUI_FONT_STD_FAST_DRAW_ENABLED              (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW >= 1)
 #define EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW >= 2)
 
 /*
  * Font transform fast-draw mode.
  * When 1, enable shared prepare/layout/dimension caches for text transform.
+ * This is an effective child of EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW.
  */
 #ifndef EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
 #define EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW 1
@@ -72,6 +74,8 @@ extern "C" {
 #if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW > 1
 #error "EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW must be 0 or 1"
 #endif
+
+#define EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED (EGUI_FONT_STD_FAST_DRAW_ENABLED && EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW)
 
 /*
  * Per-frame cache release hooks.
@@ -91,9 +95,9 @@ extern "C" {
 #endif
 
 /*
- * Optional lookup caches.
- * Disable only for applications that intentionally avoid the corresponding
- * image/font paths and want to trim per-core persistent state.
+ * Optional lookup cache sub-toggles.
+ * Keep these at their defaults unless doing targeted framework A/B work.
+ * Font cache sub-toggles are effective only when std-font fast draw is enabled.
  */
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_STD_RGB565_ALPHA_OPAQUE_CACHE
 #define EGUI_CONFIG_FUNCTION_IMAGE_STD_RGB565_ALPHA_OPAQUE_CACHE 1
@@ -106,6 +110,9 @@ extern "C" {
 #ifndef EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE
 #define EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE 1
 #endif
+
+#define EGUI_FONT_STD_CODE_LOOKUP_CACHE_ENABLED (EGUI_FONT_STD_FAST_DRAW_ENABLED && EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE)
+#define EGUI_TEXT_TRANSFORM_SIZE_CACHE_ENABLED  (EGUI_FONT_STD_FAST_DRAW_ENABLED && EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE)
 
 /* Remaining fast-path toggles now stay next to the implementation units that
  * consume them, with optional app-side override bridges. This shared default

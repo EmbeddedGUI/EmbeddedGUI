@@ -12,7 +12,6 @@ extern const struct egui_font_std egui_res_font_hello_simple_14_4;
 #define EGUI_CONFIG_FONT_DEFAULT                              (&egui_res_font_hello_simple_14_4)
 #define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 20
 #define EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW                   0
-#define EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW             0
 #define EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER                0
 #define EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP                    0
 #define EGUI_CONFIG_FUNCTION_CANVAS_SPEC_CIRCLE_INFO              0
@@ -20,8 +19,6 @@ extern const struct egui_font_std egui_res_font_hello_simple_14_4;
 #define EGUI_CONFIG_FUNCTION_IMAGE_STD_RGB565_ALPHA_OPAQUE_CACHE  0
 #define EGUI_CONFIG_FUNCTION_CANVAS_TRANSFORM_FRAME_CACHE_RELEASE 0
 #define EGUI_CONFIG_FUNCTION_FONT_STD_FRAME_CACHE_RELEASE         0
-#define EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE           0
-#define EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE            0
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4                0
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH                        1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY                     0
