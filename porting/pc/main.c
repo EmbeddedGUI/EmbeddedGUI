@@ -783,8 +783,7 @@ static void parse_recording_params(int argc, const char *argv[])
 
 static int pc_setup_display(egui_core_t *core, uint8_t display_id, int screen_width, int screen_height, int pfb_width, int pfb_height,
                             egui_color_int_t **pfb_buffers, int pfb_buffer_count, egui_display_driver_t *display_driver,
-                            const egui_core_render_config_t *render_config,
-                            egui_touch_register_func_t touch_register, egui_uicode_init_func_t uicode_init)
+                            const egui_core_render_config_t *render_config, egui_touch_register_func_t touch_register, egui_uicode_init_func_t uicode_init)
 {
     egui_display_setup_t setup;
 
@@ -969,8 +968,7 @@ int main(int argc, const char *argv[])
 
             if (pc_setup_display(&g_cores[display_id], (uint8_t)display_id, descriptor->screen_width, descriptor->screen_height, descriptor->pfb_width,
                                  descriptor->pfb_height, descriptor->pfb_buffers, descriptor->pfb_buffer_count, sub_driver, descriptor->render_config,
-                                 descriptor->touch_register,
-                                 descriptor->uicode_init) != 0)
+                                 descriptor->touch_register, descriptor->uicode_init) != 0)
             {
                 printf("Failed to setup additional display %d.\n", display_id);
                 VT_deinit();

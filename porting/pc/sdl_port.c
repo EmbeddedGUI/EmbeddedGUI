@@ -78,7 +78,7 @@ static inline uint32_t rgb565_to_rgb888(uint16_t color, uint8_t color_16_swap)
 
 static inline uint16_t rgb888_to_rgb565(uint32_t color, uint8_t color_16_swap)
 {
-    uint16_t rgb565 = (uint16_t)(((((color)&0xFF0000U) >> 19U) << 11U) | ((((color)&0xFF00U) >> 10U) << 5U) | (((color)&0xFFU) >> 3U));
+    uint16_t rgb565 = (uint16_t)(((((color) & 0xFF0000U) >> 19U) << 11U) | ((((color) & 0xFF00U) >> 10U) << 5U) | (((color) & 0xFFU) >> 3U));
 
     if (color_16_swap)
     {

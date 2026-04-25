@@ -1,7 +1,7 @@
 # Performance Report
 
-- Commit: `e82db1af`
-- Date: 2026-04-20T14:31:08.641669
+- Commit: `a98fa1b3`
+- Date: 2026-04-25T09:44:36.886915
 - Profile: cortex-m3
 
 ![Performance Chart](images/perf_report.png)
@@ -16,70 +16,70 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| LINE | 0.544 |
-| LINE_HQ | 1.358 |
-| RECTANGLE_FILL | 0.164 |
-| CIRCLE_FILL | 0.581 |
+| LINE | 0.543 |
+| LINE_HQ | 1.356 |
+| RECTANGLE_FILL | 0.163 |
+| CIRCLE_FILL | 0.580 |
 
 ## Text
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| TEXT | 1.036 |
-| INTERNAL_TEXT_RLE4 | 1.173 |
-| TEXT_ROTATE | 2.504 |
+| TEXT | 1.034 |
+| INTERNAL_TEXT_RLE4 | 1.171 |
+| TEXT_ROTATE | 2.503 |
 
 ## Image Direct Draw
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| IMAGE_565 | 0.249 |
-| IMAGE_565_8 | 0.513 |
+| IMAGE_565 | 0.247 |
+| IMAGE_565_8 | 0.512 |
 
 ## Image Color Tint
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| IMAGE_COLOR | 0.849 |
+| IMAGE_COLOR | 0.848 |
 
 ## Compress
 
 | Test Case | Time (ms) |
 |-----------|-----------|
 | EXTERN_IMAGE_QOI_565_8 | 2.800 |
-| EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT | 3.013 |
-| EXTERN_IMAGE_RLE_565_8 | 2.462 |
-| EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT | 2.676 |
-| IMAGE_QOI_565_8 | 2.145 |
-| IMAGE_RLE_565_8 | 1.404 |
-| MASK_IMAGE_QOI_8_ROUND_RECT | 2.356 |
-| MASK_IMAGE_RLE_8_ROUND_RECT | 1.618 |
+| EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT | 3.012 |
+| EXTERN_IMAGE_RLE_565_8 | 2.463 |
+| EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT | 2.678 |
+| IMAGE_QOI_565_8 | 2.143 |
+| IMAGE_RLE_565_8 | 1.403 |
+| MASK_IMAGE_QOI_8_ROUND_RECT | 2.355 |
+| MASK_IMAGE_RLE_8_ROUND_RECT | 1.616 |
 
 ## Gradient
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| GRADIENT_RECT | 0.400 |
+| GRADIENT_RECT | 0.399 |
 
 ## Mask
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| MASK_RECT_FILL_ROUND_RECT | 0.327 |
-| MASK_IMAGE_IMAGE | 0.307 |
+| MASK_RECT_FILL_ROUND_RECT | 0.326 |
+| MASK_IMAGE_IMAGE | 0.305 |
 
 ## Widgets
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| CHART_LINE_DENSE | 1.205 |
-| CHART_BAR_DENSE | 0.767 |
-| CHART_SCATTER_DENSE | 1.056 |
-| CHART_PIE_DENSE | 2.325 |
+| CHART_LINE_DENSE | 1.204 |
+| CHART_BAR_DENSE | 0.766 |
+| CHART_SCATTER_DENSE | 1.055 |
+| CHART_PIE_DENSE | 2.324 |
 
 ## Animation
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| ANIMATION_TRANSLATE | 0.139 |
-| ANIMATION_SCALE | 0.146 |
+| ANIMATION_TRANSLATE | 0.137 |
+| ANIMATION_SCALE | 0.144 |

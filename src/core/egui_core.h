@@ -162,17 +162,17 @@ typedef struct egui_core_render_config
 
 typedef struct egui_display_setup
 {
-    int screen_width;                          // logical screen width in pixels
-    int screen_height;                         // logical screen height in pixels
-    int pfb_width;                             // one PFB tile width
-    int pfb_height;                            // one PFB tile height
-    egui_color_int_t **pfb_buffers;            // array of PFB buffer pointers
-    int pfb_buffer_count;                      // number of PFB buffers in the array
-    egui_display_driver_t *display_driver;     // display driver bound to this core
+    int screen_width;                               // logical screen width in pixels
+    int screen_height;                              // logical screen height in pixels
+    int pfb_width;                                  // one PFB tile width
+    int pfb_height;                                 // one PFB tile height
+    egui_color_int_t **pfb_buffers;                 // array of PFB buffer pointers
+    int pfb_buffer_count;                           // number of PFB buffers in the array
+    egui_display_driver_t *display_driver;          // display driver bound to this core
     const egui_core_render_config_t *render_config; // optional per-core runtime render config; NULL uses compile-time defaults
-    egui_touch_register_func_t touch_register; // optional touch-driver registration callback
-    egui_uicode_init_func_t uicode_init;       // UI bootstrap callback that creates the initial scene
-    uint8_t display_id;                        // runtime display index used by multi-display ports
+    egui_touch_register_func_t touch_register;      // optional touch-driver registration callback
+    egui_uicode_init_func_t uicode_init;            // UI bootstrap callback that creates the initial scene
+    uint8_t display_id;                             // runtime display index used by multi-display ports
 } egui_display_setup_t;
 
 /**
