@@ -319,6 +319,7 @@ extern "C" {
 
 /**
  * Runtime file-image decoder registry capacity.
+ * Used only when EGUI_CONFIG_FUNCTION_IMAGE_FILE is enabled.
  */
 #ifndef EGUI_CONFIG_IMAGE_FILE_DECODER_MAX_COUNT
 #define EGUI_CONFIG_IMAGE_FILE_DECODER_MAX_COUNT 4
@@ -442,11 +443,12 @@ extern "C" {
 /* Std-image fast-path defaults now live in egui_config_fast_path_default.h. */
 
 /**
- * Reduce code size options.
- * Select support view margin/padding APIs. if 0, setters become no-op and layout stays at zero margin/padding by default.
+ * Layout options.
+ * Enable view margin/padding APIs by default. Set to 0 only for size-first
+ * builds that never rely on runtime margin/padding setters.
  */
 #ifndef EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
-#define EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING 0
+#define EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING 1
 #endif
 
 /**

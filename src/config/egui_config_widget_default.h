@@ -18,7 +18,8 @@ extern "C" {
 #endif
 
 /**
- * Text input default max length.
+ * Text input fixed buffer capacity in bytes.
+ * Runtime cursor/length bookkeeping uses uint8_t, so valid range is 1..255.
  */
 #ifndef EGUI_CONFIG_TEXTINPUT_MAX_LENGTH
 #define EGUI_CONFIG_TEXTINPUT_MAX_LENGTH 32
@@ -34,7 +35,8 @@ extern "C" {
 /* ---- Textblock widget ---- */
 
 /**
- * Textblock edit buffer max length.
+ * Textblock edit buffer capacity in bytes.
+ * Larger values increase both per-instance RAM and temporary stack usage.
  */
 #ifndef EGUI_CONFIG_TEXTBLOCK_EDIT_MAX_LENGTH
 #define EGUI_CONFIG_TEXTBLOCK_EDIT_MAX_LENGTH 256

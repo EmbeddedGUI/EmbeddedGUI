@@ -42,7 +42,9 @@ extern "C" {
 #define APP_EGUI_TOUCH_INT_PORT APP_EGUI_FUNCTION_IO_4_PORT
 #define APP_EGUI_TOUCH_INT_PIN  APP_EGUI_FUNCTION_IO_4_PIN
 
-#define EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR         __attribute__((section(".bss.pfb_area")))
+#ifndef EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR
+#define EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR __attribute__((section(".bss.pfb_area")))
+#endif
 #define APP_EGUI_CONFIG_USE_DMA_TO_RESET_PFB_BUFFER 1
 
 void app_set_gpio(uint8_t pin, uint8_t state);

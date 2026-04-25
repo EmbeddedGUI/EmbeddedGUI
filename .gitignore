@@ -1,4 +1,5 @@
 /output
+/local/toolchain.mk
 /porting/cm0/GCC/output
 /porting/cm0/Projects/main/GCC/output
 /.vscode/settings.json

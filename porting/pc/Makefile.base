@@ -113,18 +113,30 @@ BUILD_OBJ_SUFFIX := $(APP_OBJ_SUFFIX)$(if $(PORT),_$(PORT),)
 OUTPUT_TARGET	:= $(OUTPUT_PATH)/$(TARGET)
 OBJDIR = $(OBJROOT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 
-# Configuration stamp - forces relink when APP changes.
-# The stamp filename encodes the current APP; switching APP means the old
-# stamp is missing, which triggers its recipe (delete stale stamps, create
-# new one).  The fresh timestamp then makes OUTPUT_MAIN out-of-date.
-APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
+# Configuration stamp.
+# Objects depend on this file so changes in compile flags force a real
+# recompile instead of reusing stale objects from a previous configuration.
+# Keep the signature narrow; do not include APP_SUB or full include paths.
+# Store it in OBJDIR so per-case OUTPUT_PATH values used by release checks do
+# not invalidate shared objects.
+APP_CONFIG_STAMP := $(OBJDIR)/.app_stamp_$(BUILD_OBJ_SUFFIX)
+APP_CONFIG_STAMP_CASE := $(if $(APP_SUB),$(subst /,_,$(APP_SUB)),default)
+APP_CONFIG_STAMP_TMP := $(APP_CONFIG_STAMP).$(APP_CONFIG_STAMP_CASE).tmp
+
+define APP_CONFIG_STAMP_CONTENT
+APP=$(APP)
+PORT=$(PORT)
+CC=$(CC)
+BITS=$(BITS)
+COMMON_FLAGS=$(COMMON_FLAGS)
+endef
 
 # Prerequisites for rebuild when makefiles change
 MAKEFILE_PREREQS += Makefile
 MAKEFILE_PREREQS += $(EGUI_PORT_PATH)/Makefile.base
 MAKEFILE_PREREQS += $(EGUI_APP_PATH)/build.mk
 
-COMMON_PREREQS = $(MAKEFILE_PREREQS)
+COMMON_PREREQS = $(MAKEFILE_PREREQS) $(APP_CONFIG_STAMP)
 
 
 
@@ -229,7 +241,9 @@ OUTPUT_MAIN_RESOURCE  := $(OUTPUT_PATH)/app_egui_resource_merge.bin
 
 USER_COMPILE_TARGETS ?= 
 
-.PHONY: all clean info
+.PHONY: all clean info FORCE
+
+FORCE:
 
 info:
 	@$(ECHO) Current Configuration: APP=$(APP) PORT=$(PORT)
@@ -278,13 +292,13 @@ else
 	$(Q)$(MD) "$(call FIXPATH,$@)"
 endif
 
-$(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
+$(APP_CONFIG_STAMP): FORCE | $(OBJDIR)
+	$(file >$(APP_CONFIG_STAMP_TMP),$(APP_CONFIG_STAMP_CONTENT))
 ifeq ($(OS),Windows_NT)
-	-$(Q)$(RM) $(call FIXPATH, $(OUTPUT_PATH)/.app_stamp_*) >NUL 2>NUL
+	$(Q)if exist "$(call FIXPATH,$@)" (fc /b "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL && (del /q "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))") || (move /Y "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL)) else (move /Y "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL)
 else
-	-$(Q)rm -f $(OUTPUT_PATH)/.app_stamp_*
+	$(Q)if [ -f "$(call FIXPATH,$@)" ] && cmp -s "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; then rm -f "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))"; else mv "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; fi
 endif
-	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
 
 ifneq ($(wildcard $(EGUI_APP_RESOURCE_PATH)),)
 $(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP) $(OUTPUT_MAIN_RESOURCE)

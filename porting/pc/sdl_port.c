@@ -1653,7 +1653,6 @@ void snap_shot(const char *file_name)
 {
     // Large showcase-sized canvases can exceed the default Windows stack
     // if the RGB snapshot buffer lives on the stack.
-    egui_core_t *core_ctx = egui_port_get_core_by_display_id(0);
     size_t rgb_size = (size_t)VT_WIDTH * (size_t)VT_HEIGHT * 3U;
     unsigned char *rgb_data = (unsigned char *)malloc(rgb_size);
 
@@ -1665,6 +1664,8 @@ void snap_shot(const char *file_name)
     sdl_frame_lock();
 
 #if VT_SDL_NATIVE_RGB565
+    egui_core_t *core_ctx = egui_port_get_core_by_display_id(0);
+
     for (int i = 0; i < VT_WIDTH * VT_HEIGHT; i++)
     {
         uint32_t rgb888 = rgb565_to_rgb888(sdl_present_fb[i], sdl_get_color_16_swap(core_ctx));

@@ -25,18 +25,6 @@ endif()
 # Output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/output)
 
-string(CONCAT _egui_all_cflags
-    " " "${CMAKE_C_FLAGS}"
-    " " "${CMAKE_C_FLAGS_DEBUG}"
-    " " "${CMAKE_C_FLAGS_RELEASE}"
-    " " "${CMAKE_C_FLAGS_RELWITHDEBINFO}"
-    " " "${CMAKE_C_FLAGS_MINSIZEREL}"
-)
-
-if(EXISTS "${CMAKE_SOURCE_DIR}/example/${APP}" AND NOT _egui_all_cflags MATCHES "EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING")
-    add_compile_definitions(EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING=1)
-endif()
-
 # Global include directories
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/example/${APP})

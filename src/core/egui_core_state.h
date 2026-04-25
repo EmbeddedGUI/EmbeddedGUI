@@ -47,9 +47,11 @@ typedef struct egui_core_asset_state
     const egui_i18n_locale_t *i18n_locales;                                                         // locale table registered for runtime translation lookups
     uint16_t i18n_locale_count;                                                                     // number of entries in `i18n_locales`
     uint16_t i18n_current_locale;                                                                   // active locale index inside `i18n_locales`
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
     const egui_image_file_io_t *image_file_default_io;                                              // default file I/O backend used by image-file decoders
     const egui_image_file_decoder_t *image_file_decoders[EGUI_CONFIG_IMAGE_FILE_DECODER_MAX_COUNT]; // registered file-decoder chain
     uint8_t image_file_decoder_count;                                                               // number of valid entries in `image_file_decoders`
+#endif
 } egui_core_asset_state_t;
 
 /** Image decode caches and scratch buffers reused across all image draws on one core. */

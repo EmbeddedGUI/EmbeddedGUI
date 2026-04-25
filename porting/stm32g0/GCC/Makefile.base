@@ -4,22 +4,6 @@
 #
 .DEFAULT_GOAL := all
 
-ifeq ($(OS),Windows_NT)
-TOOLCHAIN_DIR 	?= $(ARM_GCC_PATH)
-ifeq ($(TOOLCHAIN_DIR),)
-$(error ARM_GCC_PATH not set. Run setup.bat or set ARM_GCC_PATH to your ARM GCC toolchain directory)
-endif
-JLINK_DIR ?= $(SEGGER_JLINK_PATH)
-JLINK = "$(JLINK_DIR)/JLink.exe"
-JLINK_GDB = "$(JLINK_DIR)/JLinkGDBServer.exe"
-else
-TOOLCHAIN_DIR ?= /usr/gcc-arm-none-eabi-7-2018-q2-update
-JLINK = JLinkExe
-JLINK_GDB = JLinkGDBServerExe
-endif
-
-COMPILE_PREFIX 	+= $(TOOLCHAIN_DIR)/bin/arm-none-eabi-
-
 # define output directory
 OUTPUT_PATH	:= output
 
@@ -41,19 +25,6 @@ SRC += $(DRIVER_DIR)/src $(CMSIS_DEVICE_DIR)/Source
 INCLUDE += $(DRIVER_DIR)/inc $(CMSIS_DEVICE_DIR)/Include $(CMSIS_DIR)/Include
 
 
-
-
-
-
-# define the C compiler to use
-CC      := $(COMPILE_PREFIX)gcc
-CXX     := $(COMPILE_PREFIX)g++
-OBJDUMP := $(COMPILE_PREFIX)objdump
-OBJCOPY := $(COMPILE_PREFIX)objcopy
-GDB     := $(COMPILE_PREFIX)gdb
-AR      := $(COMPILE_PREFIX)ar
-SIZE    := $(COMPILE_PREFIX)size
-NM      := $(COMPILE_PREFIX)nm
 OPENOCD := openocd
 
 ## cpu setting ##
@@ -163,6 +134,49 @@ endif
 ifeq "$(HOST_OS)" "Darwin"
 	PS=/$(nullstring)
 	NULL=/dev/null
+endif
+
+# Toolchain and debugger configuration.
+# Prefer PATH-resolved executables for cross-platform builds. Keep the legacy
+# directory-based overrides for local installs that are not added to PATH.
+CROSS_COMPILE ?= arm-none-eabi-
+
+ifeq "$(HOST_OS)" "Windows"
+	JLINK ?= JLink.exe
+	JLINK_GDB ?= JLinkGDBServer.exe
+else
+	JLINK ?= JLinkExe
+	JLINK_GDB ?= JLinkGDBServerExe
+endif
+
+ifdef ARM_GCC_PATH
+CC      := "$(ARM_GCC_PATH)/bin/arm-none-eabi-gcc"
+CXX     := "$(ARM_GCC_PATH)/bin/arm-none-eabi-g++"
+OBJDUMP := "$(ARM_GCC_PATH)/bin/arm-none-eabi-objdump"
+OBJCOPY := "$(ARM_GCC_PATH)/bin/arm-none-eabi-objcopy"
+GDB     := "$(ARM_GCC_PATH)/bin/arm-none-eabi-gdb"
+AR      := "$(ARM_GCC_PATH)/bin/arm-none-eabi-ar"
+SIZE    := "$(ARM_GCC_PATH)/bin/arm-none-eabi-size"
+NM      := "$(ARM_GCC_PATH)/bin/arm-none-eabi-nm"
+else
+CC      := $(CROSS_COMPILE)gcc
+CXX     := $(CROSS_COMPILE)g++
+OBJDUMP := $(CROSS_COMPILE)objdump
+OBJCOPY := $(CROSS_COMPILE)objcopy
+GDB     := $(CROSS_COMPILE)gdb
+AR      := $(CROSS_COMPILE)ar
+SIZE    := $(CROSS_COMPILE)size
+NM      := $(CROSS_COMPILE)nm
+endif
+
+ifdef SEGGER_JLINK_PATH
+ifeq "$(HOST_OS)" "Windows"
+JLINK := "$(SEGGER_JLINK_PATH)/JLink.exe"
+JLINK_GDB := "$(SEGGER_JLINK_PATH)/JLinkGDBServer.exe"
+else
+JLINK := "$(SEGGER_JLINK_PATH)/JLinkExe"
+JLINK_GDB := "$(SEGGER_JLINK_PATH)/JLinkGDBServerExe"
+endif
 endif
 
 

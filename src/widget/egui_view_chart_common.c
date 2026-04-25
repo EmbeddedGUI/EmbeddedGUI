@@ -188,10 +188,10 @@ static void egui_chart_draw_x_axis_categorical(egui_canvas_t *canvas, egui_chart
     egui_dim_t slot_w = plot_area->size.width / n_cat;
     uint8_t start_i = 0;
     uint8_t end_i = n_cat;
-    egui_dim_t work_x1;
-    egui_dim_t work_y1;
-    egui_dim_t work_x2;
-    egui_dim_t work_y2;
+    egui_dim_t work_x1 = 0;
+    egui_dim_t work_y1 = 0;
+    egui_dim_t work_x2 = 0;
+    egui_dim_t work_y2 = 0;
     int16_t tick_step = ab->axis_x.tick_step;
     int can_draw_ticks = ab->axis_x.show_axis;
     int can_draw_grid = ab->axis_x.show_grid;
@@ -709,10 +709,10 @@ void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region
 void egui_chart_draw_axes(egui_canvas_t *canvas, egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
     egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
-    egui_dim_t work_x1;
-    egui_dim_t work_y1;
-    egui_dim_t work_x2;
-    egui_dim_t work_y2;
+    egui_dim_t work_x1 = 0;
+    egui_dim_t work_y1 = 0;
+    egui_dim_t work_x2 = 0;
+    egui_dim_t work_y2 = 0;
     int has_work_bounds = egui_chart_get_work_region_bounds(canvas, &work_x1, &work_y1, &work_x2, &work_y2);
     int can_draw_x_axis_line = ab->axis_x.show_axis;
     int can_draw_y_axis_line = ab->axis_y.show_axis;

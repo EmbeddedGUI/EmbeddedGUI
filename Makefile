@@ -42,10 +42,8 @@ COMMON_FLAGS += -DEGUI_PORT=EGUI_PORT_TYPE_MCU
 endif
 
 
-# Set default toolchain paths, can be overridden by environment variables or command line.
-ARM_GCC_PATH ?= D:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/12.2 mpacbti-rel1
-QEMU_PATH ?= C:/Program Files/qemu/
-
+# Optional local tool overrides. Keep machine-specific paths out of the repo.
+-include local/toolchain.mk
 
 
 EGUI_CODE_SRC := 
@@ -60,11 +58,6 @@ EGUI_PATH := src
 EGUI_APP_ROOT_PATH ?= example
 # EGUI_APP_ROOT_PATH ?= ..
 EGUI_APP_PATH = $(EGUI_APP_ROOT_PATH)/$(APP)
-ifeq ($(EGUI_APP_ROOT_PATH),example)
-ifeq ($(findstring EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING,$(USER_CFLAGS)),)
-COMMON_FLAGS += -DEGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING=1
-endif
-endif
 include $(EGUI_APP_PATH)/build.mk
 # set app resource path
 EGUI_APP_RESOURCE_PATH ?= $(EGUI_APP_PATH)/resource

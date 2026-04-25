@@ -1,0 +1,18 @@
+# Optional local tool overrides.
+# Copy this file to local/toolchain.mk and adjust it for your machine.
+#
+# Preferred setup:
+# 1. Put the ARM GCC toolchain and SEGGER J-Link tools in PATH.
+# 2. Leave everything below commented out.
+#
+# If your local install path contains spaces, ARM_GCC_PATH / SEGGER_JLINK_PATH
+# are more robust than CROSS_COMPILE / JLINK direct overrides.
+
+# ARM GCC toolchain
+# CROSS_COMPILE := arm-none-eabi-
+# ARM_GCC_PATH := D:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/12.2 mpacbti-rel1
+
+# SEGGER J-Link tools
+# JLINK := JLink.exe
+# JLINK_GDB := JLinkGDBServer.exe
+# SEGGER_JLINK_PATH := C:/Program Files/SEGGER/JLink
