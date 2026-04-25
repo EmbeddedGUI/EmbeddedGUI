@@ -46,21 +46,19 @@ extern "C" {
 #endif
 
 /*
- * Std-font fast-draw mode.
+ * Std-font fast-draw switch.
  * 0: Disable std-font fast draw.
- * 1: Enable std-font fast draw only.
- * 2: Enable std-font fast draw and ASCII direct lookup cache.
+ * 1: Enable std-font fast draw and its small lookup caches.
  */
 #ifndef EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW
 #define EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW 1
 #endif
 
-#if EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW > 2
-#error "EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW must be 0, 1 or 2"
+#if (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW != 0) && (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW != 1)
+#error "EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW must be 0 or 1"
 #endif
 
-#define EGUI_FONT_STD_FAST_DRAW_ENABLED              (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW >= 1)
-#define EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW >= 2)
+#define EGUI_FONT_STD_FAST_DRAW_ENABLED (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW == 1)
 
 /*
  * Font transform fast-draw mode.

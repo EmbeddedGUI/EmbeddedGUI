@@ -109,7 +109,7 @@ typedef struct egui_core_text_state
 #if EGUI_FONT_STD_CODE_LOOKUP_CACHE_ENABLED
     egui_font_std_code_lookup_cache_t font_std_code_lookup_cache; // fast codepoint-to-glyph lookup cache
 #endif
-#if EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED
+#if EGUI_FONT_STD_FAST_DRAW_ENABLED
     egui_font_std_ascii_lookup_cache_t *font_std_ascii_lookup_cache; // optional heap-backed ASCII fast-draw lookup table
 #endif
 #if EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED

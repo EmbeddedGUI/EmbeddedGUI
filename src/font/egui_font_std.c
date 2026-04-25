@@ -33,7 +33,7 @@ typedef struct
 #if EGUI_FONT_STD_CODE_LOOKUP_CACHE_ENABLED
 #define g_font_std_code_lookup_cache (core->text.font_std_code_lookup_cache)
 #endif
-#if EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED
+#if EGUI_FONT_STD_FAST_DRAW_ENABLED
 #define g_font_std_ascii_lookup_cache (core->text.font_std_ascii_lookup_cache)
 #endif
 #if EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED
@@ -464,7 +464,7 @@ static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_siz
 
 static void egui_font_std_release_ascii_lookup_cache(egui_core_t *core)
 {
-#if EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED
+#if EGUI_FONT_STD_FAST_DRAW_ENABLED
     if (core == NULL)
     {
         return;
@@ -482,7 +482,7 @@ static void egui_font_std_release_ascii_lookup_cache(egui_core_t *core)
 
 static egui_font_std_ascii_lookup_cache_t *egui_font_std_get_ascii_lookup_cache(egui_core_t *core)
 {
-#if !EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED
+#if !EGUI_FONT_STD_FAST_DRAW_ENABLED
     (void)core;
     return NULL;
 #else

@@ -421,27 +421,26 @@ RLE 外部资源解码时，控制字节（操作码+长度字段）具有强局
 
 | 属性 | 值 |
 |------|---|
-| 默认值 | 当前默认 `1`（基础 std-font fast draw） |
-| HelloPerformance | 当前直接继承默认 `1`（历史 ASCII cache 模式 `2`） |
+| 默认值 | 当前默认 `1`（完整 std-font fast draw，含 ASCII 直查表） |
+| HelloPerformance | 当前直接继承默认 `1` |
 | RAM 类型 | heap + BSS（指针） |
-| HP 节省 | 当前默认 `1` 相比 `2` 约节省 `text 1056B`、`268B` 运行期 heap；`egui_core_t` 理论上少 4B，HelloPerformance 链接后 BSS 总量不变 |
+| HP 节省 | 当前只保留 `0/1` 开关；历史分层的 `1 -> 2` 成本为 `text +1056B`、`268B` 运行期 heap |
 
 **机制：**
-`EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 现在统一承载 3 档模式：
+`EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 现在是布尔开关：
 
-- `0`：关闭 std-font fast draw
-- `1`：启用基础 std-font fast draw
-- `2`：在 `1` 的基础上再打开 ASCII 直查表
+- `0`：关闭 std-font fast draw 以及其下的字体 fast/cache 路径
+- `1`：启用完整 std-font fast draw，包括 ASCII 直查表
 
 同时它也是字体 fast/cache 路径的总门控：code lookup cache、text transform prepare/layout cache、text transform size cache 以及 draw-prefix cache 都只在 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW>=1` 时才会实际编译生效。子开关即使保持默认 `1`，也不能绕过这个总开关。
 
-这里关注的是 `2` 这一档新增的 ASCII 直查表：首次分配后跨帧复用，将 ASCII 字形查找从 O(log n) 降至 O(1)。当前默认 `1` 不保留这张表，从而省掉一小块运行期 heap 和 1 个指针位；历史实验值 `2` 则用更高的静态/运行期成本换取文本路径收益。可与宏 14 联用控制 index 宽度。
+ASCII 直查表会首次按需分配并跨帧复用，将 ASCII 字形查找从 O(log n) 降至 O(1)。历史上它曾作为 `2` 档独立启用，但该分层收益不大，当前已合并到 `1`，避免继续暴露过细的宏配置。
 
 `2026-04-25` 按当前主线完成 `1 -> 2` size/RAM 复测后，结果为：
 - size（`HelloPerformance PORT=qemu CPU_ARCH=cortex-m0plus`）：`text 2293776 -> 2294832`，`data 2080 -> 2080`，`bss 7632 -> 7632`
 - 即 `2` 会带来 `text +1056B`；静态 `data/bss` 在该镜像中不变
 - runtime RAM：`sizeof(egui_font_std_ascii_lookup_cache_t)=268B`，按需 heap 分配，另有 allocator overhead；`egui_core_t` 理论上增加 4B，但当前链接 BSS 总量因对齐未增加
-- 结论：仅 ROM 增量已经超过 `1KB` 阈值，再加上 heap 增量后不满足“低于 1KB 就合并”的条件，因此继续保留 `0/1/2` 三档而不是收敛成布尔开关
+- 结论：虽然总增量略高于 `1KB`，但分层收益不足以抵消配置复杂度，当前已合并为 `0/1` 布尔开关
 
 `2026-04-05` 历史 perf A/B 结果为：
 - perf：完整 `239` 场景没有任何 `>=10%` 回退，并有 `3` 个 `<=-10%` 改善
@@ -452,7 +451,7 @@ RLE 外部资源解码时，控制字节（操作码+长度字段）具有强局
   - 其余文本主路径也稳定改善或持平：`EXTERN_TEXT_RECT -5.628%`、`TEXT -0.974%`、`EXTERN_TEXT -0.376%`、`TEXT_ROTATE -0.041%`、`EXTERN_TEXT_ROTATE -0.076%`
 - runtime / unit：`HelloPerformance` 两侧都是 `241 frames` 且 `hash mismatch 0`、`pixel mismatch 0`；`HelloUnitTest` 两侧都是 `688/688 passed`
 
-因此当前 shipped/default 应记为 `1`；`2` 不再是 `HelloPerformance` 的 active app-side override，而是一个“多花约 `text +1056B` 和 `268B` 运行期 heap，换部分文本路径 `11%` 级改善”的历史性能对比值。
+因此当前 shipped/default 记为 `1`；历史 `2` 的能力已并入 `1`，不再保留第二个 value。
 
 ---
 
@@ -470,7 +469,7 @@ RLE 外部资源解码时，控制字节（操作码+长度字段）具有强局
 | HP 节省 | 历史 `1` 理论上可回收约 ~128 B heap（需同时开启 ASCII cache） |
 
 **机制：**
-ASCII 直查表 `ascii_index[128]` 内部元素类型。`0` 使用 `uint16_t`，`1` 使用 `uint8_t`。只有在 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW=2` 时，这颗宏才会影响实际 heap 占用；它不改变查找逻辑，只影响缓存表元素宽度。
+ASCII 直查表 `ascii_index[128]` 内部元素类型。`0` 使用 `uint16_t`，`1` 使用 `uint8_t`。只有在 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW=1` 时，这颗宏才会影响实际 heap 占用；它不改变查找逻辑，只影响缓存表元素宽度。
 
 `2026-04-05` 按当前主线完成 `0 -> 1` 全量 A/B 后，结果为：
 - size：`text/data/bss` 全部不变，仍为 `2055380 / 72 / 3832`
@@ -639,7 +638,7 @@ Text transform 先将所有字形的像素偏移和行索引打包到 heap layou
 | 10 | `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE` | 1024 | 当前默认 **1024**（历史实验 **64**） | BSS/frame heap | ~960 B（当前 `64` 可回收 `bss -1024B`，但 external RLE 场景回退 `+17.5% ~ +21.8%`） |
 | 11 | `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE` | 1 | 当前默认 **1**（历史实验 **0**） | BSS -> frame heap | ~1040 B（当前 `0` 回收 `bss -1040B`，但 `text +816B` 且 RLE 场景约 `+2.7% ~ +6.2%`） |
 | 12 | `EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT` | 当前实现内固定 **0**（历史 public 实验 **1**） | 当前随实现内固定 **0** | data | 历史 `1` 仅回收 `data -20B`，但会带来 `text +200B`；现已内化，不再保留 public 入口 |
-| 13 | `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 当前默认 **1**（历史 ASCII cache 模式 **2**） | 当前默认 **1**（历史对比 **2**） | heap+BSS | 当前 `1` 可省 `text 1056B` 和 `268B` 运行期 heap；`2` 的 ROM 增量已超过 `1KB` 阈值，但文本场景可见 `11%` 级改善 |
+| 13 | `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 当前默认 **1**（含历史 ASCII cache 能力） | 当前默认 **1** | heap+BSS | 当前已合并为 `0/1`；历史 `1 -> 2` 成本为 `text +1056B` 和 `268B` 运行期 heap，文本场景可见 `11%` 级改善 |
 | 14 | `EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT` | 当前实现内固定 **0**（历史 public 实验 **1**） | 当前随实现内固定 **0** | heap | 历史 `1` 理论上可回收约 ~128 B heap†；当前静态 size/perf/runtime/unit 全等，现已内化 |
 | 15 | `EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE` | 当前实现内固定 **0**（历史 public 实验 **1**） | 当前随实现内固定 **0** | heap | 当前 `0` 可省约 ~164 B heap；历史 `1` 需额外付出 `text +488B`，当前 perf 仅见 `+3.8% ~ +5.7%` 级文本矩形波动，现已内化 |
 | 16 | `EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS` | 当前默认 **0**（历史实验 **64**） | 当前默认 **0**（与宏17联动） | BSS | 当前 `0/0` 相比历史 `64/2` 可省 `text -1816B, bss -2616B`；但 `64/2` 同时带来 `TEXT +18.8%`、`EXTERN_TEXT +15.7%`，又改善 `TEXT_RECT / EXTERN_TEXT_RECT / TEXT_GRADIENT / TEXT_ROTATE_NONE` |
@@ -649,7 +648,7 @@ Text transform 先将所有字形的像素偏移和行索引打包到 heap layou
 | 20 | `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW`（prepare/layout） | 配置默认 1，实际依赖 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW>=1` | 1（保留）| BSS | 0（已开）|
 | 21 | `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW`（dim） | 配置默认 1，实际依赖 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW>=1` | 1（保留）| BSS | 0（已开）|
 
-> **†** 宏 14 需搭配 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW=2` 才有实际作用，HelloPerformance 当前停在 `1` 档，故此宏在 HP 中无效，列入是为通用参考。
+> **†** 宏 14 需搭配 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW=1` 才有实际作用；它当前已内化，列入仅为历史参考。
 
 ---
 
@@ -657,11 +656,11 @@ Text transform 先将所有字形的像素偏移和行索引打包到 heap layou
 
 ### 激进低 RAM 场景（类 HelloPerformance）
 
-建议优先启用那些已经验证为功能等价或可接受条件实验的项；其中宏1（alpha opaque cache）当前不再默认推荐关闭，因为 `4 -> 0` 虽能回收 `text -156B, bss -40B`，但会带来 `8` 帧 runtime 像素差。其余如 compress index（宏5/6）、禁用持久元数据全局 slot（宏8/9=0；宏11已内收，仅保留历史 A/B）、缩小 RLE window（宏10=64）、禁用 prefix 缓存（宏16/17=0）、把 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 从 `1` 降到 `0` 或保持 `1` 不升到 `2`、以及禁用 line cache（宏15=0）仍需结合对应小节单独评估。外部行缓存共享现已强制启用，heap 分配按需进行。
+建议优先启用那些已经验证为功能等价或可接受条件实验的项；其中宏1（alpha opaque cache）当前不再默认推荐关闭，因为 `4 -> 0` 虽能回收 `text -156B, bss -40B`，但会带来 `8` 帧 runtime 像素差。其余如 compress index（宏5/6）、禁用持久元数据全局 slot（宏8/9=0；宏11已内收，仅保留历史 A/B）、缩小 RLE window（宏10=64）、禁用 prefix 缓存（宏16/17=0）、把 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 从 `1` 降到 `0`、以及禁用 line cache（宏15=0）仍需结合对应小节单独评估。外部行缓存共享现已强制启用，heap 分配按需进行。
 
 ### 常规 UI 应用（label/button 等）
 
-若是常规 UI 应用并且更看重静态文本吞吐，可单独评估重新开启 draw-prefix cache、ASCII lookup cache、line cache 这三类字体缓存；它们的历史配置分别是 `64/2`、`EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW=2`、`1`，但当前主线 shipped defaults 已统一下调到更省 RAM 的口径，需要按各自 current-mainline 复验结果决定是否回开。图像宏按实际 codec 支持情况配置。
+若是常规 UI 应用并且更看重静态文本吞吐，可单独评估重新开启 draw-prefix cache、line cache 这两类字体缓存；ASCII lookup cache 已随 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW=1` 默认启用。图像宏按实际 codec 支持情况配置。
 
 ### 注意事项
 
