@@ -3910,7 +3910,7 @@ static int text_transform_try_draw_axis_aligned(egui_canvas_t *self, const egui_
     egui_dim_t s_axis_h = 0;
     egui_region_t rect;
     int16_t norm_angle = angle_deg % 360;
-#if EGUI_TEXT_TRANSFORM_SIZE_CACHE_ENABLED
+#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
     egui_core_t *core = self->core;
 
     if (core != NULL)
@@ -3942,7 +3942,7 @@ static int text_transform_try_draw_axis_aligned(egui_canvas_t *self, const egui_
         s_axis_h = th;
         s_axis_font = font;
         s_axis_string = string;
-#if EGUI_TEXT_TRANSFORM_SIZE_CACHE_ENABLED
+#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
         if (core != NULL)
         {
             core->text.text_transform_axis_w = tw;
@@ -3998,7 +3998,7 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
     const void *s_dim_string = NULL;
     int16_t s_dim_w = 0;
     int16_t s_dim_h = 0;
-#if EGUI_TEXT_TRANSFORM_SIZE_CACHE_ENABLED
+#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
     egui_core_t *core = canvas->core;
 
     if (core != NULL)
@@ -4018,7 +4018,7 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
         s_dim_h = th;
         s_dim_font = font;
         s_dim_string = string;
-#if EGUI_TEXT_TRANSFORM_SIZE_CACHE_ENABLED
+#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
         if (core != NULL)
         {
             core->text.text_transform_dim_w = s_dim_w;

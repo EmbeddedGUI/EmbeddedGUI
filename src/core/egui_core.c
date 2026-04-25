@@ -347,21 +347,15 @@ void egui_polling_refresh_display(egui_core_t *core)
     /* Release per-frame heap caches after the full dirty-frame finishes.
      * They need to stay alive across PFB tiles within the same frame, but
      * should not remain resident once the frame is done. */
-#if EGUI_CONFIG_FUNCTION_IMAGE_STD_FRAME_CACHE_RELEASE
     egui_image_std_release_frame_cache(core);
-#endif
 #if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
     egui_image_svg_release_frame_cache();
 #endif
-#if EGUI_CONFIG_FUNCTION_CANVAS_TRANSFORM_FRAME_CACHE_RELEASE
     egui_canvas_transform_release_frame_cache(&core->canvas);
-#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     egui_mask_circle_release_frame_cache(core);
 #endif
-#if EGUI_CONFIG_FUNCTION_FONT_STD_FRAME_CACHE_RELEASE
     egui_font_std_release_frame_cache(core);
-#endif
 
 #if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
     flush_end_time = egui_api_timer_get_current_core(core);

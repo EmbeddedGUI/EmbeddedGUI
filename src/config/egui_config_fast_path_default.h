@@ -73,43 +73,6 @@ extern "C" {
 
 #define EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW && EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW)
 
-/*
- * Per-frame cache release hooks.
- * Keep these enabled unless the application never touches the corresponding
- * subsystem and wants to trim the frame-end cleanup path.
- */
-#ifndef EGUI_CONFIG_FUNCTION_IMAGE_STD_FRAME_CACHE_RELEASE
-#define EGUI_CONFIG_FUNCTION_IMAGE_STD_FRAME_CACHE_RELEASE 1
-#endif
-
-#ifndef EGUI_CONFIG_FUNCTION_CANVAS_TRANSFORM_FRAME_CACHE_RELEASE
-#define EGUI_CONFIG_FUNCTION_CANVAS_TRANSFORM_FRAME_CACHE_RELEASE 1
-#endif
-
-#ifndef EGUI_CONFIG_FUNCTION_FONT_STD_FRAME_CACHE_RELEASE
-#define EGUI_CONFIG_FUNCTION_FONT_STD_FRAME_CACHE_RELEASE 1
-#endif
-
-/*
- * Optional lookup cache sub-toggles.
- * Keep these at their defaults unless doing targeted framework A/B work.
- * Font cache sub-toggles are effective only when std-font fast draw is enabled.
- */
-#ifndef EGUI_CONFIG_FUNCTION_IMAGE_STD_RGB565_ALPHA_OPAQUE_CACHE
-#define EGUI_CONFIG_FUNCTION_IMAGE_STD_RGB565_ALPHA_OPAQUE_CACHE 1
-#endif
-
-#ifndef EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE
-#define EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE 1
-#endif
-
-#ifndef EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE
-#define EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE 1
-#endif
-
-#define EGUI_FONT_STD_CODE_LOOKUP_CACHE_ENABLED (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW && EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE)
-#define EGUI_TEXT_TRANSFORM_SIZE_CACHE_ENABLED  (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW && EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE)
-
 /* Remaining fast-path toggles now stay next to the implementation units that
  * consume them, with optional app-side override bridges. This shared default
  * header keeps only common codec/cache policy knobs.

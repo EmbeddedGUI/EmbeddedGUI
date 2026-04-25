@@ -1,6 +1,6 @@
 # 第一个应用
 
-本文以 `HelloSimple` 为基础，演示如何用 EmbeddedGUI 构建一个最小可运行界面。这个示例只包含两个标签，底部标签点击后会切换成固定提示 `"CLICKED"`。它刻意不使用 `LinearLayout`、`egui_api_sprintf`、`egui_view_button_t` 和默认字体资源，并在 app 配置里启用 `EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_ONLY`、关闭 `EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER`、关闭 `EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH`、关闭 `EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL`，同时裁掉未使用的 `image std` / `canvas transform` / `font std` frame-cache release hook，适合作为入门和 code size 基线。
+本文以 `HelloSimple` 为基础，演示如何用 EmbeddedGUI 构建一个最小可运行界面。这个示例只包含两个标签，底部标签点击后会切换成固定提示 `"CLICKED"`。它刻意不使用 `LinearLayout`、`egui_api_sprintf`、`egui_view_button_t` 和默认字体资源，并在 app 配置里启用 `EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_ONLY`、关闭 `EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER`、关闭 `EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH`、关闭 `EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL`，适合作为入门和 code size 基线。
 
 ## 运行 HelloSimple
 

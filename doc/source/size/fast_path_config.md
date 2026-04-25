@@ -56,7 +56,9 @@
 | `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 示例或模板里用来做文字路径 A/B；`0=关闭`，`1=打开完整 std-font fast draw（含 ASCII 直查表）` | 普通项目不要额外发散使用；历史上关闭 fast draw 虽可省约 `8328B` 代码，但文本热点会回退 `+27% ~ +465%` |
 | `EGUI_CONFIG_CIRCLE_FILL_BASIC` | `HelloPerformance` 的 benchmark 局部入口 | 只在 benchmark 或定向实验里使用；普通产品配置不用关注 |
 
-`EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 也是字体 fast/cache 路径的总开关；内部的 code lookup cache、transform prepare/layout cache、transform size cache 和 draw-prefix cache 都不能绕过它单独生效。
+`EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 也是字体 fast/cache 路径的总开关；内部的 code lookup cache、transform prepare/layout cache、transform size cache 和 draw-prefix cache 都不能绕过它单独生效。历史上的 code lookup / transform size 独立宏已经删除，其中 transform size cache 进一步受 `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW` 约束。
+
+图像 RGB565 alpha opaque cache 也不再保留独立配置入口，随 `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565` 直接编译；image/canvas/font 的 frame-cache release 钩子固定在帧结束执行，不再暴露单独的 release 宏。
 
 如果你是在复制 `tiny_rom` / `basic_ui` 这类模板配置，看到 `APP_EGUI_*` 名字是正常的；但它们只代表模板或示例的局部选择，不代表框架统一推荐接口。
 

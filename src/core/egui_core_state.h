@@ -68,7 +68,7 @@ typedef struct egui_core_image_state
 #if EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES > 0
     egui_image_std_external_persistent_cache_t image_std_external_persistent_cache; // optional persistent decoded-image cache
 #endif
-#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565 && EGUI_CONFIG_FUNCTION_IMAGE_STD_RGB565_ALPHA_OPAQUE_CACHE
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
     egui_image_std_alpha_opaque_cache_t image_std_alpha_opaque_cache[EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS]; // lookup cache for opaque-alpha runs
     uint8_t image_std_alpha_opaque_cache_next; // round-robin replacement index for the opaque-alpha cache
 #endif
@@ -106,7 +106,7 @@ typedef struct egui_core_debug_state
 /** Text measurement, glyph lookup, and transformed-text caches shared across one core. */
 typedef struct egui_core_text_state
 {
-#if EGUI_FONT_STD_CODE_LOOKUP_CACHE_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW
     egui_font_std_code_lookup_cache_t font_std_code_lookup_cache; // fast codepoint-to-glyph lookup cache
 #endif
 #if EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW
@@ -138,7 +138,7 @@ typedef struct egui_core_text_state
     int text_transform_layout_line_capacity;                     // number of line slots allocated in `text_transform_layout_lines`
 #endif
     text_transform_visible_tile_cache_t text_transform_visible_tile_cache; // visible-tile cache for rotated/scaled text drawing
-#if EGUI_TEXT_TRANSFORM_SIZE_CACHE_ENABLED
+#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
     const egui_font_t *text_transform_axis_font;                           // font used by the cached axis text metrics
     const void *text_transform_axis_string;                                // string identity used by the cached axis text metrics
     egui_dim_t text_transform_axis_w;                                      // cached axis-aligned text width
