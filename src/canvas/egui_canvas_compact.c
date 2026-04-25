@@ -56,11 +56,13 @@ static const egui_canvas_compact_glyph_t egui_canvas_compact_glyphs[] = {
         {'V', 5, EGUI_COMPACT_ROWS(0x11, 0x11, 0x11, 0x0A, 0x04)}, {'Y', 5, EGUI_COMPACT_ROWS(0x11, 0x0A, 0x04, 0x04, 0x04)},
 };
 
+#if EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER
 static const uint8_t egui_canvas_compact_number_glyphs[12][EGUI_CANVAS_COMPACT_NUMBER_ROWS] = {
         {0x7, 0x5, 0x5, 0x5, 0x7}, {0x2, 0x6, 0x2, 0x2, 0x7}, {0x7, 0x1, 0x7, 0x4, 0x7}, {0x7, 0x1, 0x7, 0x1, 0x7},
         {0x5, 0x5, 0x7, 0x1, 0x1}, {0x7, 0x4, 0x7, 0x1, 0x7}, {0x7, 0x4, 0x7, 0x5, 0x7}, {0x7, 0x1, 0x1, 0x1, 0x1},
         {0x7, 0x5, 0x7, 0x5, 0x7}, {0x7, 0x5, 0x7, 0x1, 0x7}, {0x0, 0x2, 0x7, 0x2, 0x0}, {0x5, 0x1, 0x2, 0x4, 0x5},
 };
+#endif
 
 /**
  * @brief Look up one compact text glyph, uppercasing ASCII letters first.
@@ -97,6 +99,7 @@ static const egui_canvas_compact_glyph_t *egui_canvas_compact_text_get_glyph(cha
 /**
  * @brief Look up one compact number glyph from the numeric preset table.
  */
+#if EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER
 static const uint8_t *egui_canvas_compact_number_get_glyph(char ch)
 {
     if (ch >= '0' && ch <= '9')
@@ -116,6 +119,7 @@ static const uint8_t *egui_canvas_compact_number_get_glyph(char ch)
 
     return NULL;
 }
+#endif
 
 /**
  * @brief Resolve a character into the common bitmap-glyph view used below.
@@ -141,6 +145,7 @@ static uint8_t egui_canvas_compact_bitmap_get_glyph(egui_canvas_compact_bitmap_k
         return 1;
     }
 
+#if EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER
     {
         const uint8_t *number_glyph = egui_canvas_compact_number_get_glyph(ch);
 
@@ -153,6 +158,11 @@ static uint8_t egui_canvas_compact_bitmap_get_glyph(egui_canvas_compact_bitmap_k
         glyph->rows = number_glyph;
         return 1;
     }
+#else
+    (void)kind;
+    (void)ch;
+    return 0;
+#endif
 }
 
 /**
@@ -170,7 +180,12 @@ static egui_dim_t egui_canvas_compact_bitmap_get_gap(egui_canvas_compact_bitmap_
         return scale;
     }
 
+#if EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER
     return EGUI_MAX(1, scale - 1);
+#else
+    (void)kind;
+    return 0;
+#endif
 }
 
 /**

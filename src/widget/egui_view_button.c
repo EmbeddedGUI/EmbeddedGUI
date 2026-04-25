@@ -49,11 +49,24 @@ static void egui_view_button_draw_content(egui_canvas_t *canvas, egui_view_butto
     const char *text = label->text;
     egui_region_t draw_region = *region;
 
-    if (!EGUI_VIEW_ICON_TEXT_VALID(icon) && !EGUI_VIEW_TEXT_VALID(text))
+    if (!EGUI_VIEW_TEXT_VALID(text)
+#if EGUI_CONFIG_FUNCTION_VIEW_BUTTON_ICON
+        && !EGUI_VIEW_ICON_TEXT_VALID(icon)
+#endif
+    )
     {
         return;
     }
 
+#if !EGUI_CONFIG_FUNCTION_VIEW_BUTTON_ICON
+    EGUI_UNUSED(icon);
+
+    if (text_font != NULL)
+    {
+        egui_canvas_draw_text_in_rect_with_line_space(canvas, text_font, text, &draw_region, label->align_type, label->line_space, text_color, text_alpha);
+    }
+    return;
+#else
     if (!EGUI_VIEW_ICON_TEXT_VALID(icon))
     {
         if (text_font != NULL)
@@ -159,6 +172,7 @@ static void egui_view_button_draw_content(egui_canvas_t *canvas, egui_view_butto
             egui_canvas_draw_text_in_rect(canvas, text_font, text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, text_alpha);
         }
     }
+#endif
 }
 
 /** Draw the themed button background first, then return the effective text color and alpha. */

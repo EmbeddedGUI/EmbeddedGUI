@@ -9,8 +9,8 @@
  *
  * The button reuses label text, font, alignment, and line-spacing behavior,
  * then adds a themed rounded background plus an optional icon string placed
- * before the label text. This makes it the base pattern for many other
- * button-like widgets in the library.
+ * before the label text when icon support is enabled. This makes it the base
+ * pattern for many other button-like widgets in the library.
  */
 
 /* Set up for C function definitions, even when using C++ */
@@ -24,7 +24,7 @@ struct egui_view_button
     /* Base label that stores the main text, alignment, and text style. */
     egui_view_label_t base;
 
-    /* Optional borrowed icon string rendered before the main label text. */
+    /* Optional borrowed icon string rendered before the main label text when icon support is enabled. */
     const char *icon;
     /* Optional override font used for the icon string. */
     const egui_font_t *icon_font;
@@ -50,7 +50,7 @@ void egui_view_button_apply_params(egui_view_t *self, const egui_view_label_para
 void egui_view_button_init(egui_view_t *self, egui_core_t *core);
 /** Initialize a button and immediately apply its label-style parameter block. */
 void egui_view_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params);
-/** Set the icon text rendered before the button label text. */
+/** Set the icon text rendered before the button label text when icon support is enabled. */
 void egui_view_button_set_icon(egui_view_t *self, const char *icon);
 /** Override the font used to draw the icon text. */
 void egui_view_button_set_icon_font(egui_view_t *self, const egui_font_t *font);

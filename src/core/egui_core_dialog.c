@@ -13,6 +13,8 @@
  * @brief Core-side dialog ownership and lifecycle handoff on top of the current activity.
  */
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
+
 /** Cancel one dialog animation slot only when it still belongs to the target dialog. */
 static void egui_core_dialog_cancel_anim_slot(egui_animation_t *anim, egui_dialog_t **owner_slot, egui_dialog_t *dialog)
 {
@@ -234,3 +236,40 @@ void egui_core_dialog_set_anim(egui_core_t *core, egui_animation_t *open_anim, e
         egui_animation_handle_set(close_anim, &dialog_anim_finish_hanlde);
     }
 }
+
+#else
+
+egui_dialog_t *egui_core_dialog_get(egui_core_t *core)
+{
+    EGUI_UNUSED(core);
+    return NULL;
+}
+
+void egui_core_dialog_set_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(open_anim);
+    EGUI_UNUSED(close_anim);
+}
+
+void egui_core_dialog_start(egui_core_t *core, egui_activity_t *activity, egui_dialog_t *self)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(activity);
+    EGUI_UNUSED(self);
+}
+
+int egui_core_dialog_check_in_process(egui_core_t *core, egui_dialog_t *dialog)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(dialog);
+    return 0;
+}
+
+void egui_core_dialog_finish(egui_core_t *core, egui_dialog_t *self)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(self);
+}
+
+#endif

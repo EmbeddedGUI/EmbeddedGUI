@@ -8,6 +8,10 @@
 #define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 1
 #endif
 
+#ifndef EGUI_CONFIG_QEMU_PLATFORM_PRINTF_ENABLE
+#define EGUI_CONFIG_QEMU_PLATFORM_PRINTF_ENABLE 1
+#endif
+
 static egui_core_t *s_qemu_core = NULL;
 
 static void qemu_assert_single_display_core(egui_core_t *core_ctx)
@@ -134,6 +138,7 @@ static inline void semihosting_exit(int code)
     __asm__ volatile("bkpt 0xAB" : : "r"(r0), "r"(r1) : "memory");
 }
 
+#if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
 static int semihosting_call(uint32_t operation, void *arguments)
 {
     register uint32_t r0 __asm__("r0") = operation;
@@ -142,6 +147,7 @@ static int semihosting_call(uint32_t operation, void *arguments)
     __asm__ volatile("bkpt 0xAB" : "+r"(r0) : "r"(r1) : "memory");
     return (int)r0;
 }
+#endif
 
 static void semihosting_write0(const char *str)
 {
@@ -262,6 +268,7 @@ static egui_display_driver_t port_display_driver = {
  * Platform driver
  * ============================================================================ */
 
+#if EGUI_CONFIG_QEMU_PLATFORM_PRINTF_ENABLE
 static void qemu_append_char(char **cursor, int *remaining, char c)
 {
     if (*remaining > 1)
@@ -454,6 +461,7 @@ static void qemu_format_to_buffer(char *buffer, int buffer_size, const char *for
 
     *cursor = '\0';
 }
+#endif
 
 void qemu_log_write(const char *str)
 {
@@ -465,6 +473,7 @@ void qemu_log_write(const char *str)
 
 void qemu_log_printf(const char *format, ...)
 {
+#if EGUI_CONFIG_QEMU_PLATFORM_PRINTF_ENABLE
     char buffer[384];
     va_list args;
 
@@ -472,6 +481,9 @@ void qemu_log_printf(const char *format, ...)
     qemu_format_to_buffer(buffer, (int)sizeof(buffer), format, args);
     va_end(args);
     qemu_log_write(buffer);
+#else
+    EGUI_UNUSED(format);
+#endif
 }
 
 /* ============================================================================
@@ -609,7 +621,12 @@ static void qemu_load_external_resource(egui_core_t *core, void *dest, uint32_t 
 
     if (qemu_semihosting_read(handle, dest, size) != 0)
     {
+#if EGUI_CONFIG_QEMU_PLATFORM_PRINTF_ENABLE
         qemu_log_printf("QEMU: Error reading resource, size: %d\n", (int)size);
+#else
+        EGUI_UNUSED(size);
+        qemu_log_write("QEMU: Error reading resource\n");
+#endif
         qemu_close_external_resource_file();
         return;
     }
@@ -620,6 +637,7 @@ static void qemu_load_external_resource(egui_core_t *core, void *dest, uint32_t 
 
 #endif /* EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER */
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF && EGUI_CONFIG_QEMU_PLATFORM_PRINTF_ENABLE
 static void qemu_vlog(const char *format, va_list args)
 {
     char buffer[384];
@@ -627,10 +645,16 @@ static void qemu_vlog(const char *format, va_list args)
     qemu_format_to_buffer(buffer, (int)sizeof(buffer), format, args);
     qemu_log_write(buffer);
 }
+#endif
 
 static void qemu_assert_handler(const char *file, int line)
 {
+#if EGUI_CONFIG_QEMU_PLATFORM_PRINTF_ENABLE
     qemu_log_printf("ASSERT: %s:%d\n", file, line);
+#else
+    EGUI_UNUSED(file);
+    EGUI_UNUSED(line);
+#endif
     qemu_exit(1);
 }
 
@@ -975,7 +999,11 @@ static const egui_platform_ops_t qemu_platform_ops = {
 #endif
 #endif
 #if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+#if EGUI_CONFIG_QEMU_PLATFORM_PRINTF_ENABLE
         .vlog = qemu_vlog,
+#else
+        .vlog = NULL,
+#endif
 #endif
         .assert_handler = qemu_assert_handler,
         .delay = qemu_delay,

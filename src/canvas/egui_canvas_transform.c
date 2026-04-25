@@ -3904,13 +3904,23 @@ __EGUI_STATIC_INLINE__ uint8_t sample_tile_alpha_4(const text_transform_glyph_t 
 static int text_transform_try_draw_axis_aligned(egui_canvas_t *self, const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
                                                 int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
-    egui_core_t *core = self->core;
-    const egui_font_t *s_axis_font = core != NULL ? core->text.text_transform_axis_font : NULL;
-    const void *s_axis_string = core != NULL ? core->text.text_transform_axis_string : NULL;
-    egui_dim_t s_axis_w = core != NULL ? core->text.text_transform_axis_w : 0;
-    egui_dim_t s_axis_h = core != NULL ? core->text.text_transform_axis_h : 0;
+    const egui_font_t *s_axis_font = NULL;
+    const void *s_axis_string = NULL;
+    egui_dim_t s_axis_w = 0;
+    egui_dim_t s_axis_h = 0;
     egui_region_t rect;
     int16_t norm_angle = angle_deg % 360;
+#if EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE
+    egui_core_t *core = self->core;
+
+    if (core != NULL)
+    {
+        s_axis_font = core->text.text_transform_axis_font;
+        s_axis_string = core->text.text_transform_axis_string;
+        s_axis_w = core->text.text_transform_axis_w;
+        s_axis_h = core->text.text_transform_axis_h;
+    }
+#endif
 
     if (norm_angle < 0)
     {
@@ -3932,6 +3942,7 @@ static int text_transform_try_draw_axis_aligned(egui_canvas_t *self, const egui_
         s_axis_h = th;
         s_axis_font = font;
         s_axis_string = string;
+#if EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE
         if (core != NULL)
         {
             core->text.text_transform_axis_w = tw;
@@ -3939,6 +3950,7 @@ static int text_transform_try_draw_axis_aligned(egui_canvas_t *self, const egui_
             core->text.text_transform_axis_font = font;
             core->text.text_transform_axis_string = string;
         }
+#endif
     }
 
     if (s_axis_w <= 0 || s_axis_h <= 0)
@@ -3982,11 +3994,21 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
 #if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     /* Lightweight dimension cache: avoid per-tile get_str_size string walk.
      * Only 12 bytes static, independent of text content/font size. */
+    const egui_font_t *s_dim_font = NULL;
+    const void *s_dim_string = NULL;
+    int16_t s_dim_w = 0;
+    int16_t s_dim_h = 0;
+#if EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE
     egui_core_t *core = canvas->core;
-    const egui_font_t *s_dim_font = core != NULL ? core->text.text_transform_dim_font : NULL;
-    const void *s_dim_string = core != NULL ? core->text.text_transform_dim_string : NULL;
-    int16_t s_dim_w = core != NULL ? core->text.text_transform_dim_w : 0;
-    int16_t s_dim_h = core != NULL ? core->text.text_transform_dim_h : 0;
+
+    if (core != NULL)
+    {
+        s_dim_font = core->text.text_transform_dim_font;
+        s_dim_string = core->text.text_transform_dim_string;
+        s_dim_w = core->text.text_transform_dim_w;
+        s_dim_h = core->text.text_transform_dim_h;
+    }
+#endif
 
     if (font != s_dim_font || string != s_dim_string)
     {
@@ -3996,6 +4018,7 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
         s_dim_h = th;
         s_dim_font = font;
         s_dim_string = string;
+#if EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE
         if (core != NULL)
         {
             core->text.text_transform_dim_w = s_dim_w;
@@ -4003,6 +4026,7 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
             core->text.text_transform_dim_font = s_dim_font;
             core->text.text_transform_dim_string = s_dim_string;
         }
+#endif
     }
 #else
     int16_t s_dim_w = 0;

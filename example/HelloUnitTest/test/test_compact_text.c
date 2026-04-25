@@ -10,6 +10,7 @@
 #include "canvas/egui_canvas_compact.h"
 #include "widget/egui_view_gauge.h"
 #include "widget/egui_view_image_button.h"
+#include "widget/egui_view_label.h"
 #include "widget/egui_view_radio_button.h"
 #include "widget/egui_view_toggle_button.h"
 #include "uicode_disp0.h"
@@ -147,6 +148,22 @@ static void test_chart_line_init_default_font_is_null(void)
     EGUI_TEST_ASSERT_NOT_NULL(chart_line.axis_base.ab.text_ops);
 }
 
+static void test_label_null_font_uses_compact_metrics(void)
+{
+    egui_view_label_t label;
+    egui_dim_t width = 0;
+    egui_dim_t height = 0;
+
+    EGUI_VIEW_LABEL_PARAMS_INIT(test_label_compact_params, 0, 0, 120, 24, "Hello EGUI", NULL, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label), test_compact_text_get_core(), &test_label_compact_params);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_label_get_str_size(EGUI_VIEW_OF(&label), "Hello EGUI", &width, &height));
+    EGUI_TEST_ASSERT_TRUE(width > 0);
+    EGUI_TEST_ASSERT_TRUE(height > 0);
+    EGUI_TEST_ASSERT_TRUE(0 != egui_view_label_get_str_size(EGUI_VIEW_OF(&label), "\xE4\xB8\xAD", &width, &height));
+}
+
 void test_compact_text_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(compact_text);
@@ -163,5 +180,6 @@ void test_compact_text_run(void)
     EGUI_TEST_RUN(test_radio_button_init_default_font_is_null);
     EGUI_TEST_RUN(test_chart_pie_init_default_font_is_null);
     EGUI_TEST_RUN(test_chart_line_init_default_font_is_null);
+    EGUI_TEST_RUN(test_label_null_font_uses_compact_metrics);
     EGUI_TEST_SUITE_END();
 }

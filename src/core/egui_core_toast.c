@@ -9,6 +9,8 @@
  * @brief Tiny core-side bridge that stores the toast currently owned by one GUI core.
  */
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
+
 /** Return the toast currently registered on this core, or NULL when no toast is active. */
 egui_toast_t *egui_core_toast_get(egui_core_t *core)
 {
@@ -25,3 +27,19 @@ void egui_core_toast_set(egui_core_t *core, egui_toast_t *toast)
 
     core->scene.toast = toast;
 }
+
+#else
+
+egui_toast_t *egui_core_toast_get(egui_core_t *core)
+{
+    EGUI_UNUSED(core);
+    return NULL;
+}
+
+void egui_core_toast_set(egui_core_t *core, egui_toast_t *toast)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(toast);
+}
+
+#endif

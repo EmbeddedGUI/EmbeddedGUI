@@ -30,10 +30,15 @@ typedef struct egui_view_group_touch_state_snapshot egui_view_group_touch_state_
 /** Snapshot of the current captured touch path so callers can save and restore nested interaction state. */
 struct egui_view_group_touch_state_snapshot
 {
+#if EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH
     uint8_t is_active;
     uint8_t is_disallow_intercept;
     uint8_t path_len;
     egui_view_t *path[EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX];
+#else
+    uint8_t is_active;
+    egui_view_t *captured_view;
+#endif
 };
 #else
 typedef struct egui_view_group_touch_state_snapshot egui_view_group_touch_state_snapshot_t;

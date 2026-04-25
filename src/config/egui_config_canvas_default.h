@@ -44,6 +44,15 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_CANVAS_SPEC_CIRCLE_INFO 1
 #endif
 
+/**
+ * Compact bitmap canvas options.
+ * When 1, keep the compact-number helpers and glyph table. Disable only when
+ * the application never calls compact number APIs and only needs compact text.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER
+#define EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER 1
+#endif
+
 /* ---- Circle/Arc default algorithm ---- */
 
 /**

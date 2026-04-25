@@ -26,6 +26,15 @@ extern "C" {
 #endif
 
 /**
+ * Button optional icon support.
+ * When disabled, text buttons skip icon-only and icon+text mixed layout code.
+ * Disable only for apps that use buttons as plain text buttons.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_VIEW_BUTTON_ICON
+#define EGUI_CONFIG_FUNCTION_VIEW_BUTTON_ICON 1
+#endif
+
+/**
  * Cursor blink interval in milliseconds.
  */
 #ifndef EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS

@@ -1,0 +1,12 @@
+{
+    "font": [
+        {
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "hello_simple",
+            "text": "supported_text.txt",
+            "external": "0",
+            "pixelsize": "14",
+            "fontbitsize": "4"
+        }
+    ]
+}

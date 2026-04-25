@@ -2,14 +2,20 @@
 #include <assert.h>
 
 #include "egui_view.h"
-#include "app/egui_toast.h"
 #include "core/egui_core.h"
-#include "core/egui_core_activity.h"
-#include "core/egui_core_dialog.h"
 #include "core/egui_core_internal.h"
-#include "core/egui_core_toast.h"
 #include "core/egui_api.h"
 #include "style/egui_theme.h"
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
+#include "core/egui_core_activity.h"
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
+#include "core/egui_core_dialog.h"
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
+#include "app/egui_toast.h"
+#include "core/egui_core_toast.h"
+#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
 #include "shadow/egui_shadow.h"
 #endif
@@ -186,6 +192,7 @@ void egui_view_set_theme(egui_view_t *self, const egui_theme_t *theme)
 
 egui_activity_t *egui_view_get_activity(egui_view_t *self)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
     egui_core_t *core = egui_view_get_core(self);
 
     if (core == NULL || self == NULL)
@@ -194,10 +201,15 @@ egui_activity_t *egui_view_get_activity(egui_view_t *self)
     }
 
     return egui_core_activity_get_by_view(core, self);
+#else
+    EGUI_UNUSED(self);
+    return NULL;
+#endif
 }
 
 egui_dialog_t *egui_view_get_dialog(egui_view_t *self)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
     egui_core_t *core = egui_view_get_core(self);
 
     if (core == NULL)
@@ -206,10 +218,15 @@ egui_dialog_t *egui_view_get_dialog(egui_view_t *self)
     }
 
     return egui_core_dialog_get(core);
+#else
+    EGUI_UNUSED(self);
+    return NULL;
+#endif
 }
 
 egui_toast_t *egui_view_get_toast(egui_view_t *self)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
     egui_core_t *core = egui_view_get_core(self);
 
     if (core == NULL)
@@ -218,10 +235,15 @@ egui_toast_t *egui_view_get_toast(egui_view_t *self)
     }
 
     return egui_core_toast_get(core);
+#else
+    EGUI_UNUSED(self);
+    return NULL;
+#endif
 }
 
 void egui_view_show_toast_info_with_duration(egui_view_t *self, const char *text, uint16_t duration)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
     egui_toast_t *toast = egui_view_get_toast(self);
 
     if (toast == NULL)
@@ -230,11 +252,21 @@ void egui_view_show_toast_info_with_duration(egui_view_t *self, const char *text
     }
 
     egui_toast_show_info_with_duration(toast, text, duration);
+#else
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(text);
+    EGUI_UNUSED(duration);
+#endif
 }
 
 void egui_view_show_toast_info(egui_view_t *self, const char *text)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
     egui_view_show_toast_info_with_duration(self, text, EGUI_CONFIG_PARAM_TOAST_DEFAULT_SHOW_TIME);
+#else
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(text);
+#endif
 }
 
 egui_float_t egui_view_get_velocity_x(egui_view_t *self)

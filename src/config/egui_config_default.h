@@ -184,7 +184,41 @@ extern "C" {
 #define EGUI_CONFIG_PERFORMANCE_USE_FLOAT 0
 #endif
 
+/**
+ * When platform custom malloc hooks are enabled, keep the libc malloc/free
+ * fallback path available if the port does not provide hooks at runtime.
+ * Disable this for ports that always register valid malloc/free callbacks and
+ * want to avoid linking the libc allocator into small demos.
+ */
+#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC_LIBC_FALLBACK
+#define EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC_LIBC_FALLBACK 1
+#endif
+
 /* ---- Function switches ---- */
+
+/**
+ * Function options.
+ * Select support activity stack helpers. if 0, disable activity-specific helper bridges in common widgets.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
+#define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 0
+#endif
+
+/**
+ * Function options.
+ * Select support dialog helpers. if 0, disable dialog-specific helper bridges in common widgets.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
+#define EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG 0
+#endif
+
+/**
+ * Function options.
+ * Select support toast helpers. if 0, disable toast-specific helper bridges in common widgets.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
+#define EGUI_CONFIG_FUNCTION_SUPPORT_TOAST 0
+#endif
 
 /**
  * Function options.
@@ -218,6 +252,24 @@ extern "C" {
 #define EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX 32
 #endif
 
+/**
+ * Touch dispatch options.
+ * Select full ancestor-path capture tracking for nested/interceptable groups.
+ * Set 0 to use a lighter single-target capture path for simple click-only UIs.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH
+#define EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH 1
+#endif
+
+/**
+ * Core pre-work options.
+ * Select whether each frame should run the scroll prepass before layout.
+ * Set 0 for apps that do not use any scroll/fling/viewpage style widgets.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL
+#define EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL 1
+#endif
+
 /* Multi-touch requires single-touch */
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
 #undef EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -230,13 +282,12 @@ extern "C" {
  * Default: 0 (disabled). Auto-enabled when activity or dialog is enabled.
  * Debug info no longer needs this because it is drawn directly as an overlay.
  */
-#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY || EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
-#undef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
-#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 1
-#endif
-
 #ifndef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY || EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
+#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 1
+#else
 #define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
+#endif
 #endif
 
 /**
@@ -438,6 +489,26 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE
 #define EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE 0
+#endif
+
+/**
+ * Reduce code size options.
+ * When 1, labels render/measure only through the built-in compact ASCII path and
+ * ignore runtime font pointers. Enable only for apps that intentionally keep
+ * label text ASCII-only and do not need full font rendering in labels.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_ONLY
+#define EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_ONLY 0
+#endif
+
+/**
+ * Reduce code size options.
+ * When 1, labels without a runtime font pointer fall back to the built-in compact
+ * ASCII path. Disable only for apps that always provide a real font for labels
+ * and want to avoid linking the compact label fallback.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_FALLBACK
+#define EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_FALLBACK 1
 #endif
 
 /* Std-image fast-path defaults now live in egui_config_fast_path_default.h. */

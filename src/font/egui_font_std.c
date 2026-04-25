@@ -30,7 +30,9 @@ typedef struct
     egui_font_std_line_cache_t entries[EGUI_FONT_STD_LINE_CACHE_SLOTS];
 } egui_font_std_line_cache_storage_t;
 
+#if EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE
 #define g_font_std_code_lookup_cache (core->text.font_std_code_lookup_cache)
+#endif
 #if EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED
 #define g_font_std_ascii_lookup_cache (core->text.font_std_ascii_lookup_cache)
 #endif
@@ -867,6 +869,10 @@ static const egui_font_std_line_cache_t *egui_font_std_prepare_line_cache(const 
 
 static void egui_font_std_reset_code_lookup_cache(egui_core_t *core, const egui_font_std_info_t *font)
 {
+#if !EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(font);
+#else
     if (core == NULL)
     {
         return;
@@ -880,8 +886,10 @@ static void egui_font_std_reset_code_lookup_cache(egui_core_t *core, const egui_
         g_font_std_code_lookup_cache.block_start_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID;
         g_font_std_code_lookup_cache.block_end_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID;
     }
+#endif
 }
 
+#if EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE
 static void egui_font_std_update_code_lookup_cache(egui_core_t *core, const egui_font_std_info_t *font, int code_index)
 {
     const egui_font_std_code_descriptor_t *code_array = font->code_array;
@@ -918,6 +926,7 @@ static void egui_font_std_update_code_lookup_cache(egui_core_t *core, const egui
     g_font_std_code_lookup_cache.block_start_index = egui_font_std_code_lookup_cache_store_index(block_start);
     g_font_std_code_lookup_cache.block_end_index = egui_font_std_code_lookup_cache_store_index(block_end);
 }
+#endif
 
 static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_info_t *font, uint32_t utf8_code)
 {
@@ -937,6 +946,7 @@ static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_
         }
     }
 
+#if EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE
     if (core != NULL && g_font_std_code_lookup_cache.last_index >= 0)
     {
         if (g_font_std_code_lookup_cache.last_code == utf8_code)
@@ -976,6 +986,7 @@ static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_
             }
         }
     }
+#endif
 
     int first = 0;
     int last = font->count - 1;
@@ -989,7 +1000,9 @@ static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_
         }
         else if (font->code_array[middle].code == utf8_code)
         {
+#if EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE
             egui_font_std_update_code_lookup_cache(core, font, middle);
+#endif
             return middle;
         }
         else

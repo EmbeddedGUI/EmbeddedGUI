@@ -12,14 +12,25 @@
 
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t);
 
+#if EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL
+#define EGUI_VIEW_GROUP_COMPUTE_SCROLL_HANDLER egui_view_group_compute_scroll
+#else
+#define EGUI_VIEW_GROUP_COMPUTE_SCROLL_HANDLER egui_view_compute_scroll
+#endif
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 typedef struct egui_view_group_touch_state egui_view_group_touch_state_t;
 struct egui_view_group_touch_state
 {
+#if EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH
     uint8_t is_active;
     uint8_t is_disallow_intercept;
     uint8_t path_len;
     egui_view_t *path[EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX];
+#else
+    uint8_t is_active;
+    egui_view_t *captured_view;
+#endif
 };
 
 static egui_view_group_touch_state_t *egui_view_group_touch_state_get(egui_core_t *core)
@@ -44,6 +55,7 @@ static void egui_view_group_touch_state_reset(egui_core_t *core)
     egui_api_memset(touch_state, 0, (int)sizeof(*touch_state));
 }
 
+#if EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH
 static void egui_view_group_touch_state_set_path_entry(egui_core_t *core, uint8_t depth, egui_view_t *view)
 {
     egui_view_group_touch_state_t *touch_state = egui_view_group_touch_state_get(core);
@@ -99,6 +111,42 @@ static int egui_view_group_touch_state_contains(egui_core_t *core, egui_view_t *
     }
     return 0;
 }
+#else
+static void egui_view_group_touch_state_set_capture(egui_core_t *core, egui_view_t *view)
+{
+    egui_view_group_touch_state_t *touch_state = egui_view_group_touch_state_get(core);
+
+    if (touch_state == NULL)
+    {
+        return;
+    }
+
+    touch_state->captured_view = view;
+}
+
+static int egui_view_group_touch_state_contains(egui_core_t *core, egui_view_t *view)
+{
+    egui_view_group_touch_state_t *touch_state = egui_view_group_touch_state_get(core);
+    egui_view_t *captured_view;
+
+    if (touch_state == NULL || view == NULL)
+    {
+        return 0;
+    }
+
+    captured_view = touch_state->captured_view;
+    while (captured_view != NULL)
+    {
+        if (captured_view == view)
+        {
+            return 1;
+        }
+        captured_view = EGUI_VIEW_PARENT(captured_view);
+    }
+
+    return 0;
+}
+#endif
 
 void egui_view_group_touch_state_exchange(egui_core_t *core, egui_view_group_touch_state_snapshot_t *snapshot)
 {
@@ -404,6 +452,7 @@ static int egui_view_group_is_process_touch_event_disallowed(egui_view_t *self)
 
 void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, int disallow)
 {
+#if EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH
     egui_view_group_touch_state_t *touch_state = egui_view_group_touch_state_get(egui_view_get_core(self));
 
     if (touch_state == NULL)
@@ -412,6 +461,10 @@ void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, i
     }
 
     touch_state->is_disallow_intercept = disallow;
+#else
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(disallow);
+#endif
 }
 
 int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)
@@ -450,6 +503,7 @@ int egui_view_group_on_intercept_touch_event(egui_view_t *self, egui_motion_even
     return 0;
 }
 
+#if EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH
 static int egui_view_dispatch_touch_event_capture(egui_view_t *self, egui_motion_event_t *event, uint8_t depth);
 static int egui_view_dispatch_touch_event_followup(egui_view_t *self, egui_motion_event_t *event, uint8_t depth);
 
@@ -635,9 +689,118 @@ int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t 
 
     return is_handled;
 }
+#else
+static int egui_view_group_dispatch_touch_event_capture_simple(egui_view_t *self, egui_motion_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_group_t);
+    egui_core_t *core = egui_view_get_core(self);
+
+    if (!self->is_visible || self->is_gone || egui_view_group_is_process_touch_event_disallowed(self))
+    {
+        return 0;
+    }
+
+    if (!egui_dlist_is_empty(&local->childs))
+    {
+        egui_dnode_t *p_head;
+        egui_view_t *tmp;
+
+        EGUI_DLIST_FOR_EACH_NODE_REVERSE(&local->childs, p_head)
+        {
+            tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+
+            if (!tmp->is_visible || tmp->is_gone)
+            {
+                continue;
+            }
+
+            if (!egui_region_pt_in_rect(&tmp->region_screen, event->location.x, event->location.y))
+            {
+                continue;
+            }
+
+            egui_view_group_sync_child_core(self, tmp);
+            if (tmp->api->dispatch_touch_event == egui_view_group_dispatch_touch_event)
+            {
+                if (egui_view_group_dispatch_touch_event_capture_simple(tmp, event))
+                {
+                    return 1;
+                }
+            }
+            else if (tmp->api->dispatch_touch_event(tmp, event))
+            {
+                egui_view_group_touch_state_set_capture(core, tmp);
+                return 1;
+            }
+        }
+    }
+
+    if (egui_view_group_dispatch_transformed_touch_event(self, false, NULL, event))
+    {
+        egui_view_group_touch_state_set_capture(core, self);
+        return 1;
+    }
+
+    return 0;
+}
+
+int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    egui_core_t *core = egui_view_get_core(self);
+    egui_view_group_touch_state_t *touch_state = egui_view_group_touch_state_get(core);
+    egui_view_t *captured_view;
+    int is_handled = 0;
+    int is_canceled = event->type == EGUI_MOTION_EVENT_ACTION_CANCEL;
+
+    if (touch_state == NULL)
+    {
+        return egui_view_group_dispatch_transformed_touch_event(self, is_canceled, NULL, event);
+    }
+
+    if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
+    {
+        egui_view_group_touch_state_reset(core);
+        is_handled = egui_view_group_dispatch_touch_event_capture_simple(self, event);
+        touch_state->is_active = is_handled && touch_state->captured_view != NULL;
+        if (!touch_state->is_active)
+        {
+            egui_view_group_touch_state_reset(core);
+        }
+        return is_handled;
+    }
+
+    if (!touch_state->is_active)
+    {
+        return egui_view_group_dispatch_transformed_touch_event(self, is_canceled, NULL, event);
+    }
+
+    captured_view = touch_state->captured_view;
+    if (captured_view == NULL)
+    {
+        egui_view_group_touch_state_reset(core);
+        return egui_view_group_dispatch_transformed_touch_event(self, is_canceled, NULL, event);
+    }
+
+    if (captured_view != self)
+    {
+        egui_view_group_sync_child_core(self, captured_view);
+    }
+    is_handled = egui_view_group_dispatch_transformed_touch_event(self, is_canceled, captured_view == self ? NULL : captured_view, event);
+
+    if (event->type == EGUI_MOTION_EVENT_ACTION_UP || is_canceled)
+    {
+        egui_view_group_touch_state_reset(core);
+    }
+
+    return is_handled;
+}
+#endif
 
 int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
+#if !EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    return egui_view_on_touch_event(self, event);
+#else
     // EGUI_LOG_DBG("egui_view_group_on_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
     EGUI_LOCAL_INIT(egui_view_group_t);
     int is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
@@ -677,6 +840,7 @@ int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event
     }
 
     return 0;
+#endif
 }
 #else  // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
@@ -928,7 +1092,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_group_t) = {
         .dispatch_touch_event = egui_view_group_dispatch_touch_event,
         .on_touch_event = egui_view_group_on_touch_event,
         .on_intercept_touch_event = egui_view_group_on_intercept_touch_event,
-        .compute_scroll = egui_view_group_compute_scroll,
+        .compute_scroll = EGUI_VIEW_GROUP_COMPUTE_SCROLL_HANDLER,
         .calculate_layout = egui_view_group_calculate_layout,
         .request_layout = egui_view_group_request_layout,
         .draw = egui_view_group_draw,
@@ -945,7 +1109,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t) = {
         .dispatch_touch_event = egui_view_group_dispatch_touch_event,
         .on_touch_event = egui_view_group_on_touch_event,
         .on_intercept_touch_event = egui_view_group_on_intercept_touch_event,
-        .compute_scroll = egui_view_group_compute_scroll,
+        .compute_scroll = EGUI_VIEW_GROUP_COMPUTE_SCROLL_HANDLER,
         .calculate_layout = egui_view_group_calculate_layout,
         .request_layout = egui_view_group_request_layout,
         .draw = egui_view_group_draw,

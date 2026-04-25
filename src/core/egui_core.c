@@ -110,8 +110,10 @@ void egui_core_draw_view_group_pre_work(egui_core_t *core)
 {
     egui_view_group_t *view_group = (egui_view_group_t *)&core->scene.root_view_group;
 
+#if EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL
     // Scroll offsets can affect layout and hit testing, so update them first.
     view_group->base.api->compute_scroll((egui_view_t *)view_group);
+#endif
 
     // Recalculate layout once per frame before dirty rectangles are split into tiles.
     view_group->base.api->calculate_layout((egui_view_t *)view_group);
@@ -345,13 +347,21 @@ void egui_polling_refresh_display(egui_core_t *core)
     /* Release per-frame heap caches after the full dirty-frame finishes.
      * They need to stay alive across PFB tiles within the same frame, but
      * should not remain resident once the frame is done. */
+#if EGUI_CONFIG_FUNCTION_IMAGE_STD_FRAME_CACHE_RELEASE
     egui_image_std_release_frame_cache(core);
+#endif
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
     egui_image_svg_release_frame_cache();
+#endif
+#if EGUI_CONFIG_FUNCTION_CANVAS_TRANSFORM_FRAME_CACHE_RELEASE
     egui_canvas_transform_release_frame_cache(&core->canvas);
+#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     egui_mask_circle_release_frame_cache(core);
 #endif
+#if EGUI_CONFIG_FUNCTION_FONT_STD_FRAME_CACHE_RELEASE
     egui_font_std_release_frame_cache(core);
+#endif
 
 #if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
     flush_end_time = egui_api_timer_get_current_core(core);
@@ -560,6 +570,7 @@ void egui_core_set_screen_size(egui_core_t *core, int16_t width, int16_t height)
     egui_core_update_region_dirty_all(core);
 }
 
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
 static void egui_core_release_rotation_scratch(egui_core_t *core)
 {
     if (core == NULL)
@@ -575,12 +586,15 @@ static void egui_core_release_rotation_scratch(egui_core_t *core)
     core->render.rotation_scratch = NULL;
     core->render.rotation_scratch_owned = 0;
 }
+#endif
 
 static void egui_core_apply_render_config(egui_core_t *core, const egui_core_render_config_t *config)
 {
     uint8_t color_16_swap = EGUI_CONFIG_COLOR_16_SWAP ? 1U : 0U;
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
     uint8_t software_rotation = EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE ? 1U : 0U;
     egui_color_int_t *rotation_scratch = NULL;
+#endif
 
     if (core == NULL)
     {
@@ -590,12 +604,20 @@ static void egui_core_apply_render_config(egui_core_t *core, const egui_core_ren
     if (config != NULL)
     {
         color_16_swap = config->color_16_swap ? 1U : 0U;
+#if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
         software_rotation = config->software_rotation ? 1U : 0U;
         rotation_scratch = config->rotation_scratch;
+#endif
     }
 
     core->render.color_16_swap = color_16_swap;
 
+#if !EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
+    core->render.rotation_scratch = NULL;
+    core->render.rotation_scratch_owned = 0;
+    core->render.software_rotation = 0;
+    return;
+#else
     if (!software_rotation)
     {
         egui_core_release_rotation_scratch(core);
@@ -625,6 +647,7 @@ static void egui_core_apply_render_config(egui_core_t *core, const egui_core_ren
     }
 
     core->render.software_rotation = 1;
+#endif
 }
 
 void egui_core_set_render_config(egui_core_t *core, const egui_core_render_config_t *config)
@@ -675,6 +698,8 @@ void egui_core_init_display_scene(egui_core_t *core, int16_t screen_w, int16_t s
 {
     egui_core_update_region_dirty_all(core);
     egui_slist_init(&core->scene.anims);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
     egui_dlist_init(&core->scene.activitys);
 
     core->scene.activity_anim_start_open = NULL;
@@ -685,12 +710,21 @@ void egui_core_init_display_scene(egui_core_t *core, int16_t screen_w, int16_t s
     core->scene.activity_anim_start_close_owner = NULL;
     core->scene.activity_anim_finish_open_owner = NULL;
     core->scene.activity_anim_finish_close_owner = NULL;
+    core->scene.activity_open = NULL;
+    core->scene.activity_close = NULL;
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
     core->scene.dialog_anim_start = NULL;
     core->scene.dialog_anim_finish = NULL;
     core->scene.dialog_anim_start_owner = NULL;
     core->scene.dialog_anim_finish_owner = NULL;
     core->scene.dialog = NULL;
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
     core->scene.toast = NULL;
+#endif
 
     egui_view_root_group_init((egui_view_t *)&core->scene.root_view_group, core);
     egui_view_set_position((egui_view_t *)&core->scene.root_view_group, 0, 0);

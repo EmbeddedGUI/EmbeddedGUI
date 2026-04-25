@@ -38,7 +38,12 @@ static void *egui_api_platform_malloc(egui_core_t *core, int size)
     {
         return plat->ops->malloc(size);
     }
+
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC_LIBC_FALLBACK
     return malloc((size_t)size);
+#else
+    return NULL;
+#endif
 #else
     return malloc((size_t)size);
 #endif
@@ -57,7 +62,11 @@ static void egui_api_platform_free(egui_core_t *core, void *ptr)
         return;
     }
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC_LIBC_FALLBACK
     free(ptr);
+#else
+    EGUI_UNUSED(ptr);
+#endif
 #else
     free(ptr);
 #endif

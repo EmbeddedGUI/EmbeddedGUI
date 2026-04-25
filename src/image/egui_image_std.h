@@ -79,7 +79,7 @@ typedef struct
 } egui_image_std_external_persistent_cache_t;
 #endif
 
-#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565 && EGUI_CONFIG_FUNCTION_IMAGE_STD_RGB565_ALPHA_OPAQUE_CACHE
 typedef struct
 {
     const egui_image_std_info_t *image;

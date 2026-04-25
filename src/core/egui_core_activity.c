@@ -13,6 +13,8 @@
  * @brief Core-side activity stack management, including transition animation ownership and lifecycle handoff.
  */
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
+
 /** Return non-zero when the activity can be treated as the currently visible or resumable foreground page. */
 static int egui_core_activity_is_active_candidate(const egui_activity_t *activity)
 {
@@ -214,7 +216,7 @@ egui_activity_t *egui_core_activity_get_by_view(egui_core_t *core, egui_view_t *
         egui_dnode_t *p_head;
         egui_activity_t *tmp;
 
-        if (view == (egui_view_t *)&core->scene.user_root_view_group)
+        if (view == (egui_view_t *)egui_core_get_user_root_view(core))
         {
             break;
         }
@@ -680,3 +682,83 @@ void egui_core_activity_force_finish_all(egui_core_t *core)
     // Force a full redraw because all activity-owned content may have been detached.
     egui_core_update_region_dirty_all(core);
 }
+
+#else
+
+egui_activity_t *egui_core_activity_get_current(egui_core_t *core)
+{
+    EGUI_UNUSED(core);
+    return NULL;
+}
+
+egui_activity_t *egui_core_activity_get_current_active(egui_core_t *core)
+{
+    EGUI_UNUSED(core);
+    return NULL;
+}
+
+void egui_core_activity_force_finish_all(egui_core_t *core)
+{
+    EGUI_UNUSED(core);
+}
+
+void egui_core_activity_force_finish_to_activity(egui_core_t *core, egui_activity_t *activity)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(activity);
+}
+
+int egui_core_activity_check_in_process(egui_core_t *core, egui_activity_t *activity)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(activity);
+    return 0;
+}
+
+void egui_core_activity_append(egui_core_t *core, egui_activity_t *activity)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(activity);
+}
+
+void egui_core_activity_remove(egui_core_t *core, egui_activity_t *activity)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(activity);
+}
+
+void egui_core_activity_start(egui_core_t *core, egui_activity_t *self, egui_activity_t *prev_activity)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(prev_activity);
+}
+
+void egui_core_activity_set_start_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(open_anim);
+    EGUI_UNUSED(close_anim);
+}
+
+void egui_core_activity_set_finish_anim(egui_core_t *core, egui_animation_t *open_anim, egui_animation_t *close_anim)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(open_anim);
+    EGUI_UNUSED(close_anim);
+}
+
+void egui_core_activity_finish(egui_core_t *core, egui_activity_t *self)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(self);
+}
+
+egui_activity_t *egui_core_activity_get_by_view(egui_core_t *core, egui_view_t *view)
+{
+    EGUI_UNUSED(core);
+    EGUI_UNUSED(view);
+    return NULL;
+}
+
+#endif

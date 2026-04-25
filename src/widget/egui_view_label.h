@@ -21,7 +21,7 @@ struct egui_view_label
     egui_alpha_t alpha; /* Text alpha. */
     egui_color_t color; /* Text color. */
 
-    const egui_font_t *font; /* Borrowed font pointer used for measurement and drawing. */
+    const egui_font_t *font; /* Borrowed font pointer used for measurement and drawing. NULL can fall back to compact ASCII text when enabled. */
     const char *text;        /* Borrowed string pointer rendered by the label. */
 };
 

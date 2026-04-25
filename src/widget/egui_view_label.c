@@ -1,7 +1,10 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_label.h"
+#if EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_ONLY || EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_FALLBACK
+#include "canvas/egui_canvas_compact.h"
+#endif
 #include "core/egui_core.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
@@ -16,7 +19,7 @@ void egui_view_label_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_label_t);
     egui_canvas_t *canvas = egui_view_get_canvas(self);
-    if (local->font == NULL || local->text == NULL)
+    if (local->text == NULL)
     {
         return;
     }
@@ -24,8 +27,22 @@ void egui_view_label_on_draw(egui_view_t *self)
     egui_region_t region;
     egui_view_get_work_region(self, &region);
 
-    // The canvas helper handles alignment, wrapping, and extra line spacing in one call.
-    egui_canvas_draw_text_in_rect_with_line_space(canvas, local->font, local->text, &region, local->align_type, local->line_space, local->color, local->alpha);
+#if EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_ONLY
+    egui_canvas_compact_text_draw(canvas, local->text, &region, local->align_type, local->color, local->alpha);
+#else
+    if (local->font != NULL)
+    {
+        egui_canvas_draw_text_in_rect_with_line_space(canvas, local->font, local->text, &region, local->align_type, local->line_space, local->color,
+                                                      local->alpha);
+    }
+#if EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_FALLBACK
+    else
+    {
+        // Keep ASCII-only labels working when callers intentionally omit a font.
+        egui_canvas_compact_text_draw(canvas, local->text, &region, local->align_type, local->color, local->alpha);
+    }
+#endif
+#endif
 }
 
 void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font)
@@ -42,7 +59,15 @@ void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font)
 void egui_view_label_set_font_with_std_height(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_label_t);
-    egui_dim_t height = EGUI_FONT_STD_GET_FONT_HEIGHT(font);
+    egui_dim_t height;
+
+    if (font == NULL)
+    {
+        egui_view_label_set_font(self, NULL);
+        return;
+    }
+
+    height = EGUI_FONT_STD_GET_FONT_HEIGHT(font);
 
     // This convenience helper keeps the view height aligned with the font's standard line height.
     egui_view_label_set_font(self, font);
@@ -95,20 +120,82 @@ int egui_view_label_get_str_size(egui_view_t *self, const void *string, egui_dim
 {
     EGUI_LOCAL_INIT(egui_view_label_t);
 
-    // Measurement uses the same font and line-spacing settings as actual rendering.
-    local->font->api->get_str_size(local->font, string, 1, local->line_space, width, height);
+#if EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_ONLY
+    {
+        egui_canvas_compact_text_layout_t layout;
 
-    return 0;
+        if (egui_canvas_compact_text_measure((const char *)string, self->region.size.width, self->region.size.height, &layout))
+        {
+            if (width != NULL)
+            {
+                *width = layout.width;
+            }
+            if (height != NULL)
+            {
+                *height = layout.height;
+            }
+            return 0;
+        }
+    }
+#else
+    if (local->font != NULL && local->font->api != NULL && local->font->api->get_str_size != NULL)
+    {
+        if (local->font->api->get_str_size(local->font, string, 0, 0, width, height) == 0)
+        {
+            return 0;
+        }
+    }
+#if EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_FALLBACK
+    else
+    {
+        egui_canvas_compact_text_layout_t layout;
+
+        if (egui_canvas_compact_text_measure((const char *)string, self->region.size.width, self->region.size.height, &layout))
+        {
+            if (width != NULL)
+            {
+                *width = layout.width;
+            }
+            if (height != NULL)
+            {
+                *height = layout.height;
+            }
+            return 0;
+        }
+    }
+#else
+    else
+    {
+        EGUI_UNUSED(self);
+        EGUI_UNUSED(string);
+    }
+#endif
+
+    if (width != NULL)
+    {
+        *width = 0;
+    }
+    if (height != NULL)
+    {
+        *height = 0;
+    }
+
+    return -1;
+#endif
 }
 
 int egui_view_label_get_str_size_with_padding(egui_view_t *self, const void *string, egui_dim_t *width, egui_dim_t *height)
 {
-    if (!egui_view_label_get_str_size(self, string, width, height))
+    int ret = egui_view_label_get_str_size(self, string, width, height);
+
+    if (ret != 0)
     {
-        // This version reports the outer widget size needed to contain the measured text.
-        *width += self->padding.left + self->padding.right;
-        *height += self->padding.top + self->padding.bottom;
+        return ret;
     }
+
+    // This version reports the outer widget size needed to contain the measured text.
+    *width += self->padding.left + self->padding.right;
+    *height += self->padding.top + self->padding.bottom;
 
     return 0;
 }

@@ -68,7 +68,7 @@ typedef struct egui_core_image_state
 #if EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES > 0
     egui_image_std_external_persistent_cache_t image_std_external_persistent_cache; // optional persistent decoded-image cache
 #endif
-#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565 && EGUI_CONFIG_FUNCTION_IMAGE_STD_RGB565_ALPHA_OPAQUE_CACHE
     egui_image_std_alpha_opaque_cache_t image_std_alpha_opaque_cache[EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS]; // lookup cache for opaque-alpha runs
     uint8_t image_std_alpha_opaque_cache_next; // round-robin replacement index for the opaque-alpha cache
 #endif
@@ -106,7 +106,9 @@ typedef struct egui_core_debug_state
 /** Text measurement, glyph lookup, and transformed-text caches shared across one core. */
 typedef struct egui_core_text_state
 {
+#if EGUI_CONFIG_FUNCTION_FONT_STD_CODE_LOOKUP_CACHE
     egui_font_std_code_lookup_cache_t font_std_code_lookup_cache; // fast codepoint-to-glyph lookup cache
+#endif
 #if EGUI_FONT_STD_FAST_DRAW_ASCII_LOOKUP_ENABLED
     egui_font_std_ascii_lookup_cache_t *font_std_ascii_lookup_cache; // optional heap-backed ASCII fast-draw lookup table
 #endif
@@ -136,6 +138,7 @@ typedef struct egui_core_text_state
     int text_transform_layout_line_capacity;                     // number of line slots allocated in `text_transform_layout_lines`
 #endif
     text_transform_visible_tile_cache_t text_transform_visible_tile_cache; // visible-tile cache for rotated/scaled text drawing
+#if EGUI_CONFIG_FUNCTION_TEXT_TRANSFORM_SIZE_CACHE
     const egui_font_t *text_transform_axis_font;                           // font used by the cached axis text metrics
     const void *text_transform_axis_string;                                // string identity used by the cached axis text metrics
     egui_dim_t text_transform_axis_w;                                      // cached axis-aligned text width
@@ -144,6 +147,7 @@ typedef struct egui_core_text_state
     const void *text_transform_dim_string;                                 // string identity used by the cached transformed-dimension metrics
     int16_t text_transform_dim_w;                                          // cached transformed text width
     int16_t text_transform_dim_h;                                          // cached transformed text height
+#endif
 } egui_core_text_state_t;
 
 /** Core-wide timer, suspend, and focus state not tied to one scene or render pass. */
@@ -160,8 +164,9 @@ typedef struct egui_core_system_state
 /** Scene graph state, transition bookkeeping, and dirty regions for the active display. */
 typedef struct egui_core_scene_state
 {
-    egui_dlist_t activitys;                                       // activity stack/list managed by the scene subsystem
     egui_slist_t anims;                                           // currently running animation objects
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
+    egui_dlist_t activitys;                                       // activity stack/list managed by the scene subsystem
     egui_animation_t *activity_anim_start_open;                   // opening transition animation kicked off when a new activity starts
     egui_animation_t *activity_anim_start_close;                  // closing transition animation kicked off for the previous activity
     egui_animation_t *activity_anim_finish_open;                  // follow-up animation that finalizes an activity open transition
@@ -172,14 +177,21 @@ typedef struct egui_core_scene_state
     egui_activity_t *activity_anim_finish_close_owner;            // owner activity for `activity_anim_finish_close`
     egui_activity_t *activity_open;                               // activity currently entering the foreground
     egui_activity_t *activity_close;                              // activity currently leaving the foreground
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
     egui_animation_t *dialog_anim_start;                          // dialog show animation in progress
     egui_animation_t *dialog_anim_finish;                         // dialog hide/finish animation in progress
     egui_dialog_t *dialog_anim_start_owner;                       // owner dialog for `dialog_anim_start`
     egui_dialog_t *dialog_anim_finish_owner;                      // owner dialog for `dialog_anim_finish`
     egui_dialog_t *dialog;                                        // dialog currently attached to the scene, if any
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
     egui_toast_t *toast;                                          // toast currently attached to the scene, if any
+#endif
     egui_view_root_group_t root_view_group;                       // framework-owned root container at the top of the view tree
+#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_root_group_t user_root_view_group;                  // user-facing root container added beneath the framework root
+#endif
     egui_region_t region_dirty_arr[EGUI_CONFIG_DIRTY_AREA_COUNT]; // merged dirty rectangles waiting for refresh
     uint32_t dirty_epoch;                                         // monotonic dirty-state stamp used to detect repeated updates in one frame
 } egui_core_scene_state_t;
