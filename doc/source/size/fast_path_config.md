@@ -53,7 +53,7 @@
 
 | 名字 | 用途 | 对用户的建议 |
 | --- | --- | --- |
-| `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 示例或模板里用来做文字路径 A/B；`1` 为基础 fast draw，`2` 额外打开 ASCII 直查表 | 普通项目不要额外发散使用；历史上 `1 -> 0` 虽可省约 `8328B` 代码，但文本热点会回退 `+27% ~ +465%` |
+| `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 示例或模板里用来做文字路径 A/B；`1` 为基础 fast draw，`2` 额外打开 ASCII 直查表 | 普通项目不要额外发散使用；当前 `1 -> 2` 会额外引入 `text +1056B` 和 `268B` 运行期 heap；历史上 `1 -> 0` 虽可省约 `8328B` 代码，但文本热点会回退 `+27% ~ +465%` |
 | `EGUI_CONFIG_CIRCLE_FILL_BASIC` | `HelloPerformance` 的 benchmark 局部入口 | 只在 benchmark 或定向实验里使用；普通产品配置不用关注 |
 
 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 也是字体 fast/cache 路径的总开关；内部的 code lookup cache、transform prepare/layout cache、transform size cache 和 draw-prefix cache 都不能绕过它单独生效。

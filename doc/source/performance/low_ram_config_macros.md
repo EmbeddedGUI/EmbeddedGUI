@@ -424,7 +424,7 @@ RLE 外部资源解码时，控制字节（操作码+长度字段）具有强局
 | 默认值 | 当前默认 `1`（基础 std-font fast draw） |
 | HelloPerformance | 当前直接继承默认 `1`（历史 ASCII cache 模式 `2`） |
 | RAM 类型 | heap + BSS（指针） |
-| HP 节省 | 当前默认 `1` 相比历史 `2` 约节省 ~140 B heap + 8 B BSS |
+| HP 节省 | 当前默认 `1` 相比 `2` 约节省 `text 1056B`、`268B` 运行期 heap；`egui_core_t` 理论上少 4B，HelloPerformance 链接后 BSS 总量不变 |
 
 **机制：**
 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 现在统一承载 3 档模式：
@@ -437,9 +437,13 @@ RLE 外部资源解码时，控制字节（操作码+长度字段）具有强局
 
 这里关注的是 `2` 这一档新增的 ASCII 直查表：首次分配后跨帧复用，将 ASCII 字形查找从 O(log n) 降至 O(1)。当前默认 `1` 不保留这张表，从而省掉一小块运行期 heap 和 1 个指针位；历史实验值 `2` 则用更高的静态/运行期成本换取文本路径收益。可与宏 14 联用控制 index 宽度。
 
-`2026-04-05` 按当前主线完成 `1 -> 2` 全量 A/B 后，结果为：
-- size：`text 2055380 -> 2056772`，`data/bss` 不变
-- 即历史 `2` 会带来 `text +1392B`
+`2026-04-25` 按当前主线完成 `1 -> 2` size/RAM 复测后，结果为：
+- size（`HelloPerformance PORT=qemu CPU_ARCH=cortex-m0plus`）：`text 2293776 -> 2294832`，`data 2080 -> 2080`，`bss 7632 -> 7632`
+- 即 `2` 会带来 `text +1056B`；静态 `data/bss` 在该镜像中不变
+- runtime RAM：`sizeof(egui_font_std_ascii_lookup_cache_t)=268B`，按需 heap 分配，另有 allocator overhead；`egui_core_t` 理论上增加 4B，但当前链接 BSS 总量因对齐未增加
+- 结论：仅 ROM 增量已经超过 `1KB` 阈值，再加上 heap 增量后不满足“低于 1KB 就合并”的条件，因此继续保留 `0/1/2` 三档而不是收敛成布尔开关
+
+`2026-04-05` 历史 perf A/B 结果为：
 - perf：完整 `239` 场景没有任何 `>=10%` 回退，并有 `3` 个 `<=-10%` 改善
 - 主要改善集中在文本路径：
   - `TEXT_GRADIENT -11.638%`
@@ -448,7 +452,7 @@ RLE 外部资源解码时，控制字节（操作码+长度字段）具有强局
   - 其余文本主路径也稳定改善或持平：`EXTERN_TEXT_RECT -5.628%`、`TEXT -0.974%`、`EXTERN_TEXT -0.376%`、`TEXT_ROTATE -0.041%`、`EXTERN_TEXT_ROTATE -0.076%`
 - runtime / unit：`HelloPerformance` 两侧都是 `241 frames` 且 `hash mismatch 0`、`pixel mismatch 0`；`HelloUnitTest` 两侧都是 `688/688 passed`
 
-因此当前 shipped/default 应记为 `1`；`2` 不再是 `HelloPerformance` 的 active app-side override，而是一个“多花约 `text +1392B` 和一小块 ASCII cache heap/BSS，换部分文本路径 `11%` 级改善”的历史性能对比值。
+因此当前 shipped/default 应记为 `1`；`2` 不再是 `HelloPerformance` 的 active app-side override，而是一个“多花约 `text +1056B` 和 `268B` 运行期 heap，换部分文本路径 `11%` 级改善”的历史性能对比值。
 
 ---
 
@@ -635,7 +639,7 @@ Text transform 先将所有字形的像素偏移和行索引打包到 heap layou
 | 10 | `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE` | 1024 | 当前默认 **1024**（历史实验 **64**） | BSS/frame heap | ~960 B（当前 `64` 可回收 `bss -1024B`，但 external RLE 场景回退 `+17.5% ~ +21.8%`） |
 | 11 | `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE` | 1 | 当前默认 **1**（历史实验 **0**） | BSS -> frame heap | ~1040 B（当前 `0` 回收 `bss -1040B`，但 `text +816B` 且 RLE 场景约 `+2.7% ~ +6.2%`） |
 | 12 | `EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT` | 当前实现内固定 **0**（历史 public 实验 **1**） | 当前随实现内固定 **0** | data | 历史 `1` 仅回收 `data -20B`，但会带来 `text +200B`；现已内化，不再保留 public 入口 |
-| 13 | `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 当前默认 **1**（历史 ASCII cache 模式 **2**） | 当前默认 **1**（历史对比 **2**） | heap+BSS | 当前 `1` 可省约 ~140 B heap + 8 B BSS；历史 `2` 需额外付出 `text +1392B`，但文本场景可见 `11%` 级改善 |
+| 13 | `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 当前默认 **1**（历史 ASCII cache 模式 **2**） | 当前默认 **1**（历史对比 **2**） | heap+BSS | 当前 `1` 可省 `text 1056B` 和 `268B` 运行期 heap；`2` 的 ROM 增量已超过 `1KB` 阈值，但文本场景可见 `11%` 级改善 |
 | 14 | `EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT` | 当前实现内固定 **0**（历史 public 实验 **1**） | 当前随实现内固定 **0** | heap | 历史 `1` 理论上可回收约 ~128 B heap†；当前静态 size/perf/runtime/unit 全等，现已内化 |
 | 15 | `EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE` | 当前实现内固定 **0**（历史 public 实验 **1**） | 当前随实现内固定 **0** | heap | 当前 `0` 可省约 ~164 B heap；历史 `1` 需额外付出 `text +488B`，当前 perf 仅见 `+3.8% ~ +5.7%` 级文本矩形波动，现已内化 |
 | 16 | `EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS` | 当前默认 **0**（历史实验 **64**） | 当前默认 **0**（与宏17联动） | BSS | 当前 `0/0` 相比历史 `64/2` 可省 `text -1816B, bss -2616B`；但 `64/2` 同时带来 `TEXT +18.8%`、`EXTERN_TEXT +15.7%`，又改善 `TEXT_RECT / EXTERN_TEXT_RECT / TEXT_GRADIENT / TEXT_ROTATE_NONE` |
