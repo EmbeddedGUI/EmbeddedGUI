@@ -149,6 +149,7 @@ typedef struct
     uint16_t rect_count;
     uint16_t pixel_rect_count;
     uint8_t rects_sorted;
+    uint8_t storage_embedded;
     egui_dim_t view_x;
     egui_dim_t view_y;
     egui_dim_t view_width;
@@ -287,6 +288,95 @@ static __attribute__((unused)) int32_t egui_svg_dim_for_log(float value)
     return rounded;
 }
 
+static size_t egui_svg_align_size(size_t value, size_t alignment)
+{
+    if (alignment <= 1u)
+    {
+        return value;
+    }
+    return ((value + alignment - 1u) / alignment) * alignment;
+}
+
+static int egui_svg_calc_rect_fast_path_doc_size(uint16_t rect_count, size_t *rect_offset, size_t *pixel_rect_offset, size_t *alloc_size)
+{
+    size_t offset = sizeof(egui_svg_doc_t);
+    size_t rect_bytes;
+#if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
+    size_t pixel_rect_bytes;
+#endif
+
+    if (rect_count == 0 || rect_offset == NULL || pixel_rect_offset == NULL || alloc_size == NULL)
+    {
+        return 0;
+    }
+    if ((size_t)rect_count > ((size_t)INT_MAX / sizeof(egui_svg_rect_t)))
+    {
+        return 0;
+    }
+
+    rect_bytes = (size_t)rect_count * sizeof(egui_svg_rect_t);
+    offset = egui_svg_align_size(offset, sizeof(void *));
+    if (offset > (size_t)INT_MAX || rect_bytes > (size_t)INT_MAX - offset)
+    {
+        return 0;
+    }
+    *rect_offset = offset;
+    offset += rect_bytes;
+
+#if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
+    if ((size_t)rect_count > ((size_t)INT_MAX / sizeof(egui_svg_pixel_rect_t)))
+    {
+        return 0;
+    }
+    pixel_rect_bytes = (size_t)rect_count * sizeof(egui_svg_pixel_rect_t);
+    offset = egui_svg_align_size(offset, sizeof(void *));
+    if (offset > (size_t)INT_MAX || pixel_rect_bytes > (size_t)INT_MAX - offset)
+    {
+        return 0;
+    }
+    *pixel_rect_offset = offset;
+    offset += pixel_rect_bytes;
+#else
+    *pixel_rect_offset = 0u;
+#endif
+
+    if (offset > (size_t)INT_MAX)
+    {
+        return 0;
+    }
+    *alloc_size = offset;
+    return 1;
+}
+
+static egui_svg_doc_t *egui_svg_alloc_rect_fast_path_doc(uint16_t rect_count, egui_svg_rect_t **rects)
+{
+    egui_svg_doc_t *doc;
+    size_t rect_offset;
+    size_t pixel_rect_offset;
+    size_t alloc_size;
+
+    if (rects == NULL || !egui_svg_calc_rect_fast_path_doc_size(rect_count, &rect_offset, &pixel_rect_offset, &alloc_size))
+    {
+        return NULL;
+    }
+
+    doc = (egui_svg_doc_t *)egui_malloc(NULL, (int)alloc_size);
+    if (doc == NULL)
+    {
+        return NULL;
+    }
+
+    egui_api_memset(doc, 0, sizeof(*doc));
+    doc->rect_fast_path = 1u;
+    doc->state.rect.storage_embedded = 1u;
+    doc->state.rect.rects = (egui_svg_rect_t *)((uint8_t *)doc + rect_offset);
+#if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
+    doc->state.rect.pixel_rects = (egui_svg_pixel_rect_t *)((uint8_t *)doc + pixel_rect_offset);
+#endif
+    *rects = doc->state.rect.rects;
+    return doc;
+}
+
 static void egui_svg_doc_destroy(egui_svg_doc_t *doc)
 {
     if (doc == NULL)
@@ -296,12 +386,12 @@ static void egui_svg_doc_destroy(egui_svg_doc_t *doc)
 
     if (doc->rect_fast_path)
     {
-        if (doc->state.rect.rects != NULL)
+        if (doc->state.rect.rects != NULL && !doc->state.rect.storage_embedded)
         {
             egui_free(NULL, doc->state.rect.rects);
             doc->state.rect.rects = NULL;
         }
-        if (doc->state.rect.pixel_rects != NULL)
+        if (doc->state.rect.pixel_rects != NULL && !doc->state.rect.storage_embedded)
         {
             egui_free(NULL, doc->state.rect.pixel_rects);
             doc->state.rect.pixel_rects = NULL;
@@ -336,7 +426,7 @@ static void egui_svg_release_pixel_rect_cache(egui_svg_doc_t *doc)
         return;
     }
 
-    if (doc->state.rect.pixel_rects != NULL)
+    if (doc->state.rect.pixel_rects != NULL && !doc->state.rect.storage_embedded)
     {
         egui_free(NULL, doc->state.rect.pixel_rects);
         doc->state.rect.pixel_rects = NULL;
@@ -993,7 +1083,8 @@ static int egui_svg_scan_external_rect_fast_path(const egui_svg_source_t *res, e
     return count > 0 && svg_depth == 0;
 }
 
-static int egui_svg_try_get_rect_fast_path_size(const char *svg_text, uint32_t svg_len, egui_dim_t *natural_width, egui_dim_t *natural_height)
+static int egui_svg_try_get_rect_fast_path_size(const char *svg_text, uint32_t svg_len, egui_dim_t *natural_width, egui_dim_t *natural_height,
+                                                uint16_t *fast_path_rect_count)
 {
     const char *svg_end;
     uint16_t rect_count = 0;
@@ -1025,6 +1116,10 @@ static int egui_svg_try_get_rect_fast_path_size(const char *svg_text, uint32_t s
         view_height <= 0.0f)
     {
         return 0;
+    }
+    if (fast_path_rect_count != NULL)
+    {
+        *fast_path_rect_count = rect_count;
     }
     return 1;
 }
@@ -1298,6 +1393,65 @@ static __attribute__((unused)) int egui_svg_flatten_rects(const egui_svg_rect_t 
     return 1;
 }
 
+static int egui_svg_set_rect_fast_path_doc(egui_svg_doc_t *doc, egui_svg_rect_t *rects, uint16_t rect_count, float view_x, float view_y, float view_width,
+                                           float view_height)
+{
+    egui_dim_t doc_view_x;
+    egui_dim_t doc_view_y;
+    egui_dim_t doc_view_width;
+    egui_dim_t doc_view_height;
+
+    if (doc == NULL || rects == NULL || rect_count == 0)
+    {
+        return 0;
+    }
+    if (!egui_svg_dim_from_integral_float(view_x, &doc_view_x) || !egui_svg_dim_from_integral_float(view_y, &doc_view_y) ||
+        !egui_svg_dim_from_integral_float(view_width, &doc_view_width) || !egui_svg_dim_from_integral_float(view_height, &doc_view_height) ||
+        doc_view_width <= 0 || doc_view_height <= 0)
+    {
+        return 0;
+    }
+
+#if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_FLATTEN
+    {
+        egui_svg_rect_t *flat_rects = NULL;
+        uint16_t flat_count = 0;
+
+        if (egui_svg_flatten_rects(rects, rect_count, &flat_rects, &flat_count))
+        {
+            if (doc->state.rect.storage_embedded)
+            {
+                if (flat_count <= rect_count)
+                {
+                    memcpy(rects, flat_rects, (size_t)flat_count * sizeof(*rects));
+                    rect_count = flat_count;
+                    doc->state.rect.rects_sorted = 1u;
+                }
+                egui_free(NULL, flat_rects);
+            }
+            else
+            {
+                egui_free(NULL, rects);
+                rects = flat_rects;
+                rect_count = flat_count;
+                doc->state.rect.rects_sorted = 1u;
+            }
+        }
+    }
+#endif
+
+    doc->state.rect.rects = rects;
+    doc->state.rect.rect_count = rect_count;
+    doc->rect_fast_path = 1u;
+    doc->state.rect.view_x = doc_view_x;
+    doc->state.rect.view_y = doc_view_y;
+    doc->state.rect.view_width = doc_view_width;
+    doc->state.rect.view_height = doc_view_height;
+    egui_svg_get_rect_content_bounds(rects, rect_count, &doc->state.rect.rect_content_left, &doc->state.rect.rect_content_top,
+                                     &doc->state.rect.rect_content_right, &doc->state.rect.rect_content_bottom);
+    return 1;
+}
+
 static int egui_svg_try_build_rect_fast_path(egui_svg_doc_t *doc, const char *svg_text, uint32_t svg_len)
 {
     const char *svg_end;
@@ -1307,10 +1461,6 @@ static int egui_svg_try_build_rect_fast_path(egui_svg_doc_t *doc, const char *sv
     float view_y = 0.0f;
     float view_width;
     float view_height;
-    egui_dim_t doc_view_x;
-    egui_dim_t doc_view_y;
-    egui_dim_t doc_view_width;
-    egui_dim_t doc_view_height;
     size_t rect_bytes;
 
     if (doc == NULL || svg_text == NULL || svg_len == 0)
@@ -1325,13 +1475,6 @@ static int egui_svg_try_build_rect_fast_path(egui_svg_doc_t *doc, const char *sv
     {
         return 0;
     }
-    if (!egui_svg_dim_from_integral_float(view_x, &doc_view_x) || !egui_svg_dim_from_integral_float(view_y, &doc_view_y) ||
-        !egui_svg_dim_from_integral_float(view_width, &doc_view_width) || !egui_svg_dim_from_integral_float(view_height, &doc_view_height) ||
-        doc_view_width <= 0 || doc_view_height <= 0)
-    {
-        return 0;
-    }
-
     rect_bytes = (size_t)rect_count * sizeof(*rects);
     if (rect_bytes == 0u || rect_bytes > (size_t)INT_MAX)
     {
@@ -1353,38 +1496,11 @@ static int egui_svg_try_build_rect_fast_path(egui_svg_doc_t *doc, const char *sv
         egui_free(NULL, rects);
         return 0;
     }
-    if (!egui_svg_dim_from_integral_float(view_x, &doc_view_x) || !egui_svg_dim_from_integral_float(view_y, &doc_view_y) ||
-        !egui_svg_dim_from_integral_float(view_width, &doc_view_width) || !egui_svg_dim_from_integral_float(view_height, &doc_view_height) ||
-        doc_view_width <= 0 || doc_view_height <= 0)
+    if (!egui_svg_set_rect_fast_path_doc(doc, rects, rect_count, view_x, view_y, view_width, view_height))
     {
         egui_free(NULL, rects);
         return 0;
     }
-
-#if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_FLATTEN
-    {
-        egui_svg_rect_t *flat_rects = NULL;
-        uint16_t flat_count = 0;
-
-        if (egui_svg_flatten_rects(rects, rect_count, &flat_rects, &flat_count))
-        {
-            egui_free(NULL, rects);
-            rects = flat_rects;
-            rect_count = flat_count;
-            doc->state.rect.rects_sorted = 1u;
-        }
-    }
-#endif
-
-    doc->state.rect.rects = rects;
-    doc->state.rect.rect_count = rect_count;
-    doc->rect_fast_path = 1u;
-    doc->state.rect.view_x = doc_view_x;
-    doc->state.rect.view_y = doc_view_y;
-    doc->state.rect.view_width = doc_view_width;
-    doc->state.rect.view_height = doc_view_height;
-    egui_svg_get_rect_content_bounds(rects, rect_count, &doc->state.rect.rect_content_left, &doc->state.rect.rect_content_top,
-                                     &doc->state.rect.rect_content_right, &doc->state.rect.rect_content_bottom);
     return 1;
 }
 
@@ -1944,7 +2060,6 @@ static int egui_svg_ensure_pixel_rect_cache(egui_svg_doc_t *doc, egui_dim_t widt
     egui_dim_t content_top = 0;
     egui_dim_t content_right = 0;
     egui_dim_t content_bottom = 0;
-    size_t bytes;
     float scale_x;
     float scale_y;
 
@@ -1958,13 +2073,20 @@ static int egui_svg_ensure_pixel_rect_cache(egui_svg_doc_t *doc, egui_dim_t widt
         return 1;
     }
 
-    bytes = (size_t)doc->state.rect.rect_count * sizeof(*pixel_rects);
-    if (bytes == 0u || bytes > (size_t)INT_MAX)
+    if (doc->state.rect.storage_embedded)
     {
-        return 0;
+        pixel_rects = doc->state.rect.pixel_rects;
     }
+    else
+    {
+        size_t bytes = (size_t)doc->state.rect.rect_count * sizeof(*pixel_rects);
 
-    pixel_rects = (egui_svg_pixel_rect_t *)egui_malloc(NULL, (int)bytes);
+        if (bytes == 0u || bytes > (size_t)INT_MAX)
+        {
+            return 0;
+        }
+        pixel_rects = (egui_svg_pixel_rect_t *)egui_malloc(NULL, (int)bytes);
+    }
     if (pixel_rects == NULL)
     {
         return 0;
@@ -2027,7 +2149,11 @@ static int egui_svg_ensure_pixel_rect_cache(egui_svg_doc_t *doc, egui_dim_t widt
 
     if (pixel_rect_count == 0)
     {
-        egui_free(NULL, pixel_rects);
+        if (!doc->state.rect.storage_embedded)
+        {
+            egui_free(NULL, pixel_rects);
+        }
+        egui_svg_release_pixel_rect_cache(doc);
         return 0;
     }
 
@@ -2344,28 +2470,38 @@ static void egui_image_svg_reset(egui_image_svg_t *self)
 static egui_svg_doc_t *egui_svg_try_create_rect_fast_path_doc(const char *svg_text, uint32_t svg_len)
 {
     egui_svg_doc_t *doc;
+    egui_svg_rect_t *rects;
     egui_dim_t natural_width;
     egui_dim_t natural_height;
+    uint16_t rect_count = 0;
+    float view_x = 0.0f;
+    float view_y = 0.0f;
+    float view_width;
+    float view_height;
 
     if (svg_text == NULL || svg_len == 0)
     {
         return NULL;
     }
 
-    if (!egui_svg_try_get_rect_fast_path_size(svg_text, svg_len, &natural_width, &natural_height))
+    if (!egui_svg_try_get_rect_fast_path_size(svg_text, svg_len, &natural_width, &natural_height, &rect_count))
     {
         return NULL;
     }
 
-    doc = (egui_svg_doc_t *)egui_malloc(NULL, sizeof(*doc));
+    doc = egui_svg_alloc_rect_fast_path_doc(rect_count, &rects);
     if (doc == NULL)
     {
         return NULL;
     }
-    egui_api_memset(doc, 0, sizeof(*doc));
     doc->natural_width = natural_width;
     doc->natural_height = natural_height;
-    if (!egui_svg_try_build_rect_fast_path(doc, svg_text, svg_len))
+
+    view_width = (float)doc->natural_width;
+    view_height = (float)doc->natural_height;
+    rect_count = 0;
+    if (!egui_svg_scan_rect_fast_path(svg_text, svg_text + svg_len, rects, &rect_count, &view_x, &view_y, &view_width, &view_height, NULL, NULL) ||
+        !egui_svg_set_rect_fast_path_doc(doc, rects, rect_count, view_x, view_y, view_width, view_height))
     {
         egui_svg_doc_destroy(doc);
         return NULL;
@@ -2391,7 +2527,6 @@ static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egu
     egui_dim_t doc_view_y;
     egui_dim_t doc_view_width;
     egui_dim_t doc_view_height;
-    size_t rect_bytes;
 
     if (res == NULL || res->res_type != EGUI_RESOURCE_TYPE_EXTERNAL || res->data_buf == NULL || res->data_size == 0)
     {
@@ -2410,27 +2545,13 @@ static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egu
         return NULL;
     }
 
-    rect_bytes = (size_t)rect_count * sizeof(*rects);
-    if (rect_bytes == 0u || rect_bytes > (size_t)INT_MAX)
-    {
-        return NULL;
-    }
-
-    doc = (egui_svg_doc_t *)egui_malloc(NULL, sizeof(*doc));
+    doc = egui_svg_alloc_rect_fast_path_doc(rect_count, &rects);
     if (doc == NULL)
     {
         return NULL;
     }
-    egui_api_memset(doc, 0, sizeof(*doc));
     doc->natural_width = natural_width;
     doc->natural_height = natural_height;
-
-    rects = (egui_svg_rect_t *)egui_malloc(NULL, (int)rect_bytes);
-    if (rects == NULL)
-    {
-        egui_svg_doc_destroy(doc);
-        return NULL;
-    }
 
     view_x = 0.0f;
     view_y = 0.0f;
@@ -2439,28 +2560,14 @@ static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egu
     rect_count = 0;
     if (!egui_svg_scan_external_rect_fast_path(res, rects, &rect_count, &view_x, &view_y, &view_width, &view_height, NULL, NULL))
     {
-        egui_free(NULL, rects);
         egui_svg_doc_destroy(doc);
         return NULL;
     }
-    if (!egui_svg_dim_from_integral_float(view_x, &doc_view_x) || !egui_svg_dim_from_integral_float(view_y, &doc_view_y) ||
-        !egui_svg_dim_from_integral_float(view_width, &doc_view_width) || !egui_svg_dim_from_integral_float(view_height, &doc_view_height) ||
-        doc_view_width <= 0 || doc_view_height <= 0)
+    if (!egui_svg_set_rect_fast_path_doc(doc, rects, rect_count, view_x, view_y, view_width, view_height))
     {
-        egui_free(NULL, rects);
         egui_svg_doc_destroy(doc);
         return NULL;
     }
-
-    doc->state.rect.rects = rects;
-    doc->state.rect.rect_count = rect_count;
-    doc->rect_fast_path = 1u;
-    doc->state.rect.view_x = doc_view_x;
-    doc->state.rect.view_y = doc_view_y;
-    doc->state.rect.view_width = doc_view_width;
-    doc->state.rect.view_height = doc_view_height;
-    egui_svg_get_rect_content_bounds(rects, rect_count, &doc->state.rect.rect_content_left, &doc->state.rect.rect_content_top,
-                                     &doc->state.rect.rect_content_right, &doc->state.rect.rect_content_bottom);
     return doc;
 }
 
