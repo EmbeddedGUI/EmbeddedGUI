@@ -142,11 +142,7 @@ typedef struct
 } egui_image_rle_decode_state_t;
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-#ifndef EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE
-#define EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 128
-#endif
-
-#if (EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES >= EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE)
+#if (EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES >= EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE)
 #define EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW 1
 #else
 #define EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW 0
@@ -161,7 +157,7 @@ typedef struct
 #if EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW
     uint32_t shared_generation; // generation id of the shared external cache window
 #else
-    uint8_t window[EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE]; // private cached slice of external resource data
+    uint8_t window[EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE]; // private cached slice of external resource data
 #endif
 } egui_image_rle_external_window_cache_t;
 #else
