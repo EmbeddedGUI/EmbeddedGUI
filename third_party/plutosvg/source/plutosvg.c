@@ -272,7 +272,11 @@ static heap_t *heap_create(void)
     return heap;
 }
 
-#define CHUNK_SIZE       4096
+#ifndef PLUTOSVG_HEAP_CHUNK_SIZE
+#define PLUTOSVG_HEAP_CHUNK_SIZE 512
+#endif
+
+#define CHUNK_SIZE       PLUTOSVG_HEAP_CHUNK_SIZE
 #define ALIGN_SIZE(size) (((size) + 7ul) & ~7ul)
 static void *heap_alloc(heap_t *heap, size_t size)
 {
