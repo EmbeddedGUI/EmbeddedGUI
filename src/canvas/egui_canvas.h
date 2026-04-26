@@ -185,7 +185,7 @@ static __attribute__((unused)) void egui_canvas_draw_point_limit_skip_mask(egui_
         egui_dim_t pos_y = y - self->pfb_location_in_base_view.y;
 
         egui_color_t *back_color = (egui_color_t *)&self->pfb[pos_y * self->pfb_region.size.width + pos_x];
-#if TEST_CANVAS_TEST_WOKR
+#if defined(TEST_CANVAS_TEST_WOKR) && TEST_CANVAS_TEST_WOKR
         back_color->full = alpha; // For test
 #else
         if (alpha == EGUI_ALPHA_100)
@@ -226,7 +226,7 @@ static __attribute__((unused)) void egui_canvas_draw_point_limit(egui_canvas_t *
         egui_dim_t pos_y = y - self->pfb_location_in_base_view.y;
 
         egui_color_t *back_color = (egui_color_t *)&self->pfb[pos_y * self->pfb_region.size.width + pos_x];
-#if TEST_CANVAS_TEST_WOKR
+#if defined(TEST_CANVAS_TEST_WOKR) && TEST_CANVAS_TEST_WOKR
         back_color->full = alpha; // For test
 #else
         if (alpha == EGUI_ALPHA_100)

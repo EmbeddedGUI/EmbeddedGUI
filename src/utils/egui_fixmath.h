@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <math.h>
 
+#include "config/egui_config.h"
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {

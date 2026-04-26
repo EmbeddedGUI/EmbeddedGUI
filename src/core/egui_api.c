@@ -416,12 +416,26 @@ void egui_api_pfb_clear(void *s, int n)
 /** Set one memory range using the configured memory backend. */
 void egui_api_memset(void *s, int c, int n)
 {
+    egui_platform_t *plat = egui_platform_get();
+    if (plat != NULL && plat->ops != NULL && plat->ops->memset_fast != NULL)
+    {
+        plat->ops->memset_fast(s, c, n);
+        return;
+    }
+
     memset(s, c, n);
 }
 
 /** Copy one memory range using the configured memory backend. */
 void egui_api_memcpy(void *dst, const void *src, int n)
 {
+    egui_platform_t *plat = egui_platform_get();
+    if (plat != NULL && plat->ops != NULL && plat->ops->memcpy_fast != NULL)
+    {
+        plat->ops->memcpy_fast(dst, src, n);
+        return;
+    }
+
     memcpy(dst, src, n);
 }
 #else

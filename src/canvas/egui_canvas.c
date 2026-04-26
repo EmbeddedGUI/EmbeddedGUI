@@ -10,7 +10,6 @@
 #include "core/egui_core_internal.h"
 #include "core/egui_trig_lut.h"
 
-#define TEST_CANVAS_TEST_WOKR 0
 
 /* Active canvas pointer 鈥?set by egui_init() or egui_display_set_active() */
 
@@ -165,7 +164,7 @@ void egui_canvas_draw_point(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egu
         egui_dim_t pos_y = y - self->pfb_location_in_base_view.y;
 
         egui_color_t *back_color = (egui_color_t *)&self->pfb[pos_y * self->pfb_region.size.width + pos_x];
-#if TEST_CANVAS_TEST_WOKR
+#if defined(TEST_CANVAS_TEST_WOKR) && TEST_CANVAS_TEST_WOKR
         back_color->full = alpha; // For test
 #else
         if (alpha == EGUI_ALPHA_100)
@@ -4179,7 +4178,7 @@ void egui_canvas_draw_arc_basic(egui_canvas_t *self, egui_dim_t center_x, egui_d
     } while (end_angle > 0);
 }
 
-#if TEST_CANVAS_TEST_WOKR
+#if defined(TEST_CANVAS_TEST_WOKR) && TEST_CANVAS_TEST_WOKR
 void egui_canvas_debug_print_data_array(void)
 {
     EGUI_LOG_DBG("      ");

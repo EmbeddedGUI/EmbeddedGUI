@@ -141,8 +141,29 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 // 触摸输入运动缓存数量
 #define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT  5
 
+// 速度跟踪器（fling/scroll 速度估算；关闭时速度接口返回 0）
+#define EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER  0
+
 // 使用浮点运算（部分 CPU 浮点比定点快）
 #define EGUI_CONFIG_PERFORMANCE_USE_FLOAT  0
+```
+
+## 平台服务 Hook
+
+这些宏控制 `egui_api_*` 封装是否转发到平台层注册的回调。默认关闭时直接使用 libc 或内置实现；打开后如果运行时没有注册对应回调，仍会按各接口的 fallback 规则回退。
+
+```c
+// malloc/free 走平台回调
+#define EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC  0
+
+// 自定义 malloc 回调缺失时保留 libc fallback
+#define EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC_LIBC_FALLBACK  1
+
+// 日志输出走平台 printf 回调
+#define EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF  0
+
+// memset/memcpy 走平台快速内存操作回调
+#define EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP  0
 ```
 
 ## 功能开关
@@ -220,7 +241,20 @@ setup.display_id = 1;
 
 ### 图片格式支持
 
-所有图片格式（RGB32、RGB565、RGB565 调色板压缩、Alpha 遮罩）现在始终编译进框架，无需配置宏开关。未使用的格式会被链接器垃圾回收（`-ffunction-sections` + `--gc-sections`）自动移除，不会增加最终二进制体积。
+图片格式仍由配置宏控制，便于小 ROM 目标裁剪未使用的解码路径。默认只启用基础 RGB565 和 RGB565_4 调色板格式；需要运行时 SVG 时，必须同时启用 `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565` 和 `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8`。
+
+```c
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32      0
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565     1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1   0
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2   0
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4   1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8   0
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1    0
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2    0
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4    0
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8    0
+```
 
 ### Canvas 绘图功能
 
@@ -290,7 +324,7 @@ setup.display_id = 1;
 #define EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH   0
 
 // 刷新可视化延迟（ms）
-#define EGUI_CONFIG_DEBUG_REFRESH_DELAY          1
+#define EGUI_CONFIG_DEBUG_REFRESH_DELAY          0
 
 // 屏幕显示调试信息
 #define EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW      0

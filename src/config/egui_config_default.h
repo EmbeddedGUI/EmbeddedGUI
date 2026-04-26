@@ -147,6 +147,15 @@ extern "C" {
 #endif
 
 /**
+ * Input options.
+ * Select support velocity tracker for fling/scroll helpers. if 0, return zero
+ * velocity and skip the extra per-core history state.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
+#define EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER 0
+#endif
+
+/**
  * Key input cache count.
  * Number of key events that can be queued.
  */
@@ -174,6 +183,16 @@ extern "C" {
 #define EGUI_CONFIG_PERFORMANCE_USE_FLOAT 0
 #endif
 
+/* ---- Platform service hooks ---- */
+
+/**
+ * Platform service options.
+ * When enabled, egui_api_malloc/free dispatch through registered platform ops.
+ */
+#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+#define EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC 0
+#endif
+
 /**
  * When platform custom malloc hooks are enabled, keep the libc malloc/free
  * fallback path available if the port does not provide hooks at runtime.
@@ -182,6 +201,23 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC_LIBC_FALLBACK
 #define EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC_LIBC_FALLBACK 1
+#endif
+
+/**
+ * Platform service options.
+ * When enabled, egui_api_log dispatches through registered platform ops.
+ */
+#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+#define EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF 0
+#endif
+
+/**
+ * Platform service options.
+ * When enabled, egui_api_memset/memcpy dispatch through registered platform ops
+ * when the corresponding callbacks are provided.
+ */
+#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+#define EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP 0
 #endif
 
 /* ---- Function switches ---- */
