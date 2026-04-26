@@ -8,7 +8,13 @@
 extern "C" {
 #endif
 
+#ifndef TEST_ACTIVITY_DYNAMIC_ALLOC
 #define TEST_ACTIVITY_DYNAMIC_ALLOC 1
+#endif
+
+#ifndef TEST_DIALOG_DYNAMIC_ALLOC
+#define TEST_DIALOG_DYNAMIC_ALLOC 0
+#endif
 
 int uicode_start_next_activity(egui_activity_t *current_activity);
 int uicode_start_dialog(egui_activity_t *activity);
