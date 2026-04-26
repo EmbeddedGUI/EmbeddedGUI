@@ -594,13 +594,13 @@ Text transform 先将所有字形的像素偏移和行索引打包到 heap layou
 
 | 属性 | 值 |
 |------|---|
-| 默认值 | 配置值 `1`，但实际门控为 `EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED` |
+| 默认值 | 默认跟随 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` |
 | HelloPerformance | `1`（同默认，**已保留**） |
 | RAM 类型 | BSS |
 | 大小 | ~60 B BSS |
 
 **机制：**
-预计算 text transform 的逆仿射矩阵（sin/cos × scale 混合）及旋转后包围盒，一帧内多个 PFB tile 渲染同一段文字只计算一次，其余 tile 直接复用。该子能力现在挂在 `EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED` 下，也就是需要 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` 与 `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW` 同时打开。禁用后每 tile 均需重新执行三角函数和矩阵求逆，当前 rotated-text 场景会出现稳定回归，60 B BSS 换取的性价比仍然很高，HelloPerformance 选择保留。
+预计算 text transform 的逆仿射矩阵（sin/cos × scale 混合）及旋转后包围盒，一帧内多个 PFB tile 渲染同一段文字只计算一次，其余 tile 直接复用。该子能力现在直接由 `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW` 门控；默认值跟随 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW`，且不能在 std-font fast draw 关闭时单独启用。禁用后每 tile 均需重新执行三角函数和矩阵求逆，当前 rotated-text 场景会出现稳定回归，60 B BSS 换取的性价比仍然很高，HelloPerformance 选择保留。
 
 ---
 
@@ -610,13 +610,13 @@ Text transform 先将所有字形的像素偏移和行索引打包到 heap layou
 
 | 属性 | 值 |
 |------|---|
-| 默认值 | 配置值 `1`，但实际门控为 `EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED` |
+| 默认值 | 默认跟随 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` |
 | HelloPerformance | `1`（同默认，**已保留**） |
 | RAM 类型 | BSS（static 局部变量，本质 BSS） |
 | 大小 | 12 B BSS |
 
 **机制：**
-`egui_canvas_draw_string_transform()` 内记录上一次调用时的 `(font, string)` 对及对应的宽高结果（4 个字段，共 12 B 量级）。同一帧内多个 tile 渲染同一字符串时，跳过 `get_str_size` 遍历。历史上的独立 transform size cache 子开关已删除，该 size cache 现在同样直接挂在 `EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED` 下。12 B BSS，性价比极高，HelloPerformance 保留。
+`egui_canvas_draw_string_transform()` 内记录上一次调用时的 `(font, string)` 对及对应的宽高结果（4 个字段，共 12 B 量级）。同一帧内多个 tile 渲染同一字符串时，跳过 `get_str_size` 遍历。历史上的独立 transform size cache 子开关已删除，该 size cache 现在同样直接挂在 `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW` 下。12 B BSS，性价比极高，HelloPerformance 保留。
 
 ---
 
@@ -645,8 +645,8 @@ Text transform 先将所有字形的像素偏移和行索引打包到 heap layou
 | 17 | `EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS` | 当前默认 **0**（历史实验 **2**） | 当前默认 **0**（与宏16联动） | BSS | 必须与宏16一起回开到 `64/2` 才会实际启用 draw-prefix cache |
 | 18 | `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT` | 0 | 当前默认 **0**（历史实验 **1**） | heap transient | ~2N B（当前 `1` 仅 `text -4B`，perf/runtime/unit 等价） |
 | 19 | `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT` | 0 | 当前默认 **0**（历史实验 **1**） | heap transient | ~2N B（当前 `1` 会 `text +100B`，perf/runtime/unit 等价） |
-| 20 | `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW`（prepare/layout） | 配置默认 1，实际门控为 `EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED` | 1（保留）| BSS | 0（已开）|
-| 21 | `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW`（dim） | 配置默认 1，实际门控为 `EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED` | 1（保留）| BSS | 0（已开）|
+| 20 | `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW`（prepare/layout） | 默认跟随 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 1（保留）| BSS | 0（已开）|
+| 21 | `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW`（dim） | 默认跟随 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW` | 1（保留）| BSS | 0（已开）|
 
 > **†** 宏 14 需搭配 `EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW=1` 才有实际作用；它当前已内化，列入仅为历史参考。
 
@@ -665,4 +665,4 @@ Text transform 先将所有字形的像素偏移和行索引打包到 heap layou
 ### 注意事项
 
 - 宏 3（OPAQUE_ALPHA_ROW_USE_ROW_CACHE）的历史行为依赖 `EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW>=1`；该入口现已内收到实现内部。
-- 宏 20/21（同一颗 `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW` 的 prepare/layout 与 dim 子能力）现在统一由 `EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED` 门控；在 std-font fast draw 打开的前提下，它仍是文字旋转性能的关键，禁用会导致每 tile 重计算仿射/宽高，**不建议关闭**。
+- 宏 20/21（同一颗 `EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW` 的 prepare/layout 与 dim 子能力）现在统一由该宏直接门控；它默认跟随 std-font fast draw，且不能绕过 std-font fast draw 单独启用。在 std-font fast draw 打开的前提下，它仍是文字旋转性能的关键，禁用会导致每 tile 重计算仿射/宽高，**不建议关闭**。

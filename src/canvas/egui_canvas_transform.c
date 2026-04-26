@@ -2580,7 +2580,7 @@ typedef struct
     egui_mask_t *mask; /* canvas mask for per-row color overlay (gradient support) */
 } text_transform_ctx_t;
 
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
 #define g_text_transform_prepare_cache (core->text.text_transform_prepare_cache)
 #endif
 
@@ -2594,7 +2594,7 @@ static int text_transform_prepare(egui_canvas_t *canvas, int16_t text_w, int16_t
                                   egui_alpha_t alpha, text_transform_ctx_t *ctx)
 {
     egui_core_t *core = canvas->core;
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     text_transform_prepare_cache_t *cache = &g_text_transform_prepare_cache;
 #else
     text_transform_prepare_cache_t local_cache = {0};
@@ -2729,7 +2729,7 @@ static int text_transform_prepare(egui_canvas_t *canvas, int16_t text_w, int16_t
 #define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES 32
 #endif
 
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
 #define g_text_transform_layout_cache (core->text.text_transform_layout_cache)
 #endif
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
@@ -2755,7 +2755,7 @@ static void text_transform_release_layout_cache(egui_core_t *core)
         g_text_transform_layout_lines = NULL;
     }
 
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     egui_api_memset(&g_text_transform_layout_cache, 0, sizeof(g_text_transform_layout_cache));
 #endif
     g_text_transform_layout_capacity = 0;
@@ -2893,7 +2893,7 @@ void egui_canvas_transform_release_frame_cache(egui_canvas_t *self)
     image_transform_release_external_row_cache(core);
 #endif
 
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     egui_api_memset(&g_text_transform_prepare_cache, 0, sizeof(g_text_transform_prepare_cache));
 #endif
     text_transform_release_layout_cache(core);
@@ -3068,7 +3068,7 @@ static int text_transform_prepare_layout(egui_canvas_t *canvas, const egui_font_
     int build_count;
     int needed;
     int line_needed;
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     text_transform_layout_cache_t *cache = &g_text_transform_layout_cache;
 #else
     text_transform_layout_cache_t local_cache = {0};
@@ -3110,7 +3110,7 @@ static int text_transform_prepare_layout(egui_canvas_t *canvas, const egui_font_
                                               &cache->line_count, line_space);
     if (build_count < 0)
     {
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
         egui_api_memset(cache, 0, sizeof(*cache));
 #endif
         return -1;
@@ -3910,7 +3910,7 @@ static int text_transform_try_draw_axis_aligned(egui_canvas_t *self, const egui_
     egui_dim_t s_axis_h = 0;
     egui_region_t rect;
     int16_t norm_angle = angle_deg % 360;
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     egui_core_t *core = self->core;
 
     if (core != NULL)
@@ -3942,7 +3942,7 @@ static int text_transform_try_draw_axis_aligned(egui_canvas_t *self, const egui_
         s_axis_h = th;
         s_axis_font = font;
         s_axis_string = string;
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
         if (core != NULL)
         {
             core->text.text_transform_axis_w = tw;
@@ -3991,14 +3991,14 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
         return;
     }
 
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     /* Lightweight dimension cache: avoid per-tile get_str_size string walk.
      * Only 12 bytes static, independent of text content/font size. */
     const egui_font_t *s_dim_font = NULL;
     const void *s_dim_string = NULL;
     int16_t s_dim_w = 0;
     int16_t s_dim_h = 0;
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
     egui_core_t *core = canvas->core;
 
     if (core != NULL)
@@ -4018,7 +4018,7 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
         s_dim_h = th;
         s_dim_font = font;
         s_dim_string = string;
-#if EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
         if (core != NULL)
         {
             core->text.text_transform_dim_w = s_dim_w;

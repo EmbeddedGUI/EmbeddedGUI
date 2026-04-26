@@ -61,17 +61,20 @@ extern "C" {
 /*
  * Font transform fast-draw mode.
  * When 1, enable shared prepare/layout/dimension caches for text transform.
- * This is an effective child of EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW.
+ * Defaults to the std-font fast-draw switch so disabling std-font fast draw
+ * also disables its transform caches.
  */
 #ifndef EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
-#define EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW 1
+#define EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW ? 1 : 0)
 #endif
 
 #if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW > 1
 #error "EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW must be 0 or 1"
 #endif
 
-#define EGUI_FONT_TRANSFORM_FAST_DRAW_ENABLED (EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW && EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW)
+#if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW && !EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW
+#error "EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW requires EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW"
+#endif
 
 /* Remaining fast-path toggles now stay next to the implementation units that
  * consume them, with optional app-side override bridges. This shared default
