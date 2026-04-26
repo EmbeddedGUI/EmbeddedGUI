@@ -1676,6 +1676,23 @@ static void test_image_svg_load_memory_len_without_null_terminator(void)
     egui_image_svg_deinit(&image);
 }
 
+static void test_image_svg_load_memory_borrowed_uses_caller_storage(void)
+{
+    static const char svg_text[] = "<svg viewBox='0 0 12 12'><circle cx='6' cy='6' r='4' fill='#3366cc'/></svg>";
+    egui_image_svg_t image;
+
+    egui_image_svg_init(&image);
+    EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory_borrowed(&image, svg_text));
+
+    setup_svg_canvas_full();
+    egui_canvas_draw_image(&test_svg_canvas, (egui_image_t *)&image, 0, 0);
+
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_MAKE(51, 102, 204).full, (int)get_svg_pixel(6, 6));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)get_svg_pixel(0, 0));
+
+    egui_image_svg_deinit(&image);
+}
+
 static void test_image_svg_rejects_oversized_root_dimensions(void)
 {
     static const char svg_text[] = "<svg width='40000' height='10'>"
@@ -2855,6 +2872,7 @@ void test_image_svg_run(void)
     EGUI_TEST_RUN(test_image_svg_child_visibility_visible_overrides_hidden_parent);
     EGUI_TEST_RUN(test_image_svg_child_visibility_visible_cannot_override_display_none_parent);
     EGUI_TEST_RUN(test_image_svg_load_memory_len_without_null_terminator);
+    EGUI_TEST_RUN(test_image_svg_load_memory_borrowed_uses_caller_storage);
     EGUI_TEST_RUN(test_image_svg_rejects_oversized_root_dimensions);
     EGUI_TEST_RUN(test_image_svg_relative_smooth_cubic_path_fill);
     EGUI_TEST_RUN(test_image_svg_relative_smooth_cubic_path_fill_resize_preserves_curve_edge);

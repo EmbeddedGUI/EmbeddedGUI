@@ -2617,7 +2617,15 @@ static int egui_image_svg_try_assign_external_rect_fast_path_doc(egui_image_svg_
     return 1;
 }
 
-static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_data_buf, uint32_t svg_len)
+static void egui_image_svg_free_owned_load_data(uint8_t *owned_data_buf)
+{
+    if (owned_data_buf != NULL)
+    {
+        egui_free(NULL, owned_data_buf);
+    }
+}
+
+static int egui_image_svg_finish_load(egui_image_svg_t *self, const char *svg_text, uint8_t *owned_data_buf, uint32_t svg_len)
 {
     plutosvg_document_t *document;
     egui_svg_doc_t *doc;
@@ -2626,31 +2634,28 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
     egui_dim_t natural_width;
     egui_dim_t natural_height;
 
-    if (self == NULL || owned_data_buf == NULL || svg_len == 0 || svg_len >= (uint32_t)INT_MAX)
+    if (self == NULL || svg_text == NULL || svg_len == 0 || svg_len >= (uint32_t)INT_MAX)
     {
-        if (owned_data_buf != NULL)
-        {
-            egui_free(NULL, owned_data_buf);
-        }
+        egui_image_svg_free_owned_load_data(owned_data_buf);
         return 0;
     }
 
     self->base.api = &egui_image_svg_t_api_table;
-    doc = egui_svg_try_create_rect_fast_path_doc((const char *)owned_data_buf, svg_len);
+    doc = egui_svg_try_create_rect_fast_path_doc(svg_text, svg_len);
     if (doc != NULL)
     {
         self->doc = doc;
         self->owned_data_buf = NULL;
         self->base.res = doc;
-        egui_free(NULL, owned_data_buf);
+        egui_image_svg_free_owned_load_data(owned_data_buf);
         return 1;
     }
 
-    document = plutosvg_document_load_from_data((const char *)owned_data_buf, -1, -1.0f, -1.0f, NULL, NULL);
+    document = plutosvg_document_load_from_data(svg_text, (int)svg_len, -1.0f, -1.0f, NULL, NULL);
     if (document == NULL)
     {
         EGUI_LOG_WRN("PlutoSVG parse failed.\n");
-        egui_free(NULL, owned_data_buf);
+        egui_image_svg_free_owned_load_data(owned_data_buf);
         return 0;
     }
 
@@ -2660,7 +2665,7 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
     {
         EGUI_LOG_WRN("SVG root size invalid, discard document.\n");
         plutosvg_document_destroy(document);
-        egui_free(NULL, owned_data_buf);
+        egui_image_svg_free_owned_load_data(owned_data_buf);
         return 0;
     }
     if (natural_width_raw > (float)EGUI_DIM_MAX || natural_height_raw > (float)EGUI_DIM_MAX || !egui_svg_dim_from_float(natural_width_raw, &natural_width) ||
@@ -2669,7 +2674,7 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
         EGUI_LOG_WRN("SVG root size %ld x %ld exceeds egui_dim_t max %d, discard document.\n", (long)egui_svg_dim_for_log(natural_width_raw),
                      (long)egui_svg_dim_for_log(natural_height_raw), EGUI_DIM_MAX);
         plutosvg_document_destroy(document);
-        egui_free(NULL, owned_data_buf);
+        egui_image_svg_free_owned_load_data(owned_data_buf);
         return 0;
     }
 
@@ -2677,19 +2682,19 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
     if (doc == NULL)
     {
         plutosvg_document_destroy(document);
-        egui_free(NULL, owned_data_buf);
+        egui_image_svg_free_owned_load_data(owned_data_buf);
         return 0;
     }
     egui_api_memset(doc, 0, sizeof(*doc));
     doc->natural_width = natural_width;
     doc->natural_height = natural_height;
-    if (egui_svg_try_build_rect_fast_path(doc, (const char *)owned_data_buf, svg_len))
+    if (egui_svg_try_build_rect_fast_path(doc, svg_text, svg_len))
     {
         plutosvg_document_destroy(document);
         self->doc = doc;
         self->owned_data_buf = NULL;
         self->base.res = doc;
-        egui_free(NULL, owned_data_buf);
+        egui_image_svg_free_owned_load_data(owned_data_buf);
         return 1;
     }
 
@@ -2864,7 +2869,26 @@ int egui_image_svg_load_memory_len(egui_image_svg_t *self, const char *svg_text,
     owned_data_buf[svg_len] = '\0';
 
     egui_image_svg_reset(self);
-    return egui_image_svg_finish_load(self, owned_data_buf, svg_len);
+    return egui_image_svg_finish_load(self, (const char *)owned_data_buf, owned_data_buf, svg_len);
+}
+
+int egui_image_svg_load_memory_borrowed(egui_image_svg_t *self, const char *svg_text)
+{
+    size_t svg_len;
+
+    if (self == NULL || svg_text == NULL)
+    {
+        return 0;
+    }
+
+    svg_len = strlen(svg_text);
+    if (svg_len == 0 || svg_len >= (size_t)INT_MAX)
+    {
+        return 0;
+    }
+
+    egui_image_svg_reset(self);
+    return egui_image_svg_finish_load(self, svg_text, NULL, (uint32_t)svg_len);
 }
 
 int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t *res)
@@ -2907,7 +2931,7 @@ int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t
     owned_data_buf[res->data_size] = '\0';
 
     egui_image_svg_reset(self);
-    return egui_image_svg_finish_load(self, owned_data_buf, res->data_size);
+    return egui_image_svg_finish_load(self, (const char *)owned_data_buf, owned_data_buf, res->data_size);
 }
 
 int egui_image_svg_is_valid(const egui_image_svg_t *self)
@@ -2970,6 +2994,13 @@ int egui_image_svg_load_memory_len(egui_image_svg_t *self, const char *svg_text,
     EGUI_UNUSED(self);
     EGUI_UNUSED(svg_text);
     EGUI_UNUSED(svg_len);
+    return 0;
+}
+
+int egui_image_svg_load_memory_borrowed(egui_image_svg_t *self, const char *svg_text)
+{
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(svg_text);
     return 0;
 }
 

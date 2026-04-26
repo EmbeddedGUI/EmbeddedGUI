@@ -495,7 +495,7 @@ static void hello_svg_refresh_page(uint8_t page_index, uint32_t tick)
     }
 
     hello_svg_build_page_frame(page_index, svg_buffers[page_index], sizeof(svg_buffers[page_index]), tick);
-    if (egui_image_svg_load_memory(&pages[page_index].svg, svg_buffers[page_index]))
+    if (egui_image_svg_load_memory_borrowed(&pages[page_index].svg, svg_buffers[page_index]))
     {
         egui_view_invalidate(EGUI_VIEW_OF(&pages[page_index].image));
     }

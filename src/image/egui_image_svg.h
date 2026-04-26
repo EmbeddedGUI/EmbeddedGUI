@@ -28,6 +28,8 @@ void egui_image_svg_init(egui_image_svg_t *self);
 void egui_image_svg_deinit(egui_image_svg_t *self);
 int egui_image_svg_load_memory(egui_image_svg_t *self, const char *svg_text);
 int egui_image_svg_load_memory_len(egui_image_svg_t *self, const char *svg_text, uint32_t svg_len);
+/* svg_text must stay valid and unchanged until this image is reset, reloaded, or deinitialized. */
+int egui_image_svg_load_memory_borrowed(egui_image_svg_t *self, const char *svg_text);
 int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t *res);
 int egui_image_svg_is_valid(const egui_image_svg_t *self);
 void egui_image_svg_get_width_height(const egui_image_t *self, egui_dim_t *width, egui_dim_t *height);
