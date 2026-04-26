@@ -126,10 +126,10 @@ void egui_svg_alloc_free(void *ptr)
 
 typedef struct
 {
-    float x;
-    float y;
-    float width;
-    float height;
+    egui_dim_t x;
+    egui_dim_t y;
+    egui_dim_t width;
+    egui_dim_t height;
     egui_color_t color;
 } egui_svg_rect_t;
 
@@ -195,6 +195,10 @@ extern const egui_image_api_t egui_image_svg_t_api_table;
 #define EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_FLATTEN 0
 #endif
 
+#ifndef EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
+#define EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE 1
+#endif
+
 #ifndef EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_CHUNK_BYTES
 #define EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_CHUNK_BYTES 64
 #endif
@@ -227,6 +231,25 @@ static int egui_svg_dim_from_float(float value, egui_dim_t *out_value)
     }
 
     *out_value = (egui_dim_t)rounded;
+    return 1;
+}
+
+static int egui_svg_dim_from_integral_float(float value, egui_dim_t *out_value)
+{
+    int32_t raw;
+
+    if (out_value == NULL || value < (float)(-EGUI_DIM_MAX) || value > (float)EGUI_DIM_MAX)
+    {
+        return 0;
+    }
+
+    raw = (int32_t)value;
+    if ((float)raw != value)
+    {
+        return 0;
+    }
+
+    *out_value = (egui_dim_t)raw;
     return 1;
 }
 
@@ -286,6 +309,7 @@ static void egui_svg_doc_destroy(egui_svg_doc_t *doc)
     egui_free(NULL, doc);
 }
 
+#if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
 static void egui_svg_release_pixel_rect_cache(egui_svg_doc_t *doc)
 {
     if (doc == NULL)
@@ -306,6 +330,7 @@ static void egui_svg_release_pixel_rect_cache(egui_svg_doc_t *doc)
     doc->pixel_content_right = 0;
     doc->pixel_content_bottom = 0;
 }
+#endif
 
 static void egui_svg_release_cache(egui_svg_doc_t *doc)
 {
@@ -665,10 +690,14 @@ static int egui_svg_rect_has_unsupported_attr(const char *begin, const char *end
 
 static int egui_svg_parse_rect_tag(const char *begin, const char *end, egui_svg_rect_t *rect)
 {
-    float x = 0.0f;
-    float y = 0.0f;
-    float width;
-    float height;
+    float x_raw = 0.0f;
+    float y_raw = 0.0f;
+    float width_raw;
+    float height_raw;
+    egui_dim_t x = 0;
+    egui_dim_t y = 0;
+    egui_dim_t width;
+    egui_dim_t height;
     egui_color_t color;
 
     if (egui_svg_rect_has_unsupported_attr(begin, end))
@@ -676,16 +705,17 @@ static int egui_svg_parse_rect_tag(const char *begin, const char *end, egui_svg_
         return 0;
     }
 
-    if (egui_svg_attr_exists(begin, end, "x") && !egui_svg_parse_float_attr(begin, end, "x", &x))
+    if (egui_svg_attr_exists(begin, end, "x") && (!egui_svg_parse_float_attr(begin, end, "x", &x_raw) || !egui_svg_dim_from_integral_float(x_raw, &x)))
     {
         return 0;
     }
-    if (egui_svg_attr_exists(begin, end, "y") && !egui_svg_parse_float_attr(begin, end, "y", &y))
+    if (egui_svg_attr_exists(begin, end, "y") && (!egui_svg_parse_float_attr(begin, end, "y", &y_raw) || !egui_svg_dim_from_integral_float(y_raw, &y)))
     {
         return 0;
     }
-    if (!egui_svg_parse_float_attr(begin, end, "width", &width) || !egui_svg_parse_float_attr(begin, end, "height", &height) || width <= 0.0f ||
-        height <= 0.0f || !egui_svg_parse_color_attr(begin, end, &color))
+    if (!egui_svg_parse_float_attr(begin, end, "width", &width_raw) || !egui_svg_parse_float_attr(begin, end, "height", &height_raw) || width_raw <= 0.0f ||
+        height_raw <= 0.0f || !egui_svg_dim_from_integral_float(width_raw, &width) || !egui_svg_dim_from_integral_float(height_raw, &height) ||
+        !egui_svg_parse_color_attr(begin, end, &color))
     {
         return 0;
     }
@@ -1065,16 +1095,26 @@ static int egui_svg_rect_same_paint(const egui_svg_rect_t *a, const egui_svg_rec
 static void egui_svg_flatten_append_rect(egui_svg_rect_t *rects, uint16_t *rect_count, float x, float y, float width, float height, egui_color_t color)
 {
     egui_svg_rect_t rect;
+    egui_dim_t rect_x;
+    egui_dim_t rect_y;
+    egui_dim_t rect_width;
+    egui_dim_t rect_height;
 
     if (rects == NULL || rect_count == NULL || width <= 0.0f || height <= 0.0f)
     {
         return;
     }
 
-    rect.x = x;
-    rect.y = y;
-    rect.width = width;
-    rect.height = height;
+    if (!egui_svg_dim_from_integral_float(x, &rect_x) || !egui_svg_dim_from_integral_float(y, &rect_y) ||
+        !egui_svg_dim_from_integral_float(width, &rect_width) || !egui_svg_dim_from_integral_float(height, &rect_height))
+    {
+        return;
+    }
+
+    rect.x = rect_x;
+    rect.y = rect_y;
+    rect.width = rect_width;
+    rect.height = rect_height;
     rect.color = color;
 
     for (uint16_t i = *rect_count; i > 0; i--)
@@ -1836,6 +1876,7 @@ static void egui_svg_draw_rect_clipped(egui_canvas_t *canvas, egui_region_t *wor
                                     (egui_dim_t)(clip_bottom - clip_top), color, EGUI_ALPHA_100);
 }
 
+#if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
 static int egui_svg_pixel_rect_cache_matches(const egui_svg_doc_t *doc, egui_dim_t width, egui_dim_t height)
 {
     return doc != NULL && doc->pixel_rects != NULL && doc->pixel_rect_width == width && doc->pixel_rect_height == height;
@@ -2006,6 +2047,7 @@ static void egui_svg_draw_pixel_rect_fast_path(const egui_svg_doc_t *doc, egui_c
         egui_svg_draw_rect_clipped(canvas, work_region, rect_left, rect_top, rect_right, rect_bottom, rect->color);
     }
 }
+#endif
 
 static void egui_svg_draw_rect_float_fast_path(const egui_svg_doc_t *doc, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width,
                                                egui_dim_t height)
@@ -2074,11 +2116,13 @@ static void egui_svg_draw_rect_float_fast_path(const egui_svg_doc_t *doc, egui_c
 
 static void egui_svg_draw_rect_fast_path(egui_svg_doc_t *doc, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
+#if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
     if (egui_svg_ensure_pixel_rect_cache(doc, width, height))
     {
         egui_svg_draw_pixel_rect_fast_path(doc, canvas, x, y);
         return;
     }
+#endif
 
     egui_svg_draw_rect_float_fast_path(doc, canvas, x, y, width, height);
 }
