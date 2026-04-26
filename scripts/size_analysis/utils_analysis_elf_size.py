@@ -65,6 +65,18 @@ def create_case(app, app_sub=None):
     return case
 
 
+def result_name_sort_key(item):
+    name = str(item.get("name", ""))
+    return (name.casefold(), name)
+
+
+def failure_sort_key(item):
+    name = str(item.get("name", ""))
+    phase = str(item.get("phase", ""))
+    message = str(item.get("message", ""))
+    return (name.casefold(), phase.casefold(), message.casefold(), name, phase, message)
+
+
 def normalize_user_cflags(user_cflags):
     return " ".join((user_cflags or "").split())
 
@@ -763,6 +775,9 @@ def main():
     except ValueError as exc:
         print(str(exc))
         return 2
+
+    size_results = sorted(size_results, key=result_name_sort_key)
+    failures = sorted(failures, key=failure_sort_key)
 
     README_PATH.write_text(build_readme(size_results, failures, args.case_set), encoding="utf-8")
     print("Markdown saved: %s" % README_PATH)

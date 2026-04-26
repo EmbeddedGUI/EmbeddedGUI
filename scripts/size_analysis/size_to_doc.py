@@ -49,6 +49,18 @@ def load_json(path, warn_if_missing=True):
         return json.load(f)
 
 
+def _result_name_sort_key(item):
+    name = str(item.get("name", ""))
+    return (name.casefold(), name)
+
+
+def _failure_sort_key(item):
+    name = str(item.get("name", ""))
+    phase = str(item.get("phase", ""))
+    message = str(item.get("message", ""))
+    return (name.casefold(), phase.casefold(), message.casefold(), name, phase, message)
+
+
 def _get_case_scope(data=None):
     if data:
         scope = data.get("scope", {})
@@ -117,7 +129,7 @@ def _build_legacy_compare_lines():
 
     code_over_10kb = sum(1 for value in code_deltas if value > 10 * 1024)
     ram_over_1kb = sum(1 for value in ram_deltas if value > 1024)
-    failures = legacy_data.get("failures", [])
+    failures = sorted(legacy_data.get("failures", []), key=_failure_sort_key)
 
     lines = [
         "## QEMU vs stm32g0",
@@ -154,8 +166,8 @@ def generate_size_report():
     commit = data.get("git_commit", "N/A")
     build_platform = data.get("build_platform", {})
     runtime_platform = data.get("runtime_platform", {})
-    apps = data.get("apps", [])
-    failures = data.get("failures", [])
+    apps = sorted(data.get("apps", []), key=_result_name_sort_key)
+    failures = sorted(data.get("failures", []), key=_failure_sort_key)
 
     if not apps:
         print("  [SKIP] No app data in size_results.json")
@@ -394,7 +406,7 @@ def _build_legacy_compare_lines():
 
     code_over_10kb = sum(1 for value in code_deltas if value > 10 * 1024)
     ram_over_1kb = sum(1 for value in ram_deltas if value > 1024)
-    failures = legacy_data.get("failures", [])
+    failures = sorted(legacy_data.get("failures", []), key=_failure_sort_key)
 
     lines = [
         "## QEMU vs stm32g0",
