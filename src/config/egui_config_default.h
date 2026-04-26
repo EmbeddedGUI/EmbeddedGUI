@@ -139,16 +139,6 @@ extern "C" {
 #define EGUI_CONFIG_DIRTY_AREA_COUNT 5
 #endif
 
-/* Print per-frame dirty region rectangles. */
-#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL
-#define EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL 0
-#endif
-
-/* Print dirty source and merge trace details for debugging. */
-#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
-#define EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE 0
-#endif
-
 /* ---- Input ---- */
 
 /* Set the motion cache count, use to save the motion of the input device. */

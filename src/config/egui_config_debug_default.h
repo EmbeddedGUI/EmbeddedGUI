@@ -46,6 +46,16 @@ extern "C" {
 #define EGUI_CONFIG_DEBUG_REFRESH_DELAY 0
 #endif
 
+/* Print per-frame dirty region rectangles. */
+#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL
+#define EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL 0
+#endif
+
+/* Print dirty source and merge trace details for debugging. */
+#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+#define EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE 0
+#endif
+
 /**
  * Debug options.
  * EGUI performance monitor.
