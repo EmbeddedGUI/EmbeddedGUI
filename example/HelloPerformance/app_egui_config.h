@@ -63,6 +63,10 @@ extern "C" {
 
 // Enable codec fast draw in full row-band mode: first PFB tile decodes to
 // cache, horizontal tile neighbors blend from cache without re-decoding.
+// 2026-04-26 size check: switching this shipped value from 1 to 2 adds
+// text +9376B with no data/bss change on the qemu/cortex-m3 benchmark build,
+// so mode 2 stays an explicit low-RAM/perf-policy experiment instead of being
+// folded into the default 1 path.
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW
 #define EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW 1
 #endif
@@ -137,7 +141,10 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE             2
 
 // Low-RAM codec fast-draw mode: keep only the horizontal tail instead of the
-// full row-band. Value 2 selects the tail-row variant fast path.
+// full row-band. Value 2 selects the tail-row variant fast path. The latest
+// qemu/cortex-m3 recheck measured 1 -> 2 as text +9376B and data/bss +0B;
+// forcing this back to 1 regressed the filtered QOI/RLE alpha subset by about
+// +59% total, so enable it only when that codec hotspot tradeoff is intended.
 #define EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW          2
 
 // Historical low-RAM experiment: shrink the external RLE read window from the

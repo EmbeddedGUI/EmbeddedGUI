@@ -18,6 +18,16 @@ extern "C" {
  * 0: Disable codec row-cache fast path.
  * 1: Enable full row-band cache fast path.
  * 2: Enable tail-row cache fast path (implies row-band cache path).
+ *
+ * HelloPerformance/qemu/cortex-m3 recheck on 2026-04-26, Arm GNU 12.2,
+ * with EGUI_TEST_CONFIG_IMAGE_565=1:
+ * - 0 -> 1: text +4332B, data +0B, bss +16B. The filtered QOI/RLE
+ *   run mainly improves EXTERN_IMAGE_QOI_565_8 by about 30%; historical
+ *   full-scene A/B also shows tiled QOI/RLE cliffs when row cache is off.
+ * - 1 -> 2: text +9376B, data +0B, bss +0B. This is above the 2KB
+ *   code-size threshold for folding mode 2 into mode 1. Dropping mode 2
+ *   back to mode 1 regresses the filtered QOI/RLE alpha subset by about
+ *   +59% total, with IMAGE_QOI_565_8 around +159%.
  */
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW
 #define EGUI_CONFIG_FUNCTION_IMAGE_CODEC_FAST_DRAW 0
