@@ -330,18 +330,19 @@ def merge_extra_cflags(user_extra_cflags=None):
     return " ".join(part for part in parts if part)
 
 
-def read_screen_size():
-    """Read EGUI_CONFIG_SCEEN_WIDTH/HEIGHT from app_egui_config.h.
+def read_screen_size(user_extra_cflags=None):
+    """Read EGUI_CONFIG_SCREEN_WIDTH/HEIGHT from app_egui_config.h.
 
-    Supports local include chains, macro aliases, and integer expressions.
+    Supports local include chains and integer expressions.
     Falls back per-dimension to the library defaults if one side is omitted.
     """
-    default_w = get_macro_int_from_config(CONFIG_DEFAULT_PATH, "EGUI_CONFIG_SCEEN_WIDTH", 240)
-    default_h = get_macro_int_from_config(CONFIG_DEFAULT_PATH, "EGUI_CONFIG_SCEEN_HEIGHT", 320)
+    effective_cflags = merge_extra_cflags(user_extra_cflags)
+    default_w = get_macro_int_from_config(CONFIG_DEFAULT_PATH, "EGUI_CONFIG_SCREEN_WIDTH", 240, user_cflags=effective_cflags)
+    default_h = get_macro_int_from_config(CONFIG_DEFAULT_PATH, "EGUI_CONFIG_SCREEN_HEIGHT", 320, user_cflags=effective_cflags)
 
     try:
-        w = get_macro_int_from_config(APP_CONFIG_PATH, "EGUI_CONFIG_SCEEN_WIDTH", None)
-        h = get_macro_int_from_config(APP_CONFIG_PATH, "EGUI_CONFIG_SCEEN_HEIGHT", None)
+        w = get_macro_int_from_config(APP_CONFIG_PATH, "EGUI_CONFIG_SCREEN_WIDTH", None, user_cflags=effective_cflags)
+        h = get_macro_int_from_config(APP_CONFIG_PATH, "EGUI_CONFIG_SCREEN_HEIGHT", None, user_cflags=effective_cflags)
         return (w if w is not None else default_w, h if h is not None else default_h)
     except Exception:
         pass
@@ -544,9 +545,9 @@ def run_spi_matrix(profile_name, profile_config, spi_configs, timeout, user_extr
     return matrix_results
 
 
-def generate_spi_matrix_report(matrix_results, profile_name, git_commit):
+def generate_spi_matrix_report(matrix_results, profile_name, git_commit, user_extra_cflags=None):
     """Generate Markdown report for SPI matrix test."""
-    SCREEN_W, SCREEN_H = read_screen_size()
+    SCREEN_W, SCREEN_H = read_screen_size(user_extra_cflags)
     BYTES_PER_PIXEL = 2  # RGB565
     frame_bytes = SCREEN_W * SCREEN_H * BYTES_PER_PIXEL
 
@@ -735,7 +736,7 @@ def _do_spi_matrix(profiles, spi_configs, args, timeout):
         json.dump(matrix_data, f, indent=2)
     print(f"  SPI matrix results saved to: {SPI_MATRIX_RESULTS_FILE}")
 
-    report = generate_spi_matrix_report(matrix_results, profile_name, git_commit)
+    report = generate_spi_matrix_report(matrix_results, profile_name, git_commit, user_extra_cflags=args.extra_cflags)
     with open(SPI_MATRIX_REPORT_FILE, "w", encoding="utf-8") as f:
         f.write(report)
     print(f"  SPI matrix report saved to: {SPI_MATRIX_REPORT_FILE}")

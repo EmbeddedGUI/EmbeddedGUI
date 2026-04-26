@@ -107,8 +107,8 @@ void egui_view_label_set_text(egui_view_t *self, const char *text)
 ### 配置系统
 每个示例可通过 `app_egui_config.h` 覆盖默认配置：
 ```c
-#define EGUI_CONFIG_SCEEN_WIDTH 240
-#define EGUI_CONFIG_SCEEN_HEIGHT 320
+#define EGUI_CONFIG_SCREEN_WIDTH 240
+#define EGUI_CONFIG_SCREEN_HEIGHT 320
 #define EGUI_CONFIG_COLOR_DEPTH 16
 #define EGUI_CONFIG_PFB_WIDTH (240/8)
 #define EGUI_CONFIG_PFB_HEIGHT (320/8)

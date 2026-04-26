@@ -235,7 +235,7 @@ def get_shared_obj_suffix(root_dir, app, app_sub=None):
     return f"{app}_cfg_{get_config_hash(root_dir, app, app_sub)}"
 
 
-def get_screen_size(root_dir, app, app_sub=None):
+def get_screen_size(root_dir, app, app_sub=None, user_cflags=""):
     """Read app screen size from the most specific app_egui_config.h."""
     width = None
     height = None
@@ -244,9 +244,9 @@ def get_screen_size(root_dir, app, app_sub=None):
         if not config_path.exists():
             continue
         if width is None:
-            width = get_macro_int_from_config(config_path, "EGUI_CONFIG_SCEEN_WIDTH", None)
+            width = get_macro_int_from_config(config_path, "EGUI_CONFIG_SCREEN_WIDTH", None, user_cflags=user_cflags)
         if height is None:
-            height = get_macro_int_from_config(config_path, "EGUI_CONFIG_SCEEN_HEIGHT", None)
+            height = get_macro_int_from_config(config_path, "EGUI_CONFIG_SCREEN_HEIGHT", None, user_cflags=user_cflags)
         if width is not None and height is not None:
             break
 
@@ -259,9 +259,9 @@ def get_screen_size(root_dir, app, app_sub=None):
     return 240, 320
 
 
-def make_demo_entry(root_dir, result, category):
+def make_demo_entry(root_dir, result, category, user_cflags=""):
     """Create one demos.json entry with screen metadata."""
-    width, height = get_screen_size(root_dir, result["app"], result.get("app_sub"))
+    width, height = get_screen_size(root_dir, result["app"], result.get("app_sub"), user_cflags=user_cflags)
     entry = {
         "name": result["name"],
         "app": result["app"],

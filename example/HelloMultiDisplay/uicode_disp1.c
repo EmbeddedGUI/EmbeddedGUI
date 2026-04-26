@@ -36,10 +36,10 @@ static const egui_background_color_t *hello_multi_display_disp1_bg_list[] = {
         &hello_multi_display_disp1_bg_blue,
 };
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp1_anim_start_open_params, EGUI_CONFIG_SCEEN_1_WIDTH, 0, 0, 0);
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp1_anim_start_close_params, 0, -EGUI_CONFIG_SCEEN_1_WIDTH, 0, 0);
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp1_anim_finish_open_params, -EGUI_CONFIG_SCEEN_1_WIDTH, 0, 0, 0);
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp1_anim_finish_close_params, 0, EGUI_CONFIG_SCEEN_1_WIDTH, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp1_anim_start_open_params, EGUI_CONFIG_SCREEN_1_WIDTH, 0, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp1_anim_start_close_params, 0, -EGUI_CONFIG_SCREEN_1_WIDTH, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp1_anim_finish_open_params, -EGUI_CONFIG_SCREEN_1_WIDTH, 0, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp1_anim_finish_close_params, 0, EGUI_CONFIG_SCREEN_1_WIDTH, 0, 0);
 
 static hello_multi_display_disp1_activity_t s_hello_multi_display_disp1_activities[HELLO_MULTI_DISPLAY_ACTIVITY_POOL_SIZE];
 static int s_hello_multi_display_disp1_activity_slot = 0;
@@ -106,7 +106,7 @@ static void hello_multi_display_disp1_activity_on_create(egui_activity_t *self)
 
     egui_view_linearlayout_init((egui_view_t *)&local->layout, core);
     egui_view_set_position((egui_view_t *)&local->layout, 0, 0);
-    egui_view_set_size((egui_view_t *)&local->layout, EGUI_CONFIG_SCEEN_1_WIDTH, EGUI_CONFIG_SCEEN_1_HEIGHT);
+    egui_view_set_size((egui_view_t *)&local->layout, EGUI_CONFIG_SCREEN_1_WIDTH, EGUI_CONFIG_SCREEN_1_HEIGHT);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->layout, EGUI_ALIGN_CENTER);
 
     egui_view_label_init((egui_view_t *)&local->label, core);
@@ -243,8 +243,8 @@ int egui_port_get_additional_display_descriptors(egui_port_extra_display_descrip
         return 0;
     }
 
-    descriptors[0].screen_width = EGUI_CONFIG_SCEEN_1_WIDTH;
-    descriptors[0].screen_height = EGUI_CONFIG_SCEEN_1_HEIGHT;
+    descriptors[0].screen_width = EGUI_CONFIG_SCREEN_1_WIDTH;
+    descriptors[0].screen_height = EGUI_CONFIG_SCREEN_1_HEIGHT;
     descriptors[0].pfb_width = EGUI_CONFIG_PFB_1_WIDTH;
     descriptors[0].pfb_height = EGUI_CONFIG_PFB_1_HEIGHT;
     descriptors[0].pfb_buffers = s_hello_multi_display_disp1_pfb_bufs;

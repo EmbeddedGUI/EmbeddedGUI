@@ -28,12 +28,12 @@
 
 #define LIST_VIEW_DEMO_MARGIN_X  8
 #define LIST_VIEW_DEMO_TOP_Y     8
-#define LIST_VIEW_DEMO_CONTENT_W (EGUI_CONFIG_SCEEN_WIDTH - LIST_VIEW_DEMO_MARGIN_X * 2)
+#define LIST_VIEW_DEMO_CONTENT_W (EGUI_CONFIG_SCREEN_WIDTH - LIST_VIEW_DEMO_MARGIN_X * 2)
 #define LIST_VIEW_DEMO_HEADER_H  66
 #define LIST_VIEW_DEMO_TOOLBAR_Y (LIST_VIEW_DEMO_TOP_Y + LIST_VIEW_DEMO_HEADER_H + 6)
 #define LIST_VIEW_DEMO_TOOLBAR_H 34
 #define LIST_VIEW_DEMO_LIST_Y    (LIST_VIEW_DEMO_TOOLBAR_Y + LIST_VIEW_DEMO_TOOLBAR_H + 6)
-#define LIST_VIEW_DEMO_LIST_H    (EGUI_CONFIG_SCEEN_HEIGHT - LIST_VIEW_DEMO_LIST_Y - 8)
+#define LIST_VIEW_DEMO_LIST_H    (EGUI_CONFIG_SCREEN_HEIGHT - LIST_VIEW_DEMO_LIST_Y - 8)
 
 #define LIST_VIEW_DEMO_ACTION_GAP 4
 #define LIST_VIEW_DEMO_ACTION_W   ((LIST_VIEW_DEMO_CONTENT_W - 20 - LIST_VIEW_DEMO_ACTION_GAP * 4) / 5)
@@ -1306,7 +1306,7 @@ void test_init_ui(egui_core_t *core)
     s_core = core;
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&list_view_demo_screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &list_view_demo_header_card_params);

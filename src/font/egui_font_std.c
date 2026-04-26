@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
@@ -653,7 +653,7 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
     cache->stamp = ++g_font_std_draw_prefix_cache_stamp;
     cache->line_bytes = line_bytes;
 
-    advance_limit = EGUI_CONFIG_SCEEN_WIDTH * 2 + font->height;
+    advance_limit = EGUI_CONFIG_SCREEN_WIDTH * 2 + font->height;
 
     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && font->code_array != NULL)
     {

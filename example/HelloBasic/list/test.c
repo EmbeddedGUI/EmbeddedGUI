@@ -22,7 +22,7 @@ static void report_runtime_failure(const char *message)
 }
 #endif
 
-EGUI_VIEW_LIST_PARAMS_INIT(list_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, 34);
+EGUI_VIEW_LIST_PARAMS_INIT(list_1_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, 34);
 
 static void list_item_click_cb(egui_view_t *self, uint8_t index)
 {
@@ -86,10 +86,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             report_runtime_failure("list first visible item click did not commit");
         }
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 4;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 4;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 4;
         p_action->steps = 5;
         p_action->interval_ms = 900;
         return true;
@@ -112,10 +112,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             }
         }
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 4;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 4;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 4;
         p_action->steps = 5;
         p_action->interval_ms = 900;
         return true;

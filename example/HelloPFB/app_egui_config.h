@@ -6,8 +6,8 @@
 extern "C" {
 #endif
 
-#define EGUI_CONFIG_SCEEN_WIDTH  240
-#define EGUI_CONFIG_SCEEN_HEIGHT 320
+#define EGUI_CONFIG_SCREEN_WIDTH  240
+#define EGUI_CONFIG_SCREEN_HEIGHT 320
 #define EGUI_CONFIG_COLOR_DEPTH  16
 
 // PFB options - horizontal refresh

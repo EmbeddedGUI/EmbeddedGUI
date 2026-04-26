@@ -7,7 +7,7 @@
 static egui_view_viewpage_cache_t viewpage_1;
 
 // View params
-EGUI_VIEW_VIEWPAGE_CACHE_PARAMS_INIT(viewpage_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_VIEWPAGE_CACHE_PARAMS_INIT(viewpage_1_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 
 void *on_page_load_listener(egui_view_t *self, int current_page_index)
 {
@@ -46,37 +46,37 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     {
     case 0: // swipe left -> page 2
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;
     case 1: // swipe left -> page 3
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;
     case 2: // swipe right -> page 2
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;
     case 3: // swipe right -> page 1
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;

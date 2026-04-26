@@ -3,8 +3,8 @@
 #include "uicode_disp0.h"
 
 // ============== Layout Constants ==============
-#define SCREEN_W         EGUI_CONFIG_SCEEN_WIDTH
-#define SCREEN_H         EGUI_CONFIG_SCEEN_HEIGHT
+#define SCREEN_W         EGUI_CONFIG_SCREEN_WIDTH
+#define SCREEN_H         EGUI_CONFIG_SCREEN_HEIGHT
 #define PAGE_COUNT       4
 #define INDICATOR_HEIGHT 20
 #define TOOLBAR_HEIGHT   20

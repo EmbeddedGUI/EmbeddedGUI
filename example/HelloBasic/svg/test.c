@@ -34,14 +34,14 @@ static char page_label_text[8];
 static char svg_buffers[HELLO_SVG_PAGE_COUNT][HELLO_SVG_BUFFER_SIZE];
 static const char *const hello_svg_titles[HELLO_SVG_PAGE_COUNT] = {"Pulse", "Tunnel", "Orbit"};
 
-EGUI_VIEW_GROUP_PARAMS_INIT(root_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-EGUI_VIEW_GROUP_PARAMS_INIT(page_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-EGUI_VIEW_IMAGE_PARAMS_INIT(page_image_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, NULL);
+EGUI_VIEW_GROUP_PARAMS_INIT(root_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(page_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+EGUI_VIEW_IMAGE_PARAMS_INIT(page_image_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, NULL);
 EGUI_VIEW_LABEL_PARAMS_INIT(title_label_params, HELLO_SVG_OVERLAY_MARGIN, HELLO_SVG_OVERLAY_MARGIN,
-                            EGUI_CONFIG_SCEEN_WIDTH - HELLO_SVG_OVERLAY_MARGIN * 2 - HELLO_SVG_PAGE_LABEL_W, HELLO_SVG_TITLE_H, NULL, EGUI_CONFIG_FONT_DEFAULT,
+                            EGUI_CONFIG_SCREEN_WIDTH - HELLO_SVG_OVERLAY_MARGIN * 2 - HELLO_SVG_PAGE_LABEL_W, HELLO_SVG_TITLE_H, NULL, EGUI_CONFIG_FONT_DEFAULT,
                             EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-EGUI_VIEW_LABEL_PARAMS_INIT(page_label_params, EGUI_CONFIG_SCEEN_WIDTH - HELLO_SVG_OVERLAY_MARGIN - HELLO_SVG_PAGE_LABEL_W, HELLO_SVG_OVERLAY_MARGIN,
+EGUI_VIEW_LABEL_PARAMS_INIT(page_label_params, EGUI_CONFIG_SCREEN_WIDTH - HELLO_SVG_OVERLAY_MARGIN - HELLO_SVG_PAGE_LABEL_W, HELLO_SVG_OVERLAY_MARGIN,
                             HELLO_SVG_PAGE_LABEL_W, HELLO_SVG_TITLE_H, NULL, EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 
 static void hello_svg_append(char *buffer, size_t size, size_t *offset, const char *format, ...)
@@ -199,8 +199,8 @@ static void hello_svg_build_header(uint8_t page_index)
 static void hello_svg_build_pulse_frame(char *buffer, size_t size, uint32_t tick)
 {
     size_t offset = 0;
-    int w = EGUI_CONFIG_SCEEN_WIDTH;
-    int h = EGUI_CONFIG_SCEEN_HEIGHT;
+    int w = EGUI_CONFIG_SCREEN_WIDTH;
+    int h = EGUI_CONFIG_SCREEN_HEIGHT;
     int cx = w / 2;
     int cy = h / 2 + 10;
     int min_side = w < h ? w : h;
@@ -311,8 +311,8 @@ static void hello_svg_build_pulse_frame(char *buffer, size_t size, uint32_t tick
 static void hello_svg_build_tunnel_frame(char *buffer, size_t size, uint32_t tick)
 {
     size_t offset = 0;
-    int w = EGUI_CONFIG_SCEEN_WIDTH;
-    int h = EGUI_CONFIG_SCEEN_HEIGHT;
+    int w = EGUI_CONFIG_SCREEN_WIDTH;
+    int h = EGUI_CONFIG_SCREEN_HEIGHT;
     int cx = w / 2;
     int cy = h / 2 + 8;
     int ring_i;
@@ -395,8 +395,8 @@ static void hello_svg_build_tunnel_frame(char *buffer, size_t size, uint32_t tic
 static void hello_svg_build_orbit_frame(char *buffer, size_t size, uint32_t tick)
 {
     size_t offset = 0;
-    int w = EGUI_CONFIG_SCEEN_WIDTH;
-    int h = EGUI_CONFIG_SCEEN_HEIGHT;
+    int w = EGUI_CONFIG_SCREEN_WIDTH;
+    int h = EGUI_CONFIG_SCREEN_HEIGHT;
     int cx = w / 2;
     int cy = h / 2 + 4;
     int sat1_x;
@@ -604,10 +604,10 @@ const char *egui_port_get_recording_frame_label(void)
 static void hello_svg_set_swipe_left_action(egui_sim_action_t *p_action, uint16_t interval_ms)
 {
     p_action->type = EGUI_SIM_ACTION_SWIPE;
-    p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-    p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-    p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-    p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+    p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+    p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+    p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+    p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
     p_action->steps = 5;
     p_action->interval_ms = interval_ms;
 }
@@ -615,10 +615,10 @@ static void hello_svg_set_swipe_left_action(egui_sim_action_t *p_action, uint16_
 static void hello_svg_set_swipe_right_action(egui_sim_action_t *p_action, uint16_t interval_ms)
 {
     p_action->type = EGUI_SIM_ACTION_SWIPE;
-    p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-    p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-    p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-    p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+    p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+    p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+    p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+    p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
     p_action->steps = 5;
     p_action->interval_ms = interval_ms;
 }

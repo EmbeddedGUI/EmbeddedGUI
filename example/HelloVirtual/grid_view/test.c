@@ -22,12 +22,12 @@
 
 #define GRID_VIEW_DEMO_MARGIN_X  8
 #define GRID_VIEW_DEMO_TOP_Y     8
-#define GRID_VIEW_DEMO_CONTENT_W (EGUI_CONFIG_SCEEN_WIDTH - GRID_VIEW_DEMO_MARGIN_X * 2)
+#define GRID_VIEW_DEMO_CONTENT_W (EGUI_CONFIG_SCREEN_WIDTH - GRID_VIEW_DEMO_MARGIN_X * 2)
 #define GRID_VIEW_DEMO_HEADER_H  66
 #define GRID_VIEW_DEMO_TOOLBAR_Y (GRID_VIEW_DEMO_TOP_Y + GRID_VIEW_DEMO_HEADER_H + 6)
 #define GRID_VIEW_DEMO_TOOLBAR_H 56
 #define GRID_VIEW_DEMO_GRID_Y    (GRID_VIEW_DEMO_TOOLBAR_Y + GRID_VIEW_DEMO_TOOLBAR_H + 6)
-#define GRID_VIEW_DEMO_GRID_H    (EGUI_CONFIG_SCEEN_HEIGHT - GRID_VIEW_DEMO_GRID_Y - 8)
+#define GRID_VIEW_DEMO_GRID_H    (EGUI_CONFIG_SCREEN_HEIGHT - GRID_VIEW_DEMO_GRID_Y - 8)
 
 #define GRID_VIEW_DEMO_ACTION_GAP 4
 #define GRID_VIEW_DEMO_ACTION_W   ((GRID_VIEW_DEMO_CONTENT_W - 20 - GRID_VIEW_DEMO_ACTION_GAP * 3) / 4)
@@ -1161,9 +1161,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             report_runtime_failure("patch action did not resize selected tile");
         }
         p_action->type = EGUI_SIM_ACTION_DRAG;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT - 24;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT - 24;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
         p_action->y2 = GRID_VIEW_DEMO_GRID_Y + 24;
         p_action->steps = 10;
         p_action->interval_ms = 320;
@@ -1226,7 +1226,7 @@ void test_init_ui(egui_core_t *core)
     s_core = core;
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&grid_view_demo_screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &grid_view_demo_header_card_params);

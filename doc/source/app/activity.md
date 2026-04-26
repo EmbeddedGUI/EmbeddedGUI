@@ -125,26 +125,26 @@ void egui_activity_set_finish_anim(
 ```c
 // 启动时：新页面从右侧滑入
 EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_open_param,
-    EGUI_CONFIG_SCEEN_WIDTH, 0, 0, 0);  // from_x, to_x, from_y, to_y
+    EGUI_CONFIG_SCREEN_WIDTH, 0, 0, 0);  // from_x, to_x, from_y, to_y
 egui_animation_translate_t anim_start_open;
 
 // 启动时：旧页面向左侧滑出
 EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_close_param,
-    0, -EGUI_CONFIG_SCEEN_WIDTH, 0, 0);
+    0, -EGUI_CONFIG_SCREEN_WIDTH, 0, 0);
 egui_animation_translate_t anim_start_close;
 
 // 结束时：前一个页面从左侧滑入
 EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_open_param,
-    -EGUI_CONFIG_SCEEN_WIDTH, 0, 0, 0);
+    -EGUI_CONFIG_SCREEN_WIDTH, 0, 0, 0);
 egui_animation_translate_t anim_finish_open;
 
 // 结束时：当前页面向右侧滑出
 EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_close_param,
-    0, EGUI_CONFIG_SCEEN_WIDTH, 0, 0);
+    0, EGUI_CONFIG_SCREEN_WIDTH, 0, 0);
 egui_animation_translate_t anim_finish_close;
 ```
 
-如果需要垂直滑动切换，将 x 参数改为 0，y 参数改为 `EGUI_CONFIG_SCEEN_HEIGHT` 即可。
+如果需要垂直滑动切换，将 x 参数改为 0，y 参数改为 `EGUI_CONFIG_SCREEN_HEIGHT` 即可。
 
 ## 自定义 Activity
 

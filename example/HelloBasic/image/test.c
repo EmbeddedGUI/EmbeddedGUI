@@ -59,10 +59,10 @@ EGUI_VIEW_LABEL_PARAMS_INIT(lbl_rt_ring_p, 0, 0, LBL_W, LBL_H, NULL, EGUI_CONFIG
 EGUI_VIEW_LABEL_PARAMS_INIT(lbl_rt_panel_p, 0, 0, LBL_W, LBL_H, NULL, EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT, EGUI_ALPHA_100);
 
 /* Page / ViewPage params */
-EGUI_VIEW_GROUP_PARAMS_INIT(page1_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-EGUI_VIEW_GROUP_PARAMS_INIT(page2_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-EGUI_VIEW_GROUP_PARAMS_INIT(page3_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(page1_p, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(page2_p, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(page3_p, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_p, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 
 static const char runtime_svg_ring[] = "<svg viewBox='0 0 100 100'>"
                                        "<path fill='#FF6B6B' fill-rule='evenodd' "
@@ -161,10 +161,10 @@ void test_init_ui(egui_core_t *core)
 static void set_swipe_left_action(egui_sim_action_t *p_action, uint16_t interval_ms)
 {
     p_action->type = EGUI_SIM_ACTION_SWIPE;
-    p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-    p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-    p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-    p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+    p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+    p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+    p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+    p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
     p_action->steps = 5;
     p_action->interval_ms = interval_ms;
 }

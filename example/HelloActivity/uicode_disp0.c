@@ -11,35 +11,35 @@
 #include "uicode_disp0.h"
 
 #if 1
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_open_param, EGUI_CONFIG_SCEEN_WIDTH, 0, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_open_param, EGUI_CONFIG_SCREEN_WIDTH, 0, 0, 0);
 egui_animation_translate_t anim_start_open;
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_close_param, 0, -EGUI_CONFIG_SCEEN_WIDTH, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_close_param, 0, -EGUI_CONFIG_SCREEN_WIDTH, 0, 0);
 egui_animation_translate_t anim_start_close;
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_open_param, -EGUI_CONFIG_SCEEN_WIDTH, 0, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_open_param, -EGUI_CONFIG_SCREEN_WIDTH, 0, 0, 0);
 egui_animation_translate_t anim_finish_open;
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_close_param, 0, EGUI_CONFIG_SCEEN_WIDTH, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_close_param, 0, EGUI_CONFIG_SCREEN_WIDTH, 0, 0);
 egui_animation_translate_t anim_finish_close;
 #else
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_open_param, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_open_param, 0, 0, EGUI_CONFIG_SCREEN_HEIGHT, 0);
 egui_animation_translate_t anim_start_open;
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_close_param, 0, 0, 0, -EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_start_close_param, 0, 0, 0, -EGUI_CONFIG_SCREEN_HEIGHT);
 egui_animation_translate_t anim_start_close;
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_open_param, 0, 0, -EGUI_CONFIG_SCEEN_HEIGHT, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_open_param, 0, 0, -EGUI_CONFIG_SCREEN_HEIGHT, 0);
 egui_animation_translate_t anim_finish_open;
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_close_param, 0, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_finish_close_param, 0, 0, 0, EGUI_CONFIG_SCREEN_HEIGHT);
 egui_animation_translate_t anim_finish_close;
 #endif
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_dialog_start_param, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_dialog_start_param, 0, 0, EGUI_CONFIG_SCREEN_HEIGHT, 0);
 egui_animation_translate_t anim_dialog_start;
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_dialog_finish_param, 0, 0, 0, -EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_dialog_finish_param, 0, 0, 0, -EGUI_CONFIG_SCREEN_HEIGHT);
 egui_animation_translate_t anim_dialog_finish;
 
 typedef enum uicode_stress_action

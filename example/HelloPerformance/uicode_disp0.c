@@ -81,7 +81,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     // test_view
     egui_view_test_performance_init(EGUI_VIEW_OF(&test_view), core);
     egui_view_set_position(EGUI_VIEW_OF(&test_view), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&test_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&test_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 
     // Add To Root
     egui_core_add_user_root_view(EGUI_VIEW_OF(&test_view));

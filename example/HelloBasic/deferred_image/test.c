@@ -62,7 +62,7 @@ static egui_image_file_io_t deferred_image_file_io;
 static uint8_t runtime_fail_reported;
 #endif
 
-EGUI_VIEW_GROUP_PARAMS_INIT(root_group_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(root_group_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_root_param, EGUI_COLOR_HEX(0x0F172A), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(bg_root_params, &bg_root_param, &bg_root_param, &bg_root_param);

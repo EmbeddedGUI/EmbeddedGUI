@@ -1068,7 +1068,7 @@ static void egui_canvas_draw_circle_corner_direct_stroke(egui_canvas_t *self, eg
     }
 }
 
-#if defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) && EGUI_CONFIG_CIRCLE_FILL_BASIC
+#if EGUI_CONFIG_CIRCLE_FILL_BASIC
 /**
  * @brief Fast direct-PFB fill path for one quarter circle.
  *
@@ -1330,7 +1330,7 @@ void egui_canvas_draw_circle_corner_fill(egui_canvas_t *self, egui_dim_t center_
         return;
     }
 
-#if !defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) || !EGUI_CONFIG_CIRCLE_FILL_BASIC
+#if !EGUI_CONFIG_CIRCLE_FILL_BASIC
     // Legacy corner-fill path: smaller code size, slower on fill-heavy benchmarks.
     egui_dim_t row_start = bounds.row_index_start;
     egui_dim_t row_end = bounds.row_index_end;
@@ -1818,7 +1818,7 @@ void egui_canvas_draw_circle_corner_fill(egui_canvas_t *self, egui_dim_t center_
 #endif
 }
 
-#if defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) && EGUI_CONFIG_CIRCLE_FILL_BASIC
+#if EGUI_CONFIG_CIRCLE_FILL_BASIC
 /**
  * @brief Blend one circle-edge row directly into the current PFB row.
  *
@@ -3386,7 +3386,7 @@ void egui_canvas_draw_circle_fill_basic(egui_canvas_t *self, egui_dim_t center_x
         return;
     }
 
-#if !defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) || !EGUI_CONFIG_CIRCLE_FILL_BASIC
+#if !EGUI_CONFIG_CIRCLE_FILL_BASIC
     egui_canvas_draw_circle_fill_basic_legacy(self, center_x, center_y, radius, color, alpha);
     return;
 #else

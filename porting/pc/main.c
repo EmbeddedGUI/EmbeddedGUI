@@ -923,7 +923,7 @@ int main(int argc, const char *argv[])
 
     egui_port_init();
 
-    if (pc_setup_display(&g_cores[0], 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT, pfb_bufs,
+    if (pc_setup_display(&g_cores[0], 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT, pfb_bufs,
                          EGUI_CONFIG_PFB_BUFFER_COUNT, egui_port_get_display_driver(), NULL,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
                          egui_port_register_touch_driver,

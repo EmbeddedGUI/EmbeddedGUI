@@ -103,7 +103,7 @@ void test_init_ui(egui_core_t *core)
     // Init container
     egui_view_linearlayout_init(EGUI_VIEW_OF(&container), core);
     egui_view_set_position(EGUI_VIEW_OF(&container), 0, 200);
-    egui_view_set_size(EGUI_VIEW_OF(&container), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&container), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&container), 0); // vertical
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&container), EGUI_ALIGN_HCENTER);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&container), container_click_cb);
@@ -111,7 +111,7 @@ void test_init_ui(egui_core_t *core)
     // Title label
     egui_view_label_init(EGUI_VIEW_OF(&label_title), core);
     egui_view_set_position(EGUI_VIEW_OF(&label_title), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&label_title), EGUI_CONFIG_SCEEN_WIDTH, 90);
+    egui_view_set_size(EGUI_VIEW_OF(&label_title), EGUI_CONFIG_SCREEN_WIDTH, 90);
     egui_view_label_set_text(EGUI_VIEW_OF(&label_title), "TextInput Demo");
     egui_view_label_set_font(EGUI_VIEW_OF(&label_title), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&label_title), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -147,7 +147,7 @@ void test_init_ui(egui_core_t *core)
     // Result label
     egui_view_label_init(EGUI_VIEW_OF(&label_result), core);
     egui_view_set_position(EGUI_VIEW_OF(&label_result), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&label_result), EGUI_CONFIG_SCEEN_WIDTH, 20);
+    egui_view_set_size(EGUI_VIEW_OF(&label_result), EGUI_CONFIG_SCREEN_WIDTH, 20);
     egui_view_label_set_text(EGUI_VIEW_OF(&label_result), "");
     egui_view_label_set_font(EGUI_VIEW_OF(&label_result), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&label_result), EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
@@ -171,7 +171,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&keyboard), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_keyboard_set_icon_font(EGUI_VIEW_OF(&keyboard), EGUI_FONT_ICON_MS_20);
     egui_view_keyboard_set_special_key_icons(EGUI_VIEW_OF(&keyboard), EGUI_ICON_MS_KEYBOARD_ARROW_UP, EGUI_ICON_MS_BACKSPACE, EGUI_ICON_MS_DONE);
-    egui_view_set_position(EGUI_VIEW_OF(&keyboard), 0, EGUI_CONFIG_SCEEN_HEIGHT - EGUI_KEYBOARD_DEFAULT_HEIGHT);
+    egui_view_set_position(EGUI_VIEW_OF(&keyboard), 0, EGUI_CONFIG_SCREEN_HEIGHT - EGUI_KEYBOARD_DEFAULT_HEIGHT);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&keyboard));
 
     // Override textinput focus listener to handle keyboard show/hide

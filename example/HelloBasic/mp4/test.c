@@ -39,9 +39,9 @@ EGUI_VIEW_LABEL_PARAMS_INIT(lbl_cmp_std_p, 0, 0, LBL_W, LBL_H, NULL, EGUI_CONFIG
 EGUI_VIEW_LABEL_PARAMS_INIT(lbl_cmp_qoi_p, 0, 0, LBL_W, LBL_H, NULL, EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT, EGUI_ALPHA_100);
 EGUI_VIEW_LABEL_PARAMS_INIT(lbl_cmp_rle_p, 0, 0, LBL_W, LBL_H, NULL, EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT, EGUI_ALPHA_100);
 
-EGUI_VIEW_GROUP_PARAMS_INIT(page1_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-EGUI_VIEW_GROUP_PARAMS_INIT(page2_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(page1_p, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(page2_p, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_p, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 
 #define MP4_FPS 10
 
@@ -110,10 +110,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 1: /* Swipe left -> page 2 */
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;

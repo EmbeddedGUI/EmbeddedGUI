@@ -19,8 +19,8 @@
 #define GRID_VIEW_BASIC_MARGIN_X 8
 #define GRID_VIEW_BASIC_TOP_Y    8
 #define GRID_VIEW_BASIC_GRID_Y   GRID_VIEW_BASIC_TOP_Y
-#define GRID_VIEW_BASIC_GRID_W   (EGUI_CONFIG_SCEEN_WIDTH - GRID_VIEW_BASIC_MARGIN_X * 2)
-#define GRID_VIEW_BASIC_GRID_H   (EGUI_CONFIG_SCEEN_HEIGHT - GRID_VIEW_BASIC_GRID_Y - 8)
+#define GRID_VIEW_BASIC_GRID_W   (EGUI_CONFIG_SCREEN_WIDTH - GRID_VIEW_BASIC_MARGIN_X * 2)
+#define GRID_VIEW_BASIC_GRID_H   (EGUI_CONFIG_SCREEN_HEIGHT - GRID_VIEW_BASIC_GRID_Y - 8)
 
 #define GRID_VIEW_BASIC_FONT_TITLE ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define GRID_VIEW_BASIC_FONT_BODY  ((const egui_font_t *)&egui_res_font_montserrat_8_4)
@@ -446,7 +446,7 @@ void test_init_ui(egui_core_t *core)
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&grid_view_basic_screen_bg));
 
     egui_view_grid_view_init_with_setup(EGUI_VIEW_OF(&grid_view), core, &setup);

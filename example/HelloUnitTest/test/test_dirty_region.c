@@ -40,7 +40,7 @@ static void test_dirty_single_fullscreen(void)
     egui_region_t region;
     egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
-    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_core_clear_region_dirty(core);
     egui_core_update_region_dirty(core, &region);
 
@@ -59,11 +59,11 @@ static void test_dirty_single_clamp_overflow(void)
     egui_region_t expected;
     egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
-    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH + 30, EGUI_CONFIG_SCEEN_HEIGHT + 30);
+    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCREEN_WIDTH + 30, EGUI_CONFIG_SCREEN_HEIGHT + 30);
     egui_core_clear_region_dirty(core);
     egui_core_update_region_dirty(core, &region);
 
-    egui_region_init(&expected, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_region_init(&expected, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &arr[0]);
 }
 
@@ -75,11 +75,11 @@ static void test_dirty_single_clamp_offset(void)
     egui_region_t expected;
     egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
-    egui_region_init(&region, 30, 30, EGUI_CONFIG_SCEEN_WIDTH + 30, EGUI_CONFIG_SCEEN_HEIGHT + 30);
+    egui_region_init(&region, 30, 30, EGUI_CONFIG_SCREEN_WIDTH + 30, EGUI_CONFIG_SCREEN_HEIGHT + 30);
     egui_core_clear_region_dirty(core);
     egui_core_update_region_dirty(core, &region);
 
-    egui_region_init(&expected, 30, 30, EGUI_CONFIG_SCEEN_WIDTH - 30, EGUI_CONFIG_SCEEN_HEIGHT - 30);
+    egui_region_init(&expected, 30, 30, EGUI_CONFIG_SCREEN_WIDTH - 30, EGUI_CONFIG_SCREEN_HEIGHT - 30);
     EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &arr[0]);
 }
 
@@ -90,7 +90,7 @@ static void test_dirty_single_outside_rb(void)
     egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     egui_region_t region;
-    egui_region_init(&region, EGUI_CONFIG_SCEEN_WIDTH + 30, EGUI_CONFIG_SCEEN_HEIGHT + 30, 30, 30);
+    egui_region_init(&region, EGUI_CONFIG_SCREEN_WIDTH + 30, EGUI_CONFIG_SCREEN_HEIGHT + 30, 30, 30);
     egui_core_clear_region_dirty(core);
     egui_core_update_region_dirty(core, &region);
 
@@ -107,7 +107,7 @@ static void test_dirty_single_outside_right(void)
     egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     egui_region_t region;
-    egui_region_init(&region, EGUI_CONFIG_SCEEN_WIDTH + 30, 0, 30, 30);
+    egui_region_init(&region, EGUI_CONFIG_SCREEN_WIDTH + 30, 0, 30, 30);
     egui_core_clear_region_dirty(core);
     egui_core_update_region_dirty(core, &region);
 
@@ -124,7 +124,7 @@ static void test_dirty_single_outside_bottom(void)
     egui_region_t *arr = egui_core_get_region_dirty_arr(core);
 
     egui_region_t region;
-    egui_region_init(&region, 0, EGUI_CONFIG_SCEEN_HEIGHT + 30, 30, 30);
+    egui_region_init(&region, 0, EGUI_CONFIG_SCREEN_HEIGHT + 30, 30, 30);
     egui_core_clear_region_dirty(core);
     egui_core_update_region_dirty(core, &region);
 
@@ -164,10 +164,10 @@ static void test_dirty_two_contain(void)
     egui_core_clear_region_dirty(core);
     egui_region_init(&region, 0, 0, 50, 50);
     egui_core_update_region_dirty(core, &region);
-    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_core_update_region_dirty(core, &region);
 
-    egui_region_init(&expected, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_region_init(&expected, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &arr[0]);
     for (int i = 1; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {
@@ -186,10 +186,10 @@ static void test_dirty_two_overflow_contain(void)
     egui_core_clear_region_dirty(core);
     egui_region_init(&region, 0, 0, 50, 50);
     egui_core_update_region_dirty(core, &region);
-    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH + 30, EGUI_CONFIG_SCEEN_HEIGHT + 30);
+    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCREEN_WIDTH + 30, EGUI_CONFIG_SCREEN_HEIGHT + 30);
     egui_core_update_region_dirty(core, &region);
 
-    egui_region_init(&expected, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_region_init(&expected, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &arr[0]);
     for (int i = 1; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {
@@ -208,7 +208,7 @@ static void test_dirty_two_second_outside(void)
     egui_core_clear_region_dirty(core);
     egui_region_init(&region, 0, 0, 50, 50);
     egui_core_update_region_dirty(core, &region);
-    egui_region_init(&region, EGUI_CONFIG_SCEEN_WIDTH, 0, EGUI_CONFIG_SCEEN_WIDTH + 30, EGUI_CONFIG_SCEEN_HEIGHT + 30);
+    egui_region_init(&region, EGUI_CONFIG_SCREEN_WIDTH, 0, EGUI_CONFIG_SCREEN_WIDTH + 30, EGUI_CONFIG_SCREEN_HEIGHT + 30);
     egui_core_update_region_dirty(core, &region);
 
     egui_region_init(&expected, 0, 0, 50, 50);
@@ -232,10 +232,10 @@ static void test_dirty_two_three_fullscreen(void)
     egui_core_update_region_dirty(core, &region);
     egui_region_init(&region, 50, 0, 50, 50);
     egui_core_update_region_dirty(core, &region);
-    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_region_init(&region, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_core_update_region_dirty(core, &region);
 
-    egui_region_init(&expected, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_region_init(&expected, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &arr[0]);
     for (int i = 1; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {

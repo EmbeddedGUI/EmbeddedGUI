@@ -27,8 +27,8 @@ static egui_hal_touch_driver_t s_em_touch_driver;
 static void em_touch_register(egui_core_t *core)
 {
     egui_hal_touch_config_t touch_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .width = EGUI_CONFIG_SCREEN_WIDTH,
+            .height = EGUI_CONFIG_SCREEN_HEIGHT,
             .swap_xy = 0,
             .mirror_x = 0,
             .mirror_y = 0,
@@ -43,8 +43,8 @@ static egui_display_driver_ops_t port_display_ops = {0};
 
 static egui_display_driver_t port_display_driver = {
         .ops = &port_display_ops,
-        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .physical_width = EGUI_CONFIG_SCREEN_WIDTH,
+        .physical_height = EGUI_CONFIG_SCREEN_HEIGHT,
         .rotation = EGUI_DISPLAY_ROTATION_0,
         .brightness = 255,
         .power_on = 1,
@@ -204,8 +204,8 @@ void egui_port_init(void)
     egui_platform_register(&em_platform);
 
     egui_hal_lcd_config_t lcd_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .width = EGUI_CONFIG_SCREEN_WIDTH,
+            .height = EGUI_CONFIG_SCREEN_HEIGHT,
             .color_depth = EGUI_CONFIG_COLOR_DEPTH,
             .color_swap = 0,
             .x_offset = 0,

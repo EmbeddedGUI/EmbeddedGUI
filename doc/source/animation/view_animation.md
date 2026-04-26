@@ -93,7 +93,7 @@ EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(name, from_x, to_x, from_y, to_y);
 ### 完整示例：从右侧滑入
 
 ```c
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(slide_in_params, EGUI_CONFIG_SCEEN_WIDTH, 0, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(slide_in_params, EGUI_CONFIG_SCREEN_WIDTH, 0, 0, 0);
 static egui_animation_translate_t anim_slide_in;
 static egui_interpolator_decelerate_t interp;
 

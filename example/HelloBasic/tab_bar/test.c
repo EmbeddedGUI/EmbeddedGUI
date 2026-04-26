@@ -25,8 +25,8 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_3, &bg_3_params);
 
 #define TAB_COUNT   3
 #define TAB_HEIGHT  44
-#define PAGE_WIDTH  EGUI_CONFIG_SCEEN_WIDTH
-#define PAGE_HEIGHT (EGUI_CONFIG_SCEEN_HEIGHT - TAB_HEIGHT)
+#define PAGE_WIDTH  EGUI_CONFIG_SCREEN_WIDTH
+#define PAGE_HEIGHT (EGUI_CONFIG_SCREEN_HEIGHT - TAB_HEIGHT)
 
 EGUI_VIEW_TAB_BAR_PARAMS_INIT(tab_bar_params, 0, 0, PAGE_WIDTH, TAB_HEIGHT, tab_texts, TAB_COUNT);
 EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
@@ -91,28 +91,28 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     {
     case 0:
         p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
         p_action->y1 = TAB_HEIGHT / 2;
         p_action->interval_ms = 1000;
         return true;
     case 1:
         p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 5 / 6;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 5 / 6;
         p_action->y1 = TAB_HEIGHT / 2;
         p_action->interval_ms = 1000;
         return true;
     case 2:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 1000;
         return true;
     case 3:
         p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 6;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 6;
         p_action->y1 = TAB_HEIGHT / 2;
         p_action->interval_ms = 1000;
         return true;

@@ -88,7 +88,7 @@ static egui_image_file_t resize_image;
 static egui_image_file_t missing_image;
 static egui_core_t *s_core;
 
-EGUI_VIEW_GROUP_PARAMS_INIT(root_group_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(root_group_p, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_root_param, EGUI_COLOR_HEX(0x0F172A), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(bg_root_params, &bg_root_param, &bg_root_param, &bg_root_param);

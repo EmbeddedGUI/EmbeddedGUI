@@ -114,7 +114,7 @@ void uicode_update_theme_icons(void)
 void uicode_disp0_init(egui_core_t *core)
 {
     egui_view_canvas_panner_init(EGUI_VIEW_OF(&root), core);
-    egui_view_set_size(EGUI_VIEW_OF(&root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&root), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&root), STYLE_DEMO_CANVAS_WIDTH, STYLE_DEMO_CANVAS_HEIGHT);
 
     // Init ViewPage

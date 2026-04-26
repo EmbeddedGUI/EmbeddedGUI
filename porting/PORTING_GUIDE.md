@@ -1,4 +1,4 @@
-﻿# EmbeddedGUI 移植指南
+# EmbeddedGUI 移植指南
 
 本文档基于当前仓库的驱动层实现，说明如何把 EmbeddedGUI 移植到新的硬件平台，或如何为 `pc` / `emscripten` 这类模拟平台接入统一的驱动接口。
 
@@ -134,8 +134,8 @@ static const egui_display_driver_ops_t s_display_ops = {
 };
 static egui_display_driver_t s_display_driver = {
     .ops = &s_display_ops,
-    .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-    .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
+    .physical_width = EGUI_CONFIG_SCREEN_WIDTH,
+    .physical_height = EGUI_CONFIG_SCREEN_HEIGHT,
     .rotation = EGUI_DISPLAY_ROTATION_0,
     .brightness = 255,
     .power_on = 1,
@@ -151,8 +151,8 @@ void egui_port_init(egui_core_t *core)
                          egui_hal_stm32g0_lcd_set_rst);
 
     egui_hal_lcd_config_t lcd_config = {
-        .width = EGUI_CONFIG_SCEEN_WIDTH,
-        .height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .width = EGUI_CONFIG_SCREEN_WIDTH,
+        .height = EGUI_CONFIG_SCREEN_HEIGHT,
         .color_depth = EGUI_CONFIG_COLOR_DEPTH,
         .color_swap = 0,
         .x_offset = 0,
@@ -358,8 +358,8 @@ void egui_port_init(egui_core_t *core)
 void egui_port_register_touch_driver(egui_core_t *core)
 {
     egui_hal_touch_config_t touch_config = {
-        .width = EGUI_CONFIG_SCEEN_WIDTH,
-        .height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .width = EGUI_CONFIG_SCREEN_WIDTH,
+        .height = EGUI_CONFIG_SCREEN_HEIGHT,
         .swap_xy = 0,
         .mirror_x = 0,
         .mirror_y = 0,
@@ -455,8 +455,8 @@ static const egui_display_driver_ops_t s_display_ops = {
 };
 static egui_display_driver_t s_display_driver = {
     .ops = &s_display_ops,
-    .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-    .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
+    .physical_width = EGUI_CONFIG_SCREEN_WIDTH,
+    .physical_height = EGUI_CONFIG_SCREEN_HEIGHT,
     .rotation = EGUI_DISPLAY_ROTATION_0,
     .brightness = 255,
     .power_on = 1,
@@ -471,8 +471,8 @@ void egui_port_init(egui_core_t *core)
                          egui_hal_stm32g0_lcd_set_rst);
 
     egui_hal_lcd_config_t lcd_config = {
-        .width = EGUI_CONFIG_SCEEN_WIDTH,
-        .height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .width = EGUI_CONFIG_SCREEN_WIDTH,
+        .height = EGUI_CONFIG_SCREEN_HEIGHT,
         .color_depth = EGUI_CONFIG_COLOR_DEPTH,
         .color_swap = 0,
     };
@@ -506,8 +506,8 @@ int main(void)
 
     egui_port_init(&core);
 
-    setup.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
-    setup.screen_height = EGUI_CONFIG_SCEEN_HEIGHT;
+    setup.screen_width = EGUI_CONFIG_SCREEN_WIDTH;
+    setup.screen_height = EGUI_CONFIG_SCREEN_HEIGHT;
     setup.pfb_width = EGUI_CONFIG_PFB_WIDTH;
     setup.pfb_height = EGUI_CONFIG_PFB_HEIGHT;
     setup.pfb_buffers = pfb_bufs;
@@ -552,8 +552,8 @@ void gui_task(void *arg)
     }
 
     egui_port_init(&core);
-    setup.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
-    setup.screen_height = EGUI_CONFIG_SCEEN_HEIGHT;
+    setup.screen_width = EGUI_CONFIG_SCREEN_WIDTH;
+    setup.screen_height = EGUI_CONFIG_SCREEN_HEIGHT;
     setup.pfb_width = EGUI_CONFIG_PFB_WIDTH;
     setup.pfb_height = EGUI_CONFIG_PFB_HEIGHT;
     setup.pfb_buffers = pfb_bufs;
@@ -585,8 +585,8 @@ void gui_task(void *arg)
 常用配置：
 
 ```c
-#define EGUI_CONFIG_SCEEN_WIDTH        240
-#define EGUI_CONFIG_SCEEN_HEIGHT       320
+#define EGUI_CONFIG_SCREEN_WIDTH        240
+#define EGUI_CONFIG_SCREEN_HEIGHT       320
 #define EGUI_CONFIG_COLOR_DEPTH        16
 #define EGUI_CONFIG_COLOR_16_SWAP      0
 

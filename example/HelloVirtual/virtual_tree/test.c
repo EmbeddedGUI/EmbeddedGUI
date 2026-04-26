@@ -24,13 +24,13 @@
 
 #define TREE_DEMO_MARGIN_X                  8
 #define TREE_DEMO_TOP_Y                     8
-#define TREE_DEMO_HEADER_W                  (EGUI_CONFIG_SCEEN_WIDTH - TREE_DEMO_MARGIN_X * 2)
+#define TREE_DEMO_HEADER_W                  (EGUI_CONFIG_SCREEN_WIDTH - TREE_DEMO_MARGIN_X * 2)
 #define TREE_DEMO_HEADER_H                  68
 #define TREE_DEMO_TOOLBAR_Y                 (TREE_DEMO_TOP_Y + TREE_DEMO_HEADER_H + 6)
 #define TREE_DEMO_TOOLBAR_H                 32
 #define TREE_DEMO_VIEW_Y                    (TREE_DEMO_TOOLBAR_Y + TREE_DEMO_TOOLBAR_H + 6)
 #define TREE_DEMO_VIEW_W                    TREE_DEMO_HEADER_W
-#define TREE_DEMO_VIEW_H                    (EGUI_CONFIG_SCEEN_HEIGHT - TREE_DEMO_VIEW_Y - 8)
+#define TREE_DEMO_VIEW_H                    (EGUI_CONFIG_SCREEN_HEIGHT - TREE_DEMO_VIEW_Y - 8)
 #define TREE_DEMO_BUTTON_GAP                4
 #define TREE_DEMO_BUTTON_W                  ((TREE_DEMO_HEADER_W - 20 - TREE_DEMO_BUTTON_GAP * 3) / 4)
 #define TREE_DEMO_BUTTON_H                  20
@@ -1770,7 +1770,7 @@ void test_init_ui(egui_core_t *core)
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&tree_demo_screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &tree_demo_header_card_params);
@@ -2073,19 +2073,19 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             runtime_drag_reverse = runtime_scroll_before_drag > 20 ? 1U : 0U;
         }
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = runtime_drag_reverse ? EGUI_CONFIG_SCEEN_HEIGHT * 3 / 5 : EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = runtime_drag_reverse ? EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5 : EGUI_CONFIG_SCEEN_HEIGHT * 3 / 5;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = runtime_drag_reverse ? EGUI_CONFIG_SCREEN_HEIGHT * 3 / 5 : EGUI_CONFIG_SCREEN_HEIGHT * 4 / 5;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = runtime_drag_reverse ? EGUI_CONFIG_SCREEN_HEIGHT * 4 / 5 : EGUI_CONFIG_SCREEN_HEIGHT * 3 / 5;
         p_action->steps = 4;
         p_action->interval_ms = 520;
         return true;
     case 5:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = runtime_drag_reverse ? EGUI_CONFIG_SCEEN_HEIGHT / 3 : EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = runtime_drag_reverse ? EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4 : EGUI_CONFIG_SCEEN_HEIGHT / 3;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = runtime_drag_reverse ? EGUI_CONFIG_SCREEN_HEIGHT / 3 : EGUI_CONFIG_SCREEN_HEIGHT * 3 / 4;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = runtime_drag_reverse ? EGUI_CONFIG_SCREEN_HEIGHT * 3 / 4 : EGUI_CONFIG_SCREEN_HEIGHT / 3;
         p_action->steps = 5;
         p_action->interval_ms = 620;
         return true;

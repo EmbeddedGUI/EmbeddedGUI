@@ -36,8 +36,8 @@ extern "C" {
 #endif
 
 // 屏幕尺寸
-#define EGUI_CONFIG_SCEEN_WIDTH  240
-#define EGUI_CONFIG_SCEEN_HEIGHT 320
+#define EGUI_CONFIG_SCREEN_WIDTH  240
+#define EGUI_CONFIG_SCREEN_HEIGHT 320
 
 // 色深
 #define EGUI_CONFIG_COLOR_DEPTH  16    // RGB565
@@ -102,8 +102,8 @@ static const egui_display_driver_ops_t my_display_ops = {
 
 static egui_display_driver_t my_display = {
     .ops             = &my_display_ops,
-    .physical_width  = EGUI_CONFIG_SCEEN_WIDTH,
-    .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
+    .physical_width  = EGUI_CONFIG_SCREEN_WIDTH,
+    .physical_height = EGUI_CONFIG_SCREEN_HEIGHT,
     .rotation        = EGUI_DISPLAY_ROTATION_0,
     .brightness      = 255,
     .power_on        = 1,
@@ -229,8 +229,8 @@ void port_main(void)
     egui_display_setup_t setup;
 
     egui_port_init(&core);
-    setup.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
-    setup.screen_height = EGUI_CONFIG_SCEEN_HEIGHT;
+    setup.screen_width = EGUI_CONFIG_SCREEN_WIDTH;
+    setup.screen_height = EGUI_CONFIG_SCREEN_HEIGHT;
     setup.pfb_width = EGUI_CONFIG_PFB_WIDTH;
     setup.pfb_height = EGUI_CONFIG_PFB_HEIGHT;
     setup.pfb_buffers = pfb_bufs;
@@ -319,7 +319,7 @@ void uicode_disp0_init(egui_core_t *core)
 
 如果矩形位置或大小不对：
 - 检查 `draw_area` 中的坐标映射
-- 检查 `EGUI_CONFIG_SCEEN_WIDTH/HEIGHT` 是否与实际屏幕匹配
+- 检查 `EGUI_CONFIG_SCREEN_WIDTH/HEIGHT` 是否与实际屏幕匹配
 - 检查 LCD 的 CASET/RASET 命令参数
 
 ### 检查点 3：文本渲染

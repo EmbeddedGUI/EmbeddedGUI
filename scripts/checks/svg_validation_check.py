@@ -1044,8 +1044,8 @@ def build_default_large_viewport_box() -> dict[str, int]:
 def build_primary_user_cflags(viewport_box: dict[str, object] | None = None) -> str:
     active_viewport_box = dict(viewport_box) if isinstance(viewport_box, dict) else build_default_large_viewport_box()
     return (
-        "-DEGUI_CONFIG_SCEEN_WIDTH=%d "
-        "-DEGUI_CONFIG_SCEEN_HEIGHT=%d "
+        "-DEGUI_CONFIG_SCREEN_WIDTH=%d "
+        "-DEGUI_CONFIG_SCREEN_HEIGHT=%d "
         "-DEGUI_CONFIG_PFB_WIDTH=%d "
         "-DEGUI_CONFIG_PFB_HEIGHT=%d "
         "-DHELLO_SVG_SPEC_VIEWPORT_X=%d "

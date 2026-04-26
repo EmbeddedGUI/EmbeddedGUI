@@ -14,7 +14,7 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE(bg_translate_param, EGUI_COLOR_RED, EGUI
 EGUI_BACKGROUND_PARAM_INIT(bg_translate_params, &bg_translate_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_translate, &bg_translate_params);
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_translate_param, 0, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT - VIEW1_RADIUS * 2);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_translate_param, 0, 0, 0, EGUI_CONFIG_SCREEN_HEIGHT - VIEW1_RADIUS * 2);
 static egui_animation_translate_t anim_translate;
 static egui_interpolator_bounce_t interp_bounce;
 
@@ -56,7 +56,7 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_set_param, EGUI_COLOR_ORANGE, EGUI_ALP
 EGUI_BACKGROUND_PARAM_INIT(bg_set_params, &bg_set_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_set, &bg_set_params);
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_set_translate_param, 0, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT - VIEW4_SIZE);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_set_translate_param, 0, 0, 0, EGUI_CONFIG_SCREEN_HEIGHT - VIEW4_SIZE);
 static egui_animation_translate_t anim_set_translate;
 EGUI_ANIMATION_ALPHA_PARAMS_INIT(anim_set_alpha_param, EGUI_ALPHA_100, EGUI_ALPHA_20);
 static egui_animation_alpha_t anim_set_alpha;
@@ -91,7 +91,7 @@ static const egui_animation_handle_t anim_handle = {
 // Column layout helper
 // ============================================================================
 #define COL_COUNT 4
-#define COL_WIDTH (EGUI_CONFIG_SCEEN_WIDTH / COL_COUNT)
+#define COL_WIDTH (EGUI_CONFIG_SCREEN_WIDTH / COL_COUNT)
 
 void test_init_ui(egui_core_t *core)
 {
@@ -114,7 +114,7 @@ void test_init_ui(egui_core_t *core)
 
     // ---- View 2: Alpha + Linear ----
     egui_view_init(EGUI_VIEW_OF(&view_alpha), core);
-    egui_view_set_position(EGUI_VIEW_OF(&view_alpha), COL_WIDTH * 1 + COL_WIDTH / 2 - VIEW2_SIZE / 2, EGUI_CONFIG_SCEEN_HEIGHT / 2 - VIEW2_SIZE / 2);
+    egui_view_set_position(EGUI_VIEW_OF(&view_alpha), COL_WIDTH * 1 + COL_WIDTH / 2 - VIEW2_SIZE / 2, EGUI_CONFIG_SCREEN_HEIGHT / 2 - VIEW2_SIZE / 2);
     egui_view_set_size(EGUI_VIEW_OF(&view_alpha), VIEW2_SIZE, VIEW2_SIZE);
     egui_view_set_background(EGUI_VIEW_OF(&view_alpha), EGUI_BG_OF(&bg_alpha));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&view_alpha));
@@ -131,7 +131,7 @@ void test_init_ui(egui_core_t *core)
 
     // ---- View 3: Scale + Overshoot ----
     egui_view_init(EGUI_VIEW_OF(&view_scale), core);
-    egui_view_set_position(EGUI_VIEW_OF(&view_scale), COL_WIDTH * 2 + COL_WIDTH / 2 - VIEW3_SIZE / 2, EGUI_CONFIG_SCEEN_HEIGHT / 2 - VIEW3_SIZE / 2);
+    egui_view_set_position(EGUI_VIEW_OF(&view_scale), COL_WIDTH * 2 + COL_WIDTH / 2 - VIEW3_SIZE / 2, EGUI_CONFIG_SCREEN_HEIGHT / 2 - VIEW3_SIZE / 2);
     egui_view_set_size(EGUI_VIEW_OF(&view_scale), VIEW3_SIZE + 1, VIEW3_SIZE + 1);
     egui_view_set_background(EGUI_VIEW_OF(&view_scale), EGUI_BG_OF(&bg_scale));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&view_scale));

@@ -11,7 +11,7 @@ static egui_view_viewpage_t viewpage;
 static egui_view_canvas_t canvas_views[EGUI_VIEW_CANVAS_PAGE_COUNT];
 
 // View params
-EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 
 static void uicode_disp0_init_ui(egui_core_t *core)
 {
@@ -22,7 +22,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     for (uint8_t i = 0; i < EGUI_VIEW_CANVAS_PAGE_COUNT; i++)
     {
         egui_view_canvas_init_with_page(EGUI_VIEW_OF(&canvas_views[i]), core, i);
-        egui_view_set_size(EGUI_VIEW_OF(&canvas_views[i]), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+        egui_view_set_size(EGUI_VIEW_OF(&canvas_views[i]), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
         egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage), EGUI_VIEW_OF(&canvas_views[i]));
     }
 

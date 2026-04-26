@@ -126,26 +126,26 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 1:
         p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2 - 10;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2 - 10;
         p_action->interval_ms = 500;
         return true;
     case 2:
         p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2 - 10;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2 - 10;
         p_action->interval_ms = 500;
         return true;
     case 3:
         p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2 + 30;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2 + 30;
         p_action->interval_ms = 500;
         return true;
     case 4:
         p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2 + 30;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2 + 30;
         p_action->interval_ms = 500;
         return true;
     default:

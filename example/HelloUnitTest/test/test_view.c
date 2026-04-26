@@ -861,7 +861,7 @@ static void test_init_display_sets_canvas_core(void)
     static egui_color_int_t local_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
     egui_color_int_t *pfb_bufs[1] = {local_pfb};
 
-    egui_init_display(&local_core, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, pfb_bufs, 1, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
+    egui_init_display(&local_core, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, pfb_bufs, 1, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
 
     EGUI_TEST_ASSERT_TRUE(egui_canvas_get_core(&local_core.canvas) == &local_core);
 }

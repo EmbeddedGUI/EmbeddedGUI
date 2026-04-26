@@ -76,7 +76,7 @@
 - `2026-04-05` 当前主线重跑确认：`EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES` 保持默认 `0` 仍成立；`0 -> 5000` 会带来 `text +948B, bss +40B`，完整 `239` 场景没有任何 `>=10%` 回退，但在 `EXTERN_IMAGE_TILED_565_0` 和 `EXTERN_IMAGE_RESIZE_TILED_565_1/2/4` 上带来 `-32.6% ~ -61.6%` 改善；runtime `241/241`、unit `688/688` 全等。默认仍保持 `0`，`5000` 只保留为可选 perf-first 实验值。
 - `2026-04-06` 当前主线复核后，`EGUI_CONFIG_IMAGE_STD_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE` 已从 public 配置面移除，并直接固定 shipped 路径 `1`；保留默认 `1` 的结论仍成立，因为历史 `1 -> 0` 仅 `text +20B, bss -40B`，完整 `239` 场景无 `>=10%` 波动，runtime `241/241`、unit `688/688` 全等。
 - `2026-04-06` 当前主线复核后，`EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE` 已从 public 配置面移除，并直接固定 shipped 路径 `1`；保留默认 `1` 的结论仍成立，因为历史 `1 -> 0` 直接拿到 `text -24B, bss -56B`，完整 `239` 场景无 `>=10%` 波动，runtime `241/241`、unit `688/688` 全等。
-- 本轮继续移除了 `EGUI_CONFIG_SCEEN_WIDTH` app override，直接继承库默认 `240`；同时把 `code_perf_check.py` 调整为按维度回默认值，避免缺宽度定义时误判成 `240x320`。`2026-03-31` 已复跑 HelloPerformance clean perf，`read_screen_size()` 仍识别为 `(240, 240)`，报告继续输出 `222` 个 case。
+- 本轮继续移除了 `EGUI_CONFIG_SCREEN_WIDTH` app override，直接继承库默认 `240`；同时把 `code_perf_check.py` 调整为按维度回默认值，避免缺宽度定义时误判成 `240x320`。`2026-03-31` 已复跑 HelloPerformance clean perf，`read_screen_size()` 仍识别为 `(240, 240)`，报告继续输出 `222` 个 case。
 - 本轮继续折叠了 `example/HelloPerformance/egui_view_test_performance.c` 中固定为 `1` 的 `EGUI_TEST_CONFIG_IMAGE_LARGE` 编译期开关。对应 HelloPerformance clean perf 仍保持 `222` 个 case，关键锚点维持 `IMAGE_565_DOUBLE 0.551ms`、`TEXT_ROTATE_BUFFERED 11.498ms`、`ANIMATION_SCALE 0.320ms`。
 - 本轮继续折叠了 `example/HelloPerformance/egui_view_test_performance.c` 中固定为 `1` 的 `EGUI_TEST_CONFIG_IMAGE_SMALL` 编译期开关。对应 HelloPerformance clean perf 仍保持 `222` 个 case，关键锚点继续维持 `IMAGE_565_DOUBLE 0.551ms`、`TEXT_ROTATE_BUFFERED 11.498ms`、`ANIMATION_SCALE 0.320ms`。
 - 本轮把 stack/transient-heap 低 RAM 策略宏移到了 `example/HelloPerformance/app_egui_config.h` 尾部，并收敛成默认关闭的 `#if 0` 可选块。随后又把 `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX=64` 直接上收为库默认值，因此 `HelloPerformance` 不再重复定义它。当前关键锚点仍按 `64` 这个默认值统计：`TEXT_ROTATE_BUFFERED 6.411ms`、`EXTERN_TEXT_ROTATE_BUFFERED 6.792ms`、`SHADOW_ROUND 4.949ms`、`IMAGE_565_DOUBLE 0.551ms`、`ANIMATION_SCALE 0.320ms`；runtime check 仍是 `223/223`。
@@ -94,15 +94,15 @@
 ## 剩余 override 分类
 
 - benchmark 环境宏：
-  - `EGUI_CONFIG_SCEEN_HEIGHT`
+  - `EGUI_CONFIG_SCREEN_HEIGHT`
   - `EGUI_CONFIG_MAX_FPS`
   - `EGUI_CONFIG_PFB_WIDTH`
   - `EGUI_CONFIG_PFB_HEIGHT`
   - `EGUI_CONFIG_PFB_BUFFER_COUNT`
   - `EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE`
   - `EGUI_CONFIG_DEBUG_LOG_LEVEL`
-  - 其中 `SCEEN_WIDTH` 已删除 app override，直接继承库默认 `240`
-  - 其中 `SCEEN_HEIGHT / MAX_FPS / CIRCLE_SUPPORT_RADIUS_BASIC_RANGE / DEBUG_LOG_LEVEL` 的现行依据见 `benchmark_environment_retention.md`
+  - 其中 `SCREEN_WIDTH` 已删除 app override，直接继承库默认 `240`
+  - 其中 `SCREEN_HEIGHT / MAX_FPS / CIRCLE_SUPPORT_RADIUS_BASIC_RANGE / DEBUG_LOG_LEVEL` 的现行依据见 `benchmark_environment_retention.md`
   - 其中 `PFB_WIDTH / PFB_HEIGHT / PFB_BUFFER_COUNT` 的现行 perf 支撑见 `benchmark_override_retention.md`
 - benchmark 能力选择宏：
   - `EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW`
@@ -137,6 +137,6 @@
 ## 结论
 
 - 满足 `<100B static RAM` 且 `<5%` perf 的 app 侧小宏，已经清完。
-- 本轮进一步移除了与库默认值相同的 `EGUI_CONFIG_SCEEN_WIDTH` 冗余 override。
+- 本轮进一步移除了与库默认值相同的 `EGUI_CONFIG_SCREEN_WIDTH` 冗余 override。
 - 当前剩余项要么已确认不能回收，要么超出 `<100B` 门槛，要么属于 heap/stack/codec 行为控制、benchmark 功能选择，或单场景测量入口，不再属于这轮 small static-RAM cleanup。
 - 其中 stack/transient-heap low-RAM 策略宏已经从 active override 集合里收束到 `app_egui_config.h` 尾部的可选 `#if 0` 块，默认构建直接走框架默认 headroom。

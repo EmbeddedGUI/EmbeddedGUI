@@ -67,6 +67,15 @@ extern "C" {
 
 /* Canvas fast-path defaults now live in egui_config_fast_path_default.h. */
 
+/*
+ * Benchmark-only basic circle fill selector.
+ * Keep default disabled so the public draw path continues to use the normal
+ * implementation unless an app explicitly opts into the experiment.
+ */
+#ifndef EGUI_CONFIG_CIRCLE_FILL_BASIC
+#define EGUI_CONFIG_CIRCLE_FILL_BASIC 0
+#endif
+
 /* ---- Enhanced widget drawing ---- */
 
 /**

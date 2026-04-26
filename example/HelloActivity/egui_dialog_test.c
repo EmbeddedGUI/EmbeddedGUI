@@ -20,8 +20,8 @@ static void button_1_click_cb(egui_view_t *self)
     }
 }
 
-#define DIALOG_WIDTH  (EGUI_CONFIG_SCEEN_WIDTH / 2)
-#define DIALOG_HEIGHT (EGUI_CONFIG_SCEEN_HEIGHT / 2)
+#define DIALOG_WIDTH  (EGUI_CONFIG_SCREEN_WIDTH / 2)
+#define DIALOG_HEIGHT (EGUI_CONFIG_SCREEN_HEIGHT / 2)
 
 #define BUTTON_WIDTH  100
 #define BUTTON_HEIGHT 30
@@ -78,7 +78,7 @@ void egui_dialog_test_on_create(egui_dialog_t *self)
     // Set Background
     egui_view_set_background((egui_view_t *)&self->user_root_view, (egui_background_t *)&bg_dialog);
     egui_region_t region;
-    egui_region_init(&region, (EGUI_CONFIG_SCEEN_WIDTH - DIALOG_WIDTH) / 2, (EGUI_CONFIG_SCEEN_HEIGHT - DIALOG_HEIGHT) / 2, DIALOG_WIDTH, DIALOG_HEIGHT);
+    egui_region_init(&region, (EGUI_CONFIG_SCREEN_WIDTH - DIALOG_WIDTH) / 2, (EGUI_CONFIG_SCREEN_HEIGHT - DIALOG_HEIGHT) / 2, DIALOG_WIDTH, DIALOG_HEIGHT);
     egui_dialog_set_layout(self, &region);
 }
 

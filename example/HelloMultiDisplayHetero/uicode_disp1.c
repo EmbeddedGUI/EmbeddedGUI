@@ -79,14 +79,14 @@ void uicode_disp1_init(egui_core_t *core)
 
     egui_view_linearlayout_init(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_layout), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_layout), EGUI_CONFIG_SCEEN_1_WIDTH, EGUI_CONFIG_SCEEN_1_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_layout), EGUI_CONFIG_SCREEN_1_WIDTH, EGUI_CONFIG_SCREEN_1_HEIGHT);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_layout), EGUI_ALIGN_CENTER);
     egui_view_set_background(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_layout), (egui_background_t *)&hello_multi_display_hetero_bg_sub);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_layout), hello_multi_display_hetero_sub_click);
 
     egui_api_sprintf(s_hello_multi_display_hetero_sub_tick_str, "Tick: 0");
     egui_view_label_init(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_tick_label), core);
-    egui_view_set_size(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_tick_label), EGUI_CONFIG_SCEEN_1_WIDTH - 4, 24);
+    egui_view_set_size(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_tick_label), EGUI_CONFIG_SCREEN_1_WIDTH - 4, 24);
     egui_view_set_margin_all(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_tick_label), 2);
     egui_view_label_set_text(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_tick_label), s_hello_multi_display_hetero_sub_tick_str);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_tick_label), EGUI_ALIGN_CENTER);
@@ -95,7 +95,7 @@ void uicode_disp1_init(egui_core_t *core)
 
     egui_api_sprintf(s_hello_multi_display_hetero_sub_page_str, "Page: 1/3");
     egui_view_label_init(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_page_label), core);
-    egui_view_set_size(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_page_label), EGUI_CONFIG_SCEEN_1_WIDTH - 4, 24);
+    egui_view_set_size(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_page_label), EGUI_CONFIG_SCREEN_1_WIDTH - 4, 24);
     egui_view_set_margin_all(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_page_label), 2);
     egui_view_label_set_text(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_page_label), s_hello_multi_display_hetero_sub_page_str);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&s_hello_multi_display_hetero_sub_page_label), EGUI_ALIGN_CENTER);
@@ -124,8 +124,8 @@ int egui_port_get_additional_display_descriptors(egui_port_extra_display_descrip
         return 0;
     }
 
-    descriptors[0].screen_width = EGUI_CONFIG_SCEEN_1_WIDTH;
-    descriptors[0].screen_height = EGUI_CONFIG_SCEEN_1_HEIGHT;
+    descriptors[0].screen_width = EGUI_CONFIG_SCREEN_1_WIDTH;
+    descriptors[0].screen_height = EGUI_CONFIG_SCREEN_1_HEIGHT;
     descriptors[0].pfb_width = EGUI_CONFIG_PFB_1_WIDTH;
     descriptors[0].pfb_height = EGUI_CONFIG_PFB_1_HEIGHT;
     descriptors[0].pfb_buffers = s_hello_multi_display_hetero_disp1_pfb_bufs;

@@ -9,13 +9,13 @@ extern "C" {
 /* ---- Screen ---- */
 
 /* Width of the screen <8-32767> */
-#ifndef EGUI_CONFIG_SCEEN_WIDTH
-#define EGUI_CONFIG_SCEEN_WIDTH 240
+#ifndef EGUI_CONFIG_SCREEN_WIDTH
+#define EGUI_CONFIG_SCREEN_WIDTH 240
 #endif
 
 /* Height of the screen <8-32767> */
-#ifndef EGUI_CONFIG_SCEEN_HEIGHT
-#define EGUI_CONFIG_SCEEN_HEIGHT 320
+#ifndef EGUI_CONFIG_SCREEN_HEIGHT
+#define EGUI_CONFIG_SCREEN_HEIGHT 320
 #endif
 
 /* Select the screen colour depth */
@@ -49,14 +49,14 @@ extern "C" {
 
 /* Divisor-sized PFB tiles are usually the best default, but edge tiles can also be handled safely. */
 
-/* Width of the PFB block, suggested to be a divisor of EGUI_CONFIG_SCEEN_WIDTH */
+/* Width of the PFB block, suggested to be a divisor of EGUI_CONFIG_SCREEN_WIDTH */
 #ifndef EGUI_CONFIG_PFB_WIDTH
-#define EGUI_CONFIG_PFB_WIDTH (EGUI_CONFIG_SCEEN_WIDTH / 8)
+#define EGUI_CONFIG_PFB_WIDTH (EGUI_CONFIG_SCREEN_WIDTH / 8)
 #endif
 
-/* Height of the PFB block, suggested to be a divisor of EGUI_CONFIG_SCEEN_HEIGHT */
+/* Height of the PFB block, suggested to be a divisor of EGUI_CONFIG_SCREEN_HEIGHT */
 #ifndef EGUI_CONFIG_PFB_HEIGHT
-#define EGUI_CONFIG_PFB_HEIGHT (EGUI_CONFIG_SCEEN_HEIGHT / 8)
+#define EGUI_CONFIG_PFB_HEIGHT (EGUI_CONFIG_SCREEN_HEIGHT / 8)
 #endif
 
 #include "egui_config_multi_default.h"
@@ -486,7 +486,7 @@ extern "C" {
  * as temporary storage for one decoded row. Default = screen width.
  */
 #ifndef EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH
-#define EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH EGUI_CONFIG_SCEEN_WIDTH
+#define EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH EGUI_CONFIG_SCREEN_WIDTH
 #endif
 
 /**
@@ -495,7 +495,7 @@ extern "C" {
  * Default: 2 rows of RGB565 data.
  */
 #ifndef EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
-#define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * 2 * 2)
+#define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES (EGUI_CONFIG_SCREEN_WIDTH * 2 * 2)
 #endif
 
 /**
@@ -504,7 +504,7 @@ extern "C" {
  * Default: 2 rows of alpha data.
  */
 #ifndef EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
-#define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * 2)
+#define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES (EGUI_CONFIG_SCREEN_WIDTH * 2)
 #endif
 
 /* ---- Reduce code/ram size ---- */

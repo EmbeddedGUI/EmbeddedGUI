@@ -257,20 +257,20 @@ def tune_recording_params_for_app(app_name, snapshot_settle_ms, snapshot_stable_
     )
 
 
-def get_config_max_display_count(app, app_sub=None):
+def get_config_max_display_count(app, app_sub=None, user_cflags=""):
     for config_path in get_config_paths(app, app_sub):
         if not config_path.exists():
             continue
 
-        value = get_macro_int_from_config(config_path, "EGUI_CONFIG_MAX_DISPLAY_COUNT", None)
+        value = get_macro_int_from_config(config_path, "EGUI_CONFIG_MAX_DISPLAY_COUNT", None, user_cflags=user_cflags)
         if value is not None and value > 0:
             return value
 
     return 1
 
 
-def get_expected_runtime_display_ids(app, app_sub=None):
-    return tuple(range(get_config_max_display_count(app, app_sub)))
+def get_expected_runtime_display_ids(app, app_sub=None, user_cflags=""):
+    return tuple(range(get_config_max_display_count(app, app_sub, user_cflags=user_cflags)))
 
 
 def get_expected_runtime_frame_labels(app, app_sub=None):
@@ -1019,7 +1019,7 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
             clock_scale=RECORDING_CLOCK_SCALE,
             snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
             snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-            build_output_dir=None, app=None, app_sub=None):
+            build_output_dir=None, app=None, app_sub=None, user_cflags=""):
     """Run app with recording mode, capture screenshot, verify exit.
     Retries on crash (access violation) since PC simulator has known
     race conditions between main thread and egui thread.
@@ -1040,7 +1040,7 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
     return run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration,
                                  speed, snapshot_settle_ms, clock_scale,
                                  snapshot_stable_cycles, snapshot_max_wait_ms,
-                                 expected_display_ids=get_expected_runtime_display_ids(app or app_name, app_sub),
+                                 expected_display_ids=get_expected_runtime_display_ids(app or app_name, app_sub, user_cflags=user_cflags),
                                  app=app or app_name,
                                  app_sub=app_sub)
 
@@ -1085,7 +1085,8 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
                    snapshot_max_wait_ms=snapshot_max_wait_ms,
                    build_output_dir=build_output_dir,
                    app=app,
-                   app_sub=app_sub)
+                   app_sub=app_sub,
+                   user_cflags=user_cflags)
 
 
 

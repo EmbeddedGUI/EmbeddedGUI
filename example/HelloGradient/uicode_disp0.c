@@ -8,8 +8,8 @@
  * ============================================================ */
 
 #define PAGE_COUNT 7
-#define SCR_W      EGUI_CONFIG_SCEEN_WIDTH
-#define SCR_H      EGUI_CONFIG_SCEEN_HEIGHT
+#define SCR_W      EGUI_CONFIG_SCREEN_WIDTH
+#define SCR_H      EGUI_CONFIG_SCREEN_HEIGHT
 
 /* ---------- ViewPage and page views ---------- */
 static egui_view_viewpage_t viewpage;

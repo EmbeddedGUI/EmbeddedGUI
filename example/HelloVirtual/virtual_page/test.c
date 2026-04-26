@@ -16,13 +16,13 @@
 
 #define PAGE_MARGIN_X     8
 #define PAGE_TOP_Y        8
-#define PAGE_HEADER_W     (EGUI_CONFIG_SCEEN_WIDTH - PAGE_MARGIN_X * 2)
+#define PAGE_HEADER_W     (EGUI_CONFIG_SCREEN_WIDTH - PAGE_MARGIN_X * 2)
 #define PAGE_HEADER_H     68
 #define PAGE_TOOLBAR_Y    (PAGE_TOP_Y + PAGE_HEADER_H + 6)
 #define PAGE_TOOLBAR_H    32
 #define PAGE_VIEW_Y       (PAGE_TOOLBAR_Y + PAGE_TOOLBAR_H + 6)
 #define PAGE_VIEW_W       PAGE_HEADER_W
-#define PAGE_VIEW_H       (EGUI_CONFIG_SCEEN_HEIGHT - PAGE_VIEW_Y - 8)
+#define PAGE_VIEW_H       (EGUI_CONFIG_SCREEN_HEIGHT - PAGE_VIEW_Y - 8)
 #define PAGE_BUTTON_GAP   4
 #define PAGE_BUTTON_W     ((PAGE_HEADER_W - 20 - PAGE_BUTTON_GAP * 3) / 4)
 #define PAGE_BUTTON_H     20
@@ -1452,7 +1452,7 @@ void test_init_ui(egui_core_t *core)
     s_core = core;
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &header_card_params);

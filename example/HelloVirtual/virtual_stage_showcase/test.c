@@ -22,7 +22,7 @@ static egui_core_t *s_core;
 #define SHOWCASE_CANVAS_WIDTH       HELLO_VIRTUAL_STAGE_SHOWCASE_CANVAS_WIDTH
 #define SHOWCASE_CANVAS_HEIGHT      HELLO_VIRTUAL_STAGE_SHOWCASE_CANVAS_HEIGHT
 #define SHOWCASE_KEYBOARD_HEIGHT    128
-#define SHOWCASE_KEYBOARD_Y         ((EGUI_CONFIG_SCEEN_HEIGHT > SHOWCASE_KEYBOARD_HEIGHT) ? (EGUI_CONFIG_SCEEN_HEIGHT - SHOWCASE_KEYBOARD_HEIGHT) : 0)
+#define SHOWCASE_KEYBOARD_Y         ((EGUI_CONFIG_SCREEN_HEIGHT > SHOWCASE_KEYBOARD_HEIGHT) ? (EGUI_CONFIG_SCREEN_HEIGHT - SHOWCASE_KEYBOARD_HEIGHT) : 0)
 #define SHOWCASE_DIRTY_ANIM_FOCUS_X 96
 #define SHOWCASE_DIRTY_ANIM_FOCUS_Y 250
 
@@ -255,7 +255,7 @@ static int showcase_recording_verify_retry_index = -1;
 
 static uint8_t showcase_recording_uses_small_screen(void)
 {
-    return (EGUI_CONFIG_SCEEN_WIDTH < SHOWCASE_CANVAS_WIDTH) || (EGUI_CONFIG_SCEEN_HEIGHT < SHOWCASE_CANVAS_HEIGHT);
+    return (EGUI_CONFIG_SCREEN_WIDTH < SHOWCASE_CANVAS_WIDTH) || (EGUI_CONFIG_SCREEN_HEIGHT < SHOWCASE_CANVAS_HEIGHT);
 }
 
 static void showcase_sim_canvas_to_screen(egui_dim_t canvas_x, egui_dim_t canvas_y, int *x, int *y)
@@ -270,10 +270,10 @@ static void showcase_sim_canvas_to_screen(egui_dim_t canvas_x, egui_dim_t canvas
 static void showcase_runtime_focus_node(uint32_t node_index)
 {
     const egui_region_t *region = &showcase_ctx.nodes[node_index].desc.region;
-    egui_dim_t target_x = region->location.x + region->size.width / 2 - EGUI_CONFIG_SCEEN_WIDTH / 2;
-    egui_dim_t target_y = region->location.y + region->size.height / 2 - EGUI_CONFIG_SCEEN_HEIGHT / 2;
-    egui_dim_t max_offset_x = SHOWCASE_CANVAS_WIDTH > EGUI_CONFIG_SCEEN_WIDTH ? (SHOWCASE_CANVAS_WIDTH - EGUI_CONFIG_SCEEN_WIDTH) : 0;
-    egui_dim_t max_offset_y = SHOWCASE_CANVAS_HEIGHT > EGUI_CONFIG_SCEEN_HEIGHT ? (SHOWCASE_CANVAS_HEIGHT - EGUI_CONFIG_SCEEN_HEIGHT) : 0;
+    egui_dim_t target_x = region->location.x + region->size.width / 2 - EGUI_CONFIG_SCREEN_WIDTH / 2;
+    egui_dim_t target_y = region->location.y + region->size.height / 2 - EGUI_CONFIG_SCREEN_HEIGHT / 2;
+    egui_dim_t max_offset_x = SHOWCASE_CANVAS_WIDTH > EGUI_CONFIG_SCREEN_WIDTH ? (SHOWCASE_CANVAS_WIDTH - EGUI_CONFIG_SCREEN_WIDTH) : 0;
+    egui_dim_t max_offset_y = SHOWCASE_CANVAS_HEIGHT > EGUI_CONFIG_SCREEN_HEIGHT ? (SHOWCASE_CANVAS_HEIGHT - EGUI_CONFIG_SCREEN_HEIGHT) : 0;
 
     if (target_x < 0)
     {
@@ -2930,11 +2930,11 @@ void test_init_ui(egui_core_t *core)
 #endif
 
     egui_view_canvas_panner_init(EGUI_VIEW_OF(&showcase_root), core);
-    egui_view_set_size(EGUI_VIEW_OF(&showcase_root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&showcase_root), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&showcase_root), SHOWCASE_CANVAS_WIDTH, SHOWCASE_CANVAS_HEIGHT);
 
     egui_view_group_init(EGUI_VIEW_OF(&showcase_scratch_host), core);
-    egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch_host), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&showcase_scratch_host), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&showcase_scratch_host));
     EGUI_VIEW_OF(&showcase_scratch_host)->api->calculate_layout(EGUI_VIEW_OF(&showcase_scratch_host));
 
@@ -2959,7 +2959,7 @@ void test_init_ui(egui_core_t *core)
 
     egui_view_keyboard_init(EGUI_VIEW_OF(&showcase_keyboard_view), core);
     egui_view_set_position(EGUI_VIEW_OF(&showcase_keyboard_view), 0, SHOWCASE_KEYBOARD_Y);
-    egui_view_set_size(EGUI_VIEW_OF(&showcase_keyboard_view), EGUI_CONFIG_SCEEN_WIDTH, SHOWCASE_KEYBOARD_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&showcase_keyboard_view), EGUI_CONFIG_SCREEN_WIDTH, SHOWCASE_KEYBOARD_HEIGHT);
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&showcase_keyboard_view), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_keyboard_set_icon_font(EGUI_VIEW_OF(&showcase_keyboard_view), EGUI_FONT_ICON_MS_20);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&showcase_keyboard_view));
@@ -3282,7 +3282,7 @@ verify_finish:
 
     showcase_reset_verify_retry(verify_index);
 
-    if (EGUI_VIEW_OF(&showcase_keyboard_view)->region.size.width != EGUI_CONFIG_SCEEN_WIDTH)
+    if (EGUI_VIEW_OF(&showcase_keyboard_view)->region.size.width != EGUI_CONFIG_SCREEN_WIDTH)
     {
         report_runtime_failure("virtual_stage_showcase keyboard width does not match the showcase canvas");
     }

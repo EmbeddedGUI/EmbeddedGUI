@@ -230,8 +230,8 @@ void port_main(void)
     static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
     egui_color_int_t *pfb_bufs[1] = { egui_pfb };
     egui_display_setup_t setup = {
-        .screen_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .screen_height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .screen_width = EGUI_CONFIG_SCREEN_WIDTH,
+        .screen_height = EGUI_CONFIG_SCREEN_HEIGHT,
         .pfb_width = EGUI_CONFIG_PFB_WIDTH,
         .pfb_height = EGUI_CONFIG_PFB_HEIGHT,
         .pfb_buffers = pfb_bufs,
@@ -256,8 +256,8 @@ void port_main(void)
 
 | 宏 | 默认值 | 说明 |
 |---|--------|------|
-| `EGUI_CONFIG_SCEEN_WIDTH` | 240 | 屏幕宽度 |
-| `EGUI_CONFIG_SCEEN_HEIGHT` | 320 | 屏幕高度 |
+| `EGUI_CONFIG_SCREEN_WIDTH` | 240 | 屏幕宽度 |
+| `EGUI_CONFIG_SCREEN_HEIGHT` | 320 | 屏幕高度 |
 | `EGUI_CONFIG_COLOR_DEPTH` | 16 | 色深（16=RGB565, 32=ARGB8888） |
 | `EGUI_CONFIG_COLOR_16_SWAP` | 0 | RGB565 字节交换（默认 runtime 值） |
 | `EGUI_CONFIG_PFB_WIDTH` | 屏宽/8 | PFB 块宽度 |

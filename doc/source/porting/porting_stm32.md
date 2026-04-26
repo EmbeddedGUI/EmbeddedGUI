@@ -207,8 +207,8 @@ static egui_hal_touch_driver_t s_touch_driver;
 void egui_port_register_touch_driver(egui_core_t *core)
 {
     egui_hal_touch_config_t touch_config = {
-        .width = EGUI_CONFIG_SCEEN_WIDTH,
-        .height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .width = EGUI_CONFIG_SCREEN_WIDTH,
+        .height = EGUI_CONFIG_SCREEN_HEIGHT,
         .swap_xy = 0,
         .mirror_x = 0,
         .mirror_y = 0,

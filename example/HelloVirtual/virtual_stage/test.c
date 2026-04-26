@@ -4702,7 +4702,7 @@ void test_init_ui(egui_core_t *core)
     demo_init_nodes();
 
     egui_view_canvas_panner_init(EGUI_VIEW_OF(&demo_root), core);
-    egui_view_set_size(EGUI_VIEW_OF(&demo_root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&demo_root), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&demo_root), DEMO_CANVAS_WIDTH, DEMO_CANVAS_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&demo_root), EGUI_BG_OF(&screen_bg));
 

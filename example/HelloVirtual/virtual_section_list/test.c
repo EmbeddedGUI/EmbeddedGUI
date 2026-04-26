@@ -19,13 +19,13 @@
 
 #define SECTION_DEMO_MARGIN_X              8
 #define SECTION_DEMO_TOP_Y                 8
-#define SECTION_DEMO_HEADER_W              (EGUI_CONFIG_SCEEN_WIDTH - SECTION_DEMO_MARGIN_X * 2)
+#define SECTION_DEMO_HEADER_W              (EGUI_CONFIG_SCREEN_WIDTH - SECTION_DEMO_MARGIN_X * 2)
 #define SECTION_DEMO_HEADER_H              68
 #define SECTION_DEMO_TOOLBAR_Y             (SECTION_DEMO_TOP_Y + SECTION_DEMO_HEADER_H + 6)
 #define SECTION_DEMO_TOOLBAR_H             32
 #define SECTION_DEMO_VIEW_Y                (SECTION_DEMO_TOOLBAR_Y + SECTION_DEMO_TOOLBAR_H + 6)
 #define SECTION_DEMO_VIEW_W                SECTION_DEMO_HEADER_W
-#define SECTION_DEMO_VIEW_H                (EGUI_CONFIG_SCEEN_HEIGHT - SECTION_DEMO_VIEW_Y - 8)
+#define SECTION_DEMO_VIEW_H                (EGUI_CONFIG_SCREEN_HEIGHT - SECTION_DEMO_VIEW_Y - 8)
 #define SECTION_DEMO_BUTTON_GAP            4
 #define SECTION_DEMO_BUTTON_W              ((SECTION_DEMO_HEADER_W - 20 - SECTION_DEMO_BUTTON_GAP * 3) / 4)
 #define SECTION_DEMO_BUTTON_H              20
@@ -1691,7 +1691,7 @@ void test_init_ui(egui_core_t *core)
     s_core = core;
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&section_demo_screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &section_demo_header_card_params);
@@ -1845,10 +1845,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 3:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 3;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT * 4 / 5;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 3;
         p_action->steps = 6;
         p_action->interval_ms = 220;
         return true;

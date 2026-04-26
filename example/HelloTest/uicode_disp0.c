@@ -13,7 +13,7 @@ void uicode_disp0_init(egui_core_t *core)
 {
     egui_view_test_init(EGUI_VIEW_OF(&perf_scene), core);
     egui_view_set_position(EGUI_VIEW_OF(&perf_scene), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&perf_scene), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&perf_scene), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&perf_scene));
     egui_view_invalidate(EGUI_VIEW_OF(&perf_scene));

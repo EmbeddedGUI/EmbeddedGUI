@@ -208,7 +208,7 @@ static uint8_t egui_view_combobox_get_visible_count_for_height(const egui_view_c
 static egui_dim_t egui_view_combobox_get_available_bottom(egui_view_t *self)
 {
     egui_core_t *core = egui_view_get_core(self);
-    egui_dim_t available_bottom = core != NULL ? core->screen_height : EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t available_bottom = core != NULL ? core->screen_height : EGUI_CONFIG_SCREEN_HEIGHT;
     egui_view_t *parent = (egui_view_t *)self->parent;
 
     while (parent != NULL)

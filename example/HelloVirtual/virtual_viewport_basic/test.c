@@ -23,13 +23,13 @@
 
 #define BASIC_MARGIN_X   8
 #define BASIC_TOP_Y      8
-#define BASIC_HEADER_W   (EGUI_CONFIG_SCEEN_WIDTH - BASIC_MARGIN_X * 2)
+#define BASIC_HEADER_W   (EGUI_CONFIG_SCREEN_WIDTH - BASIC_MARGIN_X * 2)
 #define BASIC_HEADER_H   0
 #define BASIC_TOOLBAR_Y  BASIC_TOP_Y
 #define BASIC_TOOLBAR_H  34
 #define BASIC_VIEWPORT_Y (BASIC_TOOLBAR_Y + BASIC_TOOLBAR_H + 6)
 #define BASIC_VIEWPORT_W BASIC_HEADER_W
-#define BASIC_VIEWPORT_H (EGUI_CONFIG_SCEEN_HEIGHT - BASIC_VIEWPORT_Y - 8)
+#define BASIC_VIEWPORT_H (EGUI_CONFIG_SCREEN_HEIGHT - BASIC_VIEWPORT_Y - 8)
 #define BASIC_ACTION_GAP 6
 #define BASIC_ACTION_W   ((BASIC_HEADER_W - 20 - BASIC_ACTION_GAP * 2) / 3)
 
@@ -916,7 +916,7 @@ void test_init_ui(egui_core_t *core)
     s_core = core;
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&basic_screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &basic_toolbar_card_params);

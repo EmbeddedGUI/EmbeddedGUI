@@ -21,12 +21,12 @@
 
 #define STRIP_MARGIN_X                  8
 #define STRIP_TOP_Y                     8
-#define STRIP_CONTENT_W                 (EGUI_CONFIG_SCEEN_WIDTH - STRIP_MARGIN_X * 2)
+#define STRIP_CONTENT_W                 (EGUI_CONFIG_SCREEN_WIDTH - STRIP_MARGIN_X * 2)
 #define STRIP_HEADER_H                  78
 #define STRIP_TOOLBAR_Y                 (STRIP_TOP_Y + STRIP_HEADER_H + 6)
 #define STRIP_TOOLBAR_H                 32
 #define STRIP_VIEW_Y                    (STRIP_TOOLBAR_Y + STRIP_TOOLBAR_H + 6)
-#define STRIP_VIEW_H                    (EGUI_CONFIG_SCEEN_HEIGHT - STRIP_VIEW_Y - 8)
+#define STRIP_VIEW_H                    (EGUI_CONFIG_SCREEN_HEIGHT - STRIP_VIEW_Y - 8)
 #define STRIP_SCENE_BUTTON_GAP          6
 #define STRIP_ACTION_BUTTON_GAP         4
 #define STRIP_SCENE_BUTTON_W            ((STRIP_CONTENT_W - 24 - STRIP_SCENE_BUTTON_GAP * 2) / 3)
@@ -1687,7 +1687,7 @@ void test_init_ui(egui_core_t *core)
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&strip_screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &strip_header_card_params);
@@ -1886,9 +1886,9 @@ static uint8_t strip_demo_schedule_verify_retry(uint8_t *retry_counter, uint8_t 
 static void strip_demo_set_swipe_action(egui_sim_action_t *p_action, uint32_t interval_ms)
 {
     p_action->type = EGUI_SIM_ACTION_SWIPE;
-    p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 4 / 5;
+    p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 4 / 5;
     p_action->y1 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
-    p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 3;
+    p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 3;
     p_action->y2 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
     p_action->steps = 5;
     p_action->interval_ms = interval_ms;

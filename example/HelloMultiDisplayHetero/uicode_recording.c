@@ -464,10 +464,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             hello_multi_display_hetero_report_runtime_failure("failed to query sub tick before main drag 1");
         }
         p_action->type = EGUI_SIM_ACTION_DRAG;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 15;
         p_action->interval_ms = 800;
         p_action->display_id = 0;
@@ -510,10 +510,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             hello_multi_display_hetero_report_runtime_failure("failed to query sub tick before main drag 2");
         }
         p_action->type = EGUI_SIM_ACTION_DRAG;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 15;
         p_action->interval_ms = 800;
         p_action->display_id = 0;
@@ -581,10 +581,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             hello_multi_display_hetero_report_runtime_failure("failed to query sub tick before main restore");
         }
         p_action->type = EGUI_SIM_ACTION_DRAG;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 15;
         p_action->interval_ms = 800;
         p_action->display_id = 0;

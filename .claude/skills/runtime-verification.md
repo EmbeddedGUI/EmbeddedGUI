@@ -99,7 +99,7 @@ https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets
 
 ```bash
 make clean
-make all APP={APP} PORT=pc USER_CFLAGS="-DEGUI_CONFIG_SCEEN_WIDTH=320 -DEGUI_CONFIG_SCEEN_HEIGHT=240"
+make all APP={APP} PORT=pc USER_CFLAGS="-DEGUI_CONFIG_SCREEN_WIDTH=320 -DEGUI_CONFIG_SCREEN_HEIGHT=240"
 output\main.exe output\app_egui_resource_merge.bin --record runtime_check_output/{APP}/manual_320x240 2 30 --speed 1
 ```
 

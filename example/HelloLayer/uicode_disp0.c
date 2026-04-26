@@ -98,14 +98,14 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     // Root group - full screen
     egui_view_group_init(EGUI_VIEW_OF(&root_group), core);
     egui_view_set_position(EGUI_VIEW_OF(&root_group), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&root_group), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&root_group), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_background_color_init_with_params(EGUI_BG_OF(&bg_root), &bg_root_params);
     egui_view_set_background(EGUI_VIEW_OF(&root_group), EGUI_BG_OF(&bg_root));
 
     // Title label
     egui_view_label_init(EGUI_VIEW_OF(&label_title), core);
     egui_view_set_position(EGUI_VIEW_OF(&label_title), 0, 5);
-    egui_view_set_size(EGUI_VIEW_OF(&label_title), EGUI_CONFIG_SCEEN_WIDTH, 30);
+    egui_view_set_size(EGUI_VIEW_OF(&label_title), EGUI_CONFIG_SCREEN_WIDTH, 30);
     egui_view_label_set_text(EGUI_VIEW_OF(&label_title), "Layer Demo");
     egui_view_label_set_font(EGUI_VIEW_OF(&label_title), (const egui_font_t *)&egui_res_font_montserrat_18_4);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&label_title), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -114,7 +114,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     // Overlap container group
     egui_view_group_init(EGUI_VIEW_OF(&overlap_group), core);
     egui_view_set_position(EGUI_VIEW_OF(&overlap_group), 0, 35);
-    egui_view_set_size(EGUI_VIEW_OF(&overlap_group), EGUI_CONFIG_SCEEN_WIDTH, 200);
+    egui_view_set_size(EGUI_VIEW_OF(&overlap_group), EGUI_CONFIG_SCREEN_WIDTH, 200);
 
     // Red label
     egui_view_label_init(EGUI_VIEW_OF(&label_red), core);
@@ -162,7 +162,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     // Status label - shows which view is currently on top
     egui_view_label_init(EGUI_VIEW_OF(&label_status), core);
     egui_view_set_position(EGUI_VIEW_OF(&label_status), 0, 240);
-    egui_view_set_size(EGUI_VIEW_OF(&label_status), EGUI_CONFIG_SCEEN_WIDTH, 30);
+    egui_view_set_size(EGUI_VIEW_OF(&label_status), EGUI_CONFIG_SCREEN_WIDTH, 30);
     egui_view_label_set_text(EGUI_VIEW_OF(&label_status), status_str);
     egui_view_label_set_font(EGUI_VIEW_OF(&label_status), (const egui_font_t *)&egui_res_font_montserrat_16_4);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&label_status), EGUI_THEME_TEXT, EGUI_ALPHA_100);
@@ -171,7 +171,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     // Button layout - horizontal, centered at bottom
     egui_view_linearlayout_init(EGUI_VIEW_OF(&btn_layout), core);
     egui_view_set_position(EGUI_VIEW_OF(&btn_layout), 0, 272);
-    egui_view_set_size(EGUI_VIEW_OF(&btn_layout), EGUI_CONFIG_SCEEN_WIDTH, BTN_H + 10);
+    egui_view_set_size(EGUI_VIEW_OF(&btn_layout), EGUI_CONFIG_SCREEN_WIDTH, BTN_H + 10);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&btn_layout), 1); // horizontal
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&btn_layout), EGUI_ALIGN_CENTER);
 

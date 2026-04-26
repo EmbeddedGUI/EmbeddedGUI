@@ -97,12 +97,12 @@ void egui_dialog_add_view(egui_dialog_t *self, egui_view_t *view);
 ```c
 // 打开动画：从屏幕底部滑入
 EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_dialog_start_param,
-    0, 0, EGUI_CONFIG_SCEEN_HEIGHT, 0);
+    0, 0, EGUI_CONFIG_SCREEN_HEIGHT, 0);
 egui_animation_translate_t anim_dialog_start;
 
 // 关闭动画：向屏幕底部滑出
 EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_dialog_finish_param,
-    0, 0, 0, -EGUI_CONFIG_SCEEN_HEIGHT);
+    0, 0, 0, -EGUI_CONFIG_SCREEN_HEIGHT);
 egui_animation_translate_t anim_dialog_finish;
 
 // 初始化并注册
@@ -158,8 +158,8 @@ void egui_dialog_test_on_create(egui_dialog_t *self)
     );
     egui_region_t region;
     egui_region_init(&region,
-        (EGUI_CONFIG_SCEEN_WIDTH - DIALOG_WIDTH) / 2,
-        (EGUI_CONFIG_SCEEN_HEIGHT - DIALOG_HEIGHT) / 2,
+        (EGUI_CONFIG_SCREEN_WIDTH - DIALOG_WIDTH) / 2,
+        (EGUI_CONFIG_SCREEN_HEIGHT - DIALOG_HEIGHT) / 2,
         DIALOG_WIDTH, DIALOG_HEIGHT);
     egui_dialog_set_layout(self, &region);
 }

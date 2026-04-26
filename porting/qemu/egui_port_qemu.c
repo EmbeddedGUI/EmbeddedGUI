@@ -257,8 +257,8 @@ static const egui_display_driver_ops_t port_display_ops = {
 
 static egui_display_driver_t port_display_driver = {
         .ops = &port_display_ops,
-        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .physical_width = EGUI_CONFIG_SCREEN_WIDTH,
+        .physical_height = EGUI_CONFIG_SCREEN_HEIGHT,
         .rotation = EGUI_DISPLAY_ROTATION_0,
         .brightness = 255,
         .power_on = 1,

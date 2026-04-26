@@ -28,14 +28,14 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_scroller_2_param, EGUI_COLOR_MAKE(46, 
 EGUI_BACKGROUND_PARAM_INIT(bg_scroller_2_params, &bg_scroller_2_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_scroller_2, &bg_scroller_2_params);
 
-EGUI_VIEW_LABEL_PARAMS_INIT(title_label_params, 0, 12, EGUI_CONFIG_SCEEN_WIDTH, 24, "Lyric Scroller", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE,
+EGUI_VIEW_LABEL_PARAMS_INIT(title_label_params, 0, 12, EGUI_CONFIG_SCREEN_WIDTH, 24, "Lyric Scroller", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE,
                             EGUI_ALPHA_100);
-EGUI_VIEW_LABEL_PARAMS_INIT(hint_label_params, 12, 54, EGUI_CONFIG_SCEEN_WIDTH - 24, 24, "Bottom line updates every 1.8s and restarts scrolling.",
+EGUI_VIEW_LABEL_PARAMS_INIT(hint_label_params, 12, 54, EGUI_CONFIG_SCREEN_WIDTH - 24, 24, "Bottom line updates every 1.8s and restarts scrolling.",
                             EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_SECONDARY, EGUI_ALPHA_100);
-EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT(lyric_static_params, 12, 102, EGUI_CONFIG_SCEEN_WIDTH - 24, 28,
+EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT(lyric_static_params, 12, 102, EGUI_CONFIG_SCREEN_WIDTH - 24, 28,
                                      "Scrolling lyrics can bounce left and right while keeping the text clipped inside its own viewport.",
                                      EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT(lyric_dynamic_params, 12, 152, EGUI_CONFIG_SCEEN_WIDTH - 24, 28, "We are glowing in the midnight signal line.",
+EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT(lyric_dynamic_params, 12, 152, EGUI_CONFIG_SCREEN_WIDTH - 24, 28, "We are glowing in the midnight signal line.",
                                      EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 
 static void lyric_dynamic_swap_callback(egui_timer_t *timer)

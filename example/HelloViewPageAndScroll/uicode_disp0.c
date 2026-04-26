@@ -42,20 +42,20 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 3:
     case 4:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;
     case 5:
     case 6:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;

@@ -150,7 +150,7 @@ static void test_toast_set_as_default_uses_explicit_init_core(void)
     static egui_color_int_t local_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
     egui_color_int_t *pfb_bufs[1] = {local_pfb};
 
-    egui_init_display(&local_core, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, pfb_bufs, 1, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
+    egui_init_display(&local_core, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, pfb_bufs, 1, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
 
     egui_toast_std_init((egui_toast_t *)&test_toast_std, &local_core);
     EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_PARENT(EGUI_VIEW_OF(&test_toast_std.label)) == (egui_view_t *)egui_core_get_root_view(&local_core));

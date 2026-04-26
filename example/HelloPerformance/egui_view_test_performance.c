@@ -430,7 +430,7 @@ static void egui_view_test_performance_test_text(egui_view_t *self)
 
 static void egui_view_test_performance_test_text_rect(egui_view_t *self)
 {
-    EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
+    EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, 200);
     egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
@@ -441,7 +441,7 @@ static void egui_view_test_performance_draw_text_with_font(egui_view_t *self, co
 
 static void egui_view_test_performance_draw_text_rect_with_font(egui_view_t *self, const egui_font_t *font)
 {
-    EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
+    EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, 200);
     egui_canvas_draw_text_in_rect((egui_font_t *)font, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
@@ -511,8 +511,8 @@ static void egui_view_test_performance_test_rectangle(egui_view_t *self)
 {
     egui_dim_t x = 0;
     egui_dim_t y = 0;
-    egui_dim_t width = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t height = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t width = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t height = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_dim_t stroke_width = EGUI_MIN(width, height) >> 2;
 
     egui_canvas_draw_rectangle(x, y, width, height, stroke_width, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -520,18 +520,18 @@ static void egui_view_test_performance_test_rectangle(egui_view_t *self)
 
 static void egui_view_test_performance_test_circle(egui_view_t *self)
 {
-    egui_dim_t central_x = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t central_y = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1);
+    egui_dim_t central_x = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t central_y = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1);
     egui_dim_t stroke_width = radius >> 1;
     egui_canvas_draw_circle(central_x, central_y, radius, stroke_width, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_arc(egui_view_t *self)
 {
-    egui_dim_t central_x = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t central_y = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1);
+    egui_dim_t central_x = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t central_y = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1);
     egui_canvas_draw_arc(central_x, central_y, radius, 0, 60, 10, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_draw_arc(central_x, central_y, radius, 90 + 0, 90 + 60, 10, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_draw_arc(central_x, central_y, radius, 180 + 0, 180 + 60, 10, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -542,8 +542,8 @@ static void egui_view_test_performance_test_round_rectangle(egui_view_t *self)
 {
     egui_dim_t x = 0;
     egui_dim_t y = 0;
-    egui_dim_t width = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t height = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t width = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t height = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_dim_t radius = egui_view_test_performance_adjust_circle(EGUI_MIN(width, height) >> 1);
     egui_dim_t stroke_width = radius >> 1;
 
@@ -554,8 +554,8 @@ static void egui_view_test_performance_test_round_rectangle_corners(egui_view_t 
 {
     egui_dim_t x = 0;
     egui_dim_t y = 0;
-    egui_dim_t width = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t height = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t width = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t height = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_dim_t radius = egui_view_test_performance_adjust_circle(EGUI_MIN(width, height) >> 1);
     egui_dim_t radius_top_left = radius - 1;
     egui_dim_t radius_top_right = radius - 2;
@@ -571,25 +571,25 @@ static void egui_view_test_performance_test_rectangle_fill(egui_view_t *self)
 {
     egui_dim_t x = 0;
     egui_dim_t y = 0;
-    egui_dim_t width = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t height = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t width = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t height = EGUI_CONFIG_SCREEN_HEIGHT;
 
     egui_canvas_draw_rectangle_fill(x, y, width, height, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_circle_fill(egui_view_t *self)
 {
-    egui_dim_t central_x = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t central_y = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1);
+    egui_dim_t central_x = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t central_y = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1);
     egui_canvas_draw_circle_fill(central_x, central_y, radius, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_arc_fill(egui_view_t *self)
 {
-    egui_dim_t central_x = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t central_y = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1);
+    egui_dim_t central_x = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t central_y = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1);
     egui_canvas_draw_arc_fill(central_x, central_y, radius, 0, 60, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_draw_arc_fill(central_x, central_y, radius, 90 + 0, 90 + 60, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_draw_arc_fill(central_x, central_y, radius, 180 + 0, 180 + 60, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -600,8 +600,8 @@ static void egui_view_test_performance_test_round_rectangle_fill(egui_view_t *se
 {
     egui_dim_t x = 0;
     egui_dim_t y = 0;
-    egui_dim_t width = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t height = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t width = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t height = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_dim_t radius = egui_view_test_performance_adjust_circle(EGUI_MIN(width, height) >> 1);
 
     egui_canvas_draw_round_rectangle_fill(x, y, width, height, radius, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -611,8 +611,8 @@ static void egui_view_test_performance_test_round_rectangle_corners_fill(egui_vi
 {
     egui_dim_t x = 0;
     egui_dim_t y = 0;
-    egui_dim_t width = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t height = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t width = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t height = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_dim_t radius = egui_view_test_performance_adjust_circle(EGUI_MIN(width, height) >> 1);
     egui_dim_t radius_top_left = radius - 1;
     egui_dim_t radius_top_right = radius - 2;
@@ -663,15 +663,15 @@ static void egui_view_test_performance_test_round_rectangle_corners_fill(egui_vi
 
 static void egui_view_test_performance_test_triangle(egui_view_t *self)
 {
-    egui_dim_t w = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t h = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t w = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t h = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_canvas_draw_triangle(w / 2, 0, 0, h - 1, w - 1, h - 1, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_triangle_fill(egui_view_t *self)
 {
-    egui_dim_t w = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t h = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t w = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t h = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_canvas_draw_triangle_fill(w / 2, 0, 0, h - 1, w - 1, h - 1, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
@@ -681,19 +681,19 @@ static void egui_view_test_performance_test_triangle_fill(egui_view_t *self)
 
 static void egui_view_test_performance_test_ellipse(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t rx = (EGUI_CONFIG_SCEEN_WIDTH >> 1) - 1;
-    egui_dim_t ry = (EGUI_CONFIG_SCEEN_HEIGHT >> 1) - 1;
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t rx = (EGUI_CONFIG_SCREEN_WIDTH >> 1) - 1;
+    egui_dim_t ry = (EGUI_CONFIG_SCREEN_HEIGHT >> 1) - 1;
     egui_canvas_draw_ellipse(cx, cy, rx, ry, 10, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_ellipse_fill(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t rx = (EGUI_CONFIG_SCEEN_WIDTH >> 1) - 1;
-    egui_dim_t ry = (EGUI_CONFIG_SCEEN_HEIGHT >> 1) - 1;
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t rx = (EGUI_CONFIG_SCREEN_WIDTH >> 1) - 1;
+    egui_dim_t ry = (EGUI_CONFIG_SCREEN_HEIGHT >> 1) - 1;
     egui_canvas_draw_ellipse_fill(cx, cy, rx, ry, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
@@ -703,8 +703,8 @@ static void egui_view_test_performance_test_ellipse_fill(egui_view_t *self)
 
 static void egui_view_test_performance_test_polygon(egui_view_t *self)
 {
-    egui_dim_t w = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t h = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t w = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t h = EGUI_CONFIG_SCREEN_HEIGHT;
     /* Pentagon */
     const egui_dim_t points[] = {
             w / 2, 0, w - 1, h * 2 / 5, w * 4 / 5, h - 1, w / 5, h - 1, 0, h * 2 / 5,
@@ -714,8 +714,8 @@ static void egui_view_test_performance_test_polygon(egui_view_t *self)
 
 static void egui_view_test_performance_test_polygon_fill(egui_view_t *self)
 {
-    egui_dim_t w = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t h = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t w = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t h = EGUI_CONFIG_SCREEN_HEIGHT;
     /* Pentagon */
     const egui_dim_t points[] = {
             w / 2, 0, w - 1, h * 2 / 5, w * 4 / 5, h - 1, w / 5, h - 1, 0, h * 2 / 5,
@@ -729,15 +729,15 @@ static void egui_view_test_performance_test_polygon_fill(egui_view_t *self)
 
 static void egui_view_test_performance_test_bezier_quad(egui_view_t *self)
 {
-    egui_dim_t w = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t h = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t w = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t h = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_canvas_draw_bezier_quad(0, h - 1, w / 2, 0, w - 1, h - 1, 5, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_bezier_cubic(egui_view_t *self)
 {
-    egui_dim_t w = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t h = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t w = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t h = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_canvas_draw_bezier_cubic(0, h / 2, w / 3, 0, w * 2 / 3, h - 1, w - 1, h / 2, 5, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
@@ -747,26 +747,26 @@ static void egui_view_test_performance_test_bezier_cubic(egui_view_t *self)
 
 static void egui_view_test_performance_test_circle_hq(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t radius = (EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1;
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t radius = (EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1;
     egui_dim_t stroke_width = radius >> 1;
     egui_canvas_draw_circle_hq(cx, cy, radius, stroke_width, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_circle_fill_hq(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t radius = (EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1;
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t radius = (EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1;
     egui_canvas_draw_circle_fill_hq(cx, cy, radius, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_arc_hq(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t radius = (EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1;
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t radius = (EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1;
     egui_canvas_draw_arc_hq(cx, cy, radius, 0, 60, 10, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_draw_arc_hq(cx, cy, radius, 90, 150, 10, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_draw_arc_hq(cx, cy, radius, 180, 240, 10, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -775,9 +775,9 @@ static void egui_view_test_performance_test_arc_hq(egui_view_t *self)
 
 static void egui_view_test_performance_test_arc_fill_hq(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t radius = (EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1;
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t radius = (EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1;
     egui_canvas_draw_arc_fill_hq(cx, cy, radius, 0, 60, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_draw_arc_fill_hq(cx, cy, radius, 90, 150, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_draw_arc_fill_hq(cx, cy, radius, 180, 240, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -805,7 +805,7 @@ static void egui_view_test_performance_test_image_color(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_resize_color(egui_view_t *self)
 {
-    egui_canvas_draw_image_resize_color((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_RESIZE_COLOR_NAME, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT,
+    egui_canvas_draw_image_resize_color((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_RESIZE_COLOR_NAME, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT,
                                         EGUI_COLOR_MAKE(0xFF, 0x80, 0x00), EGUI_ALPHA_100);
 }
 
@@ -862,20 +862,20 @@ static const egui_gradient_t perf_gradient_multi_stop = {
 
 static void egui_view_test_performance_test_gradient_rect(egui_view_t *self)
 {
-    egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, &perf_gradient_v);
+    egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, &perf_gradient_v);
 }
 
 static void egui_view_test_performance_test_gradient_round_rect(egui_view_t *self)
 {
-    egui_dim_t radius = egui_view_test_performance_adjust_circle(EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 2);
-    egui_canvas_draw_round_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, radius, &perf_gradient_v);
+    egui_dim_t radius = egui_view_test_performance_adjust_circle(EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 2);
+    egui_canvas_draw_round_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, radius, &perf_gradient_v);
 }
 
 static void egui_view_test_performance_test_gradient_circle(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH >> 1;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT >> 1;
-    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1);
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH >> 1;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT >> 1;
+    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1);
     /* Use radial gradient with center at circle center */
     egui_gradient_t grad = perf_gradient_radial;
     grad.center_x = cx;
@@ -886,46 +886,46 @@ static void egui_view_test_performance_test_gradient_circle(egui_view_t *self)
 
 static void egui_view_test_performance_test_gradient_triangle(egui_view_t *self)
 {
-    egui_dim_t w = EGUI_CONFIG_SCEEN_WIDTH;
-    egui_dim_t h = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_dim_t w = EGUI_CONFIG_SCREEN_WIDTH;
+    egui_dim_t h = EGUI_CONFIG_SCREEN_HEIGHT;
     egui_canvas_draw_triangle_fill_gradient(w / 2, 0, 0, h - 1, w - 1, h - 1, &perf_gradient_v);
 }
 
 static void egui_view_test_performance_test_gradient_arc_ring(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH / 2;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-    egui_dim_t outer_r = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) / 2) - 4);
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH / 2;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+    egui_dim_t outer_r = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) / 2) - 4);
     egui_dim_t inner_r = outer_r - 20;
     egui_canvas_draw_arc_ring_fill_gradient(cx, cy, outer_r, inner_r, -90, 270, &perf_gradient_v);
 }
 
 static void egui_view_test_performance_test_gradient_arc_ring_round_cap(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH / 2;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-    egui_dim_t outer_r = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) / 2) - 4);
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH / 2;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+    egui_dim_t outer_r = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) / 2) - 4);
     egui_dim_t inner_r = outer_r - 20;
     egui_canvas_draw_arc_ring_fill_gradient_round_cap(cx, cy, outer_r, inner_r, -90, 270, &perf_gradient_v, EGUI_ARC_CAP_BOTH);
 }
 
 static void egui_view_test_performance_test_gradient_radial(egui_view_t *self)
 {
-    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH / 2;
-    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+    egui_dim_t cx = EGUI_CONFIG_SCREEN_WIDTH / 2;
+    egui_dim_t cy = EGUI_CONFIG_SCREEN_HEIGHT / 2;
     egui_gradient_t grad = perf_gradient_radial;
     grad.center_x = cx;
     grad.center_y = cy;
     grad.radius = EGUI_MIN(cx, cy);
-    egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, &grad);
+    egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, &grad);
 }
 
 static void egui_view_test_performance_test_gradient_angular(egui_view_t *self)
 {
     egui_gradient_t grad = perf_gradient_angular_tmpl;
-    grad.center_x = EGUI_CONFIG_SCEEN_WIDTH / 2;
-    grad.center_y = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-    egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, &grad);
+    grad.center_x = EGUI_CONFIG_SCREEN_WIDTH / 2;
+    grad.center_y = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+    egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, &grad);
 }
 
 static void egui_view_test_performance_test_gradient_round_rect_ring(egui_view_t *self)
@@ -933,31 +933,31 @@ static void egui_view_test_performance_test_gradient_round_rect_ring(egui_view_t
     egui_dim_t margin = 20;
     egui_dim_t stroke_w = 20;
     egui_dim_t radius = 30;
-    egui_canvas_draw_round_rectangle_ring_fill_gradient(margin, margin, EGUI_CONFIG_SCEEN_WIDTH - margin * 2, EGUI_CONFIG_SCEEN_HEIGHT - margin * 2, stroke_w,
+    egui_canvas_draw_round_rectangle_ring_fill_gradient(margin, margin, EGUI_CONFIG_SCREEN_WIDTH - margin * 2, EGUI_CONFIG_SCREEN_HEIGHT - margin * 2, stroke_w,
                                                         radius, &perf_gradient_v);
 }
 
 static void egui_view_test_performance_test_gradient_line_capsule(egui_view_t *self)
 {
     egui_dim_t stroke_w = 20;
-    egui_canvas_draw_line_capsule_fill_gradient(stroke_w, EGUI_CONFIG_SCEEN_HEIGHT / 2, EGUI_CONFIG_SCEEN_WIDTH - stroke_w, EGUI_CONFIG_SCEEN_HEIGHT / 2,
+    egui_canvas_draw_line_capsule_fill_gradient(stroke_w, EGUI_CONFIG_SCREEN_HEIGHT / 2, EGUI_CONFIG_SCREEN_WIDTH - stroke_w, EGUI_CONFIG_SCREEN_HEIGHT / 2,
                                                 stroke_w, &perf_gradient_v);
 }
 
 static void egui_view_test_performance_test_gradient_multi_stop(egui_view_t *self)
 {
-    egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, &perf_gradient_multi_stop);
+    egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, &perf_gradient_multi_stop);
 }
 
 static void egui_view_test_performance_test_gradient_round_rect_corners(egui_view_t *self)
 {
     egui_dim_t radius = 40;
-    egui_canvas_draw_round_rectangle_corners_fill_gradient(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, radius, 0, 0, radius, &perf_gradient_v);
+    egui_canvas_draw_round_rectangle_corners_fill_gradient(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, radius, 0, 0, radius, &perf_gradient_v);
 }
 
 static void egui_view_test_performance_test_image_gradient_overlay(egui_view_t *self)
 {
-    egui_canvas_draw_image_gradient_overlay((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT,
+    egui_canvas_draw_image_gradient_overlay((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT,
                                             &perf_gradient_v, EGUI_ALPHA_60);
 }
 
@@ -968,20 +968,20 @@ static void egui_view_test_performance_test_image_gradient_overlay(egui_view_t *
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
 static void egui_view_test_performance_test_shadow(egui_view_t *self)
 {
-    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_COLOR_LIGHT_GREY, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, EGUI_COLOR_LIGHT_GREY, EGUI_ALPHA_100);
     EGUI_SHADOW_PARAM_INIT(shadow, 20, 5, 5, EGUI_COLOR_BLACK, EGUI_ALPHA_60);
     egui_dim_t margin = 40;
-    EGUI_REGION_DEFINE(region, margin, margin, EGUI_CONFIG_SCEEN_WIDTH - margin * 2, EGUI_CONFIG_SCEEN_HEIGHT - margin * 2);
+    EGUI_REGION_DEFINE(region, margin, margin, EGUI_CONFIG_SCREEN_WIDTH - margin * 2, EGUI_CONFIG_SCREEN_HEIGHT - margin * 2);
     egui_shadow_draw(perf_current_canvas(self), &shadow, &region);
     egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_shadow_round(egui_view_t *self)
 {
-    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_COLOR_LIGHT_GREY, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, EGUI_COLOR_LIGHT_GREY, EGUI_ALPHA_100);
     EGUI_SHADOW_PARAM_INIT_ROUND(shadow, 20, 5, 5, EGUI_COLOR_BLACK, EGUI_ALPHA_60, 30);
     egui_dim_t margin = 40;
-    EGUI_REGION_DEFINE(region, margin, margin, EGUI_CONFIG_SCEEN_WIDTH - margin * 2, EGUI_CONFIG_SCEEN_HEIGHT - margin * 2);
+    EGUI_REGION_DEFINE(region, margin, margin, EGUI_CONFIG_SCREEN_WIDTH - margin * 2, EGUI_CONFIG_SCREEN_HEIGHT - margin * 2);
     egui_shadow_draw(perf_current_canvas(self), &shadow, &region);
     egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 30, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
@@ -997,9 +997,9 @@ extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8;
 extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8;
 
 // Multi-size test dimensions
-#define PERF_SIZE_QUARTER (EGUI_CONFIG_SCEEN_WIDTH / 2)
-#define PERF_SIZE_FULL    EGUI_CONFIG_SCEEN_WIDTH
-#define PERF_SIZE_DOUBLE  (EGUI_CONFIG_SCEEN_WIDTH * 2)
+#define PERF_SIZE_QUARTER (EGUI_CONFIG_SCREEN_WIDTH / 2)
+#define PERF_SIZE_FULL    EGUI_CONFIG_SCREEN_WIDTH
+#define PERF_SIZE_DOUBLE  (EGUI_CONFIG_SCREEN_WIDTH * 2)
 
 #define MASK_TEST_SIZE   PERF_SIZE_FULL
 #define MASK_TEST_RADIUS (MASK_TEST_SIZE / 16)
@@ -1031,7 +1031,7 @@ static void prepare_perf_gradient_mask(egui_mask_gradient_t *mask)
 {
     egui_mask_gradient_init((egui_mask_t *)mask);
     egui_mask_set_position((egui_mask_t *)mask, 0, 0);
-    egui_mask_set_size((egui_mask_t *)mask, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_mask_set_size((egui_mask_t *)mask, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_mask_gradient_set_gradient((egui_mask_t *)mask, &perf_gradient_v);
     egui_mask_gradient_set_overlay_alpha((egui_mask_t *)mask, EGUI_ALPHA_100);
 }
@@ -1081,7 +1081,7 @@ static void perf_draw_widget(egui_view_t *view)
 static void perf_configure_axis_chart_view(egui_view_t *view)
 {
     egui_view_set_position(view, 0, 0);
-    egui_view_set_size(view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(view, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_chart_axis_set_colors(view, PERF_WIDGET_BG_COLOR, PERF_WIDGET_AXIS_COLOR, PERF_WIDGET_GRID_COLOR, PERF_WIDGET_TEXT_COLOR);
 }
 
@@ -1197,7 +1197,7 @@ static void perf_init_chart_pie_view(egui_core_t *core)
     perf_ensure_chart_data_ready();
     egui_view_chart_pie_init(EGUI_VIEW_OF(&s_perf_chart_pie_view), core);
     egui_view_set_position(EGUI_VIEW_OF(&s_perf_chart_pie_view), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&s_perf_chart_pie_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&s_perf_chart_pie_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_chart_pie_set_slices(EGUI_VIEW_OF(&s_perf_chart_pie_view), s_perf_chart_pie_slices, (uint8_t)PERF_CHART_PIE_SLICE_COUNT);
     egui_view_chart_pie_set_legend_pos(EGUI_VIEW_OF(&s_perf_chart_pie_view), EGUI_CHART_LEGEND_NONE);
     egui_view_chart_pie_set_colors(EGUI_VIEW_OF(&s_perf_chart_pie_view), PERF_WIDGET_BG_COLOR, PERF_WIDGET_TEXT_COLOR);
@@ -1312,7 +1312,7 @@ static void perf_prepare_file_image_scene(egui_view_t *self, int test_mode)
         egui_image_file_init(&s_perf_file_image, core);
         egui_view_image_init(EGUI_VIEW_OF(&s_perf_file_image_view), core);
         egui_view_set_position(EGUI_VIEW_OF(&s_perf_file_image_view), 0, 0);
-        egui_view_set_size(EGUI_VIEW_OF(&s_perf_file_image_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+        egui_view_set_size(EGUI_VIEW_OF(&s_perf_file_image_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
         egui_view_image_set_image(EGUI_VIEW_OF(&s_perf_file_image_view), (egui_image_t *)&s_perf_file_image);
         egui_view_image_set_image_type(EGUI_VIEW_OF(&s_perf_file_image_view), EGUI_VIEW_IMAGE_TYPE_NORMAL);
         s_perf_file_image_ready = 1U;
@@ -1322,7 +1322,7 @@ static void perf_prepare_file_image_scene(egui_view_t *self, int test_mode)
     {
         if (kind == PERF_FILE_IMAGE_SCENE_WIDGET_RESIZE)
         {
-            egui_image_file_set_resize(&s_perf_file_image, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+            egui_image_file_set_resize(&s_perf_file_image, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
         }
         else
         {
@@ -1511,7 +1511,7 @@ static void perf_draw_svg_scene(egui_view_t *self, int test_mode)
         return;
     }
 
-    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, PERF_SVG_TILE_BG_COLOR, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, PERF_SVG_TILE_BG_COLOR, EGUI_ALPHA_100);
 
     if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED || test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED)
     {
@@ -1647,7 +1647,7 @@ static void perf_draw_file_image_scene(egui_view_t *self, int test_mode)
     perf_file_image_scene_kind_t kind = perf_get_file_image_scene_kind(test_mode);
 
     perf_prepare_file_image_scene(self, test_mode);
-    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, PERF_FILE_IMAGE_BG_COLOR, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, PERF_FILE_IMAGE_BG_COLOR, EGUI_ALPHA_100);
 
     if (!s_perf_file_image_ready)
     {
@@ -1882,7 +1882,7 @@ static void egui_view_test_performance_test_animation_translate(egui_view_t *sel
     egui_view_t anim_perf_view;
     egui_interpolator_linear_t anim_perf_interp;
     egui_animation_translate_t anim;
-    EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(params, 0, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT - ANIM_TEST_SIZE);
+    EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(params, 0, 0, 0, EGUI_CONFIG_SCREEN_HEIGHT - ANIM_TEST_SIZE);
 
     init_anim_perf_context(&anim_perf_view, egui_view_get_core(self), &anim_perf_interp);
     egui_animation_translate_init(EGUI_ANIM_OF(&anim));
@@ -1947,7 +1947,7 @@ static void egui_view_test_performance_test_animation_set(egui_view_t *self)
     egui_animation_translate_t anim_tr;
     egui_animation_alpha_t anim_al;
     egui_animation_set_t anim_set;
-    EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(tr_params, 0, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT - ANIM_TEST_SIZE);
+    EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(tr_params, 0, 0, 0, EGUI_CONFIG_SCREEN_HEIGHT - ANIM_TEST_SIZE);
     EGUI_ANIMATION_ALPHA_PARAMS_INIT(al_params, EGUI_ALPHA_100, EGUI_ALPHA_0);
 
     init_anim_perf_context(&anim_perf_view, egui_view_get_core(self), &anim_perf_interp);
@@ -2497,7 +2497,7 @@ static void egui_view_test_performance_test_text_rect_gradient(egui_view_t *self
 {
     egui_mask_gradient_t mask;
     ensure_perf_masks_initialized();
-    EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
+    EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, 200);
     set_perf_gradient_mask(self, &mask);
     egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
@@ -2519,7 +2519,7 @@ static void egui_view_test_performance_test_mask_gradient_rect_fill(egui_view_t 
     egui_mask_gradient_t mask;
     ensure_perf_masks_initialized();
     set_perf_gradient_mask(self, &mask);
-    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
@@ -2743,7 +2743,7 @@ static void egui_view_test_performance_test_circle_fill_quarter(egui_view_t *sel
     // Full-size circle centered at (PERF_SIZE_FULL, PERF_SIZE_FULL) �?only 1/4 visible, tests clipping path
     egui_dim_t central_x = PERF_SIZE_FULL;
     egui_dim_t central_y = PERF_SIZE_FULL;
-    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1);
+    egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT) >> 1) - 1);
     egui_canvas_draw_circle_fill(central_x, central_y, radius, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 

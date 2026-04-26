@@ -8,9 +8,9 @@
 
 | 变量名 | 控件类型 | 尺寸 (宽x高) | 说明 |
 |--------|---------|-------------|------|
-| layout_1 | LinearLayout | SCEEN_WIDTHxSCEEN_HEIGHT | 全屏线性布局容器，居中对齐 |
-| label_1 | Label | SCEEN_WIDTHx(SCEEN_HEIGHT/2) | 文本 "Item1"，绿色背景 |
-| label_2 | Label | SCEEN_WIDTHx(SCEEN_HEIGHT/2) | 文本 "Item2"，橙色背景 |
+| layout_1 | LinearLayout | SCREEN_WIDTHxSCREEN_HEIGHT | 全屏线性布局容器，居中对齐 |
+| label_1 | Label | SCREEN_WIDTHx(SCREEN_HEIGHT/2) | 文本 "Item1"，绿色背景 |
+| label_2 | Label | SCREEN_WIDTHx(SCREEN_HEIGHT/2) | 文本 "Item2"，橙色背景 |
 
 ## 录制动作
 

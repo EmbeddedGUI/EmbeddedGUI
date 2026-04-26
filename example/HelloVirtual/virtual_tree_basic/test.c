@@ -25,13 +25,13 @@
 
 #define TREE_BASIC_MARGIN_X   8
 #define TREE_BASIC_TOP_Y      8
-#define TREE_BASIC_HEADER_W   (EGUI_CONFIG_SCEEN_WIDTH - TREE_BASIC_MARGIN_X * 2)
+#define TREE_BASIC_HEADER_W   (EGUI_CONFIG_SCREEN_WIDTH - TREE_BASIC_MARGIN_X * 2)
 #define TREE_BASIC_HEADER_H   0
 #define TREE_BASIC_TOOLBAR_Y  TREE_BASIC_TOP_Y
 #define TREE_BASIC_TOOLBAR_H  34
 #define TREE_BASIC_VIEW_Y     (TREE_BASIC_TOOLBAR_Y + TREE_BASIC_TOOLBAR_H + 6)
 #define TREE_BASIC_VIEW_W     TREE_BASIC_HEADER_W
-#define TREE_BASIC_VIEW_H     (EGUI_CONFIG_SCEEN_HEIGHT - TREE_BASIC_VIEW_Y - 8)
+#define TREE_BASIC_VIEW_H     (EGUI_CONFIG_SCREEN_HEIGHT - TREE_BASIC_VIEW_Y - 8)
 #define TREE_BASIC_ACTION_GAP 6
 #define TREE_BASIC_ACTION_W   ((TREE_BASIC_HEADER_W - 20 - TREE_BASIC_ACTION_GAP * 2) / 3)
 
@@ -1362,7 +1362,7 @@ void test_init_ui(egui_core_t *core)
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&tree_basic_screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &tree_basic_toolbar_card_params);

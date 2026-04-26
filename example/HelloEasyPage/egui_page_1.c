@@ -55,7 +55,7 @@ void egui_page_1_on_open(egui_page_base_t *self)
     // layout_1
     egui_view_linearlayout_init((egui_view_t *)&local->layout_1, core);
     egui_view_set_position((egui_view_t *)&local->layout_1, 0, 0);
-    egui_view_set_size((egui_view_t *)&local->layout_1, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size((egui_view_t *)&local->layout_1, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->layout_1, EGUI_ALIGN_CENTER);
 
     // label_1

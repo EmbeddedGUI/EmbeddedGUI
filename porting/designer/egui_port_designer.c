@@ -17,8 +17,8 @@
  * Framebuffer
  * ============================================================================ */
 
-static egui_color_int_t designer_fb[EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT];
-static uint8_t designer_rgb888[EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT * 3];
+static egui_color_int_t designer_fb[EGUI_CONFIG_SCREEN_WIDTH * EGUI_CONFIG_SCREEN_HEIGHT];
+static uint8_t designer_rgb888[EGUI_CONFIG_SCREEN_WIDTH * EGUI_CONFIG_SCREEN_HEIGHT * 3];
 static egui_core_t *designer_primary_core = NULL;
 
 static uint8_t designer_get_color_16_swap(void)
@@ -64,7 +64,7 @@ static void designer_unpack_rgb888(egui_color_int_t color, uint8_t *r, uint8_t *
 
 void designer_fb_to_rgb888(void)
 {
-    int total = EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT;
+    int total = EGUI_CONFIG_SCREEN_WIDTH * EGUI_CONFIG_SCREEN_HEIGHT;
     for (int i = 0; i < total; i++)
     {
         uint8_t r;
@@ -84,7 +84,7 @@ uint8_t *designer_get_rgb888(void)
 
 uint32_t designer_get_rgb888_size(void)
 {
-    return EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT * 3;
+    return EGUI_CONFIG_SCREEN_WIDTH * EGUI_CONFIG_SCREEN_HEIGHT * 3;
 }
 
 /* ============================================================================
@@ -97,8 +97,8 @@ static egui_display_driver_ops_t port_display_ops = {0};
 
 static egui_display_driver_t port_display_driver = {
         .ops = &port_display_ops,
-        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .physical_width = EGUI_CONFIG_SCREEN_WIDTH,
+        .physical_height = EGUI_CONFIG_SCREEN_HEIGHT,
         .rotation = EGUI_DISPLAY_ROTATION_0,
         .brightness = 255,
         .power_on = 1,
@@ -139,7 +139,7 @@ static void designer_lcd_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16
     {
         for (int16_t col = 0; col < w && index < pixel_count; col++)
         {
-            designer_fb[(y + row) * EGUI_CONFIG_SCEEN_WIDTH + (x + col)] = pixels[index++];
+            designer_fb[(y + row) * EGUI_CONFIG_SCREEN_WIDTH + (x + col)] = pixels[index++];
         }
     }
 }
@@ -176,8 +176,8 @@ static egui_hal_touch_driver_t designer_touch_driver;
 static void designer_touch_register(egui_core_t *core)
 {
     egui_hal_touch_config_t touch_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .width = EGUI_CONFIG_SCREEN_WIDTH,
+            .height = EGUI_CONFIG_SCREEN_HEIGHT,
             .swap_xy = 0,
             .mirror_x = 0,
             .mirror_y = 0,
@@ -431,8 +431,8 @@ void egui_port_init(egui_core_t *core)
     egui_platform_register(&designer_platform);
 
     egui_hal_lcd_config_t lcd_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .width = EGUI_CONFIG_SCREEN_WIDTH,
+            .height = EGUI_CONFIG_SCREEN_HEIGHT,
             .color_depth = EGUI_CONFIG_COLOR_DEPTH,
             .color_swap = 0,
             .x_offset = 0,

@@ -28,11 +28,11 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_11_param, EGUI_THEME_PRIMARY_DARK, EGU
 EGUI_BACKGROUND_PARAM_INIT(bg_11_params, &bg_11_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_11, &bg_11_params);
 
-#define TILE_WIDTH  EGUI_CONFIG_SCEEN_WIDTH
-#define TILE_HEIGHT EGUI_CONFIG_SCEEN_HEIGHT
+#define TILE_WIDTH  EGUI_CONFIG_SCREEN_WIDTH
+#define TILE_HEIGHT EGUI_CONFIG_SCREEN_HEIGHT
 
 // View params
-EGUI_VIEW_TILEVIEW_PARAMS_INIT(tileview_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_TILEVIEW_PARAMS_INIT(tileview_1_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 EGUI_VIEW_LABEL_PARAMS_INIT(tile_label_00_params, 0, 0, TILE_WIDTH, TILE_HEIGHT, "Tile 0,0", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
 EGUI_VIEW_LABEL_PARAMS_INIT(tile_label_10_params, 0, 0, TILE_WIDTH, TILE_HEIGHT, "Tile 1,0", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
 EGUI_VIEW_LABEL_PARAMS_INIT(tile_label_01_params, 0, 0, TILE_WIDTH, TILE_HEIGHT, "Tile 0,1", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
@@ -72,37 +72,37 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     {
     case 0: // swipe left -> Tile 1,0
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;
     case 1: // swipe down -> Tile 1,1
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 4;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 4;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 4;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;
     case 2: // swipe right -> Tile 0,1
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 4;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 4;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH * 3 / 4;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;
     case 3: // swipe up -> Tile 0,0
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 4;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT / 4;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 4;
         p_action->steps = 5;
         p_action->interval_ms = 800;
         return true;

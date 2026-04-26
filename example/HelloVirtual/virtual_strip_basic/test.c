@@ -23,13 +23,13 @@
 
 #define STRIP_BASIC_MARGIN_X   8
 #define STRIP_BASIC_TOP_Y      8
-#define STRIP_BASIC_HEADER_W   (EGUI_CONFIG_SCEEN_WIDTH - STRIP_BASIC_MARGIN_X * 2)
+#define STRIP_BASIC_HEADER_W   (EGUI_CONFIG_SCREEN_WIDTH - STRIP_BASIC_MARGIN_X * 2)
 #define STRIP_BASIC_HEADER_H   0
 #define STRIP_BASIC_TOOLBAR_Y  STRIP_BASIC_TOP_Y
 #define STRIP_BASIC_TOOLBAR_H  34
 #define STRIP_BASIC_VIEW_Y     (STRIP_BASIC_TOOLBAR_Y + STRIP_BASIC_TOOLBAR_H + 6)
 #define STRIP_BASIC_VIEW_W     STRIP_BASIC_HEADER_W
-#define STRIP_BASIC_VIEW_H     (EGUI_CONFIG_SCEEN_HEIGHT - STRIP_BASIC_VIEW_Y - 8)
+#define STRIP_BASIC_VIEW_H     (EGUI_CONFIG_SCREEN_HEIGHT - STRIP_BASIC_VIEW_Y - 8)
 #define STRIP_BASIC_ACTION_GAP 6
 #define STRIP_BASIC_ACTION_W   ((STRIP_BASIC_HEADER_W - 20 - STRIP_BASIC_ACTION_GAP * 2) / 3)
 #define STRIP_BASIC_CARD_INSET 4
@@ -988,7 +988,7 @@ void test_init_ui(egui_core_t *core)
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&strip_basic_screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&toolbar_card), core, &strip_basic_toolbar_card_params);

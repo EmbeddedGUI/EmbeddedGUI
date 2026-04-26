@@ -1,4 +1,4 @@
-﻿#include "sdl_port.h"
+#include "sdl_port.h"
 #include <stdlib.h>
 #include <stddef.h>
 
@@ -745,7 +745,7 @@ static void monitor_sdl_init(void)
     SDL_SetEventFilter(quit_filter, NULL);
 
     char title[0x400];
-    sprintf(title, "%s-%dx%d@%d", EGUI_APP, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_CONFIG_COLOR_DEPTH);
+    sprintf(title, "%s-%dx%d@%d", EGUI_APP, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, EGUI_CONFIG_COLOR_DEPTH);
 
     uint32_t window_flags = SDL_WINDOW_HIDDEN;
 

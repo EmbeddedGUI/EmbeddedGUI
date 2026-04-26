@@ -15,8 +15,8 @@
 #define SHOWCASE_CANVAS_WIDTH      HELLO_SHOWCASE_CANVAS_WIDTH
 #define SHOWCASE_CANVAS_HEIGHT     HELLO_SHOWCASE_CANVAS_HEIGHT
 #define SHOWCASE_KEYBOARD_HEIGHT   128
-#define SHOWCASE_KEYBOARD_Y        ((EGUI_CONFIG_SCEEN_HEIGHT > SHOWCASE_KEYBOARD_HEIGHT) ? (EGUI_CONFIG_SCEEN_HEIGHT - SHOWCASE_KEYBOARD_HEIGHT) : 0)
-#define SHOWCASE_KEYBOARD_HIDDEN_Y (EGUI_CONFIG_SCEEN_HEIGHT + SHOWCASE_KEYBOARD_HEIGHT)
+#define SHOWCASE_KEYBOARD_Y        ((EGUI_CONFIG_SCREEN_HEIGHT > SHOWCASE_KEYBOARD_HEIGHT) ? (EGUI_CONFIG_SCREEN_HEIGHT - SHOWCASE_KEYBOARD_HEIGHT) : 0)
+#define SHOWCASE_KEYBOARD_HIDDEN_Y (EGUI_CONFIG_SCREEN_HEIGHT + SHOWCASE_KEYBOARD_HEIGHT)
 
 // ============================================================================
 // Widget Showcase
@@ -903,7 +903,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     // ---- Root group ----
     egui_view_canvas_panner_init(EGUI_VIEW_OF(&root), core);
     egui_view_set_position(EGUI_VIEW_OF(&root), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&root), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&root), SHOWCASE_CANVAS_WIDTH, SHOWCASE_CANVAS_HEIGHT);
     // Theme background will be set in update_theme
 
@@ -1486,7 +1486,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     // Keyboard widget - displayed at bottom of screen, hidden by default
     egui_view_keyboard_init(EGUI_VIEW_OF(&wg_keyboard), core);
     egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_HIDDEN_Y);
-    egui_view_set_size(EGUI_VIEW_OF(&wg_keyboard), EGUI_CONFIG_SCEEN_WIDTH, SHOWCASE_KEYBOARD_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&wg_keyboard), EGUI_CONFIG_SCREEN_WIDTH, SHOWCASE_KEYBOARD_HEIGHT);
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&wg_keyboard), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_keyboard_set_icon_font(EGUI_VIEW_OF(&wg_keyboard), EGUI_FONT_ICON_MS_20);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&wg_keyboard));
@@ -1560,7 +1560,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return false;
     }
 #else
-#if (SHOWCASE_CANVAS_WIDTH > EGUI_CONFIG_SCEEN_WIDTH) || (SHOWCASE_CANVAS_HEIGHT > EGUI_CONFIG_SCEEN_HEIGHT)
+#if (SHOWCASE_CANVAS_WIDTH > EGUI_CONFIG_SCREEN_WIDTH) || (SHOWCASE_CANVAS_HEIGHT > EGUI_CONFIG_SCREEN_HEIGHT)
     static int last_action = -1;
     int first_call = action_index != last_action;
 
@@ -1577,10 +1577,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 1:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH - 20;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT - 20;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT - 20;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH - 20;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT - 20;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT - 20;
         p_action->steps = 6;
         p_action->interval_ms = 220;
         return true;
@@ -1593,10 +1593,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 3:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT - 20;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT - 20;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 2;
         p_action->steps = 6;
         p_action->interval_ms = 220;
         return true;

@@ -30,7 +30,7 @@ static void egui_view_page_test_sub_view_init(egui_view_t *self, egui_core_t *co
     // Init all views
     // label_1
     egui_view_label_init((egui_view_t *)&local->label_1, core);
-    egui_view_set_size((egui_view_t *)&local->label_1, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size((egui_view_t *)&local->label_1, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_label_set_text((egui_view_t *)&local->label_1, local->label_str);
     egui_view_label_set_align_type((egui_view_t *)&local->label_1, EGUI_ALIGN_CENTER);
     egui_view_label_set_font((egui_view_t *)&local->label_1, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);

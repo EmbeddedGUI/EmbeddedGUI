@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ast
 import re
+import shlex
 from pathlib import Path
 
 
@@ -22,6 +23,7 @@ _IDENTIFIER_PATTERN = re.compile(r'\b[A-Za-z_]\w*\b')
 _INT_SUFFIX_PATTERN = re.compile(r'\b(0[xX][0-9A-Fa-f]+|\d+)([uUlL]+)\b')
 _BLOCK_COMMENT_PATTERN = re.compile(r"/\*.*?\*/", re.DOTALL)
 _LINE_COMMENT_PATTERN = re.compile(r"//.*?$", re.MULTILINE)
+_DEFINE_TOKEN_PATTERN = re.compile(r"^[A-Za-z_]\w*(?:=.*)?$", re.DOTALL)
 _SAFE_VALUE_EXPR_PATTERN = re.compile(r'^[0-9A-Fa-fxX_ \t()+\-*/%<>&|^~]+$')
 _SAFE_CONDITION_EXPR_PATTERN = re.compile(r'^[0-9A-Za-z-fxX_ \t()+\-*/%<>&|^~=!]+$')
 _ALLOWED_BINOPS = (
@@ -52,6 +54,47 @@ def _strip_comments(text: str) -> str:
 
 def _normalize_text(text: str) -> str:
     return _strip_comments(text).replace("\\\r\n", "").replace("\\\n", "")
+
+
+def _split_cflags(user_cflags: str | None) -> list[str]:
+    if not user_cflags:
+        return []
+    try:
+        return shlex.split(user_cflags, posix=False)
+    except ValueError:
+        return user_cflags.split()
+
+
+def _strip_wrapping_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+        return value[1:-1]
+    return value
+
+
+def parse_macro_defines_from_cflags(user_cflags: str | None) -> dict[str, str]:
+    """Parse integer-style compiler -D defines from a USER_CFLAGS string."""
+    defines: dict[str, str] = {}
+    tokens = _split_cflags(user_cflags)
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        define_spec = None
+        if token in ("-D", "/D"):
+            index += 1
+            if index < len(tokens):
+                define_spec = tokens[index]
+        elif token.startswith("-D") and len(token) > 2:
+            define_spec = token[2:]
+        elif token.startswith("/D") and len(token) > 2:
+            define_spec = token[2:]
+
+        if define_spec:
+            define_spec = _strip_wrapping_quotes(define_spec.strip())
+            if _DEFINE_TOKEN_PATTERN.match(define_spec):
+                name, has_value, value = define_spec.partition("=")
+                defines[name] = _strip_wrapping_quotes(value.strip()) if has_value else "1"
+        index += 1
+    return defines
 
 
 def _validate_ast(node: ast.AST) -> None:
@@ -255,7 +298,7 @@ def _collect_defines_from_file(config_path: Path, defines: dict[str, str], cache
     visited.remove(path)
 
 
-def get_macro_int_from_config(config_path: Path | str, macro_name: str, default=None):
+def get_macro_int_from_config(config_path: Path | str, macro_name: str, default=None, initial_defines=None, user_cflags=None):
     """Resolve one integer-like macro from a config header and its local includes."""
     path = Path(config_path)
     if not path.exists():
@@ -263,6 +306,9 @@ def get_macro_int_from_config(config_path: Path | str, macro_name: str, default=
 
     try:
         defines: dict[str, str] = {}
+        if initial_defines:
+            defines.update({str(key): str(value) for key, value in initial_defines.items()})
+        defines.update(parse_macro_defines_from_cflags(user_cflags))
         cache: dict[str, int] = {}
         _collect_defines_from_file(path, defines, cache)
         if macro_name not in defines:

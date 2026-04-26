@@ -1700,26 +1700,6 @@ typedef struct
     uint8_t line;        /* tile-local line index */
 } text_transform_glyph_t;
 
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 4096
-#endif
-
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 0
-#endif
-
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
-#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 0
-#endif
-
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS 0
-#endif
-
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES 0
-#endif
-
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 typedef struct
 {
@@ -2721,14 +2701,6 @@ static int text_transform_prepare(egui_canvas_t *canvas, int16_t text_w, int16_t
  * the source bbox expands but is still bounded. Default 128 covers scale >= 0.5x.
  * Can be overridden in app_egui_config.h.
  */
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS
-#define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS 128
-#endif
-
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES
-#define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES 32
-#endif
-
 #if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
 #define g_text_transform_layout_cache (core->text.text_transform_layout_cache)
 #endif

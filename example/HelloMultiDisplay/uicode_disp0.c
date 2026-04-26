@@ -33,10 +33,10 @@ static const egui_background_color_t *hello_multi_display_disp0_bg_list[] = {
         &hello_multi_display_disp0_bg_green,
 };
 
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp0_anim_start_open_params, EGUI_CONFIG_SCEEN_WIDTH, 0, 0, 0);
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp0_anim_start_close_params, 0, -EGUI_CONFIG_SCEEN_WIDTH, 0, 0);
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp0_anim_finish_open_params, -EGUI_CONFIG_SCEEN_WIDTH, 0, 0, 0);
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp0_anim_finish_close_params, 0, EGUI_CONFIG_SCEEN_WIDTH, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp0_anim_start_open_params, EGUI_CONFIG_SCREEN_WIDTH, 0, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp0_anim_start_close_params, 0, -EGUI_CONFIG_SCREEN_WIDTH, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp0_anim_finish_open_params, -EGUI_CONFIG_SCREEN_WIDTH, 0, 0, 0);
+EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(hello_multi_display_disp0_anim_finish_close_params, 0, EGUI_CONFIG_SCREEN_WIDTH, 0, 0);
 
 static hello_multi_display_disp0_activity_t s_hello_multi_display_disp0_activities[HELLO_MULTI_DISPLAY_ACTIVITY_POOL_SIZE];
 static int s_hello_multi_display_disp0_activity_slot = 0;
@@ -100,7 +100,7 @@ static void hello_multi_display_disp0_activity_on_create(egui_activity_t *self)
 
     egui_view_linearlayout_init((egui_view_t *)&local->layout, core);
     egui_view_set_position((egui_view_t *)&local->layout, 0, 0);
-    egui_view_set_size((egui_view_t *)&local->layout, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size((egui_view_t *)&local->layout, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->layout, EGUI_ALIGN_CENTER);
 
     egui_view_label_init((egui_view_t *)&local->label, core);

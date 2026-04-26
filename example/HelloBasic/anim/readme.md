@@ -9,7 +9,7 @@
 | 变量名 | 控件类型 | 尺寸 (宽x高) | 说明 |
 |--------|---------|-------------|------|
 | view_1 | View | 21x21 | 圆形视图，半径 10，白色圆形背景 |
-| anim_translate | TranslateAnimation | - | 平移动画，Y 方向从 0 到 SCEEN_HEIGHT-20，时长 1000ms |
+| anim_translate | TranslateAnimation | - | 平移动画，Y 方向从 0 到 SCREEN_HEIGHT-20，时长 1000ms |
 | anim_linear_interpolator | LinearInterpolator | - | 线性插值器 |
 
 ## 录制动作

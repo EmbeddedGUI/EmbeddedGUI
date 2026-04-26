@@ -34,7 +34,7 @@ static const egui_view_menu_page_t pages[] = {
         {"About", about_items, 2},
 };
 
-EGUI_VIEW_MENU_PARAMS_INIT(menu_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, 30, 30);
+EGUI_VIEW_MENU_PARAMS_INIT(menu_1_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, 30, 30);
 
 void test_init_ui(egui_core_t *core)
 {
@@ -66,7 +66,7 @@ static void report_runtime_failure(const char *message)
 static void set_menu_item_action(egui_sim_action_t *p_action, uint8_t item_index, uint32_t interval_ms)
 {
     p_action->type = EGUI_SIM_ACTION_CLICK;
-    p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+    p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
     p_action->y1 = menu_1.header_height + 1 + item_index * menu_1.item_height + menu_1.item_height / 2;
     p_action->interval_ms = interval_ms;
 }

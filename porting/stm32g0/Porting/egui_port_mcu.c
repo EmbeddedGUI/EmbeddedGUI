@@ -179,8 +179,8 @@ static const egui_display_driver_ops_t mcu_display_ops = {
 
 static egui_display_driver_t mcu_display_driver = {
         .ops = &mcu_display_ops,
-        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .physical_width = EGUI_CONFIG_SCREEN_WIDTH,
+        .physical_height = EGUI_CONFIG_SCREEN_HEIGHT,
         .rotation = EGUI_DISPLAY_ROTATION_270,
         .brightness = 255,
         .power_on = 1,
@@ -205,8 +205,8 @@ void egui_port_init(egui_core_t *core)
 
     /* Register LCD with Core (handles reset, init, display driver creation) */
     egui_hal_lcd_config_t lcd_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .width = EGUI_CONFIG_SCREEN_WIDTH,
+            .height = EGUI_CONFIG_SCREEN_HEIGHT,
             .x_offset = 0,
             .y_offset = 0,
             .invert_color = 1,
@@ -233,8 +233,8 @@ egui_display_driver_t *egui_port_get_display_driver(void)
 void egui_port_register_touch_driver(egui_core_t *core)
 {
     egui_hal_touch_config_t touch_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .width = EGUI_CONFIG_SCREEN_WIDTH,
+            .height = EGUI_CONFIG_SCREEN_HEIGHT,
             .swap_xy = 0,
             .mirror_x = 0,
             .mirror_y = 0,

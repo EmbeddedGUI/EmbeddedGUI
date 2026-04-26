@@ -45,8 +45,8 @@ static egui_view_page_indicator_t indicator;
 // Scroll + Grid layout
 static egui_view_scroll_t scroll;
 static egui_view_gridlayout_t grid;
-EGUI_VIEW_SCROLL_PARAMS_INIT(scroll_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 520, 1, EGUI_ALIGN_CENTER);
+EGUI_VIEW_SCROLL_PARAMS_INIT(scroll_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, 520, 1, EGUI_ALIGN_CENTER);
 
 void test_init_ui(egui_core_t *core)
 {

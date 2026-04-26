@@ -75,12 +75,12 @@ void uicode_disp0_init(egui_core_t *core)
 
     egui_view_viewpage_init(EGUI_VIEW_OF(&s_main_viewpage), core);
     egui_view_set_position(EGUI_VIEW_OF(&s_main_viewpage), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&s_main_viewpage), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&s_main_viewpage), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 
     for (i = 0; i < EGUI_ARRAY_SIZE(s_page_labels); i++)
     {
         egui_view_label_init(EGUI_VIEW_OF(&s_page_labels[i]), core);
-        egui_view_set_size(EGUI_VIEW_OF(&s_page_labels[i]), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+        egui_view_set_size(EGUI_VIEW_OF(&s_page_labels[i]), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
         egui_view_label_set_text(EGUI_VIEW_OF(&s_page_labels[i]), s_hello_multi_display_hetero_page_texts[i]);
         egui_view_label_set_align_type(EGUI_VIEW_OF(&s_page_labels[i]), EGUI_ALIGN_CENTER);
         egui_view_label_set_font(EGUI_VIEW_OF(&s_page_labels[i]), (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);

@@ -10,8 +10,8 @@ extern "C" {
 #define EGUI_CONFIG_MAX_DISPLAY_COUNT 2
 
 /* Display 1 uses a compact status panel. */
-#define EGUI_CONFIG_SCEEN_1_WIDTH  128
-#define EGUI_CONFIG_SCEEN_1_HEIGHT 64
+#define EGUI_CONFIG_SCREEN_1_WIDTH  128
+#define EGUI_CONFIG_SCREEN_1_HEIGHT 64
 #define EGUI_CONFIG_PFB_1_WIDTH    16
 #define EGUI_CONFIG_PFB_1_HEIGHT   8
 

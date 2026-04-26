@@ -18,13 +18,13 @@
 
 #define DEMO_MARGIN_X          8
 #define DEMO_TOP_Y             8
-#define DEMO_HEADER_W          (EGUI_CONFIG_SCEEN_WIDTH - DEMO_MARGIN_X * 2)
+#define DEMO_HEADER_W          (EGUI_CONFIG_SCREEN_WIDTH - DEMO_MARGIN_X * 2)
 #define DEMO_HEADER_H          82
 #define DEMO_TOOLBAR_Y         (DEMO_TOP_Y + DEMO_HEADER_H + 6)
 #define DEMO_TOOLBAR_H         32
 #define DEMO_LIST_Y            (DEMO_TOOLBAR_Y + DEMO_TOOLBAR_H + 6)
 #define DEMO_LIST_W            DEMO_HEADER_W
-#define DEMO_LIST_H            (EGUI_CONFIG_SCEEN_HEIGHT - DEMO_LIST_Y - 8)
+#define DEMO_LIST_H            (EGUI_CONFIG_SCREEN_HEIGHT - DEMO_LIST_Y - 8)
 #define DEMO_SCENE_BUTTON_GAP  6
 #define DEMO_ACTION_BUTTON_GAP 4
 #define DEMO_SCENE_BUTTON_W    ((DEMO_HEADER_W - 24 - DEMO_SCENE_BUTTON_GAP * 2) / 3)
@@ -2106,7 +2106,7 @@ void test_init_ui(egui_core_t *core)
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view), core);
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
     egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), core, &header_card_params);
@@ -2260,19 +2260,19 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         recording_mutation_verify_retry = 0U;
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 5;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT * 4 / 5;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 5;
         p_action->steps = 4;
         p_action->interval_ms = 520;
         return true;
     case 6:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 3;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 4;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 3;
         p_action->steps = 5;
         p_action->interval_ms = 620;
         return true;
@@ -2307,19 +2307,19 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 10:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 5;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT * 4 / 5;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 5;
         p_action->steps = 4;
         p_action->interval_ms = 520;
         return true;
     case 11:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 3;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 4;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 3;
         p_action->steps = 5;
         p_action->interval_ms = 620;
         return true;
@@ -2398,19 +2398,19 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         recording_mutation_verify_retry = 0U;
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 5;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT * 4 / 5;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 5;
         p_action->steps = 4;
         p_action->interval_ms = 520;
         return true;
     case 18:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 3;
+        p_action->x1 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCREEN_HEIGHT * 3 / 4;
+        p_action->x2 = EGUI_CONFIG_SCREEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCREEN_HEIGHT / 3;
         p_action->steps = 5;
         p_action->interval_ms = 620;
         return true;

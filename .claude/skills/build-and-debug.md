@@ -53,7 +53,7 @@ make run
 | `PORT` | 平台 | pc, stm32g0, qemu |
 | `BITS` | 位宽（可选） | 一般无需设置，构建系统自动识别 |
 | `COMPILE_OPT_LEVEL` | 优化级别 | -O0（快速编译）, -O2 |
-| `USER_CFLAGS` | 自定义编译标志 | `-DEGUI_CONFIG_SCEEN_WIDTH=320` |
+| `USER_CFLAGS` | 自定义编译标志 | `-DEGUI_CONFIG_SCREEN_WIDTH=320` |
 
 ## 全量编译检查
 

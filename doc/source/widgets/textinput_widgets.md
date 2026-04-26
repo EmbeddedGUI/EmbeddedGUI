@@ -164,7 +164,7 @@ void init_ui(egui_core_t *core)
     // 初始化键盘
     egui_view_keyboard_init(EGUI_VIEW_OF(&keyboard), core);
     egui_view_set_position(EGUI_VIEW_OF(&keyboard),
-        0, EGUI_CONFIG_SCEEN_HEIGHT - EGUI_KEYBOARD_DEFAULT_HEIGHT);
+        0, EGUI_CONFIG_SCREEN_HEIGHT - EGUI_KEYBOARD_DEFAULT_HEIGHT);
     egui_core_add_user_root_view(core, EGUI_VIEW_OF(&keyboard));
 }
 
@@ -194,5 +194,5 @@ void hide_keyboard(void)
 - Keyboard 在调用 `show()` 时自动绑定目标 TextInput，按键输入直接写入目标输入框
 - 键盘弹出时会自动调整被遮挡的视图位置（键盘避让），隐藏时恢复原位
 - Shift 键切换大小写，Mode 键在字母和符号之间切换
-- 键盘宽度默认为屏幕宽度 `EGUI_CONFIG_SCEEN_WIDTH`，适配不同分辨率需调整按键宽度常量
+- 键盘宽度默认为屏幕宽度 `EGUI_CONFIG_SCREEN_WIDTH`，适配不同分辨率需调整按键宽度常量
 - 键盘内部使用 LinearLayout 排列按键行，每行按键数量固定
