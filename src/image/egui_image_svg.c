@@ -142,31 +142,32 @@ typedef struct
     egui_color_t color;
 } egui_svg_pixel_rect_t;
 
-typedef struct egui_svg_doc
+typedef struct
 {
-    plutosvg_document_t *document;
     egui_svg_rect_t *rects;
     egui_svg_pixel_rect_t *pixel_rects;
     uint16_t rect_count;
     uint16_t pixel_rect_count;
-    uint8_t rect_fast_path;
     uint8_t rects_sorted;
-    float view_x;
-    float view_y;
-    float view_width;
-    float view_height;
-    float rect_content_left;
-    float rect_content_top;
-    float rect_content_right;
-    float rect_content_bottom;
+    egui_dim_t view_x;
+    egui_dim_t view_y;
+    egui_dim_t view_width;
+    egui_dim_t view_height;
+    egui_dim_t rect_content_left;
+    egui_dim_t rect_content_top;
+    egui_dim_t rect_content_right;
+    egui_dim_t rect_content_bottom;
     egui_dim_t pixel_rect_width;
     egui_dim_t pixel_rect_height;
     egui_dim_t pixel_content_left;
     egui_dim_t pixel_content_top;
     egui_dim_t pixel_content_right;
     egui_dim_t pixel_content_bottom;
-    egui_dim_t natural_width;
-    egui_dim_t natural_height;
+} egui_svg_rect_state_t;
+
+typedef struct
+{
+    plutosvg_document_t *document;
     egui_image_std_info_t raster_info;
     egui_image_std_t raster_image;
     uint16_t *data_buf;
@@ -175,6 +176,18 @@ typedef struct egui_svg_doc
     egui_dim_t cache_height;
     egui_dim_t cache_offset_x;
     egui_dim_t cache_offset_y;
+} egui_svg_raster_state_t;
+
+typedef struct egui_svg_doc
+{
+    egui_dim_t natural_width;
+    egui_dim_t natural_height;
+    uint8_t rect_fast_path;
+    union
+    {
+        egui_svg_rect_state_t rect;
+        egui_svg_raster_state_t raster;
+    } state;
 } egui_svg_doc_t;
 
 extern const egui_image_api_t egui_image_svg_t_api_table;
@@ -281,30 +294,36 @@ static void egui_svg_doc_destroy(egui_svg_doc_t *doc)
         return;
     }
 
-    if (doc->data_buf != NULL)
+    if (doc->rect_fast_path)
     {
-        egui_free(NULL, doc->data_buf);
-        doc->data_buf = NULL;
+        if (doc->state.rect.rects != NULL)
+        {
+            egui_free(NULL, doc->state.rect.rects);
+            doc->state.rect.rects = NULL;
+        }
+        if (doc->state.rect.pixel_rects != NULL)
+        {
+            egui_free(NULL, doc->state.rect.pixel_rects);
+            doc->state.rect.pixel_rects = NULL;
+        }
     }
-    if (doc->alpha_buf != NULL)
+    else
     {
-        egui_free(NULL, doc->alpha_buf);
-        doc->alpha_buf = NULL;
-    }
-    if (doc->document != NULL)
-    {
-        plutosvg_document_destroy(doc->document);
-        doc->document = NULL;
-    }
-    if (doc->rects != NULL)
-    {
-        egui_free(NULL, doc->rects);
-        doc->rects = NULL;
-    }
-    if (doc->pixel_rects != NULL)
-    {
-        egui_free(NULL, doc->pixel_rects);
-        doc->pixel_rects = NULL;
+        if (doc->state.raster.data_buf != NULL)
+        {
+            egui_free(NULL, doc->state.raster.data_buf);
+            doc->state.raster.data_buf = NULL;
+        }
+        if (doc->state.raster.alpha_buf != NULL)
+        {
+            egui_free(NULL, doc->state.raster.alpha_buf);
+            doc->state.raster.alpha_buf = NULL;
+        }
+        if (doc->state.raster.document != NULL)
+        {
+            plutosvg_document_destroy(doc->state.raster.document);
+            doc->state.raster.document = NULL;
+        }
     }
     egui_free(NULL, doc);
 }
@@ -312,23 +331,23 @@ static void egui_svg_doc_destroy(egui_svg_doc_t *doc)
 #if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
 static void egui_svg_release_pixel_rect_cache(egui_svg_doc_t *doc)
 {
-    if (doc == NULL)
+    if (doc == NULL || !doc->rect_fast_path)
     {
         return;
     }
 
-    if (doc->pixel_rects != NULL)
+    if (doc->state.rect.pixel_rects != NULL)
     {
-        egui_free(NULL, doc->pixel_rects);
-        doc->pixel_rects = NULL;
+        egui_free(NULL, doc->state.rect.pixel_rects);
+        doc->state.rect.pixel_rects = NULL;
     }
-    doc->pixel_rect_count = 0;
-    doc->pixel_rect_width = 0;
-    doc->pixel_rect_height = 0;
-    doc->pixel_content_left = 0;
-    doc->pixel_content_top = 0;
-    doc->pixel_content_right = 0;
-    doc->pixel_content_bottom = 0;
+    doc->state.rect.pixel_rect_count = 0;
+    doc->state.rect.pixel_rect_width = 0;
+    doc->state.rect.pixel_rect_height = 0;
+    doc->state.rect.pixel_content_left = 0;
+    doc->state.rect.pixel_content_top = 0;
+    doc->state.rect.pixel_content_right = 0;
+    doc->state.rect.pixel_content_bottom = 0;
 }
 #endif
 
@@ -339,31 +358,32 @@ static void egui_svg_release_cache(egui_svg_doc_t *doc)
         return;
     }
 
-    if (doc->data_buf != NULL)
+    if (doc->state.raster.data_buf != NULL)
     {
-        egui_free(NULL, doc->data_buf);
-        doc->data_buf = NULL;
+        egui_free(NULL, doc->state.raster.data_buf);
+        doc->state.raster.data_buf = NULL;
     }
-    if (doc->alpha_buf != NULL)
+    if (doc->state.raster.alpha_buf != NULL)
     {
-        egui_free(NULL, doc->alpha_buf);
-        doc->alpha_buf = NULL;
+        egui_free(NULL, doc->state.raster.alpha_buf);
+        doc->state.raster.alpha_buf = NULL;
     }
 
-    doc->raster_info.data_buf = NULL;
-    doc->raster_info.alpha_buf = NULL;
-    doc->raster_info.width = 0;
-    doc->raster_info.height = 0;
-    doc->raster_image.base.res = NULL;
-    doc->cache_width = 0;
-    doc->cache_height = 0;
-    doc->cache_offset_x = 0;
-    doc->cache_offset_y = 0;
+    doc->state.raster.raster_info.data_buf = NULL;
+    doc->state.raster.raster_info.alpha_buf = NULL;
+    doc->state.raster.raster_info.width = 0;
+    doc->state.raster.raster_info.height = 0;
+    doc->state.raster.raster_image.base.res = NULL;
+    doc->state.raster.cache_width = 0;
+    doc->state.raster.cache_height = 0;
+    doc->state.raster.cache_offset_x = 0;
+    doc->state.raster.cache_offset_y = 0;
 }
 
 __EGUI_STATIC_INLINE__ int egui_svg_cache_matches(const egui_svg_doc_t *doc, egui_dim_t width, egui_dim_t height)
 {
-    return doc != NULL && doc->raster_info.data_buf != NULL && doc->cache_width == width && doc->cache_height == height;
+    return doc != NULL && !doc->rect_fast_path && doc->state.raster.raster_info.data_buf != NULL && doc->state.raster.cache_width == width &&
+           doc->state.raster.cache_height == height;
 }
 
 static int32_t egui_svg_render_max_surface_pixels(void)
@@ -983,6 +1003,7 @@ static int egui_svg_try_get_rect_fast_path_size(const char *svg_text, uint32_t s
     float view_height = 0.0f;
     float natural_width_raw = 0.0f;
     float natural_height_raw = 0.0f;
+    egui_dim_t view_value;
 
     if (svg_text == NULL || svg_len == 0 || natural_width == NULL || natural_height == NULL)
     {
@@ -999,10 +1020,17 @@ static int egui_svg_try_get_rect_fast_path_size(const char *svg_text, uint32_t s
     {
         return 0;
     }
+    if (!egui_svg_dim_from_integral_float(view_x, &view_value) || !egui_svg_dim_from_integral_float(view_y, &view_value) ||
+        !egui_svg_dim_from_integral_float(view_width, &view_value) || !egui_svg_dim_from_integral_float(view_height, &view_value) || view_width <= 0.0f ||
+        view_height <= 0.0f)
+    {
+        return 0;
+    }
     return 1;
 }
 
-static void egui_svg_get_rect_content_bounds(const egui_svg_rect_t *rects, uint16_t rect_count, float *left, float *top, float *right, float *bottom)
+static void egui_svg_get_rect_content_bounds(const egui_svg_rect_t *rects, uint16_t rect_count, egui_dim_t *left, egui_dim_t *top, egui_dim_t *right,
+                                             egui_dim_t *bottom)
 {
     if (rects == NULL || rect_count == 0 || left == NULL || top == NULL || right == NULL || bottom == NULL)
     {
@@ -1279,6 +1307,10 @@ static int egui_svg_try_build_rect_fast_path(egui_svg_doc_t *doc, const char *sv
     float view_y = 0.0f;
     float view_width;
     float view_height;
+    egui_dim_t doc_view_x;
+    egui_dim_t doc_view_y;
+    egui_dim_t doc_view_width;
+    egui_dim_t doc_view_height;
     size_t rect_bytes;
 
     if (doc == NULL || svg_text == NULL || svg_len == 0)
@@ -1290,6 +1322,12 @@ static int egui_svg_try_build_rect_fast_path(egui_svg_doc_t *doc, const char *sv
     view_width = (float)doc->natural_width;
     view_height = (float)doc->natural_height;
     if (!egui_svg_scan_rect_fast_path(svg_text, svg_end, NULL, &rect_count, &view_x, &view_y, &view_width, &view_height, NULL, NULL))
+    {
+        return 0;
+    }
+    if (!egui_svg_dim_from_integral_float(view_x, &doc_view_x) || !egui_svg_dim_from_integral_float(view_y, &doc_view_y) ||
+        !egui_svg_dim_from_integral_float(view_width, &doc_view_width) || !egui_svg_dim_from_integral_float(view_height, &doc_view_height) ||
+        doc_view_width <= 0 || doc_view_height <= 0)
     {
         return 0;
     }
@@ -1315,6 +1353,13 @@ static int egui_svg_try_build_rect_fast_path(egui_svg_doc_t *doc, const char *sv
         egui_free(NULL, rects);
         return 0;
     }
+    if (!egui_svg_dim_from_integral_float(view_x, &doc_view_x) || !egui_svg_dim_from_integral_float(view_y, &doc_view_y) ||
+        !egui_svg_dim_from_integral_float(view_width, &doc_view_width) || !egui_svg_dim_from_integral_float(view_height, &doc_view_height) ||
+        doc_view_width <= 0 || doc_view_height <= 0)
+    {
+        egui_free(NULL, rects);
+        return 0;
+    }
 
 #if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_FLATTEN
     {
@@ -1326,19 +1371,20 @@ static int egui_svg_try_build_rect_fast_path(egui_svg_doc_t *doc, const char *sv
             egui_free(NULL, rects);
             rects = flat_rects;
             rect_count = flat_count;
-            doc->rects_sorted = 1u;
+            doc->state.rect.rects_sorted = 1u;
         }
     }
 #endif
 
-    doc->rects = rects;
-    doc->rect_count = rect_count;
+    doc->state.rect.rects = rects;
+    doc->state.rect.rect_count = rect_count;
     doc->rect_fast_path = 1u;
-    doc->view_x = view_x;
-    doc->view_y = view_y;
-    doc->view_width = view_width;
-    doc->view_height = view_height;
-    egui_svg_get_rect_content_bounds(rects, rect_count, &doc->rect_content_left, &doc->rect_content_top, &doc->rect_content_right, &doc->rect_content_bottom);
+    doc->state.rect.view_x = doc_view_x;
+    doc->state.rect.view_y = doc_view_y;
+    doc->state.rect.view_width = doc_view_width;
+    doc->state.rect.view_height = doc_view_height;
+    egui_svg_get_rect_content_bounds(rects, rect_count, &doc->state.rect.rect_content_left, &doc->state.rect.rect_content_top,
+                                     &doc->state.rect.rect_content_right, &doc->state.rect.rect_content_bottom);
     return 1;
 }
 
@@ -1394,16 +1440,16 @@ static plutovg_surface_t *egui_svg_render_surface_region(const egui_svg_doc_t *d
     plutovg_surface_t *surface;
     plutovg_canvas_t *svg_canvas;
 
-    if (doc == NULL || doc->document == NULL || target_width <= 0 || target_height <= 0 || clip_x < 0 || clip_y < 0 || clip_width <= 0 || clip_height <= 0 ||
-        clip_width > EGUI_DIM_MAX || clip_height > EGUI_DIM_MAX)
+    if (doc == NULL || doc->rect_fast_path || doc->state.raster.document == NULL || target_width <= 0 || target_height <= 0 || clip_x < 0 || clip_y < 0 ||
+        clip_width <= 0 || clip_height <= 0 || clip_width > EGUI_DIM_MAX || clip_height > EGUI_DIM_MAX)
     {
         return NULL;
     }
 
     extents.x = 0.0f;
     extents.y = 0.0f;
-    extents.w = plutosvg_document_get_width(doc->document);
-    extents.h = plutosvg_document_get_height(doc->document);
+    extents.w = plutosvg_document_get_width(doc->state.raster.document);
+    extents.h = plutosvg_document_get_height(doc->state.raster.document);
     if (extents.w <= 0.0f || extents.h <= 0.0f)
     {
         return NULL;
@@ -1425,7 +1471,7 @@ static plutovg_surface_t *egui_svg_render_surface_region(const egui_svg_doc_t *d
     plutovg_canvas_translate(svg_canvas, -(float)clip_x, -(float)clip_y);
     plutovg_canvas_scale(svg_canvas, (float)target_width / extents.w, (float)target_height / extents.h);
     plutovg_canvas_translate(svg_canvas, -extents.x, -extents.y);
-    if (!plutosvg_document_render(doc->document, NULL, svg_canvas, NULL, NULL, NULL))
+    if (!plutosvg_document_render(doc->state.raster.document, NULL, svg_canvas, NULL, NULL, NULL))
     {
         plutovg_canvas_destroy(svg_canvas);
         plutovg_surface_destroy(surface);
@@ -1521,27 +1567,34 @@ static int egui_svg_get_content_bounds(const egui_svg_doc_t *doc, egui_dim_t wid
 
     if (doc->rect_fast_path)
     {
-        if (doc->rect_count == 0 || doc->view_width <= 0.0f || doc->view_height <= 0.0f)
+        if (doc->state.rect.rect_count == 0 || doc->state.rect.view_width <= 0.0f || doc->state.rect.view_height <= 0.0f)
         {
             return 0;
         }
 
-        left = doc->rect_content_left;
-        top = doc->rect_content_top;
-        right = doc->rect_content_right;
-        bottom = doc->rect_content_bottom;
-        x0 = egui_svg_floor_to_i32((left - doc->view_x) * (float)width / doc->view_width);
-        y0 = egui_svg_floor_to_i32((top - doc->view_y) * (float)height / doc->view_height);
-        x1 = egui_svg_ceil_to_i32((right - doc->view_x) * (float)width / doc->view_width);
-        y1 = egui_svg_ceil_to_i32((bottom - doc->view_y) * (float)height / doc->view_height);
+        left = doc->state.rect.rect_content_left;
+        top = doc->state.rect.rect_content_top;
+        right = doc->state.rect.rect_content_right;
+        bottom = doc->state.rect.rect_content_bottom;
+        x0 = egui_svg_floor_to_i32((left - doc->state.rect.view_x) * (float)width / doc->state.rect.view_width);
+        y0 = egui_svg_floor_to_i32((top - doc->state.rect.view_y) * (float)height / doc->state.rect.view_height);
+        x1 = egui_svg_ceil_to_i32((right - doc->state.rect.view_x) * (float)width / doc->state.rect.view_width);
+        y1 = egui_svg_ceil_to_i32((bottom - doc->state.rect.view_y) * (float)height / doc->state.rect.view_height);
     }
     else
     {
         plutovg_rect_t extents;
-        float doc_width = plutosvg_document_get_width(doc->document);
-        float doc_height = plutosvg_document_get_height(doc->document);
 
-        if (doc_width <= 0.0f || doc_height <= 0.0f || !plutosvg_document_extents(doc->document, NULL, &extents) || extents.w <= 0.0f || extents.h <= 0.0f)
+        if (doc->state.raster.document == NULL)
+        {
+            return 0;
+        }
+
+        float doc_width = plutosvg_document_get_width(doc->state.raster.document);
+        float doc_height = plutosvg_document_get_height(doc->state.raster.document);
+
+        if (doc_width <= 0.0f || doc_height <= 0.0f || !plutosvg_document_extents(doc->state.raster.document, NULL, &extents) || extents.w <= 0.0f ||
+            extents.h <= 0.0f)
         {
             return 0;
         }
@@ -1692,7 +1745,7 @@ static int egui_svg_render_cache(egui_svg_doc_t *doc, egui_dim_t width, egui_dim
     uint16_t *new_data_buf;
     uint8_t *new_alpha_buf;
 
-    if (doc == NULL || doc->document == NULL || width <= 0 || height <= 0)
+    if (doc == NULL || doc->rect_fast_path || doc->state.raster.document == NULL || width <= 0 || height <= 0)
     {
         return 0;
     }
@@ -1727,45 +1780,46 @@ static int egui_svg_render_cache(egui_svg_doc_t *doc, egui_dim_t width, egui_dim
 
     plutovg_surface_destroy(surface);
     egui_svg_release_cache(doc);
-    doc->data_buf = new_data_buf;
-    doc->alpha_buf = new_alpha_buf;
-    doc->raster_info = new_info;
-    doc->cache_width = width;
-    doc->cache_height = height;
-    doc->cache_offset_x = offset_x;
-    doc->cache_offset_y = offset_y;
-    egui_image_std_init(&doc->raster_image.base, &doc->raster_info);
+    doc->state.raster.data_buf = new_data_buf;
+    doc->state.raster.alpha_buf = new_alpha_buf;
+    doc->state.raster.raster_info = new_info;
+    doc->state.raster.cache_width = width;
+    doc->state.raster.cache_height = height;
+    doc->state.raster.cache_offset_x = offset_x;
+    doc->state.raster.cache_offset_y = offset_y;
+    egui_image_std_init(&doc->state.raster.raster_image.base, &doc->state.raster.raster_info);
     return 1;
 }
 
 static int egui_svg_cached_raster_query_pixel(const egui_svg_doc_t *doc, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
-    if (doc == NULL || doc->raster_info.data_buf == NULL)
+    if (doc == NULL || doc->rect_fast_path || doc->state.raster.raster_info.data_buf == NULL)
     {
         return 0;
     }
-    if (x < doc->cache_offset_x || y < doc->cache_offset_y)
-    {
-        return 0;
-    }
-
-    x -= doc->cache_offset_x;
-    y -= doc->cache_offset_y;
-    if (x < 0 || y < 0 || x >= doc->raster_info.width || y >= doc->raster_info.height)
+    if (x < doc->state.raster.cache_offset_x || y < doc->state.raster.cache_offset_y)
     {
         return 0;
     }
 
-    return doc->raster_image.base.api->get_point(&doc->raster_image.base, x, y, color, alpha);
+    x -= doc->state.raster.cache_offset_x;
+    y -= doc->state.raster.cache_offset_y;
+    if (x < 0 || y < 0 || x >= doc->state.raster.raster_info.width || y >= doc->state.raster.raster_info.height)
+    {
+        return 0;
+    }
+
+    return doc->state.raster.raster_image.base.api->get_point(&doc->state.raster.raster_image.base, x, y, color, alpha);
 }
 
 static void egui_svg_cached_raster_draw(const egui_svg_doc_t *doc, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y)
 {
-    if (doc == NULL || doc->raster_info.data_buf == NULL || canvas == NULL)
+    if (doc == NULL || doc->rect_fast_path || doc->state.raster.raster_info.data_buf == NULL || canvas == NULL)
     {
         return;
     }
-    doc->raster_image.base.api->draw_image(&doc->raster_image.base, canvas, x + doc->cache_offset_x, y + doc->cache_offset_y);
+    doc->state.raster.raster_image.base.api->draw_image(&doc->state.raster.raster_image.base, canvas, x + doc->state.raster.cache_offset_x,
+                                                        y + doc->state.raster.cache_offset_y);
 }
 
 static int egui_svg_query_rect_fast_path(const egui_svg_doc_t *doc, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color,
@@ -1780,8 +1834,8 @@ static int egui_svg_query_rect_fast_path(const egui_svg_doc_t *doc, egui_dim_t x
         return 0;
     }
 
-    svg_x = doc->view_x + (((float)x + 0.5f) * doc->view_width / (float)width);
-    svg_y = doc->view_y + (((float)y + 0.5f) * doc->view_height / (float)height);
+    svg_x = doc->state.rect.view_x + (((float)x + 0.5f) * doc->state.rect.view_width / (float)width);
+    svg_y = doc->state.rect.view_y + (((float)y + 0.5f) * doc->state.rect.view_height / (float)height);
 
     if (color != NULL)
     {
@@ -1792,9 +1846,9 @@ static int egui_svg_query_rect_fast_path(const egui_svg_doc_t *doc, egui_dim_t x
         *alpha = 0;
     }
 
-    for (uint16_t i = 0; i < doc->rect_count; i++)
+    for (uint16_t i = 0; i < doc->state.rect.rect_count; i++)
     {
-        const egui_svg_rect_t *rect = &doc->rects[i];
+        const egui_svg_rect_t *rect = &doc->state.rect.rects[i];
 
         if (svg_x >= rect->x && svg_x < rect->x + rect->width && svg_y >= rect->y && svg_y < rect->y + rect->height)
         {
@@ -1879,7 +1933,7 @@ static void egui_svg_draw_rect_clipped(egui_canvas_t *canvas, egui_region_t *wor
 #if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
 static int egui_svg_pixel_rect_cache_matches(const egui_svg_doc_t *doc, egui_dim_t width, egui_dim_t height)
 {
-    return doc != NULL && doc->pixel_rects != NULL && doc->pixel_rect_width == width && doc->pixel_rect_height == height;
+    return doc != NULL && doc->state.rect.pixel_rects != NULL && doc->state.rect.pixel_rect_width == width && doc->state.rect.pixel_rect_height == height;
 }
 
 static int egui_svg_ensure_pixel_rect_cache(egui_svg_doc_t *doc, egui_dim_t width, egui_dim_t height)
@@ -1894,7 +1948,8 @@ static int egui_svg_ensure_pixel_rect_cache(egui_svg_doc_t *doc, egui_dim_t widt
     float scale_x;
     float scale_y;
 
-    if (doc == NULL || !doc->rect_fast_path || doc->rect_count == 0 || width <= 0 || height <= 0 || doc->view_width <= 0.0f || doc->view_height <= 0.0f)
+    if (doc == NULL || !doc->rect_fast_path || doc->state.rect.rect_count == 0 || width <= 0 || height <= 0 || doc->state.rect.view_width <= 0.0f ||
+        doc->state.rect.view_height <= 0.0f)
     {
         return 0;
     }
@@ -1903,7 +1958,7 @@ static int egui_svg_ensure_pixel_rect_cache(egui_svg_doc_t *doc, egui_dim_t widt
         return 1;
     }
 
-    bytes = (size_t)doc->rect_count * sizeof(*pixel_rects);
+    bytes = (size_t)doc->state.rect.rect_count * sizeof(*pixel_rects);
     if (bytes == 0u || bytes > (size_t)INT_MAX)
     {
         return 0;
@@ -1915,15 +1970,15 @@ static int egui_svg_ensure_pixel_rect_cache(egui_svg_doc_t *doc, egui_dim_t widt
         return 0;
     }
 
-    scale_x = (float)width / doc->view_width;
-    scale_y = (float)height / doc->view_height;
-    for (uint16_t i = 0; i < doc->rect_count; i++)
+    scale_x = (float)width / doc->state.rect.view_width;
+    scale_y = (float)height / doc->state.rect.view_height;
+    for (uint16_t i = 0; i < doc->state.rect.rect_count; i++)
     {
-        const egui_svg_rect_t *rect = &doc->rects[i];
-        int32_t left = egui_svg_floor_to_i32((rect->x - doc->view_x) * scale_x);
-        int32_t top = egui_svg_floor_to_i32((rect->y - doc->view_y) * scale_y);
-        int32_t right = egui_svg_ceil_to_i32((rect->x + rect->width - doc->view_x) * scale_x);
-        int32_t bottom = egui_svg_ceil_to_i32((rect->y + rect->height - doc->view_y) * scale_y);
+        const egui_svg_rect_t *rect = &doc->state.rect.rects[i];
+        int32_t left = egui_svg_floor_to_i32((rect->x - doc->state.rect.view_x) * scale_x);
+        int32_t top = egui_svg_floor_to_i32((rect->y - doc->state.rect.view_y) * scale_y);
+        int32_t right = egui_svg_ceil_to_i32((rect->x + rect->width - doc->state.rect.view_x) * scale_x);
+        int32_t bottom = egui_svg_ceil_to_i32((rect->y + rect->height - doc->state.rect.view_y) * scale_y);
         egui_svg_pixel_rect_t *pixel_rect;
 
         if (left < 0)
@@ -1977,14 +2032,14 @@ static int egui_svg_ensure_pixel_rect_cache(egui_svg_doc_t *doc, egui_dim_t widt
     }
 
     egui_svg_release_pixel_rect_cache(doc);
-    doc->pixel_rects = pixel_rects;
-    doc->pixel_rect_count = pixel_rect_count;
-    doc->pixel_rect_width = width;
-    doc->pixel_rect_height = height;
-    doc->pixel_content_left = content_left;
-    doc->pixel_content_top = content_top;
-    doc->pixel_content_right = content_right;
-    doc->pixel_content_bottom = content_bottom;
+    doc->state.rect.pixel_rects = pixel_rects;
+    doc->state.rect.pixel_rect_count = pixel_rect_count;
+    doc->state.rect.pixel_rect_width = width;
+    doc->state.rect.pixel_rect_height = height;
+    doc->state.rect.pixel_content_left = content_left;
+    doc->state.rect.pixel_content_top = content_top;
+    doc->state.rect.pixel_content_right = content_right;
+    doc->state.rect.pixel_content_bottom = content_bottom;
     return 1;
 }
 
@@ -2000,7 +2055,7 @@ static void egui_svg_draw_pixel_rect_fast_path(const egui_svg_doc_t *doc, egui_c
     int32_t work_right;
     int32_t work_bottom;
 
-    if (doc == NULL || doc->pixel_rects == NULL || canvas == NULL)
+    if (doc == NULL || doc->state.rect.pixel_rects == NULL || canvas == NULL)
     {
         return;
     }
@@ -2015,18 +2070,18 @@ static void egui_svg_draw_pixel_rect_fast_path(const egui_svg_doc_t *doc, egui_c
     work_top = (int32_t)work_region->location.y;
     work_right = work_left + work_region->size.width;
     work_bottom = work_top + work_region->size.height;
-    content_left = (int32_t)x + doc->pixel_content_left;
-    content_top = (int32_t)y + doc->pixel_content_top;
-    content_right = (int32_t)x + doc->pixel_content_right;
-    content_bottom = (int32_t)y + doc->pixel_content_bottom;
+    content_left = (int32_t)x + doc->state.rect.pixel_content_left;
+    content_top = (int32_t)y + doc->state.rect.pixel_content_top;
+    content_right = (int32_t)x + doc->state.rect.pixel_content_right;
+    content_bottom = (int32_t)y + doc->state.rect.pixel_content_bottom;
     if (content_left >= work_right || content_top >= work_bottom || content_right <= work_left || content_bottom <= work_top)
     {
         return;
     }
 
-    for (uint16_t i = 0; i < doc->pixel_rect_count; i++)
+    for (uint16_t i = 0; i < doc->state.rect.pixel_rect_count; i++)
     {
-        const egui_svg_pixel_rect_t *rect = &doc->pixel_rects[i];
+        const egui_svg_pixel_rect_t *rect = &doc->state.rect.pixel_rects[i];
         int32_t rect_left = (int32_t)x + rect->left;
         int32_t rect_top = (int32_t)y + rect->top;
         int32_t rect_right = (int32_t)x + rect->right;
@@ -2036,7 +2091,7 @@ static void egui_svg_draw_pixel_rect_fast_path(const egui_svg_doc_t *doc, egui_c
         {
             continue;
         }
-        if (doc->rects_sorted && rect_top >= work_bottom)
+        if (doc->state.rect.rects_sorted && rect_top >= work_bottom)
         {
             break;
         }
@@ -2064,7 +2119,8 @@ static void egui_svg_draw_rect_float_fast_path(const egui_svg_doc_t *doc, egui_c
     int32_t work_right;
     int32_t work_bottom;
 
-    if (doc == NULL || !doc->rect_fast_path || canvas == NULL || width <= 0 || height <= 0 || doc->view_width <= 0.0f || doc->view_height <= 0.0f)
+    if (doc == NULL || !doc->rect_fast_path || canvas == NULL || width <= 0 || height <= 0 || doc->state.rect.view_width <= 0.0f ||
+        doc->state.rect.view_height <= 0.0f)
     {
         return;
     }
@@ -2075,34 +2131,34 @@ static void egui_svg_draw_rect_float_fast_path(const egui_svg_doc_t *doc, egui_c
         return;
     }
 
-    scale_x = (float)width / doc->view_width;
-    scale_y = (float)height / doc->view_height;
+    scale_x = (float)width / doc->state.rect.view_width;
+    scale_y = (float)height / doc->state.rect.view_height;
     work_left = (int32_t)work_region->location.x;
     work_top = (int32_t)work_region->location.y;
     work_right = work_left + work_region->size.width;
     work_bottom = work_top + work_region->size.height;
-    content_left = (int32_t)x + egui_svg_floor_to_i32((doc->rect_content_left - doc->view_x) * scale_x);
-    content_top = (int32_t)y + egui_svg_floor_to_i32((doc->rect_content_top - doc->view_y) * scale_y);
-    content_right = (int32_t)x + egui_svg_ceil_to_i32((doc->rect_content_right - doc->view_x) * scale_x);
-    content_bottom = (int32_t)y + egui_svg_ceil_to_i32((doc->rect_content_bottom - doc->view_y) * scale_y);
+    content_left = (int32_t)x + egui_svg_floor_to_i32((doc->state.rect.rect_content_left - doc->state.rect.view_x) * scale_x);
+    content_top = (int32_t)y + egui_svg_floor_to_i32((doc->state.rect.rect_content_top - doc->state.rect.view_y) * scale_y);
+    content_right = (int32_t)x + egui_svg_ceil_to_i32((doc->state.rect.rect_content_right - doc->state.rect.view_x) * scale_x);
+    content_bottom = (int32_t)y + egui_svg_ceil_to_i32((doc->state.rect.rect_content_bottom - doc->state.rect.view_y) * scale_y);
     if (content_left >= work_right || content_top >= work_bottom || content_right <= work_left || content_bottom <= work_top)
     {
         return;
     }
 
-    for (uint16_t i = 0; i < doc->rect_count; i++)
+    for (uint16_t i = 0; i < doc->state.rect.rect_count; i++)
     {
-        const egui_svg_rect_t *rect = &doc->rects[i];
-        int32_t rect_left = (int32_t)x + egui_svg_floor_to_i32((rect->x - doc->view_x) * scale_x);
-        int32_t rect_top = (int32_t)y + egui_svg_floor_to_i32((rect->y - doc->view_y) * scale_y);
-        int32_t rect_right = (int32_t)x + egui_svg_ceil_to_i32((rect->x + rect->width - doc->view_x) * scale_x);
-        int32_t rect_bottom = (int32_t)y + egui_svg_ceil_to_i32((rect->y + rect->height - doc->view_y) * scale_y);
+        const egui_svg_rect_t *rect = &doc->state.rect.rects[i];
+        int32_t rect_left = (int32_t)x + egui_svg_floor_to_i32((rect->x - doc->state.rect.view_x) * scale_x);
+        int32_t rect_top = (int32_t)y + egui_svg_floor_to_i32((rect->y - doc->state.rect.view_y) * scale_y);
+        int32_t rect_right = (int32_t)x + egui_svg_ceil_to_i32((rect->x + rect->width - doc->state.rect.view_x) * scale_x);
+        int32_t rect_bottom = (int32_t)y + egui_svg_ceil_to_i32((rect->y + rect->height - doc->state.rect.view_y) * scale_y);
 
         if (rect_bottom <= work_top)
         {
             continue;
         }
-        if (doc->rects_sorted && rect_top >= work_bottom)
+        if (doc->state.rect.rects_sorted && rect_top >= work_bottom)
         {
             break;
         }
@@ -2208,7 +2264,7 @@ static void egui_svg_draw_clipped_region(const egui_svg_doc_t *doc, egui_canvas_
     int32_t max_pixels;
     int32_t band_top;
 
-    if (doc == NULL || doc->document == NULL || canvas == NULL || width <= 0 || height <= 0)
+    if (doc == NULL || doc->rect_fast_path || doc->state.raster.document == NULL || canvas == NULL || width <= 0 || height <= 0)
     {
         return;
     }
@@ -2331,6 +2387,10 @@ static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egu
     float view_height = 0.0f;
     float natural_width_raw = 0.0f;
     float natural_height_raw = 0.0f;
+    egui_dim_t doc_view_x;
+    egui_dim_t doc_view_y;
+    egui_dim_t doc_view_width;
+    egui_dim_t doc_view_height;
     size_t rect_bytes;
 
     if (res == NULL || res->res_type != EGUI_RESOURCE_TYPE_EXTERNAL || res->data_buf == NULL || res->data_size == 0)
@@ -2340,6 +2400,12 @@ static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egu
 
     if (!egui_svg_scan_external_rect_fast_path(res, NULL, &rect_count, &view_x, &view_y, &view_width, &view_height, &natural_width_raw, &natural_height_raw) ||
         !egui_svg_dim_from_float(natural_width_raw, &natural_width) || !egui_svg_dim_from_float(natural_height_raw, &natural_height))
+    {
+        return NULL;
+    }
+    if (!egui_svg_dim_from_integral_float(view_x, &doc_view_x) || !egui_svg_dim_from_integral_float(view_y, &doc_view_y) ||
+        !egui_svg_dim_from_integral_float(view_width, &doc_view_width) || !egui_svg_dim_from_integral_float(view_height, &doc_view_height) ||
+        doc_view_width <= 0 || doc_view_height <= 0)
     {
         return NULL;
     }
@@ -2377,15 +2443,24 @@ static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egu
         egui_svg_doc_destroy(doc);
         return NULL;
     }
+    if (!egui_svg_dim_from_integral_float(view_x, &doc_view_x) || !egui_svg_dim_from_integral_float(view_y, &doc_view_y) ||
+        !egui_svg_dim_from_integral_float(view_width, &doc_view_width) || !egui_svg_dim_from_integral_float(view_height, &doc_view_height) ||
+        doc_view_width <= 0 || doc_view_height <= 0)
+    {
+        egui_free(NULL, rects);
+        egui_svg_doc_destroy(doc);
+        return NULL;
+    }
 
-    doc->rects = rects;
-    doc->rect_count = rect_count;
+    doc->state.rect.rects = rects;
+    doc->state.rect.rect_count = rect_count;
     doc->rect_fast_path = 1u;
-    doc->view_x = view_x;
-    doc->view_y = view_y;
-    doc->view_width = view_width;
-    doc->view_height = view_height;
-    egui_svg_get_rect_content_bounds(rects, rect_count, &doc->rect_content_left, &doc->rect_content_top, &doc->rect_content_right, &doc->rect_content_bottom);
+    doc->state.rect.view_x = doc_view_x;
+    doc->state.rect.view_y = doc_view_y;
+    doc->state.rect.view_width = doc_view_width;
+    doc->state.rect.view_height = doc_view_height;
+    egui_svg_get_rect_content_bounds(rects, rect_count, &doc->state.rect.rect_content_left, &doc->state.rect.rect_content_top,
+                                     &doc->state.rect.rect_content_right, &doc->state.rect.rect_content_bottom);
     return doc;
 }
 
@@ -2499,10 +2574,19 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
         return 0;
     }
     egui_api_memset(doc, 0, sizeof(*doc));
-    doc->document = document;
     doc->natural_width = natural_width;
     doc->natural_height = natural_height;
-    egui_svg_try_build_rect_fast_path(doc, (const char *)owned_data_buf, svg_len);
+    if (egui_svg_try_build_rect_fast_path(doc, (const char *)owned_data_buf, svg_len))
+    {
+        plutosvg_document_destroy(document);
+        self->doc = doc;
+        self->owned_data_buf = NULL;
+        self->base.res = doc;
+        egui_free(NULL, owned_data_buf);
+        return 1;
+    }
+
+    doc->state.raster.document = document;
     self->doc = doc;
     self->owned_data_buf = owned_data_buf;
     self->base.res = doc;
