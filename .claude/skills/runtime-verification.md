@@ -35,7 +35,7 @@ description: Use when verifying code changes compile and render correctly, or wh
    - 控件可见，布局合理
    - 文字和图标可读
 
-## HelloBasic 子示例检查
+## APP_SUB 子示例检查
 
 ```bash
 python scripts/code_runtime_check.py --app HelloBasic --app-sub {SUB} --keep-screenshots
@@ -43,6 +43,13 @@ python scripts/code_runtime_check.py --app HelloBasic --app-sub {SUB} --keep-scr
 
 截图路径：
 `runtime_check_output/HelloBasic_{SUB}/default/frame_*.png`
+
+当前 `code_runtime_check.py` 支持 `HelloBasic`、`HelloVirtual`、`HelloSizeAnalysis` 这类 `APP_SUB` 家族应用；不传 `--app-sub` 时会批量跑该应用下所有子示例：
+
+```bash
+python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_basic --keep-screenshots
+python scripts/code_runtime_check.py --app HelloSizeAnalysis --keep-screenshots
+```
 
 ## 多屏专项检查
 
@@ -71,27 +78,15 @@ python scripts/code_runtime_check.py --scope multi-display --jobs 2 --keep-scree
 - 副屏输入路由
 - 多屏录制动作和截图输出
 
-## HelloCustomWidgets 检查
+## HelloCustomWidgets 已迁移
 
-单个控件：
+`HelloCustomWidgets` 不再属于当前主仓。当前 `scripts/code_runtime_check.py` 遇到 `--app HelloCustomWidgets` 或旧的 `--category` 参数会直接报错并提示切换仓库：
 
-```bash
-python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub {CATEGORY}/{WIDGET} --keep-screenshots
+```text
+https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets
 ```
 
-分类批量回归：
-
-```bash
-python scripts/code_runtime_check.py --app HelloCustomWidgets --category {CATEGORY} --bits64
-```
-
-截图路径：
-`runtime_check_output/HelloCustomWidgets_{CATEGORY}_{WIDGET}/default/frame_*.png`
-
-说明：
-
-- `code_runtime_check.py` 会把 `APP_SUB` 里的 `/` 和 `\` 统一替换为 `_`
-- 分类批量回归适合和 `custom-widgets-check.yml`、本地收口回归保持一致
+涉及 custom widgets、其截图归档、`iteration_log/` 或对应验收 workflow 时，不要在当前仓库继续执行旧命令，应切换到 `EmbeddedGUI_Widgets` 仓库后按那边的规范运行。
 
 ## 多页面应用检查要求
 

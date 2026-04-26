@@ -17,7 +17,7 @@ Makefile (根)
 └── porting/pc/Makefile.base    ← 核心构建逻辑（编译/链接/资源生成）
 ```
 
-每个 `build.mk` 定义 `EGUI_CODE_SRC`（源文件）和 `EGUI_CODE_INCLUDE`（头文件路径）。
+每个 `build.mk` 定义 `EGUI_CODE_SRC`（源码目录）和 `EGUI_CODE_INCLUDE`（头文件路径）；确实需要登记单个源文件时使用 `EGUI_CODE_SRC_FILES`。
 
 ## Make 命令速查
 
@@ -35,10 +35,10 @@ make all APP=HelloBasic APP_SUB={SUB} PORT=pc
 make clean
 
 # 生成资源（有resource/目录时 make all 自动触发）
-make resource
+make resource APP={APP}
 
 # 强制重新生成资源（忽略缓存）
-make resource_refresh
+make resource_refresh APP={APP}
 
 # 运行
 make run
@@ -49,7 +49,7 @@ make run
 | 参数 | 说明 | 示例 |
 |------|------|------|
 | `APP` | 应用名 | HelloSimple, HelloAPP, HelloStyleDemo |
-| `APP_SUB` | HelloBasic子应用 | button, label, viewpage, chart_line |
+| `APP_SUB` | 子应用名 | HelloBasic: button；HelloVirtual: virtual_stage_basic；HelloSizeAnalysis: preset_validation |
 | `PORT` | 平台 | pc, stm32g0, qemu |
 | `BITS` | 位宽（可选） | 一般无需设置，构建系统自动识别 |
 | `COMPILE_OPT_LEVEL` | 优化级别 | -O0（快速编译）, -O2 |
@@ -61,7 +61,7 @@ make run
 # 快速检查（默认应用）
 python scripts/code_compile_check.py
 
-# 全量检查（所有应用 + HelloBasic所有子应用 + 示例 icon font 约定检查）
+# 全量检查（标准应用 + HelloBasic/HelloVirtual/HelloSizeAnalysis 子应用 + 示例 icon font 约定检查）
 python scripts/code_compile_check.py --full-check
 
 # 清理后检查
@@ -89,13 +89,15 @@ python scripts/checks/check_example_icon_font.py --include-untracked
 python scripts/release_check.py
 
 # 常用快速组合（跳过较重步骤）
-python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package
+python scripts/release_check.py --skip perf,wasm,doc
 
 # 失败后继续跑完后续步骤，便于一次性收集问题
 python scripts/release_check.py --keep-going
 ```
 
-用途：串联格式化、示例 icon font 检查、Keil 同步、UI Designer 测试与打包、全量编译、运行时验证、体积分析、性能检查和文档构建，适合收尾阶段统一验收。
+用途：串联格式化、示例 icon font 检查、Keil 同步、全量编译、WASM 构建、运行时验证、脏区动画检查、stage parity、HelloBasic/HelloVirtual 渲染 workflow、体积分析、性能检查和文档构建，适合收尾阶段统一验收。
+
+当前可用 step 名称以 `python scripts/release_check.py --help` 为准：`format`, `icon_font`, `keil_sync`, `compile`, `wasm`, `runtime`, `dirty_anim`, `stage_parity`, `basic_render`, `virtual_render`, `size`, `perf`, `doc`。
 
 补充：
 
@@ -106,7 +108,7 @@ python scripts/release_check.py --keep-going
 
 | 错误信息 | 原因 | 修复 |
 |----------|------|------|
-| `undefined reference to 'egui_res_image_xxx'` | 资源未生成或配置不匹配 | `make resource_refresh` 或检查 `app_resource_config.json` |
+| `undefined reference to 'egui_res_image_xxx'` | 资源未生成或配置不匹配 | `make resource_refresh APP={APP}` 或检查 `app_resource_config.json` |
 | `undefined reference to 'egui_res_font_xxx'` | 字体资源缺失 | 检查字体配置，确认 ttf 文件存在 |
 | `conflicting types for 'xxx'` | 头文件声明与实现不一致，或旧 obj 残留 | `make clean` 后重新编译 |
 | `SDL2.dll not found` (Windows) | SDL2 库缺失 | 构建系统会按当前位宽自动复制对应 SDL2 目录 |
@@ -116,9 +118,9 @@ python scripts/release_check.py --keep-going
 
 ## 构建系统要点
 
-- **Per-app OBJDIR**：`output/obj/{APP}/`，切换应用无需 clean
+- **Per-app OBJDIR**：默认位于 `output/obj/{APP}_{PORT}/`；`HelloBasic`、`HelloVirtual`、`HelloSizeAnalysis` 等子应用会通过 `APP_OBJ_SUFFIX` 或检查脚本的配置哈希隔离对象目录，切换应用通常无需 clean
 - **资源自动生成**：`make all` 检测到 `resource/` 目录时自动调用资源生成
-- **资源缓存**：存在 `app_egui_resource_merge.bin` 时跳过生成，用 `resource_refresh` 强制重新生成
+- **资源缓存**：存在 `app_egui_resource_merge.bin`，或已有 `app_egui_resource_generate.h/.c` 时会跳过生成，用 `make resource_refresh APP={APP}` 强制重新生成
 - **Recording 模式**：`app_egui_config.h` 中 `EGUI_CONFIG_FUNCTION_RECORDING_TEST=1` 启用录制测试
 
 ## 调试策略

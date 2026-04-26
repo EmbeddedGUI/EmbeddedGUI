@@ -54,6 +54,14 @@ python scripts/perf_analysis/main.py --spi-matrix
 python scripts/perf_analysis/main.py --full-check
 ```
 
+### 5) 性能数据 + 场景截图
+
+```bash
+python scripts/perf_analysis/main.py --profile cortex-m3 --with-scenes
+```
+
+`--with-scenes` 会在 QEMU 性能数据之外，用 PC 模拟器渲染 HelloPerformance 场景并生成 `perf_output/perf_scenes.png`，只作为视觉参考。
+
 ## 建议工作流
 
 1. 修改前先跑一次目标测试，保存结果文件
@@ -94,7 +102,7 @@ python scripts/perf_analysis/main.py --full-check --doc
 
 这个命令会：
 1. 运行 CPU 基准测试、PFB 矩阵测试、SPI 矩阵测试
-2. 自动生成场景截图（246 个测试场景）
+2. 自动生成当前 HelloPerformance 启用场景的截图
 3. 生成所有性能报告图表：
    - `doc/source/performance/images/perf_report.png` - CPU 基准性能柱状图
    - `doc/source/performance/images/pfb_matrix_report.png` - PFB 矩阵热力图

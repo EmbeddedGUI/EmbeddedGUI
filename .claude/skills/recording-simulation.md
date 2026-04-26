@@ -73,6 +73,23 @@ Use these macros to set action directly on p_action pointer:
 | `EGUI_SIM_SET_SWIPE_VIEW(p_action, &from, &to, interval_ms)` | Swipe between views |
 | `EGUI_SIM_SET_WAIT(p_action, interval_ms)` | Wait |
 
+多屏应用需要显式指定 display id，使用 `_DISP` 版本：
+
+| Macro | Description |
+|-------|-------------|
+| `EGUI_SIM_CLICK_DISP(x, y, interval_ms, display_id)` | Click on a display |
+| `EGUI_SIM_DRAG_DISP(x1, y1, x2, y2, steps, interval_ms, display_id)` | Drag on a display |
+| `EGUI_SIM_SWIPE_DISP(x1, y1, x2, y2, interval_ms, display_id)` | Swipe on a display |
+| `EGUI_SIM_SET_CLICK_VIEW_DISP(p_action, &view, interval_ms, display_id)` | Click view center on a display |
+| `EGUI_SIM_SET_DRAG_VIEW_DISP(p_action, &from, &to, steps, interval_ms, display_id)` | Drag between views on a display |
+| `EGUI_SIM_SET_SWIPE_VIEW_DISP(p_action, &from, &to, interval_ms, display_id)` | Swipe between views on a display |
+
+如果手动填写 `p_action` 字段，先把结构体清零，避免多屏场景下 `display_id` 保留未定义值：
+
+```c
+memset(p_action, 0, sizeof(*p_action));
+```
+
 ### Example
 
 ```c

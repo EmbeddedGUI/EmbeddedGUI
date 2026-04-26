@@ -9,8 +9,10 @@ description: Figma Make conversion flow has moved to EmbeddedGUI_Designer
 
 ## 新位置
 
-- 本地仓库: `D:\workspace\gitee\EmbeddedGUI_Designer`
+- 常见本地路径（如果已克隆）: `D:\workspace\gitee\EmbeddedGUI_Designer`
 - 远端仓库: `https://github.com/EmbeddedGUI/EmbeddedGUI_Designer.git`
+
+当前主仓不再包含 `figmamake/` 转换入口。如果本地路径不存在，先打开或克隆 `EmbeddedGUI_Designer`，再执行迁移后的入口命令。
 
 ## 迁移后的入口
 

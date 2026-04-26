@@ -1,8 +1,8 @@
-# HelloBasic 渲染工作流
+# HelloBasic / HelloVirtual 渲染工作流
 
 ## 目标
 
-对 `example/HelloBasic/` 下的基础控件做一轮可重复执行的本地回归，覆盖三件事：
+对 `example/HelloBasic/` 或 `example/HelloVirtual/` 下的子应用做一轮可重复执行的本地回归，覆盖三件事：
 
 1. 构建和运行是否正常。
 2. 录制动作是否覆盖了关键操作行为。
@@ -16,6 +16,12 @@
 python scripts/checks/hello_basic_render_workflow.py --suite basic
 ```
 
+脚本默认 `--app HelloBasic`；如果要检查 `HelloVirtual`：
+
+```bash
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --suite basic
+```
+
 只跑交互控件：
 
 ```bash
@@ -26,6 +32,12 @@ python scripts/checks/hello_basic_render_workflow.py --suite interactive
 
 ```bash
 python scripts/checks/hello_basic_render_workflow.py --suite smoke
+```
+
+完整子应用集（不套 `basic_exclude`）：
+
+```bash
+python scripts/checks/hello_basic_render_workflow.py --suite full
 ```
 
 自定义控件列表：
@@ -55,7 +67,7 @@ python scripts/checks/hello_basic_render_workflow.py --widgets button,checkbox,s
 
 配置里定义：
 
-- suite 成员
+- suite 成员；`--suite full` 会直接扫描目标 app 下所有带 `test.c` 的子目录
 - 每个控件期望的动作类型
 - 最少录制步骤数
 - 是否要求 `[RUNTIME_CHECK_FAIL]`
@@ -63,8 +75,8 @@ python scripts/checks/hello_basic_render_workflow.py --widgets button,checkbox,s
 
 ## 输出
 
-- 汇总报告：`runtime_check_output/hello_basic_render_workflow_<suite>.json`
-- 每个控件的录制帧：`runtime_check_output/HelloBasic_<widget>/default/`
+- 汇总报告：`runtime_check_output/<app_lower>_render_workflow_<suite>.json`
+- 每个控件的录制帧：`runtime_check_output/{APP}_{widget}/default/`
 
 ## 维护规则
 

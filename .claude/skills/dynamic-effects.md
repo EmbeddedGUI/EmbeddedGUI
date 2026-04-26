@@ -9,8 +9,10 @@ description: Figma-driven dynamic effects guidance has moved to EmbeddedGUI_Desi
 
 ## 新位置
 
-- 本地仓库: `D:\workspace\gitee\EmbeddedGUI_Designer`
+- 常见本地路径（如果已克隆）: `D:\workspace\gitee\EmbeddedGUI_Designer`
 - 远端仓库: `https://github.com/EmbeddedGUI/EmbeddedGUI_Designer.git`
+
+当前主仓只保留底层运行时能力，不包含设计稿动效补齐入口。如果本地路径不存在，先打开或克隆 `EmbeddedGUI_Designer`。
 
 ## 适用范围
 
