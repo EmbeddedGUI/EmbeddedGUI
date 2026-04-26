@@ -185,9 +185,23 @@ static qemu_heap_stats_t qemu_heap_capture_stats(void)
     return stats;
 }
 
+static void qemu_heap_append_char(char **cursor, int *remaining, char c);
+static void qemu_heap_append_string(char **cursor, int *remaining, const char *text);
+static void qemu_heap_append_uint(char **cursor, int *remaining, uint32_t value);
+
 static void qemu_heap_print_metric(const char *key, uint32_t value)
 {
-    qemu_log_printf("HEAP_RESULT:%s=%lu\n", key, (unsigned long)value);
+    char buffer[64];
+    char *cursor = buffer;
+    int remaining = (int)sizeof(buffer);
+
+    qemu_heap_append_string(&cursor, &remaining, "HEAP_RESULT:");
+    qemu_heap_append_string(&cursor, &remaining, key);
+    qemu_heap_append_char(&cursor, &remaining, '=');
+    qemu_heap_append_uint(&cursor, &remaining, value);
+    qemu_heap_append_char(&cursor, &remaining, '\n');
+    *cursor = '\0';
+    qemu_log_write(buffer);
 }
 
 static void qemu_heap_trace_stage(const char *stage)
@@ -197,6 +211,41 @@ static void qemu_heap_trace_stage(const char *stage)
 #else
     EGUI_UNUSED(stage);
 #endif
+}
+
+static void qemu_heap_append_char(char **cursor, int *remaining, char c)
+{
+    if (*remaining > 1)
+    {
+        **cursor = c;
+        (*cursor)++;
+        (*remaining)--;
+    }
+}
+
+static void qemu_heap_append_string(char **cursor, int *remaining, const char *text)
+{
+    while (text != NULL && *text != '\0')
+    {
+        qemu_heap_append_char(cursor, remaining, *text++);
+    }
+}
+
+static void qemu_heap_append_uint(char **cursor, int *remaining, uint32_t value)
+{
+    char temp[10];
+    int count = 0;
+
+    do
+    {
+        temp[count++] = (char)('0' + (value % 10U));
+        value /= 10U;
+    } while (value > 0U && count < (int)sizeof(temp));
+
+    while (count > 0)
+    {
+        qemu_heap_append_char(cursor, remaining, temp[--count]);
+    }
 }
 
 static void qemu_run_for_ms(uint32_t wait_ms)

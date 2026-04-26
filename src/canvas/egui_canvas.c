@@ -10,7 +10,6 @@
 #include "core/egui_core_internal.h"
 #include "core/egui_trig_lut.h"
 
-
 /* Active canvas pointer 鈥?set by egui_init() or egui_display_set_active() */
 
 enum

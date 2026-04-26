@@ -43,10 +43,10 @@ typedef struct egui_core_touch_state
 /** Theme, locale, and image-decoder resources that are shared across the current core. */
 typedef struct egui_core_asset_state
 {
-    const egui_theme_t *theme_current;                                                              // theme currently applied to views created on this core
-    const egui_i18n_locale_t *i18n_locales;                                                         // locale table registered for runtime translation lookups
-    uint16_t i18n_locale_count;                                                                     // number of entries in `i18n_locales`
-    uint16_t i18n_current_locale;                                                                   // active locale index inside `i18n_locales`
+    const egui_theme_t *theme_current;      // theme currently applied to views created on this core
+    const egui_i18n_locale_t *i18n_locales; // locale table registered for runtime translation lookups
+    uint16_t i18n_locale_count;             // number of entries in `i18n_locales`
+    uint16_t i18n_current_locale;           // active locale index inside `i18n_locales`
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
     const egui_image_file_io_t *image_file_default_io;                                              // default file I/O backend used by image-file decoders
     const egui_image_file_decoder_t *image_file_decoders[EGUI_CONFIG_IMAGE_FILE_DECODER_MAX_COUNT]; // registered file-decoder chain
@@ -139,14 +139,14 @@ typedef struct egui_core_text_state
 #endif
     text_transform_visible_tile_cache_t text_transform_visible_tile_cache; // visible-tile cache for rotated/scaled text drawing
 #if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
-    const egui_font_t *text_transform_axis_font;                           // font used by the cached axis text metrics
-    const void *text_transform_axis_string;                                // string identity used by the cached axis text metrics
-    egui_dim_t text_transform_axis_w;                                      // cached axis-aligned text width
-    egui_dim_t text_transform_axis_h;                                      // cached axis-aligned text height
-    const egui_font_t *text_transform_dim_font;                            // font used by the cached transformed-dimension metrics
-    const void *text_transform_dim_string;                                 // string identity used by the cached transformed-dimension metrics
-    int16_t text_transform_dim_w;                                          // cached transformed text width
-    int16_t text_transform_dim_h;                                          // cached transformed text height
+    const egui_font_t *text_transform_axis_font; // font used by the cached axis text metrics
+    const void *text_transform_axis_string;      // string identity used by the cached axis text metrics
+    egui_dim_t text_transform_axis_w;            // cached axis-aligned text width
+    egui_dim_t text_transform_axis_h;            // cached axis-aligned text height
+    const egui_font_t *text_transform_dim_font;  // font used by the cached transformed-dimension metrics
+    const void *text_transform_dim_string;       // string identity used by the cached transformed-dimension metrics
+    int16_t text_transform_dim_w;                // cached transformed text width
+    int16_t text_transform_dim_h;                // cached transformed text height
 #endif
 } egui_core_text_state_t;
 
@@ -164,33 +164,33 @@ typedef struct egui_core_system_state
 /** Scene graph state, transition bookkeeping, and dirty regions for the active display. */
 typedef struct egui_core_scene_state
 {
-    egui_slist_t anims;                                           // currently running animation objects
+    egui_slist_t anims; // currently running animation objects
 #if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
-    egui_dlist_t activitys;                                       // activity stack/list managed by the scene subsystem
-    egui_animation_t *activity_anim_start_open;                   // opening transition animation kicked off when a new activity starts
-    egui_animation_t *activity_anim_start_close;                  // closing transition animation kicked off for the previous activity
-    egui_animation_t *activity_anim_finish_open;                  // follow-up animation that finalizes an activity open transition
-    egui_animation_t *activity_anim_finish_close;                 // follow-up animation that finalizes an activity close transition
-    egui_activity_t *activity_anim_start_open_owner;              // owner activity for `activity_anim_start_open`
-    egui_activity_t *activity_anim_start_close_owner;             // owner activity for `activity_anim_start_close`
-    egui_activity_t *activity_anim_finish_open_owner;             // owner activity for `activity_anim_finish_open`
-    egui_activity_t *activity_anim_finish_close_owner;            // owner activity for `activity_anim_finish_close`
-    egui_activity_t *activity_open;                               // activity currently entering the foreground
-    egui_activity_t *activity_close;                              // activity currently leaving the foreground
+    egui_dlist_t activitys;                            // activity stack/list managed by the scene subsystem
+    egui_animation_t *activity_anim_start_open;        // opening transition animation kicked off when a new activity starts
+    egui_animation_t *activity_anim_start_close;       // closing transition animation kicked off for the previous activity
+    egui_animation_t *activity_anim_finish_open;       // follow-up animation that finalizes an activity open transition
+    egui_animation_t *activity_anim_finish_close;      // follow-up animation that finalizes an activity close transition
+    egui_activity_t *activity_anim_start_open_owner;   // owner activity for `activity_anim_start_open`
+    egui_activity_t *activity_anim_start_close_owner;  // owner activity for `activity_anim_start_close`
+    egui_activity_t *activity_anim_finish_open_owner;  // owner activity for `activity_anim_finish_open`
+    egui_activity_t *activity_anim_finish_close_owner; // owner activity for `activity_anim_finish_close`
+    egui_activity_t *activity_open;                    // activity currently entering the foreground
+    egui_activity_t *activity_close;                   // activity currently leaving the foreground
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
-    egui_animation_t *dialog_anim_start;                          // dialog show animation in progress
-    egui_animation_t *dialog_anim_finish;                         // dialog hide/finish animation in progress
-    egui_dialog_t *dialog_anim_start_owner;                       // owner dialog for `dialog_anim_start`
-    egui_dialog_t *dialog_anim_finish_owner;                      // owner dialog for `dialog_anim_finish`
-    egui_dialog_t *dialog;                                        // dialog currently attached to the scene, if any
+    egui_animation_t *dialog_anim_start;     // dialog show animation in progress
+    egui_animation_t *dialog_anim_finish;    // dialog hide/finish animation in progress
+    egui_dialog_t *dialog_anim_start_owner;  // owner dialog for `dialog_anim_start`
+    egui_dialog_t *dialog_anim_finish_owner; // owner dialog for `dialog_anim_finish`
+    egui_dialog_t *dialog;                   // dialog currently attached to the scene, if any
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
-    egui_toast_t *toast;                                          // toast currently attached to the scene, if any
+    egui_toast_t *toast; // toast currently attached to the scene, if any
 #endif
-    egui_view_root_group_t root_view_group;                       // framework-owned root container at the top of the view tree
+    egui_view_root_group_t root_view_group; // framework-owned root container at the top of the view tree
 #if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
-    egui_view_root_group_t user_root_view_group;                  // user-facing root container added beneath the framework root
+    egui_view_root_group_t user_root_view_group; // user-facing root container added beneath the framework root
 #endif
     egui_region_t region_dirty_arr[EGUI_CONFIG_DIRTY_AREA_COUNT]; // merged dirty rectangles waiting for refresh
     uint32_t dirty_epoch;                                         // monotonic dirty-state stamp used to detect repeated updates in one frame
