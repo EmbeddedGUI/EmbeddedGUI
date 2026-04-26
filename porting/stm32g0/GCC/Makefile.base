@@ -12,9 +12,13 @@ APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
 BUILD_OBJ_SUFFIX := $(APP_OBJ_SUFFIX)$(if $(PORT),_$(PORT),)
 OBJ_PATH 	:= $(OUTPUT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 
-# Configuration stamp - forces relink when APP changes.
-APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
-APP_CONFIG_STAMP_TMP := $(APP_CONFIG_STAMP).tmp
+# Configuration stamp.
+# Objects depend on this file so changes in compile flags force a real
+# recompile instead of reusing stale objects from a previous configuration.
+# Keep the signature narrow; do not include APP_SUB or full include paths.
+APP_CONFIG_STAMP := $(OBJ_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
+APP_CONFIG_STAMP_CASE := $(if $(APP_SUB),$(subst /,_,$(APP_SUB)),default)
+APP_CONFIG_STAMP_TMP := $(APP_CONFIG_STAMP).$(APP_CONFIG_STAMP_CASE).tmp
 
 # define the target
 TARGET		  	?= $(OUTPUT_PATH)/main
@@ -260,7 +264,7 @@ MAKEFILE_PREREQS += $(EGUI_PORT_PATH)/GCC/Makefile.base
 
 LINK_PREREQS += $(LINKER_SCRIPT)
 
-COMMON_PREREQS = $(MAKEFILE_PREREQS) $(LINK_PREREQS) $(APP_CONFIG_STAMP)
+COMMON_PREREQS = $(MAKEFILE_PREREQS) $(APP_CONFIG_STAMP)
 
 define APP_CONFIG_STAMP_CONTENT
 APP=$(APP)
@@ -269,13 +273,6 @@ CC=$(CC)
 CXX=$(CXX)
 CPU_ARCH=$(CPU_ARCH)
 COMMON_FLAGS=$(COMMON_FLAGS)
-APP_CFLAGS=$(APP_CFLAGS)
-APP_CXXFLAGS=$(APP_CXXFLAGS)
-APP_ASMFLAGS=$(APP_ASMFLAGS)
-C_INCLUDE_OPT=$(C_INCLUDE_OPT)
-CXX_INCLUDE_OPT=$(CXX_INCLUDE_OPT)
-ASM_INCLUDE_OPT=$(ASM_INCLUDE_OPT)
-LINKER_SCRIPT=$(LINKER_SCRIPT)
 endef
 
 
@@ -342,7 +339,7 @@ else
 	$(Q)if [ -f "$(call FIXPATH,$@)" ] && cmp -s "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; then rm -f "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))"; else mv "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; fi
 endif
 
-$(TARGET).elf: $(ALL_OBJS) $(APP_CONFIG_STAMP)
+$(TARGET).elf: $(ALL_OBJS) $(APP_CONFIG_STAMP) $(LINK_PREREQS)
 	$(TRACE_LINK)
 	$(Q)$(CC) $(CFLAGS) $(ALL_OBJS) -o $@ $(LDFLAGS)
 	$(Q)$(SIZE) $@
