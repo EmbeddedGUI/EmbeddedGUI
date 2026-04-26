@@ -34,6 +34,10 @@ static egui_core_t *s_core;
 #define EGUI_TEST_CONFIG_SINGLE_TEST -1
 #endif
 
+#ifndef EGUI_HEAP_TEST_CONFIG_SINGLE_TEST
+#define EGUI_HEAP_TEST_CONFIG_SINGLE_TEST -1
+#endif
+
 #ifndef EGUI_PERF_IMAGE_SVG_PFB_TILED_HINT
 /*
  * With the 100x100 orbit bbox anchored at x=80,y=70, the non-resize tiled
@@ -66,7 +70,9 @@ static void egui_view_test_performance_set_test_mode(int test_mode);
 static int egui_view_test_performance_is_qoi_test_mode(int test_mode);
 static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test_mode);
 static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_index);
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY
 static int egui_view_test_performance_get_perf_capture_test_mode(int scene_index);
+#endif
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void egui_view_test_performance_show_test_mode(int test_mode);
 static int egui_view_test_performance_get_recording_test_mode(int action_index);
@@ -875,11 +881,12 @@ static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_ind
     return s_qemu_benchmark_scenes[scene_index];
 }
 
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY
 static int egui_view_test_performance_get_perf_capture_test_mode(int scene_index)
 {
-    /* Scene capture is documentation-only. Keep the benchmark coverage broad,
-     * but avoid the external RLE recording path that still trips PC-frame
-     * cache teardown when switching scenes. */
+    /* Scene capture is documentation-only. Keep benchmark coverage broad, but
+     * skip external RLE recording while that PC-frame cache teardown path is
+     * unstable. */
     static const int s_perf_capture_scenes[] = {
             EGUI_VIEW_TEST_PERFORMANCE_TYPE_LINE,
             EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565,
@@ -915,6 +922,7 @@ static int egui_view_test_performance_get_perf_capture_test_mode(int scene_index
     }
     return s_perf_capture_scenes[scene_index];
 }
+#endif
 
 egui_dim_t egui_core_get_logical_pfb_target_width_hint(egui_core_t *core)
 {
@@ -1042,9 +1050,20 @@ const char *egui_port_get_recording_frame_label(void)
 static int egui_view_test_performance_get_recording_test_mode(int action_index)
 {
 #if EGUI_PORT == EGUI_PORT_TYPE_QEMU && QEMU_HEAP_MEASURE
-    /* Heap measurement only needs representative hotspots, not the full
-     * benchmark sweep. Keep one geometry case for stack, one rotated-text
-     * case, and the dominant QOI/RLE heap scenes. */
+#if EGUI_HEAP_TEST_CONFIG_SINGLE_TEST >= 0
+    if (action_index > 0)
+    {
+        return -1;
+    }
+    if (!egui_view_test_performance_is_enabled(EGUI_HEAP_TEST_CONFIG_SINGLE_TEST))
+    {
+        return -1;
+    }
+    return EGUI_HEAP_TEST_CONFIG_SINGLE_TEST;
+#else
+    /* Heap measurement only needs representative hotspots, not the full benchmark
+     * sweep. Keep one geometry case, one rotated-text case, and dominant
+     * QOI/RLE heap scenes. */
     static const int s_qemu_heap_measure_scenes[] = {
             EGUI_VIEW_TEST_PERFORMANCE_TYPE_LINE,
             EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE,
@@ -1062,6 +1081,7 @@ static int egui_view_test_performance_get_recording_test_mode(int action_index)
         return -1;
     }
     return s_qemu_heap_measure_scenes[action_index];
+#endif
 #elif EGUI_PERF_CAPTURE_BENCHMARK_ONLY
     return egui_view_test_performance_get_perf_capture_test_mode(action_index);
 #elif EGUI_TEST_CONFIG_SINGLE_TEST >= 0
