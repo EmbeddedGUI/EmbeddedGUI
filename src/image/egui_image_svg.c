@@ -195,6 +195,14 @@ extern const egui_image_api_t egui_image_svg_t_api_table;
 #define EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_FLATTEN 0
 #endif
 
+#ifndef EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_CHUNK_BYTES
+#define EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_CHUNK_BYTES 64
+#endif
+
+#ifndef EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_TAG_BYTES
+#define EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_TAG_BYTES 256
+#endif
+
 static int egui_svg_dim_from_float(float value, egui_dim_t *out_value)
 {
     int32_t rounded;
@@ -710,6 +718,120 @@ static int egui_svg_tag_is_self_closing(const char *begin, const char *tag_end)
     return p > begin && *(p - 1) == '/';
 }
 
+static int egui_svg_scan_rect_fast_path_tag(const char *tag_begin, const char *tag_end, egui_svg_rect_t *rects, uint16_t *count, int *svg_depth, float *view_x,
+                                            float *view_y, float *view_width, float *view_height, float *natural_width, float *natural_height)
+{
+    const char *p = tag_begin;
+    const char *name_begin;
+    const char *name_end;
+    int closing = 0;
+
+    if (tag_begin == NULL || tag_end == NULL || count == NULL || svg_depth == NULL || view_x == NULL || view_y == NULL || view_width == NULL ||
+        view_height == NULL || p >= tag_end)
+    {
+        return 0;
+    }
+
+    if (*p == '?' || *p == '!')
+    {
+        return 1;
+    }
+    if (*p == '/')
+    {
+        closing = 1;
+        p++;
+    }
+    while (p < tag_end && egui_svg_is_space(*p))
+    {
+        p++;
+    }
+    name_begin = p;
+    while (p < tag_end && !egui_svg_is_space(*p) && *p != '/' && *p != '>')
+    {
+        p++;
+    }
+    name_end = p;
+
+    if (egui_svg_name_equals(name_begin, name_end, "svg"))
+    {
+        if (closing)
+        {
+            if (*svg_depth != 1)
+            {
+                return 0;
+            }
+            (*svg_depth)--;
+        }
+        else
+        {
+            float root_width;
+            float root_height;
+
+            if (*svg_depth != 0 || egui_svg_tag_is_self_closing(name_end, tag_end))
+            {
+                return 0;
+            }
+            if (natural_width != NULL || natural_height != NULL)
+            {
+                if (!egui_svg_parse_float_attr(name_end, tag_end, "width", &root_width) ||
+                    !egui_svg_parse_float_attr(name_end, tag_end, "height", &root_height) || root_width <= 0.0f || root_height <= 0.0f)
+                {
+                    return 0;
+                }
+                if (natural_width != NULL)
+                {
+                    *natural_width = root_width;
+                }
+                if (natural_height != NULL)
+                {
+                    *natural_height = root_height;
+                }
+                if (*view_width <= 0.0f)
+                {
+                    *view_width = root_width;
+                }
+                if (*view_height <= 0.0f)
+                {
+                    *view_height = root_height;
+                }
+            }
+            if (egui_svg_attr_exists(name_end, tag_end, "transform") || !egui_svg_parse_view_box(name_end, tag_end, view_x, view_y, view_width, view_height))
+            {
+                return 0;
+            }
+            (*svg_depth)++;
+        }
+    }
+    else if (egui_svg_name_equals(name_begin, name_end, "rect"))
+    {
+        if (!closing)
+        {
+            if (*svg_depth != 1)
+            {
+                return 0;
+            }
+            if (rects != NULL)
+            {
+                if (!egui_svg_parse_rect_tag(name_end, tag_end, &rects[*count]))
+                {
+                    return 0;
+                }
+            }
+            if (*count == UINT16_MAX)
+            {
+                return 0;
+            }
+            (*count)++;
+        }
+    }
+    else
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
 static int egui_svg_scan_rect_fast_path(const char *svg_text, const char *svg_end, egui_svg_rect_t *rects, uint16_t *rect_count, float *view_x, float *view_y,
                                         float *view_width, float *view_height, float *natural_width, float *natural_height)
 {
@@ -720,10 +842,7 @@ static int egui_svg_scan_rect_fast_path(const char *svg_text, const char *svg_en
     while (p < svg_end)
     {
         const char *lt = (const char *)memchr(p, '<', (size_t)(svg_end - p));
-        const char *name_begin;
-        const char *name_end;
         const char *tag_end;
-        int closing = 0;
 
         if (lt == NULL)
         {
@@ -734,116 +853,90 @@ static int egui_svg_scan_rect_fast_path(const char *svg_text, const char *svg_en
         {
             return 0;
         }
-        if (*p == '?' || *p == '!')
-        {
-            tag_end = egui_svg_find_tag_end(p, svg_end);
-            if (tag_end == NULL)
-            {
-                return 0;
-            }
-            p = tag_end + 1;
-            continue;
-        }
-        if (*p == '/')
-        {
-            closing = 1;
-            p++;
-        }
-        while (p < svg_end && egui_svg_is_space(*p))
-        {
-            p++;
-        }
-        name_begin = p;
-        while (p < svg_end && !egui_svg_is_space(*p) && *p != '/' && *p != '>')
-        {
-            p++;
-        }
-        name_end = p;
         tag_end = egui_svg_find_tag_end(p, svg_end);
         if (tag_end == NULL)
         {
             return 0;
         }
 
-        if (egui_svg_name_equals(name_begin, name_end, "svg"))
-        {
-            if (closing)
-            {
-                if (svg_depth != 1)
-                {
-                    return 0;
-                }
-                svg_depth--;
-            }
-            else
-            {
-                float root_width;
-                float root_height;
-
-                if (svg_depth != 0 || egui_svg_tag_is_self_closing(name_end, tag_end))
-                {
-                    return 0;
-                }
-                if (natural_width != NULL || natural_height != NULL)
-                {
-                    if (!egui_svg_parse_float_attr(name_end, tag_end, "width", &root_width) ||
-                        !egui_svg_parse_float_attr(name_end, tag_end, "height", &root_height) || root_width <= 0.0f || root_height <= 0.0f)
-                    {
-                        return 0;
-                    }
-                    if (natural_width != NULL)
-                    {
-                        *natural_width = root_width;
-                    }
-                    if (natural_height != NULL)
-                    {
-                        *natural_height = root_height;
-                    }
-                    if (view_width != NULL && *view_width <= 0.0f)
-                    {
-                        *view_width = root_width;
-                    }
-                    if (view_height != NULL && *view_height <= 0.0f)
-                    {
-                        *view_height = root_height;
-                    }
-                }
-                if (egui_svg_attr_exists(name_end, tag_end, "transform") ||
-                    !egui_svg_parse_view_box(name_end, tag_end, view_x, view_y, view_width, view_height))
-                {
-                    return 0;
-                }
-                svg_depth++;
-            }
-        }
-        else if (egui_svg_name_equals(name_begin, name_end, "rect"))
-        {
-            if (!closing)
-            {
-                if (svg_depth != 1)
-                {
-                    return 0;
-                }
-                if (rects != NULL)
-                {
-                    if (!egui_svg_parse_rect_tag(name_end, tag_end, &rects[count]))
-                    {
-                        return 0;
-                    }
-                }
-                if (count == UINT16_MAX)
-                {
-                    return 0;
-                }
-                count++;
-            }
-        }
-        else
+        if (!egui_svg_scan_rect_fast_path_tag(p, tag_end, rects, &count, &svg_depth, view_x, view_y, view_width, view_height, natural_width, natural_height))
         {
             return 0;
         }
 
         p = tag_end + 1;
+    }
+
+    *rect_count = count;
+    return count > 0 && svg_depth == 0;
+}
+
+static int egui_svg_scan_external_rect_fast_path(const egui_svg_source_t *res, egui_svg_rect_t *rects, uint16_t *rect_count, float *view_x, float *view_y,
+                                                 float *view_width, float *view_height, float *natural_width, float *natural_height)
+{
+    uint8_t chunk[EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_CHUNK_BYTES];
+    char tag_buf[EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_TAG_BYTES];
+    uint32_t offset = 0;
+    uint16_t count = 0;
+    uint16_t tag_len = 0;
+    int svg_depth = 0;
+    int in_tag = 0;
+
+    if (res == NULL || res->data_buf == NULL || res->data_size == 0 || rect_count == NULL || view_x == NULL || view_y == NULL || view_width == NULL ||
+        view_height == NULL || sizeof(chunk) == 0u || sizeof(tag_buf) == 0u)
+    {
+        return 0;
+    }
+
+    while (offset < res->data_size)
+    {
+        uint32_t load_size = (uint32_t)sizeof(chunk);
+
+        if (load_size > res->data_size - offset)
+        {
+            load_size = res->data_size - offset;
+        }
+        egui_api_load_external_resource(NULL, chunk, (egui_uintptr_t)res->data_buf, offset, load_size);
+
+        for (uint32_t i = 0; i < load_size; i++)
+        {
+            char ch = (char)chunk[i];
+
+            if (!in_tag)
+            {
+                if (ch == '<')
+                {
+                    in_tag = 1;
+                    tag_len = 0;
+                }
+                continue;
+            }
+
+            if (ch == '>')
+            {
+                if (!egui_svg_scan_rect_fast_path_tag(tag_buf, tag_buf + tag_len, rects, &count, &svg_depth, view_x, view_y, view_width, view_height,
+                                                      natural_width, natural_height))
+                {
+                    return 0;
+                }
+                in_tag = 0;
+                tag_len = 0;
+                continue;
+            }
+
+            if (tag_len >= (uint16_t)sizeof(tag_buf))
+            {
+                return 0;
+            }
+            tag_buf[tag_len++] = ch;
+        }
+
+        offset += load_size;
+    }
+
+    if (in_tag)
+    {
+        return 0;
     }
 
     *rect_count = count;
@@ -1003,7 +1096,8 @@ static void egui_svg_flatten_append_rect(egui_svg_rect_t *rects, uint16_t *rect_
     (*rect_count)++;
 }
 
-static __attribute__((unused)) int egui_svg_flatten_rects(const egui_svg_rect_t *src_rects, uint16_t src_count, egui_svg_rect_t **out_rects, uint16_t *out_count)
+static __attribute__((unused)) int egui_svg_flatten_rects(const egui_svg_rect_t *src_rects, uint16_t src_count, egui_svg_rect_t **out_rects,
+                                                          uint16_t *out_count)
 {
     float *x_edges;
     float *y_edges;
@@ -2147,40 +2241,153 @@ static void egui_image_svg_reset(egui_image_svg_t *self)
     egui_image_svg_release_owned_data(self);
 }
 
-static int egui_image_svg_try_finish_rect_fast_path_load(egui_image_svg_t *self, uint8_t *owned_data_buf, uint32_t svg_len)
+static egui_svg_doc_t *egui_svg_try_create_rect_fast_path_doc(const char *svg_text, uint32_t svg_len)
 {
     egui_svg_doc_t *doc;
     egui_dim_t natural_width;
     egui_dim_t natural_height;
 
-    if (self == NULL || owned_data_buf == NULL || svg_len == 0)
+    if (svg_text == NULL || svg_len == 0)
     {
-        return 0;
+        return NULL;
     }
 
-    if (!egui_svg_try_get_rect_fast_path_size((const char *)owned_data_buf, svg_len, &natural_width, &natural_height))
+    if (!egui_svg_try_get_rect_fast_path_size(svg_text, svg_len, &natural_width, &natural_height))
     {
-        return 0;
+        return NULL;
     }
 
     doc = (egui_svg_doc_t *)egui_malloc(NULL, sizeof(*doc));
     if (doc == NULL)
     {
-        return 0;
+        return NULL;
     }
     egui_api_memset(doc, 0, sizeof(*doc));
     doc->natural_width = natural_width;
     doc->natural_height = natural_height;
-    if (!egui_svg_try_build_rect_fast_path(doc, (const char *)owned_data_buf, svg_len))
+    if (!egui_svg_try_build_rect_fast_path(doc, svg_text, svg_len))
     {
         egui_svg_doc_destroy(doc);
+        return NULL;
+    }
+
+    return doc;
+}
+
+static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egui_svg_source_t *res)
+{
+    egui_svg_doc_t *doc;
+    egui_svg_rect_t *rects;
+    egui_dim_t natural_width;
+    egui_dim_t natural_height;
+    uint16_t rect_count = 0;
+    float view_x = 0.0f;
+    float view_y = 0.0f;
+    float view_width = 0.0f;
+    float view_height = 0.0f;
+    float natural_width_raw = 0.0f;
+    float natural_height_raw = 0.0f;
+    size_t rect_bytes;
+
+    if (res == NULL || res->res_type != EGUI_RESOURCE_TYPE_EXTERNAL || res->data_buf == NULL || res->data_size == 0)
+    {
+        return NULL;
+    }
+
+    if (!egui_svg_scan_external_rect_fast_path(res, NULL, &rect_count, &view_x, &view_y, &view_width, &view_height, &natural_width_raw, &natural_height_raw) ||
+        !egui_svg_dim_from_float(natural_width_raw, &natural_width) || !egui_svg_dim_from_float(natural_height_raw, &natural_height))
+    {
+        return NULL;
+    }
+
+    rect_bytes = (size_t)rect_count * sizeof(*rects);
+    if (rect_bytes == 0u || rect_bytes > (size_t)INT_MAX)
+    {
+        return NULL;
+    }
+
+    doc = (egui_svg_doc_t *)egui_malloc(NULL, sizeof(*doc));
+    if (doc == NULL)
+    {
+        return NULL;
+    }
+    egui_api_memset(doc, 0, sizeof(*doc));
+    doc->natural_width = natural_width;
+    doc->natural_height = natural_height;
+
+    rects = (egui_svg_rect_t *)egui_malloc(NULL, (int)rect_bytes);
+    if (rects == NULL)
+    {
+        egui_svg_doc_destroy(doc);
+        return NULL;
+    }
+
+    view_x = 0.0f;
+    view_y = 0.0f;
+    view_width = (float)doc->natural_width;
+    view_height = (float)doc->natural_height;
+    rect_count = 0;
+    if (!egui_svg_scan_external_rect_fast_path(res, rects, &rect_count, &view_x, &view_y, &view_width, &view_height, NULL, NULL))
+    {
+        egui_free(NULL, rects);
+        egui_svg_doc_destroy(doc);
+        return NULL;
+    }
+
+    doc->rects = rects;
+    doc->rect_count = rect_count;
+    doc->rect_fast_path = 1u;
+    doc->view_x = view_x;
+    doc->view_y = view_y;
+    doc->view_width = view_width;
+    doc->view_height = view_height;
+    egui_svg_get_rect_content_bounds(rects, rect_count, &doc->rect_content_left, &doc->rect_content_top, &doc->rect_content_right, &doc->rect_content_bottom);
+    return doc;
+}
+
+static int egui_image_svg_try_assign_rect_fast_path_doc(egui_image_svg_t *self, const char *svg_text, uint32_t svg_len)
+{
+    egui_svg_doc_t *doc;
+
+    if (self == NULL)
+    {
         return 0;
     }
 
+    doc = egui_svg_try_create_rect_fast_path_doc(svg_text, svg_len);
+    if (doc == NULL)
+    {
+        return 0;
+    }
+
+    egui_image_svg_reset(self);
+    self->base.api = &egui_image_svg_t_api_table;
     self->doc = doc;
     self->owned_data_buf = NULL;
     self->base.res = doc;
-    egui_free(NULL, owned_data_buf);
+    return 1;
+}
+
+static int egui_image_svg_try_assign_external_rect_fast_path_doc(egui_image_svg_t *self, const egui_svg_source_t *res)
+{
+    egui_svg_doc_t *doc;
+
+    if (self == NULL)
+    {
+        return 0;
+    }
+
+    doc = egui_svg_try_create_external_rect_fast_path_doc(res);
+    if (doc == NULL)
+    {
+        return 0;
+    }
+
+    egui_image_svg_reset(self);
+    self->base.api = &egui_image_svg_t_api_table;
+    self->doc = doc;
+    self->owned_data_buf = NULL;
+    self->base.res = doc;
     return 1;
 }
 
@@ -2203,8 +2410,13 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
     }
 
     self->base.api = &egui_image_svg_t_api_table;
-    if (egui_image_svg_try_finish_rect_fast_path_load(self, owned_data_buf, svg_len))
+    doc = egui_svg_try_create_rect_fast_path_doc((const char *)owned_data_buf, svg_len);
+    if (doc != NULL)
     {
+        self->doc = doc;
+        self->owned_data_buf = NULL;
+        self->base.res = doc;
+        egui_free(NULL, owned_data_buf);
         return 1;
     }
 
@@ -2403,6 +2615,11 @@ int egui_image_svg_load_memory_len(egui_image_svg_t *self, const char *svg_text,
         return 0;
     }
 
+    if (egui_image_svg_try_assign_rect_fast_path_doc(self, svg_text, svg_len))
+    {
+        return 1;
+    }
+
     owned_data_buf = (uint8_t *)egui_malloc(NULL, (int)svg_len + 1);
     if (owned_data_buf == NULL)
     {
@@ -2422,6 +2639,15 @@ int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t
     if (self == NULL || res == NULL || res->data_buf == NULL || res->data_size == 0 || res->data_size >= (uint32_t)INT_MAX)
     {
         return 0;
+    }
+
+    if (res->res_type == EGUI_RESOURCE_TYPE_INTERNAL && egui_image_svg_try_assign_rect_fast_path_doc(self, (const char *)res->data_buf, res->data_size))
+    {
+        return 1;
+    }
+    if (res->res_type == EGUI_RESOURCE_TYPE_EXTERNAL && egui_image_svg_try_assign_external_rect_fast_path_doc(self, res))
+    {
+        return 1;
     }
 
     owned_data_buf = (uint8_t *)egui_malloc(NULL, (int)res->data_size + 1);
