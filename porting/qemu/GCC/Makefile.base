@@ -21,8 +21,6 @@ TOOLCHAIN_DIR ?= /usr/gcc-arm-none-eabi-7-2018-q2-update
 QEMU_CMD ?= qemu-system-arm
 endif
 
-COMPILE_PREFIX 	+= $(TOOLCHAIN_DIR)/bin/arm-none-eabi-
-
 # define output directory
 OUTPUT_PATH	?= output
 OBJROOT_PATH ?= $(OUTPUT_PATH)
@@ -34,12 +32,23 @@ OBJ_PATH 	:= $(OBJROOT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 
 # Configuration stamp - forces relink when APP changes.
 APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
+APP_CONFIG_STAMP_TMP := $(APP_CONFIG_STAMP).tmp
 LINK_OBJECTS_RSP := $(OUTPUT_PATH)/.link_objects_$(BUILD_OBJ_SUFFIX).rsp
 
 # define the target
 TARGET		  	?= $(OUTPUT_PATH)/main
 
 # define the C compiler to use
+ifeq ($(OS),Windows_NT)
+CC      := "$(TOOLCHAIN_DIR)/bin/arm-none-eabi-gcc"
+CXX     := "$(TOOLCHAIN_DIR)/bin/arm-none-eabi-g++"
+OBJDUMP := "$(TOOLCHAIN_DIR)/bin/arm-none-eabi-objdump"
+OBJCOPY := "$(TOOLCHAIN_DIR)/bin/arm-none-eabi-objcopy"
+AR      := "$(TOOLCHAIN_DIR)/bin/arm-none-eabi-ar"
+SIZE    := "$(TOOLCHAIN_DIR)/bin/arm-none-eabi-size"
+NM      := "$(TOOLCHAIN_DIR)/bin/arm-none-eabi-nm"
+else
+COMPILE_PREFIX 	+= $(TOOLCHAIN_DIR)/bin/arm-none-eabi-
 CC      := $(COMPILE_PREFIX)gcc
 CXX     := $(COMPILE_PREFIX)g++
 OBJDUMP := $(COMPILE_PREFIX)objdump
@@ -47,6 +56,7 @@ OBJCOPY := $(COMPILE_PREFIX)objcopy
 AR      := $(COMPILE_PREFIX)ar
 SIZE    := $(COMPILE_PREFIX)size
 NM      := $(COMPILE_PREFIX)nm
+endif
 
 ## cpu setting ##
 CPU_ARCH ?= cortex-m3
@@ -157,8 +167,23 @@ LDFLAGS += -T $(LINKER_SCRIPT) -Wl,-Map=$(TARGET).map -Wl,--no-warn-rwx-segments
 		$(APP_LDFLAGS) $(GC_LDFLAGS) $(STDCLIB_LDFLAGS)
 
 MAKEFILE_PREREQS += Makefile
+MAKEFILE_PREREQS += $(EGUI_PORT_PATH)/GCC/Makefile.base
 LINK_PREREQS += $(LINKER_SCRIPT)
-COMMON_PREREQS = $(MAKEFILE_PREREQS) $(LINK_PREREQS)
+COMMON_PREREQS = $(MAKEFILE_PREREQS) $(LINK_PREREQS) $(APP_CONFIG_STAMP)
+
+define APP_CONFIG_STAMP_CONTENT
+APP=$(APP)
+PORT=$(PORT)
+CC=$(CC)
+CXX=$(CXX)
+CPU_ARCH=$(CPU_ARCH)
+COMMON_FLAGS=$(COMMON_FLAGS)
+APP_CFLAGS=$(APP_CFLAGS)
+APP_ASMFLAGS=$(APP_ASMFLAGS)
+C_INCLUDE_OPT=$(C_INCLUDE_OPT)
+ASM_INCLUDE_OPT=$(ASM_INCLUDE_OPT)
+LINKER_SCRIPT=$(LINKER_SCRIPT)
+endef
 
 # Source files
 ALL_CSRCS = $(filter-out $(wildcard $(EXCLUDE_SRCS)), $(sort $(wildcard $(C_SRCS)) $(call get_csrcs, $(SRC) $(C_SRCDIRS))))
@@ -177,7 +202,9 @@ ifneq ($(MAKECMDGOALS),clean)
 -include $(ALL_DEPS)
 endif
 
-.PHONY: all clean qemu
+.PHONY: all clean qemu FORCE
+
+FORCE:
 
 all: $(OUTPUT_PATH) $(ALL_OBJ_PATH) $(TARGET).elf
 
@@ -195,13 +222,13 @@ else
 	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
 endif
 
-$(APP_CONFIG_STAMP): | $(OUTPUT_PATH) $(ALL_OBJ_PATH)
+$(APP_CONFIG_STAMP): FORCE | $(OUTPUT_PATH) $(ALL_OBJ_PATH)
+	$(file >$(APP_CONFIG_STAMP_TMP),$(APP_CONFIG_STAMP_CONTENT))
 ifeq "$(HOST_OS)" "Windows"
-	-$(Q)$(RM_FILE) $(call FIXPATH,$(OUTPUT_PATH)/.app_stamp_*)
+	$(Q)if exist "$(call FIXPATH,$@)" (fc /b "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL && (del /q "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))") || (move /Y "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL)) else (move /Y "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL)
 else
-	-$(Q)$(RM_FILE) $(OUTPUT_PATH)/.app_stamp_*
+	$(Q)if [ -f "$(call FIXPATH,$@)" ] && cmp -s "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; then rm -f "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))"; else mv "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; fi
 endif
-	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
 
 $(TARGET).elf: $(ALL_OBJS) $(APP_CONFIG_STAMP)
 	$(file >$(LINK_OBJECTS_RSP),$(filter %.o,$^))

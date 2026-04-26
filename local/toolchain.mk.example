@@ -10,7 +10,7 @@
 
 # ARM GCC toolchain
 # CROSS_COMPILE := arm-none-eabi-
-# ARM_GCC_PATH := D:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/12.2 mpacbti-rel1
+# ARM_GCC_PATH := C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/12.2 mpacbti-rel1
 
 # SEGGER J-Link tools
 # JLINK := JLink.exe

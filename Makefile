@@ -45,6 +45,10 @@ endif
 # Optional local tool overrides. Keep machine-specific paths out of the repo.
 -include local/toolchain.mk
 
+MAKEFILE_PREREQS += Makefile
+ifneq ($(wildcard local/toolchain.mk),)
+MAKEFILE_PREREQS += local/toolchain.mk
+endif
 
 EGUI_CODE_SRC := 
 EGUI_CODE_SRC_FILES :=
@@ -58,6 +62,7 @@ EGUI_PATH := src
 EGUI_APP_ROOT_PATH ?= example
 # EGUI_APP_ROOT_PATH ?= ..
 EGUI_APP_PATH = $(EGUI_APP_ROOT_PATH)/$(APP)
+MAKEFILE_PREREQS += $(EGUI_APP_PATH)/build.mk
 include $(EGUI_APP_PATH)/build.mk
 # set app resource path
 EGUI_APP_RESOURCE_PATH ?= $(EGUI_APP_PATH)/resource
@@ -66,10 +71,12 @@ EGUI_APP_RESOURCE_PATH ?= $(EGUI_APP_PATH)/resource
 
 # include egui src
 include $(EGUI_PATH)/build.mk
+MAKEFILE_PREREQS += $(EGUI_PATH)/build.mk
 
 # include driver layer (HAL)
 EGUI_DRIVER_PATH := driver
 include $(EGUI_DRIVER_PATH)/build.mk
+MAKEFILE_PREREQS += $(EGUI_DRIVER_PATH)/build.mk
 
 SRC += $(EGUI_CODE_SRC)
 C_SRCS += $(sort $(EGUI_CODE_SRC_FILES))
@@ -78,4 +85,5 @@ INCLUDE += $(EGUI_CODE_INCLUDE)
 # include port info
 EGUI_PORT_ROOT_PATH = porting
 EGUI_PORT_PATH = $(EGUI_PORT_ROOT_PATH)/$(PORT)
+MAKEFILE_PREREQS += $(EGUI_PORT_PATH)/build.mk
 include $(EGUI_PORT_PATH)/build.mk

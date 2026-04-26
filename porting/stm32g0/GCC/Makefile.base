@@ -14,6 +14,7 @@ OBJ_PATH 	:= $(OUTPUT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 
 # Configuration stamp - forces relink when APP changes.
 APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
+APP_CONFIG_STAMP_TMP := $(APP_CONFIG_STAMP).tmp
 
 # define the target
 TARGET		  	?= $(OUTPUT_PATH)/main
@@ -252,13 +253,30 @@ LDFLAGS += -T $(LINKER_SCRIPT) -Wl,-Map=$(TARGET).map -Wl,--no-warn-rwx-segments
 		$(LIB_OPT) -Wl,--start-group $(LDLIBS) -Wl,--end-group
 
 
-# Prerequesties
+# Prerequisites
 MAKEFILE_PREREQS += Makefile
+MAKEFILE_PREREQS += $(EGUI_PORT_PATH)/GCC/Makefile.base
 #MAKEFILE_PREREQS += build.mk
 
 LINK_PREREQS += $(LINKER_SCRIPT)
 
-COMMON_PREREQS = $(MAKEFILE_PREREQS) $(LINK_PREREQS)
+COMMON_PREREQS = $(MAKEFILE_PREREQS) $(LINK_PREREQS) $(APP_CONFIG_STAMP)
+
+define APP_CONFIG_STAMP_CONTENT
+APP=$(APP)
+PORT=$(PORT)
+CC=$(CC)
+CXX=$(CXX)
+CPU_ARCH=$(CPU_ARCH)
+COMMON_FLAGS=$(COMMON_FLAGS)
+APP_CFLAGS=$(APP_CFLAGS)
+APP_CXXFLAGS=$(APP_CXXFLAGS)
+APP_ASMFLAGS=$(APP_ASMFLAGS)
+C_INCLUDE_OPT=$(C_INCLUDE_OPT)
+CXX_INCLUDE_OPT=$(CXX_INCLUDE_OPT)
+ASM_INCLUDE_OPT=$(ASM_INCLUDE_OPT)
+LINKER_SCRIPT=$(LINKER_SCRIPT)
+endef
 
 
 # Set your GDB port using variable GDB_PORT
@@ -302,22 +320,27 @@ endif
 # deleting dependencies appended to the file from 'make depend'
 #
 
-.PHONY: all clean
+.PHONY: all clean FORCE
+
+FORCE:
 
 # Default goal, placed before dependency includes
-all: $(ALL_OBJ_PATH) $(TARGET).elf
+all: $(OUTPUT_PATH) $(ALL_OBJ_PATH) $(TARGET).elf
+
+$(OUTPUT_PATH):
+	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
 
 # Create all outpath.
 $(ALL_OBJ_PATH):
 	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
 
-$(APP_CONFIG_STAMP): | $(ALL_OBJ_PATH)
+$(APP_CONFIG_STAMP): FORCE | $(OUTPUT_PATH) $(ALL_OBJ_PATH)
+	$(file >$(APP_CONFIG_STAMP_TMP),$(APP_CONFIG_STAMP_CONTENT))
 ifeq "$(HOST_OS)" "Windows"
-	-$(Q)$(RM) $(call FIXPATH, $(OUTPUT_PATH)/.app_stamp_*) >NUL 2>NUL
+	$(Q)if exist "$(call FIXPATH,$@)" (fc /b "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL && (del /q "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))") || (move /Y "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL)) else (move /Y "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL)
 else
-	-$(Q)rm -f $(OUTPUT_PATH)/.app_stamp_*
+	$(Q)if [ -f "$(call FIXPATH,$@)" ] && cmp -s "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; then rm -f "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))"; else mv "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; fi
 endif
-	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
 
 $(TARGET).elf: $(ALL_OBJS) $(APP_CONFIG_STAMP)
 	$(TRACE_LINK)

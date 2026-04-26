@@ -12,6 +12,10 @@
 #define EGUI_CONFIG_QEMU_PLATFORM_PRINTF_ENABLE 1
 #endif
 
+#ifndef QEMU_SPI_SPEED_MHZ
+#define QEMU_SPI_SPEED_MHZ 0
+#endif
+
 static egui_core_t *s_qemu_core = NULL;
 
 static void qemu_assert_single_display_core(egui_core_t *core_ctx)
@@ -170,10 +174,6 @@ void qemu_exit(int code)
  * Uses raw SysTick tick counting for deadlines. Each tick = SYSTICK_PERIOD_US.
  * For async mode, SysTick_Handler polls and calls egui_pfb_notify_flush_complete().
  * ============================================================================ */
-
-#ifndef QEMU_SPI_SPEED_MHZ
-#define QEMU_SPI_SPEED_MHZ 0
-#endif
 
 static volatile int spi_sim_busy = 0;
 static volatile uint32_t spi_sim_end_tick = 0;
