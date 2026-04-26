@@ -50,6 +50,73 @@ void egui_pfb_manager_set_backup_buffer(egui_pfb_manager_t *mgr, egui_color_int_
  * Start DMA for the buffer at flush_idx.
  * Called from submit() or from notify_flush_complete() to chain next transfer.
  */
+#if EGUI_CONFIG_COLOR_DEPTH == 16
+#if defined(__GNUC__) || defined(__clang__)
+typedef uint32_t egui_pfb_manager_rgb565_pair_t __attribute__((__may_alias__));
+#define EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH 1
+#else
+#define EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH 0
+#endif
+
+__EGUI_STATIC_INLINE__ uint16_t egui_pfb_manager_swap_rgb565_pixel(uint16_t v)
+{
+    return (uint16_t)((v >> 8) | (v << 8));
+}
+
+#if EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH
+__EGUI_STATIC_INLINE__ uint32_t egui_pfb_manager_swap_rgb565_pair(uint32_t v)
+{
+#if defined(__GNUC__) && (defined(__arm__) || defined(__thumb__))
+    __asm__("rev16 %0, %1" : "=r"(v) : "r"(v));
+    return v;
+#else
+    return ((v >> 8) & 0x00FF00FFu) | ((v << 8) & 0xFF00FF00u);
+#endif
+}
+#endif
+
+static void egui_pfb_manager_swap_rgb565_buffer(egui_color_int_t *buf, uint32_t pixel_count)
+{
+    uint16_t *buf16 = (uint16_t *)buf;
+
+    if (pixel_count == 0)
+    {
+        return;
+    }
+
+#if EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH
+    // Peel one pixel when needed so the bulk path never performs an unaligned 32-bit access.
+    if (((egui_uintptr_t)buf16 & 0x03U) != 0U)
+    {
+        *buf16 = egui_pfb_manager_swap_rgb565_pixel(*buf16);
+        buf16++;
+        pixel_count--;
+    }
+
+    if (pixel_count >= 2)
+    {
+        egui_pfb_manager_rgb565_pair_t *buf32 = (egui_pfb_manager_rgb565_pair_t *)buf16;
+        uint32_t pair_count = pixel_count >> 1;
+
+        for (uint32_t i = 0; i < pair_count; i++)
+        {
+            buf32[i] = egui_pfb_manager_swap_rgb565_pair(buf32[i]);
+        }
+
+        buf16 = (uint16_t *)&buf32[pair_count];
+        pixel_count -= pair_count << 1;
+    }
+#endif
+
+    while (pixel_count != 0)
+    {
+        *buf16 = egui_pfb_manager_swap_rgb565_pixel(*buf16);
+        buf16++;
+        pixel_count--;
+    }
+}
+#endif
+
 static void egui_pfb_manager_start_flush(egui_pfb_manager_t *mgr)
 {
     egui_display_driver_t *drv = egui_display_driver_get(mgr->core);
@@ -64,22 +131,9 @@ static void egui_pfb_manager_start_flush(egui_pfb_manager_t *mgr)
     if (mgr->core->render.color_16_swap)
     {
         // Swap the buffer in place because this ring slot is now owned by the flush side, not by the renderer.
-        uint32_t *buf32 = (uint32_t *)mgr->buffers[mgr->flush_idx];
         egui_pfb_flush_params_t *p = &mgr->flush_params[mgr->flush_idx];
-        uint32_t n32 = (uint32_t)p->w * p->h >> 1; // 2 pixels per uint32
-        for (uint32_t i = 0; i < n32; i++)
-        {
-            uint32_t v = buf32[i];
-            buf32[i] = ((v >> 8) & 0x00FF00FFu) | ((v << 8) & 0xFF00FF00u);
-        }
-        // handle odd pixel count
-        if ((uint32_t)p->w * p->h & 1u)
-        {
-            uint16_t *buf16 = (uint16_t *)mgr->buffers[mgr->flush_idx];
-            uint32_t last = (uint32_t)p->w * p->h - 1;
-            uint16_t v = buf16[last];
-            buf16[last] = (uint16_t)((v >> 8) | (v << 8));
-        }
+        uint32_t pixel_count = (uint32_t)p->w * p->h;
+        egui_pfb_manager_swap_rgb565_buffer(mgr->buffers[mgr->flush_idx], pixel_count);
     }
 #endif
 
