@@ -1,4 +1,4 @@
-#if EGUI_DRIVER_PANEL_IO_SPI_ENABLE
+#if defined(EGUI_DRIVER_PANEL_IO_SPI_ENABLE) && EGUI_DRIVER_PANEL_IO_SPI_ENABLE
 
 /**
  * @file egui_panel_io_spi.c

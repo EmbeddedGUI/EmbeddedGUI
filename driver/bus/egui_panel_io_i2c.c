@@ -1,4 +1,4 @@
-#if EGUI_DRIVER_PANEL_IO_I2C_ENABLE
+#if defined(EGUI_DRIVER_PANEL_IO_I2C_ENABLE) && EGUI_DRIVER_PANEL_IO_I2C_ENABLE
 
 /**
  * @file egui_panel_io_i2c.c
