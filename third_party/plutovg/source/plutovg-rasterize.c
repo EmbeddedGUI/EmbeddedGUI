@@ -20,6 +20,10 @@
 #define calloc(count, size) egui_svg_alloc_calloc((count), (size))
 #define realloc(ptr, size)  egui_svg_alloc_realloc((ptr), (size))
 #define free(ptr)           egui_svg_alloc_free(ptr)
+#undef PLUTOVG_ARRAY_REALLOC
+#define PLUTOVG_ARRAY_REALLOC(ptr, old_size, new_size) egui_svg_alloc_plain_realloc((ptr), (old_size), (new_size))
+#undef PLUTOVG_ARRAY_FREE
+#define PLUTOVG_ARRAY_FREE(ptr) egui_svg_alloc_plain_free(ptr)
 
 void plutovg_span_buffer_init(plutovg_span_buffer_t *span_buffer)
 {
@@ -183,7 +187,7 @@ static PVG_FT_Outline *ft_outline_create(int points, int contours)
     size_t tags_size = ALIGN_SIZE((points + contours) * sizeof(char));
     size_t contours_size = ALIGN_SIZE(contours * sizeof(int));
     size_t contours_flag_size = ALIGN_SIZE(contours * sizeof(char));
-    PVG_FT_Outline *outline = malloc(points_size + tags_size + contours_size + contours_flag_size + sizeof(PVG_FT_Outline));
+    PVG_FT_Outline *outline = egui_svg_alloc_plain_malloc(points_size + tags_size + contours_size + contours_flag_size + sizeof(PVG_FT_Outline));
 
     PVG_FT_Byte *outline_data = (PVG_FT_Byte *)(outline + 1);
     outline->points = (PVG_FT_Vector *)(outline_data);
@@ -198,7 +202,7 @@ static PVG_FT_Outline *ft_outline_create(int points, int contours)
 
 static void ft_outline_destroy(PVG_FT_Outline *outline)
 {
-    free(outline);
+    egui_svg_alloc_plain_free(outline);
 }
 
 #define FT_COORD(x) (PVG_FT_Pos)(roundf(x * 64))

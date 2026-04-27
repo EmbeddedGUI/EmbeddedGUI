@@ -170,6 +170,16 @@ PLUTOSVG_API float plutosvg_document_get_height(const plutosvg_document_t *docum
 PLUTOSVG_API bool plutosvg_document_extents(const plutosvg_document_t *document, const char *id, plutovg_rect_t *extents);
 
 /**
+ * @brief Releases retained temporary render storage owned by an SVG document.
+ *
+ * Rendering can keep internal path storage for reuse across repeated draws. Call this after a
+ * completed render pass on memory-constrained targets when lower resident heap is preferred.
+ *
+ * @param document Pointer to a `plutosvg_document_t` object. If `NULL`, the function does nothing.
+ */
+PLUTOSVG_API void plutosvg_document_release_cache(const plutosvg_document_t *document);
+
+/**
  * @brief Destroys an SVG document and frees its resources.
  *
  * @param document Pointer to a `plutosvg_document_t` object to be destroyed. If `NULL`, the function does nothing.

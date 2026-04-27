@@ -112,6 +112,81 @@ void egui_svg_alloc_free(void *ptr)
     }
 }
 
+void *egui_svg_alloc_plain_malloc(size_t size)
+{
+    if (size == 0 || size > (size_t)INT_MAX)
+    {
+        return NULL;
+    }
+
+    return egui_malloc(NULL, (int)size);
+}
+
+void *egui_svg_alloc_plain_calloc(size_t count, size_t size)
+{
+    size_t total;
+    void *ptr;
+
+    if (count == 0 || size == 0)
+    {
+        return NULL;
+    }
+    if (count > (SIZE_MAX / size))
+    {
+        return NULL;
+    }
+
+    total = count * size;
+    ptr = egui_svg_alloc_plain_malloc(total);
+    if (ptr != NULL)
+    {
+        egui_api_memset(ptr, 0, total);
+    }
+    return ptr;
+}
+
+void *egui_svg_alloc_plain_realloc(void *ptr, size_t old_size, size_t size)
+{
+    void *new_ptr;
+    size_t copy_size;
+
+    if (ptr == NULL)
+    {
+        return egui_svg_alloc_plain_malloc(size);
+    }
+    if (size == 0)
+    {
+        egui_svg_alloc_plain_free(ptr);
+        return NULL;
+    }
+
+    new_ptr = egui_svg_alloc_plain_malloc(size);
+    if (new_ptr == NULL)
+    {
+        return NULL;
+    }
+
+    copy_size = old_size;
+    if (copy_size > size)
+    {
+        copy_size = size;
+    }
+    if (copy_size > 0)
+    {
+        memcpy(new_ptr, ptr, copy_size);
+    }
+    egui_svg_alloc_plain_free(ptr);
+    return new_ptr;
+}
+
+void egui_svg_alloc_plain_free(void *ptr)
+{
+    if (ptr != NULL)
+    {
+        egui_free(NULL, ptr);
+    }
+}
+
 #if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
 
 #ifndef PLUTOVG_BUILD_STATIC
@@ -194,7 +269,7 @@ typedef struct egui_svg_doc
 extern const egui_image_api_t egui_image_svg_t_api_table;
 
 #ifndef EGUI_CONFIG_IMAGE_SVG_RENDER_SURFACE_MAX_BYTES
-#define EGUI_CONFIG_IMAGE_SVG_RENDER_SURFACE_MAX_BYTES (EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT * (int)sizeof(egui_color_int_t))
+#define EGUI_CONFIG_IMAGE_SVG_RENDER_SURFACE_MAX_BYTES ((EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT * (int)sizeof(egui_color_int_t)) / 3)
 #endif
 
 #ifndef EGUI_CONFIG_IMAGE_SVG_CACHE_MAX_BYTES
@@ -1618,6 +1693,7 @@ static int egui_svg_query_surface_pixel(const egui_svg_doc_t *doc, egui_dim_t x,
     {
         return 0;
     }
+    plutosvg_document_release_cache(doc->state.raster.document);
 
     surface_data = plutovg_surface_get_data(surface);
     stride = plutovg_surface_get_stride(surface);
@@ -1887,6 +1963,7 @@ static int egui_svg_render_cache(egui_svg_doc_t *doc, egui_dim_t width, egui_dim
     {
         return 0;
     }
+    plutosvg_document_release_cache(doc->state.raster.document);
 
     if (!egui_svg_build_cache_from_surface(surface, &new_info, &new_data_buf, &new_alpha_buf))
     {
@@ -2443,6 +2520,7 @@ static void egui_svg_draw_clipped_region(const egui_svg_doc_t *doc, egui_canvas_
 
         band_top += band_height;
     }
+    plutosvg_document_release_cache(doc->state.raster.document);
 }
 
 static void egui_image_svg_release_owned_data(egui_image_svg_t *self)

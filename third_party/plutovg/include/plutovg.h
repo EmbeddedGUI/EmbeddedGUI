@@ -545,6 +545,17 @@ PLUTOVG_API void plutovg_path_reserve(plutovg_path_t *path, int count);
 PLUTOVG_API void plutovg_path_reset(plutovg_path_t *path);
 
 /**
+ * @brief Resets the path and releases any retained element storage.
+ *
+ * Clears all path data and frees the internal element array. This is useful on
+ * memory-constrained targets when path reuse is less important than lowering
+ * resident heap after a temporary path has been consumed.
+ *
+ * @param path A pointer to a `plutovg_path_t` object.
+ */
+PLUTOVG_API void plutovg_path_release_cache(plutovg_path_t *path);
+
+/**
  * @brief Adds a rectangle to the path.
  *
  * Adds a rectangle defined by the top-left corner (x, y) and dimensions (w, h) to the path.

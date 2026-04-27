@@ -414,7 +414,7 @@ int plutovg_color_parse(plutovg_color_t *color, const char *data, int length)
 
 static void *plutovg_paint_create(plutovg_paint_type_t type, size_t size)
 {
-    plutovg_paint_t *paint = malloc(size);
+    plutovg_paint_t *paint = egui_svg_alloc_plain_malloc(size);
     paint->ref_count = 1;
     paint->type = type;
     return paint;
@@ -520,7 +520,7 @@ void plutovg_paint_destroy(plutovg_paint_t *paint)
             plutovg_surface_destroy(texture->surface);
         }
 
-        free(paint);
+        egui_svg_alloc_plain_free(paint);
     }
 }
 

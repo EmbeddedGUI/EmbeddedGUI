@@ -13,6 +13,10 @@
 #define HELLO_SVG_OVERLAY_MARGIN 14
 #define HELLO_SVG_PI             3.14159265358979323846f
 
+#ifndef QEMU_HEAP_MEASURE
+#define QEMU_HEAP_MEASURE 0
+#endif
+
 typedef float hello_svg_real_t;
 
 typedef struct hello_svg_page
@@ -33,6 +37,10 @@ static uint8_t current_page_index;
 static char page_label_text[8];
 static char svg_buffers[HELLO_SVG_PAGE_COUNT][HELLO_SVG_BUFFER_SIZE];
 static const char *const hello_svg_titles[HELLO_SVG_PAGE_COUNT] = {"Pulse", "Tunnel", "Orbit"};
+
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PORT == EGUI_PORT_TYPE_PC
+static int hello_svg_recording_pending_page = -1;
+#endif
 
 EGUI_VIEW_GROUP_PARAMS_INIT(root_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
@@ -507,6 +515,14 @@ static void hello_svg_refresh_visible_pages(uint32_t tick)
     int end = current_page_index + 1U < HELLO_SVG_PAGE_COUNT ? (int)current_page_index + 1 : HELLO_SVG_PAGE_COUNT - 1;
     int page_index;
 
+    for (page_index = 0; page_index < HELLO_SVG_PAGE_COUNT; page_index++)
+    {
+        if (page_index < start || page_index > end)
+        {
+            egui_image_svg_deinit(&pages[page_index].svg);
+        }
+    }
+
     for (page_index = start; page_index <= end; page_index++)
     {
         hello_svg_refresh_page((uint8_t)page_index, tick);
@@ -527,13 +543,42 @@ static void hello_svg_on_page_changed(egui_view_t *self, int page_index)
     hello_svg_refresh_visible_pages(hero_tick);
 }
 
+#if !QEMU_HEAP_MEASURE
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PORT == EGUI_PORT_TYPE_PC
+static uint8_t hello_svg_apply_recording_pending_page(void)
+{
+    int page_index = hello_svg_recording_pending_page;
+
+    if (page_index < 0)
+    {
+        return 0;
+    }
+
+    hello_svg_recording_pending_page = -1;
+    if (page_index >= HELLO_SVG_PAGE_COUNT || current_page_index == (uint8_t)page_index)
+    {
+        return 0;
+    }
+
+    egui_view_viewpage_set_current_page(EGUI_VIEW_OF(&viewpage), page_index);
+    return 1;
+}
+#endif
+
 static void hello_svg_anim_cb(egui_timer_t *timer)
 {
     EGUI_UNUSED(timer);
 
     hero_tick++;
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PORT == EGUI_PORT_TYPE_PC
+    if (hello_svg_apply_recording_pending_page())
+    {
+        return;
+    }
+#endif
     hello_svg_refresh_visible_pages(hero_tick);
 }
+#endif
 
 static void hello_svg_init_page(egui_core_t *core, uint8_t page_index)
 {
@@ -570,10 +615,7 @@ static void hello_svg_init_ui(egui_core_t *core)
     current_page_index = 0;
     hero_tick = 0;
     hello_svg_build_header(current_page_index);
-    for (page_index = 0; page_index < HELLO_SVG_PAGE_COUNT; page_index++)
-    {
-        hello_svg_refresh_page(page_index, hero_tick);
-    }
+    hello_svg_refresh_visible_pages(hero_tick);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&viewpage));
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&title_label));
@@ -585,8 +627,10 @@ static void hello_svg_init_ui(egui_core_t *core)
 void test_init_ui(egui_core_t *core)
 {
     hello_svg_init_ui(core);
+#if !QEMU_HEAP_MEASURE
     egui_timer_init_timer(&hero_timer, NULL, hello_svg_anim_cb);
     egui_timer_start_timer(core, &hero_timer, HELLO_SVG_FRAME_MS, HELLO_SVG_FRAME_MS);
+#endif
 }
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
@@ -623,12 +667,43 @@ static void hello_svg_set_swipe_right_action(egui_sim_action_t *p_action, uint16
     p_action->interval_ms = interval_ms;
 }
 
+#if EGUI_PORT == EGUI_PORT_TYPE_PC
+static void hello_svg_recording_set_page_action(egui_sim_action_t *p_action, uint8_t page_index, uint16_t interval_ms, int first_call)
+{
+    if (first_call)
+    {
+        hello_svg_recording_pending_page = page_index;
+        recording_request_snapshot();
+    }
+    EGUI_SIM_SET_WAIT(p_action, interval_ms);
+}
+#endif
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;
     int first_call = (action_index != last_action);
 
     last_action = action_index;
+#if EGUI_PORT == EGUI_PORT_TYPE_PC
+    switch (action_index)
+    {
+    case 0:
+        hello_svg_recording_set_page_action(p_action, 0, 420, first_call);
+        return true;
+    case 1:
+        hello_svg_recording_set_page_action(p_action, 1, 420, first_call);
+        return true;
+    case 2:
+        hello_svg_recording_set_page_action(p_action, 2, 420, first_call);
+        return true;
+    case 3:
+        hello_svg_recording_set_page_action(p_action, 1, 420, first_call);
+        return true;
+    default:
+        return false;
+    }
+#else
     switch (action_index)
     {
     case 0:
@@ -639,17 +714,18 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 320);
+        EGUI_SIM_SET_WAIT(p_action, 720);
         return true;
     case 1:
     case 3:
-        hello_svg_set_swipe_left_action(p_action, 520);
+        hello_svg_set_swipe_left_action(p_action, 760);
         return true;
     case 5:
-        hello_svg_set_swipe_right_action(p_action, 520);
+        hello_svg_set_swipe_right_action(p_action, 760);
         return true;
     default:
         return false;
     }
+#endif
 }
 #endif

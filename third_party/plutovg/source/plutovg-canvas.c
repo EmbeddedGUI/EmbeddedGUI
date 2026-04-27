@@ -15,6 +15,10 @@
 #define calloc(count, size) egui_svg_alloc_calloc((count), (size))
 #define realloc(ptr, size)  egui_svg_alloc_realloc((ptr), (size))
 #define free(ptr)           egui_svg_alloc_free(ptr)
+#undef PLUTOVG_ARRAY_REALLOC
+#define PLUTOVG_ARRAY_REALLOC(ptr, old_size, new_size) egui_svg_alloc_plain_realloc((ptr), (old_size), (new_size))
+#undef PLUTOVG_ARRAY_FREE
+#define PLUTOVG_ARRAY_FREE(ptr) egui_svg_alloc_plain_free(ptr)
 
 int plutovg_version(void)
 {
@@ -30,7 +34,7 @@ const char *plutovg_version_string(void)
 
 static plutovg_state_t *plutovg_state_create(void)
 {
-    plutovg_state_t *state = malloc(sizeof(plutovg_state_t));
+    plutovg_state_t *state = egui_svg_alloc_plain_malloc(sizeof(plutovg_state_t));
     state->paint = NULL;
     state->font_face = NULL;
     state->color = PLUTOVG_BLACK_COLOR;
@@ -91,12 +95,12 @@ static void plutovg_state_destroy(plutovg_state_t *state)
     plutovg_font_face_destroy(state->font_face);
     plutovg_array_destroy(state->stroke.dash.array);
     plutovg_span_buffer_destroy(&state->clip_spans);
-    free(state);
+    egui_svg_alloc_plain_free(state);
 }
 
 plutovg_canvas_t *plutovg_canvas_create(plutovg_surface_t *surface)
 {
-    plutovg_canvas_t *canvas = malloc(sizeof(plutovg_canvas_t));
+    plutovg_canvas_t *canvas = egui_svg_alloc_plain_malloc(sizeof(plutovg_canvas_t));
     canvas->ref_count = 1;
     canvas->surface = plutovg_surface_reference(surface);
     canvas->path = plutovg_path_create();
@@ -140,7 +144,7 @@ void plutovg_canvas_destroy(plutovg_canvas_t *canvas)
         plutovg_span_buffer_destroy(&canvas->clip_spans);
         plutovg_surface_destroy(canvas->surface);
         plutovg_path_destroy(canvas->path);
-        free(canvas);
+        egui_svg_alloc_plain_free(canvas);
     }
 }
 
@@ -615,9 +619,17 @@ void plutovg_canvas_fill_rect(plutovg_canvas_t *canvas, float x, float y, float 
 
 void plutovg_canvas_fill_path(plutovg_canvas_t *canvas, const plutovg_path_t *path)
 {
-    plutovg_canvas_new_path(canvas);
-    plutovg_canvas_add_path(canvas, path);
-    plutovg_canvas_fill(canvas);
+    plutovg_path_release_cache(canvas->path);
+    plutovg_rasterize(&canvas->fill_spans, path, &canvas->state->matrix, &canvas->clip_rect, NULL, canvas->state->winding);
+    if (canvas->state->clipping)
+    {
+        plutovg_span_buffer_intersect(&canvas->clip_spans, &canvas->fill_spans, &canvas->state->clip_spans);
+        plutovg_blend(canvas, &canvas->clip_spans);
+    }
+    else
+    {
+        plutovg_blend(canvas, &canvas->fill_spans);
+    }
 }
 
 void plutovg_canvas_stroke_rect(plutovg_canvas_t *canvas, float x, float y, float w, float h)
@@ -629,9 +641,17 @@ void plutovg_canvas_stroke_rect(plutovg_canvas_t *canvas, float x, float y, floa
 
 void plutovg_canvas_stroke_path(plutovg_canvas_t *canvas, const plutovg_path_t *path)
 {
-    plutovg_canvas_new_path(canvas);
-    plutovg_canvas_add_path(canvas, path);
-    plutovg_canvas_stroke(canvas);
+    plutovg_path_release_cache(canvas->path);
+    plutovg_rasterize(&canvas->fill_spans, path, &canvas->state->matrix, &canvas->clip_rect, &canvas->state->stroke, PLUTOVG_FILL_RULE_NON_ZERO);
+    if (canvas->state->clipping)
+    {
+        plutovg_span_buffer_intersect(&canvas->clip_spans, &canvas->fill_spans, &canvas->state->clip_spans);
+        plutovg_blend(canvas, &canvas->clip_spans);
+    }
+    else
+    {
+        plutovg_blend(canvas, &canvas->fill_spans);
+    }
 }
 
 void plutovg_canvas_clip_rect(plutovg_canvas_t *canvas, float x, float y, float w, float h)

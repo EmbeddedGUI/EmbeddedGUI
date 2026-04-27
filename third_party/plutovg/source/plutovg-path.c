@@ -17,6 +17,10 @@
 #define calloc(count, size) egui_svg_alloc_calloc((count), (size))
 #define realloc(ptr, size)  egui_svg_alloc_realloc((ptr), (size))
 #define free(ptr)           egui_svg_alloc_free(ptr)
+#undef PLUTOVG_ARRAY_REALLOC
+#define PLUTOVG_ARRAY_REALLOC(ptr, old_size, new_size) egui_svg_alloc_plain_realloc((ptr), (old_size), (new_size))
+#undef PLUTOVG_ARRAY_FREE
+#define PLUTOVG_ARRAY_FREE(ptr) egui_svg_alloc_plain_free(ptr)
 
 void plutovg_path_iterator_init(plutovg_path_iterator_t *it, const plutovg_path_t *path)
 {
@@ -53,7 +57,7 @@ plutovg_path_command_t plutovg_path_iterator_next(plutovg_path_iterator_t *it, p
 
 plutovg_path_t *plutovg_path_create(void)
 {
-    plutovg_path_t *path = malloc(sizeof(plutovg_path_t));
+    plutovg_path_t *path = egui_svg_alloc_plain_malloc(sizeof(plutovg_path_t));
     path->ref_count = 1;
     path->num_points = 0;
     path->num_contours = 0;
@@ -78,7 +82,7 @@ void plutovg_path_destroy(plutovg_path_t *path)
     if (--path->ref_count == 0)
     {
         plutovg_array_destroy(path->elements);
-        free(path);
+        egui_svg_alloc_plain_free(path);
     }
 }
 
@@ -274,6 +278,18 @@ void plutovg_path_reset(plutovg_path_t *path)
     path->num_points = 0;
     path->num_contours = 0;
     path->num_curves = 0;
+}
+
+void plutovg_path_release_cache(plutovg_path_t *path)
+{
+    if (path == NULL)
+    {
+        return;
+    }
+
+    plutovg_path_reset(path);
+    plutovg_array_destroy(path->elements);
+    plutovg_array_init(path->elements);
 }
 
 void plutovg_path_add_rect(plutovg_path_t *path, float x, float y, float w, float h)

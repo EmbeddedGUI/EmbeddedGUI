@@ -23,6 +23,14 @@
 #define plutovg_green(c) (((c) >> 8) & 0xff)
 #define plutovg_blue(c)  (((c) >> 0) & 0xff)
 
+#ifndef PLUTOVG_ARRAY_REALLOC
+#define PLUTOVG_ARRAY_REALLOC(ptr, old_size, new_size) realloc((ptr), (new_size))
+#endif
+
+#ifndef PLUTOVG_ARRAY_FREE
+#define PLUTOVG_ARRAY_FREE(ptr) free((ptr))
+#endif
+
 #define plutovg_array_init(array)                                                                                                                              \
     do                                                                                                                                                         \
     {                                                                                                                                                          \
@@ -42,7 +50,7 @@
             {                                                                                                                                                  \
                 newcapacity *= 2;                                                                                                                              \
             }                                                                                                                                                  \
-            (array).data = realloc((array).data, newcapacity * sizeof((array).data[0]));                                                                       \
+            (array).data = PLUTOVG_ARRAY_REALLOC((array).data, (array).capacity * sizeof((array).data[0]), newcapacity * sizeof((array).data[0]));             \
             (array).capacity = newcapacity;                                                                                                                    \
         }                                                                                                                                                      \
     } while (0)
@@ -60,7 +68,7 @@
 
 #define plutovg_array_append(array, other) plutovg_array_append_data(array, (other).data, (other).size)
 #define plutovg_array_clear(array)         ((array).size = 0)
-#define plutovg_array_destroy(array)       free((array).data)
+#define plutovg_array_destroy(array)       PLUTOVG_ARRAY_FREE((array).data)
 
 static inline uint32_t plutovg_premultiply_argb(uint32_t color)
 {

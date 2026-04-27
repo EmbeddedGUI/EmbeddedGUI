@@ -21,10 +21,9 @@
 
 #include "image/egui_image_svg_alloc.h"
 
-#define malloc(size)        egui_svg_alloc_malloc(size)
-#define calloc(count, size) egui_svg_alloc_calloc((count), (size))
-#define realloc(ptr, size)  egui_svg_alloc_realloc((ptr), (size))
-#define free(ptr)           egui_svg_alloc_free(ptr)
+#define malloc(size)        egui_svg_alloc_plain_malloc(size)
+#define calloc(count, size) egui_svg_alloc_plain_calloc((count), (size))
+#define free(ptr)           egui_svg_alloc_plain_free(ptr)
 
 int plutosvg_version(void)
 {
@@ -264,26 +263,26 @@ typedef struct
     size_t size;
 } heap_t;
 
-static heap_t *heap_create(void)
+static void heap_init(heap_t *heap)
 {
-    heap_t *heap = malloc(sizeof(heap_t));
     heap->chunk = NULL;
     heap->size = 0;
-    return heap;
 }
 
 #ifndef PLUTOSVG_HEAP_CHUNK_SIZE
 #define PLUTOSVG_HEAP_CHUNK_SIZE 512
 #endif
 
-#define CHUNK_SIZE       PLUTOSVG_HEAP_CHUNK_SIZE
-#define ALIGN_SIZE(size) (((size) + 7ul) & ~7ul)
+#define CHUNK_SIZE PLUTOSVG_HEAP_CHUNK_SIZE
+#define ALIGN_SIZE(size) (((size) + (sizeof(void *) - 1ul)) & ~(sizeof(void *) - 1ul))
 static void *heap_alloc(heap_t *heap, size_t size)
 {
     size = ALIGN_SIZE(size);
     if (heap->chunk == NULL || heap->size + size > CHUNK_SIZE)
     {
         heap_chunk_t *chunk = malloc(CHUNK_SIZE + sizeof(heap_chunk_t));
+        if (chunk == NULL)
+            return NULL;
         chunk->next = heap->chunk;
         heap->chunk = chunk;
         heap->size = 0;
@@ -303,7 +302,6 @@ static void heap_destroy(heap_t *heap)
         free(chunk);
     }
 
-    free(heap);
 }
 
 typedef struct hashmap_entry
@@ -1204,7 +1202,7 @@ static bool parse_units_type(const element_t *element, int id, units_type_t *uni
 
 struct plutosvg_document
 {
-    heap_t *heap;
+    heap_t heap;
     plutovg_path_t *path;
     hashmap_t *id_cache;
     element_t *root_element;
@@ -1217,7 +1215,7 @@ struct plutosvg_document
 static plutosvg_document_t *plutosvg_document_create(float width, float height, plutovg_destroy_func_t destroy_func, void *closure)
 {
     plutosvg_document_t *document = malloc(sizeof(plutosvg_document_t));
-    document->heap = heap_create();
+    heap_init(&document->heap);
     document->path = plutovg_path_create();
     document->id_cache = NULL;
     document->root_element = NULL;
@@ -1234,7 +1232,7 @@ void plutosvg_document_destroy(plutosvg_document_t *document)
         return;
     plutovg_path_destroy(document->path);
     hashmap_destroy(document->id_cache);
-    heap_destroy(document->heap);
+    heap_destroy(&document->heap);
     if (document->destroy_func)
         document->destroy_func(document->closure);
     free(document);
@@ -1242,7 +1240,7 @@ void plutosvg_document_destroy(plutosvg_document_t *document)
 
 static void add_attribute(element_t *element, plutosvg_document_t *document, int id, const char *data, size_t length)
 {
-    attribute_t *attribute = heap_alloc(document->heap, sizeof(attribute_t));
+    attribute_t *attribute = heap_alloc(&document->heap, sizeof(attribute_t));
     attribute->id = id;
     attribute->value.data = data;
     attribute->value.length = length;
@@ -1307,7 +1305,7 @@ static bool parse_attributes(const char **begin, const char *end, element_t *ele
             {
                 if (document->id_cache == NULL)
                     document->id_cache = hashmap_create();
-                hashmap_put(document->id_cache, document->heap, data, length, element);
+                hashmap_put(document->id_cache, &document->heap, data, length, element);
             }
             else if (id == ATTR_STYLE)
             {
@@ -1493,7 +1491,7 @@ plutosvg_document_t *plutosvg_document_load_from_data(const char *data, int leng
             {
                 if (document->root_element && current == NULL)
                     goto error;
-                element = heap_alloc(document->heap, sizeof(element_t));
+                element = heap_alloc(&document->heap, sizeof(element_t));
                 element->id = id;
                 element->parent = NULL;
                 element->next_sibling = NULL;
@@ -2830,6 +2828,7 @@ plutovg_surface_t *plutosvg_document_render_to_surface(const plutosvg_document_t
     }
 
     plutovg_canvas_destroy(canvas);
+    plutosvg_document_release_cache(document);
     return surface;
 }
 
@@ -2872,6 +2871,7 @@ bool plutosvg_document_extents(const plutosvg_document_t *document, const char *
 
     render_context_t context = {document, NULL, NULL, NULL, NULL};
     render_element(state.element, &context, &state);
+    plutosvg_document_release_cache(document);
     if (IS_INVALID_RECT(state.extents))
     {
         *extents = EMPTY_RECT;
@@ -2882,6 +2882,14 @@ bool plutosvg_document_extents(const plutosvg_document_t *document, const char *
     }
 
     return true;
+}
+
+void plutosvg_document_release_cache(const plutosvg_document_t *document)
+{
+    if (document != NULL)
+    {
+        plutovg_path_release_cache(document->path);
+    }
 }
 
 #ifdef PLUTOSVG_HAS_FREETYPE
