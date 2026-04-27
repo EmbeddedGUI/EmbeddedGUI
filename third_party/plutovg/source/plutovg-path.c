@@ -2,6 +2,8 @@
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG
 
+#include "image/egui_image_svg.h"
+
 #ifndef PLUTOVG_BUILD_STATIC
 #define PLUTOVG_BUILD_STATIC 1
 #endif
