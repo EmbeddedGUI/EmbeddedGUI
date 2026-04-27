@@ -273,7 +273,7 @@ static void heap_init(heap_t *heap)
 #define PLUTOSVG_HEAP_CHUNK_SIZE 512
 #endif
 
-#define CHUNK_SIZE PLUTOSVG_HEAP_CHUNK_SIZE
+#define CHUNK_SIZE       PLUTOSVG_HEAP_CHUNK_SIZE
 #define ALIGN_SIZE(size) (((size) + (sizeof(void *) - 1ul)) & ~(sizeof(void *) - 1ul))
 static void *heap_alloc(heap_t *heap, size_t size)
 {
@@ -301,7 +301,6 @@ static void heap_destroy(heap_t *heap)
         heap->chunk = chunk->next;
         free(chunk);
     }
-
 }
 
 typedef struct hashmap_entry
@@ -475,12 +474,36 @@ static inline bool has_attribute(const element_t *element, int id)
 }
 
 #define IS_NUM(c) ((c) >= '0' && (c) <= '9')
+static float pow10_int(int exponent)
+{
+    float result = 1.f;
+    float base = 10.f;
+    unsigned int power;
+
+    if (exponent < 0)
+        power = (unsigned int)(-exponent);
+    else
+        power = (unsigned int)exponent;
+
+    while (power)
+    {
+        if (power & 1U)
+            result *= base;
+        base *= base;
+        power >>= 1U;
+    }
+
+    if (exponent < 0)
+        return 1.f / result;
+    return result;
+}
+
 static inline bool parse_float(const char **begin, const char *end, float *number)
 {
     const char *it = *begin;
     float integer = 0;
     float fraction = 0;
-    float exponent = 0;
+    int exponent = 0;
     int sign = 1;
     int expsign = 1;
 
@@ -538,7 +561,7 @@ static inline bool parse_float(const char **begin, const char *end, float *numbe
     *begin = it;
     *number = sign * (integer + fraction);
     if (exponent)
-        *number *= powf(10.f, expsign * exponent);
+        *number *= pow10_int(expsign * exponent);
     return *number >= -FLT_MAX && *number <= FLT_MAX;
 }
 
@@ -1050,6 +1073,7 @@ static bool parse_path(const element_t *element, int id, plutovg_path_t *path)
     return plutovg_path_parse(path, value->data, value->length);
 }
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_STROKE_DASH
 #define MAX_DASHES 128
 typedef struct
 {
@@ -1074,6 +1098,7 @@ static bool parse_dash_array(const element_t *element, int id, stroke_dash_array
 
     return true;
 }
+#endif
 
 static bool parse_line_cap(const element_t *element, int id, plutovg_line_cap_t *line_cap)
 {
@@ -1121,6 +1146,7 @@ static bool parse_fill_rule(const element_t *element, int id, plutovg_fill_rule_
     return !skip_ws(&it, end);
 }
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
 static bool parse_spread_method(const element_t *element, int id, plutovg_spread_method_t *spread_method)
 {
     const string_t *value = find_attribute(element, id, false);
@@ -1136,6 +1162,7 @@ static bool parse_spread_method(const element_t *element, int id, plutovg_spread
         *spread_method = PLUTOVG_SPREAD_METHOD_REPEAT;
     return !skip_ws(&it, end);
 }
+#endif
 
 typedef enum
 {
@@ -1180,6 +1207,7 @@ static bool parse_visibility(const element_t *element, int id, visibility_t *vis
     return !skip_ws(&it, end);
 }
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
 typedef enum
 {
     units_type_object_bounding_box,
@@ -1199,6 +1227,7 @@ static bool parse_units_type(const element_t *element, int id, units_type_t *uni
         *units_type = units_type_user_space_on_use;
     return !skip_ws(&it, end);
 }
+#endif
 
 struct plutosvg_document
 {
@@ -1751,7 +1780,11 @@ static float resolve_length(const render_state_t *state, const length_t *length,
         }
         else if (mode == 'o')
         {
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_PERCENT_DIAGONAL
             maximum = hypotf(state->view_width, state->view_height) / PLUTOVG_SQRT2;
+#else
+            maximum = MIN(state->view_width, state->view_height);
+#endif
         }
     }
 
@@ -1807,6 +1840,7 @@ static plutovg_color_t resolve_color(const render_context_t *context, const elem
     return resolve_current_color(context, element);
 }
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
 #define MAX_STOPS 64
 typedef struct
 {
@@ -2071,6 +2105,7 @@ static bool apply_radial_gradient(render_state_t *state, const render_context_t 
     plutovg_canvas_set_radial_gradient(context->canvas, _cx, _cy, _r, _fx, _fy, 0.f, spread, stops.data, stops.size, &transform);
     return true;
 }
+#endif
 
 static bool apply_paint(render_state_t *state, const render_context_t *context, const paint_t *paint)
 {
@@ -2100,10 +2135,12 @@ static bool apply_paint(render_state_t *state, const render_context_t *context, 
         return true;
     }
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
     if (ref->id == TAG_LINEAR_GRADIENT)
         return apply_linear_gradient(state, context, ref);
     if (ref->id == TAG_RADIAL_GRADIENT)
         return apply_radial_gradient(state, context, ref);
+#endif
     return false;
 }
 
@@ -2169,20 +2206,24 @@ static void draw_shape(const element_t *element, const render_context_t *context
         float stroke_opacity = 1.f;
         parse_number(element, ATTR_STROKE_OPACITY, &stroke_opacity, true, true);
 
-        length_t dash_offset = {0.f, length_type_fixed};
-        parse_length(element, ATTR_STROKE_DASHOFFSET, &dash_offset, false, true);
-
-        stroke_dash_array_t dash_array = {0};
-        parse_dash_array(element, ATTR_STROKE_DASHARRAY, &dash_array);
-
-        float dashes[MAX_DASHES];
-        for (int i = 0; i < dash_array.size; ++i)
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_STROKE_DASH
         {
-            dashes[i] = resolve_length(state, dash_array.data + i, 'o');
-        }
+            length_t dash_offset = {0.f, length_type_fixed};
+            parse_length(element, ATTR_STROKE_DASHOFFSET, &dash_offset, false, true);
 
-        plutovg_canvas_set_dash_offset(context->canvas, resolve_length(state, &dash_offset, 'o'));
-        plutovg_canvas_set_dash_array(context->canvas, dashes, dash_array.size);
+            stroke_dash_array_t dash_array = {0};
+            parse_dash_array(element, ATTR_STROKE_DASHARRAY, &dash_array);
+
+            float dashes[MAX_DASHES];
+            for (int i = 0; i < dash_array.size; ++i)
+            {
+                dashes[i] = resolve_length(state, dash_array.data + i, 'o');
+            }
+
+            plutovg_canvas_set_dash_offset(context->canvas, resolve_length(state, &dash_offset, 'o'));
+            plutovg_canvas_set_dash_array(context->canvas, dashes, dash_array.size);
+        }
+#endif
 
         plutovg_canvas_set_line_width(context->canvas, resolve_length(state, &stroke_width, 'o'));
         plutovg_canvas_set_line_cap(context->canvas, line_cap);
@@ -2539,6 +2580,7 @@ static void render_path(const element_t *element, const render_context_t *contex
     render_state_end(&new_state);
 }
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_IMAGE_ELEMENT
 static void transform_view_rect(const view_position_t *position, plutovg_rect_t *dst_rect, plutovg_rect_t *src_rect)
 {
     if (position->align == view_align_none)
@@ -2714,6 +2756,7 @@ static void render_image(const element_t *element, const render_context_t *conte
     draw_image(element, context, &new_state, _x, _y, _w, _h);
     render_state_end(&new_state);
 }
+#endif
 
 static void render_element(const element_t *element, const render_context_t *context, render_state_t *state)
 {
@@ -2748,7 +2791,9 @@ static void render_element(const element_t *element, const render_context_t *con
         render_path(element, context, state);
         break;
     case TAG_IMAGE:
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_IMAGE_ELEMENT
         render_image(element, context, state);
+#endif
         break;
     }
 }

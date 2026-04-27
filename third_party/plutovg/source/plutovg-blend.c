@@ -19,6 +19,7 @@
 #define realloc(ptr, size)  egui_svg_alloc_realloc((ptr), (size))
 #define free(ptr)           egui_svg_alloc_free(ptr)
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
 #define COLOR_TABLE_SIZE 1024
 typedef struct
 {
@@ -39,7 +40,9 @@ typedef struct
         } radial;
     } values;
 } gradient_data_t;
+#endif
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_IMAGE_ELEMENT
 typedef struct
 {
     plutovg_matrix_t matrix;
@@ -49,7 +52,9 @@ typedef struct
     int stride;
     int const_alpha;
 } texture_data_t;
+#endif
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
 typedef struct
 {
     float dx;
@@ -67,13 +72,14 @@ typedef struct
     float a;
     bool extended;
 } radial_gradient_values_t;
+#endif
 
 static inline uint32_t premultiply_color_with_opacity(const plutovg_color_t *color, float opacity)
 {
-    uint32_t alpha = lroundf(color->a * opacity * 255);
-    uint32_t pr = lroundf(color->r * alpha);
-    uint32_t pg = lroundf(color->g * alpha);
-    uint32_t pb = lroundf(color->b * alpha);
+    uint32_t alpha = (uint32_t)(plutovg_clamp(color->a * opacity, 0.f, 1.f) * 255.f + 0.5f);
+    uint32_t pr = (uint32_t)(plutovg_clamp(color->r, 0.f, 1.f) * (float)alpha + 0.5f);
+    uint32_t pg = (uint32_t)(plutovg_clamp(color->g, 0.f, 1.f) * (float)alpha + 0.5f);
+    uint32_t pb = (uint32_t)(plutovg_clamp(color->b, 0.f, 1.f) * (float)alpha + 0.5f);
     return (alpha << 24) | (pr << 16) | (pg << 8) | (pb);
 }
 
@@ -105,7 +111,7 @@ static inline uint32_t BYTE_MUL(uint32_t x, uint32_t a)
 
 #include <emmintrin.h>
 
-void plutovg_memfill32(unsigned int *dest, int length, unsigned int value)
+void plutovg_memfill32(uint32_t *dest, int length, uint32_t value)
 {
     __m128i vector_data = _mm_set_epi32(value, value, value, value);
     while (length && ((uintptr_t)dest & 0xf))
@@ -166,7 +172,7 @@ void plutovg_memfill32(unsigned int *dest, int length, unsigned int value)
 
 #else
 
-void plutovg_memfill32(unsigned int *dest, int length, unsigned int value)
+void plutovg_memfill32(uint32_t *dest, int length, uint32_t value)
 {
     while (length--)
     {
@@ -176,6 +182,7 @@ void plutovg_memfill32(unsigned int *dest, int length, unsigned int value)
 
 #endif // __SSE2__
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
 static inline int gradient_clamp(const gradient_data_t *gradient, int ipos)
 {
     if (gradient->spread == PLUTOVG_SPREAD_METHOD_REPEAT)
@@ -341,6 +348,7 @@ static void fetch_radial_gradient(uint32_t *buffer, const radial_gradient_values
         }
     }
 }
+#endif
 
 static void composition_solid_clear(uint32_t *dest, int length, uint32_t color, uint32_t const_alpha)
 {
@@ -768,6 +776,7 @@ static void blend_solid(plutovg_surface_t *surface, plutovg_operator_t op, uint3
 }
 
 #define BUFFER_SIZE 1024
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
 static void blend_linear_gradient(plutovg_surface_t *surface, plutovg_operator_t op, const gradient_data_t *gradient, const plutovg_span_buffer_t *span_buffer)
 {
     composition_function_t func = composition_table[op];
@@ -837,7 +846,9 @@ static void blend_radial_gradient(plutovg_surface_t *surface, plutovg_operator_t
         ++spans;
     }
 }
+#endif
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_IMAGE_ELEMENT
 static void blend_untransformed_argb(plutovg_surface_t *surface, plutovg_operator_t op, const texture_data_t *texture, const plutovg_span_buffer_t *span_buffer)
 {
     composition_function_t func = composition_table[op];
@@ -1055,6 +1066,7 @@ static void blend_transformed_tiled_argb(plutovg_surface_t *surface, plutovg_ope
         ++spans;
     }
 }
+#endif
 
 static void plutovg_blend_color(plutovg_canvas_t *canvas, const plutovg_color_t *color, const plutovg_span_buffer_t *span_buffer)
 {
@@ -1072,6 +1084,7 @@ static void plutovg_blend_color(plutovg_canvas_t *canvas, const plutovg_color_t 
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
 static void plutovg_blend_gradient(plutovg_canvas_t *canvas, const plutovg_gradient_paint_t *gradient, const plutovg_span_buffer_t *span_buffer)
 {
     if (gradient->nstops == 0)
@@ -1152,7 +1165,9 @@ static void plutovg_blend_gradient(plutovg_canvas_t *canvas, const plutovg_gradi
         blend_radial_gradient(canvas->surface, state->op, &data, span_buffer);
     }
 }
+#endif
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_IMAGE_ELEMENT
 static void plutovg_blend_texture(plutovg_canvas_t *canvas, const plutovg_texture_paint_t *texture, const plutovg_span_buffer_t *span_buffer)
 {
     if (texture->surface == NULL)
@@ -1164,7 +1179,7 @@ static void plutovg_blend_texture(plutovg_canvas_t *canvas, const plutovg_textur
     data.width = texture->surface->width;
     data.height = texture->surface->height;
     data.stride = texture->surface->stride;
-    data.const_alpha = lroundf(state->opacity * texture->opacity * 256);
+    data.const_alpha = (int)(plutovg_clamp(state->opacity * texture->opacity, 0.f, 1.f) * 256.f + 0.5f);
 
     plutovg_matrix_multiply(&data.matrix, &data.matrix, &state->matrix);
     if (!plutovg_matrix_invert(&data.matrix, &data.matrix))
@@ -1193,6 +1208,7 @@ static void plutovg_blend_texture(plutovg_canvas_t *canvas, const plutovg_textur
         }
     }
 }
+#endif
 
 void plutovg_blend(plutovg_canvas_t *canvas, const plutovg_span_buffer_t *span_buffer)
 {
@@ -1210,15 +1226,19 @@ void plutovg_blend(plutovg_canvas_t *canvas, const plutovg_span_buffer_t *span_b
         plutovg_solid_paint_t *solid = (plutovg_solid_paint_t *)(paint);
         plutovg_blend_color(canvas, &solid->color, span_buffer);
     }
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT
     else if (paint->type == PLUTOVG_PAINT_TYPE_GRADIENT)
     {
         plutovg_gradient_paint_t *gradient = (plutovg_gradient_paint_t *)(paint);
         plutovg_blend_gradient(canvas, gradient, span_buffer);
     }
-    else
+#endif
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_IMAGE_ELEMENT
+    else if (paint->type == PLUTOVG_PAINT_TYPE_TEXTURE)
     {
         plutovg_texture_paint_t *texture = (plutovg_texture_paint_t *)(paint);
         plutovg_blend_texture(canvas, texture, span_buffer);
     }
+#endif
 }
 #endif

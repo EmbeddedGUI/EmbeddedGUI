@@ -9,6 +9,33 @@
 #include "plutovg.h"
 #include "plutovg-utils.h"
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_APPROX_TRIG
+#define PLUTOVG_FAST_PI      3.14159265358979323846f
+#define PLUTOVG_FAST_HALF_PI 1.57079632679489661923f
+#define PLUTOVG_FAST_TWO_PI  6.28318530717958647692f
+
+static float plutovg_fast_absf(float value)
+{
+    return value < 0.f ? -value : value;
+}
+
+static float plutovg_fast_sin(float radians)
+{
+    while (radians > PLUTOVG_FAST_PI)
+        radians -= PLUTOVG_FAST_TWO_PI;
+    while (radians < -PLUTOVG_FAST_PI)
+        radians += PLUTOVG_FAST_TWO_PI;
+
+    float value = 1.27323954473516268615f * radians - 0.40528473456935108578f * radians * plutovg_fast_absf(radians);
+    return 0.225f * (value * plutovg_fast_absf(value) - value) + value;
+}
+
+static float plutovg_fast_cos(float radians)
+{
+    return plutovg_fast_sin(radians + PLUTOVG_FAST_HALF_PI);
+}
+#endif
+
 void plutovg_matrix_init(plutovg_matrix_t *matrix, float a, float b, float c, float d, float e, float f)
 {
     matrix->a = a;
@@ -36,14 +63,25 @@ void plutovg_matrix_init_scale(plutovg_matrix_t *matrix, float sx, float sy)
 
 void plutovg_matrix_init_rotate(plutovg_matrix_t *matrix, float angle)
 {
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_APPROX_TRIG
+    float c = plutovg_fast_cos(angle);
+    float s = plutovg_fast_sin(angle);
+#else
     float c = cosf(angle);
     float s = sinf(angle);
+#endif
     plutovg_matrix_init(matrix, c, s, -s, c, 0, 0);
 }
 
 void plutovg_matrix_init_shear(plutovg_matrix_t *matrix, float shx, float shy)
 {
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_TRANSFORM_SKEW
     plutovg_matrix_init(matrix, 1, tanf(shy), tanf(shx), 1, 0, 0);
+#else
+    (void)shx;
+    (void)shy;
+    plutovg_matrix_init_identity(matrix);
+#endif
 }
 
 void plutovg_matrix_translate(plutovg_matrix_t *matrix, float tx, float ty)
@@ -69,9 +107,15 @@ void plutovg_matrix_rotate(plutovg_matrix_t *matrix, float angle)
 
 void plutovg_matrix_shear(plutovg_matrix_t *matrix, float shx, float shy)
 {
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_TRANSFORM_SKEW
     plutovg_matrix_t m;
     plutovg_matrix_init_shear(&m, shx, shy);
     plutovg_matrix_multiply(matrix, &m, matrix);
+#else
+    (void)matrix;
+    (void)shx;
+    (void)shy;
+#endif
 }
 
 void plutovg_matrix_multiply(plutovg_matrix_t *matrix, const plutovg_matrix_t *left, const plutovg_matrix_t *right)
@@ -243,6 +287,7 @@ bool plutovg_matrix_parse(plutovg_matrix_t *matrix, const char *data, int length
                 plutovg_matrix_translate(matrix, -values[1], -values[2]);
             }
         }
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_TRANSFORM_SKEW
         else if (plutovg_skip_string(&it, end, "skewX"))
         {
             int count = parse_matrix_parameters(&it, end, values, 1, 0);
@@ -257,6 +302,7 @@ bool plutovg_matrix_parse(plutovg_matrix_t *matrix, const char *data, int length
                 return false;
             plutovg_matrix_shear(matrix, 0, PLUTOVG_DEG2RAD(values[0]));
         }
+#endif
         else
         {
             return false;

@@ -87,19 +87,19 @@ void plutovg_color_init_hsla(plutovg_color_t *color, float h, float s, float l, 
 
 unsigned int plutovg_color_to_rgba32(const plutovg_color_t *color)
 {
-    uint32_t r = lroundf(color->r * 255);
-    uint32_t g = lroundf(color->g * 255);
-    uint32_t b = lroundf(color->b * 255);
-    uint32_t a = lroundf(color->a * 255);
+    uint32_t r = (uint32_t)(plutovg_clamp(color->r, 0.f, 1.f) * 255.f + 0.5f);
+    uint32_t g = (uint32_t)(plutovg_clamp(color->g, 0.f, 1.f) * 255.f + 0.5f);
+    uint32_t b = (uint32_t)(plutovg_clamp(color->b, 0.f, 1.f) * 255.f + 0.5f);
+    uint32_t a = (uint32_t)(plutovg_clamp(color->a, 0.f, 1.f) * 255.f + 0.5f);
     return (r << 24) | (g << 16) | (b << 8) | (a);
 }
 
 unsigned int plutovg_color_to_argb32(const plutovg_color_t *color)
 {
-    uint32_t a = lroundf(color->a * 255);
-    uint32_t r = lroundf(color->r * 255);
-    uint32_t g = lroundf(color->g * 255);
-    uint32_t b = lroundf(color->b * 255);
+    uint32_t a = (uint32_t)(plutovg_clamp(color->a, 0.f, 1.f) * 255.f + 0.5f);
+    uint32_t r = (uint32_t)(plutovg_clamp(color->r, 0.f, 1.f) * 255.f + 0.5f);
+    uint32_t g = (uint32_t)(plutovg_clamp(color->g, 0.f, 1.f) * 255.f + 0.5f);
+    uint32_t b = (uint32_t)(plutovg_clamp(color->b, 0.f, 1.f) * 255.f + 0.5f);
     return (a << 24) | (r << 16) | (g << 8) | (b);
 }
 
@@ -119,6 +119,7 @@ static inline uint8_t hex_byte(uint8_t c1, uint8_t c2)
     return (h1 << 4) | h2;
 }
 
+#if !EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_SIMPLE_COLOR
 #define MAX_NAME 20
 typedef struct
 {
@@ -154,6 +155,7 @@ static bool parse_alpha_component(const char **begin, const char *end, float *co
     *component = plutovg_clamp(value, 0.f, 1.f);
     return true;
 }
+#endif
 
 int plutovg_color_parse(plutovg_color_t *color, const char *data, int length)
 {
@@ -166,7 +168,7 @@ int plutovg_color_parse(plutovg_color_t *color, const char *data, int length)
     {
         int r, g, b, a = 255;
         const char *begin = it;
-        while (it < end && isxdigit(*it))
+        while (it < end && isxdigit((unsigned char)*it))
             ++it;
         int count = it - begin;
         if (count == 3 || count == 4)
@@ -198,6 +200,9 @@ int plutovg_color_parse(plutovg_color_t *color, const char *data, int length)
     }
     else
     {
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_SIMPLE_COLOR
+        return 0;
+#else
         int name_length = 0;
         char name[MAX_NAME + 1];
         while (it < end && name_length < MAX_NAME && isalpha(*it))
@@ -406,6 +411,7 @@ int plutovg_color_parse(plutovg_color_t *color, const char *data, int length)
                 return 0;
             plutovg_color_init_argb32(color, 0xFF000000 | entry->value);
         }
+#endif
     }
 
     plutovg_skip_ws(&it, end);

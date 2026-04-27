@@ -86,12 +86,36 @@ static inline uint32_t plutovg_premultiply_argb(uint32_t color)
     return (a << 24) | (r << 16) | (g << 8) | (b);
 }
 
+static inline float plutovg_pow10_int(int exponent)
+{
+    float result = 1.f;
+    float base = 10.f;
+    unsigned int power;
+
+    if (exponent < 0)
+        power = (unsigned int)(-exponent);
+    else
+        power = (unsigned int)exponent;
+
+    while (power)
+    {
+        if (power & 1U)
+            result *= base;
+        base *= base;
+        power >>= 1U;
+    }
+
+    if (exponent < 0)
+        return 1.f / result;
+    return result;
+}
+
 static inline bool plutovg_parse_number(const char **begin, const char *end, float *number)
 {
     const char *it = *begin;
     float integer = 0;
     float fraction = 0;
-    float exponent = 0;
+    int exponent = 0;
     int sign = 1;
     int expsign = 1;
 
@@ -153,7 +177,7 @@ static inline bool plutovg_parse_number(const char **begin, const char *end, flo
     *begin = it;
     *number = sign * (integer + fraction);
     if (exponent)
-        *number *= powf(10.f, expsign * exponent);
+        *number *= plutovg_pow10_int(expsign * exponent);
     return *number >= -FLT_MAX && *number <= FLT_MAX;
 }
 

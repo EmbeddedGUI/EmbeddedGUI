@@ -1245,7 +1245,11 @@ void egui_canvas_draw_image_transform(egui_canvas_t *self, const egui_image_t *i
         return;
     }
 
+#if EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE
+    int source_is_opaque = (info->alpha_buf == NULL);
+#else
     int source_is_opaque = egui_image_std_rgb565_is_opaque_source(canvas, info);
+#endif
 
     int16_t src_w = info->width;
     int16_t src_h = info->height;

@@ -205,7 +205,35 @@ static void ft_outline_destroy(PVG_FT_Outline *outline)
     egui_svg_alloc_plain_free(outline);
 }
 
-#define FT_COORD(x) (PVG_FT_Pos)(roundf(x * 64))
+static PVG_FT_Pos ft_round_coord(float value)
+{
+    value *= 64.f;
+    return (PVG_FT_Pos)(value < 0.f ? value - 0.5f : value + 0.5f);
+}
+
+#define FT_COORD(x) ft_round_coord(x)
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_APPROX_STROKE_SCALE
+static float ft_absf(float value)
+{
+    return value < 0.f ? -value : value;
+}
+
+static float ft_approx_hypot(float x, float y)
+{
+    x = ft_absf(x);
+    y = ft_absf(y);
+    if (x < y)
+    {
+        float tmp = x;
+        x = y;
+        y = tmp;
+    }
+
+    return x + y * 0.375f;
+}
+#endif
+
 static void ft_outline_move_to(PVG_FT_Outline *ft, float x, float y)
 {
     ft->points[ft->n_points].x = FT_COORD(x);
@@ -310,21 +338,33 @@ static PVG_FT_Outline *ft_outline_convert(const plutovg_path_t *path, const plut
 
 static PVG_FT_Outline *ft_outline_convert_dash(const plutovg_path_t *path, const plutovg_matrix_t *matrix, const plutovg_stroke_dash_t *stroke_dash)
 {
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_STROKE_DASH
     if (stroke_dash->array.size == 0)
         return ft_outline_convert(path, matrix, NULL);
     plutovg_path_t *dashed = plutovg_path_clone_dashed(path, stroke_dash->offset, stroke_dash->array.data, stroke_dash->array.size);
     PVG_FT_Outline *outline = ft_outline_convert(dashed, matrix, NULL);
     plutovg_path_destroy(dashed);
     return outline;
+#else
+    (void)stroke_dash;
+    return ft_outline_convert(path, matrix, NULL);
+#endif
 }
 
 static PVG_FT_Outline *ft_outline_convert_stroke(const plutovg_path_t *path, const plutovg_matrix_t *matrix, const plutovg_stroke_data_t *stroke_data)
 {
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_APPROX_STROKE_SCALE
+    float scale_x = ft_approx_hypot(matrix->a, matrix->b);
+    float scale_y = ft_approx_hypot(matrix->c, matrix->d);
+    float scale = ft_approx_hypot(scale_x, scale_y) / PLUTOVG_SQRT2;
+    float width = stroke_data->style.width * scale;
+#else
     double scale_x = sqrt(matrix->a * matrix->a + matrix->b * matrix->b);
     double scale_y = sqrt(matrix->c * matrix->c + matrix->d * matrix->d);
 
     double scale = hypot(scale_x, scale_y) / PLUTOVG_SQRT2;
     double width = stroke_data->style.width * scale;
+#endif
 
     PVG_FT_Fixed ftWidth = (PVG_FT_Fixed)(width * 0.5 * (1 << 6));
     PVG_FT_Fixed ftMiterLimit = (PVG_FT_Fixed)(stroke_data->style.miter_limit * (1 << 16));

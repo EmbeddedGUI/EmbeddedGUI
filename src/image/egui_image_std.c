@@ -4718,10 +4718,12 @@ egui_image_std_get_pixel *egui_image_get_point_func(const egui_image_t *self)
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32
         case EGUI_IMAGE_DATA_TYPE_RGB565:
             if (image->alpha_buf == NULL
+#if !EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
                 || (image->res_type == EGUI_RESOURCE_TYPE_INTERNAL && egui_image_std_rgb565_is_opaque_source(NULL, image))
 #else
                 || egui_image_std_rgb565_is_opaque_source(NULL, image)
+#endif
 #endif
             )
             {
@@ -4950,14 +4952,6 @@ static void egui_image_std_draw_image_generic_fallback(const egui_image_t *draw_
                         egui_canvas_draw_point_limit(canvas, (x + x_), screen_y, color, alpha);
                     }
                 }
-                else
-                {
-                    for (egui_dim_t x_ = x; x_ < x_total; x_++)
-                    {
-                        egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_ - src_x_base, &color, &alpha);
-                        egui_canvas_draw_point_limit(canvas, (x_base + x_), rr_sy, color, alpha);
-                    }
-                }
             }
         }
         else
@@ -5034,15 +5028,13 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_canvas_t *c
 
     if (width == image->width && height == image->height)
     {
-        egui_image_std_draw_image(draw_self, x, y);
+        egui_image_std_draw_image(draw_self, canvas, x, y);
         return;
     }
     egui_color_t color;
     egui_alpha_t alpha;
     egui_float_t width_radio = EGUI_FLOAT_DIV(EGUI_FLOAT_VALUE_INT(image->width), EGUI_FLOAT_VALUE_INT(width));
     egui_float_t height_radio = EGUI_FLOAT_DIV(EGUI_FLOAT_VALUE_INT(image->height), EGUI_FLOAT_VALUE_INT(height));
-    const uint32_t *p_data = image->data_buf;
-    // const uint8_t* p_alpha = image->alpha_buf;
     egui_dim_t src_x;
     egui_dim_t src_y;
 

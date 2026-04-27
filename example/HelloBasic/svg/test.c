@@ -1,23 +1,58 @@
 #include "egui.h"
-#include <math.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include "uicode_disp0.h"
 
-#define HELLO_SVG_FRAME_MS       50
-#define HELLO_SVG_PAGE_COUNT     3
-#define HELLO_SVG_BUFFER_SIZE    12288
-#define HELLO_SVG_TITLE_H        20
-#define HELLO_SVG_PAGE_LABEL_W   36
-#define HELLO_SVG_OVERLAY_MARGIN 14
-#define HELLO_SVG_PI             3.14159265358979323846f
+#define HELLO_SVG_FRAME_MS           50
+#define HELLO_SVG_PAGE_COUNT         3
+#define HELLO_SVG_PULSE_BUFFER_SIZE  4096
+#define HELLO_SVG_TUNNEL_BUFFER_SIZE 4096
+#define HELLO_SVG_ORBIT_BUFFER_SIZE  3072
+#define HELLO_SVG_PI                 3.14159265358979323846f
+#define HELLO_SVG_HALF_PI            1.57079632679489661923f
+#define HELLO_SVG_TWO_PI             6.28318530717958647692f
 
 #ifndef QEMU_HEAP_MEASURE
 #define QEMU_HEAP_MEASURE 0
 #endif
 
 typedef float hello_svg_real_t;
+
+static hello_svg_real_t hello_svg_abs_real(hello_svg_real_t value)
+{
+    return value < 0.0f ? -value : value;
+}
+
+static hello_svg_real_t hello_svg_sin(hello_svg_real_t radians)
+{
+    while (radians > HELLO_SVG_PI)
+    {
+        radians -= HELLO_SVG_TWO_PI;
+    }
+    while (radians < -HELLO_SVG_PI)
+    {
+        radians += HELLO_SVG_TWO_PI;
+    }
+
+    hello_svg_real_t value = 1.27323954473516268615f * radians - 0.40528473456935108578f * radians * hello_svg_abs_real(radians);
+    return 0.225f * (value * hello_svg_abs_real(value) - value) + value;
+}
+
+static hello_svg_real_t hello_svg_cos(hello_svg_real_t radians)
+{
+    return hello_svg_sin(radians + HELLO_SVG_HALF_PI);
+}
+
+static hello_svg_real_t hello_svg_fraction(hello_svg_real_t value)
+{
+    int whole = (int)value;
+    hello_svg_real_t fraction = value - (hello_svg_real_t)whole;
+
+    if (fraction < 0.0f)
+    {
+        fraction += 1.0f;
+    }
+    return fraction;
+}
 
 typedef struct hello_svg_page
 {
@@ -29,14 +64,17 @@ typedef struct hello_svg_page
 static egui_view_group_t root;
 static egui_view_viewpage_t viewpage;
 static hello_svg_page_t pages[HELLO_SVG_PAGE_COUNT];
-static egui_view_label_t title_label;
-static egui_view_label_t page_label;
 static egui_timer_t hero_timer;
 static uint32_t hero_tick;
 static uint8_t current_page_index;
-static char page_label_text[8];
-static char svg_buffers[HELLO_SVG_PAGE_COUNT][HELLO_SVG_BUFFER_SIZE];
+static char svg_pulse_buffer[HELLO_SVG_PULSE_BUFFER_SIZE];
+static char svg_tunnel_buffer[HELLO_SVG_TUNNEL_BUFFER_SIZE];
+static char svg_orbit_buffer[HELLO_SVG_ORBIT_BUFFER_SIZE];
+static char *const svg_buffers[HELLO_SVG_PAGE_COUNT] = {svg_pulse_buffer, svg_tunnel_buffer, svg_orbit_buffer};
+static const size_t svg_buffer_sizes[HELLO_SVG_PAGE_COUNT] = {sizeof(svg_pulse_buffer), sizeof(svg_tunnel_buffer), sizeof(svg_orbit_buffer)};
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PORT == EGUI_PORT_TYPE_PC
 static const char *const hello_svg_titles[HELLO_SVG_PAGE_COUNT] = {"Pulse", "Tunnel", "Orbit"};
+#endif
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PORT == EGUI_PORT_TYPE_PC
 static int hello_svg_recording_pending_page = -1;
@@ -46,39 +84,125 @@ EGUI_VIEW_GROUP_PARAMS_INIT(root_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CO
 EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 EGUI_VIEW_GROUP_PARAMS_INIT(page_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 EGUI_VIEW_IMAGE_PARAMS_INIT(page_image_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, NULL);
-EGUI_VIEW_LABEL_PARAMS_INIT(title_label_params, HELLO_SVG_OVERLAY_MARGIN, HELLO_SVG_OVERLAY_MARGIN,
-                            EGUI_CONFIG_SCREEN_WIDTH - HELLO_SVG_OVERLAY_MARGIN * 2 - HELLO_SVG_PAGE_LABEL_W, HELLO_SVG_TITLE_H, NULL, EGUI_CONFIG_FONT_DEFAULT,
-                            EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-EGUI_VIEW_LABEL_PARAMS_INIT(page_label_params, EGUI_CONFIG_SCREEN_WIDTH - HELLO_SVG_OVERLAY_MARGIN - HELLO_SVG_PAGE_LABEL_W, HELLO_SVG_OVERLAY_MARGIN,
-                            HELLO_SVG_PAGE_LABEL_W, HELLO_SVG_TITLE_H, NULL, EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+
+static void hello_svg_append_char(char *buffer, size_t size, size_t *offset, char value)
+{
+    if (size == 0)
+    {
+        return;
+    }
+
+    if (*offset >= size - 1)
+    {
+        *offset = size - 1;
+        buffer[*offset] = '\0';
+        return;
+    }
+
+    buffer[*offset] = value;
+    (*offset)++;
+    buffer[*offset] = '\0';
+}
+
+static void hello_svg_append_text(char *buffer, size_t size, size_t *offset, const char *text)
+{
+    if (text == NULL)
+    {
+        return;
+    }
+
+    while (*text != '\0')
+    {
+        hello_svg_append_char(buffer, size, offset, *text);
+        text++;
+    }
+}
+
+static void hello_svg_append_uint(char *buffer, size_t size, size_t *offset, unsigned value)
+{
+    char digits[10];
+    size_t count = 0;
+
+    if (value == 0U)
+    {
+        hello_svg_append_char(buffer, size, offset, '0');
+        return;
+    }
+
+    while ((value != 0U) && (count < sizeof(digits)))
+    {
+        digits[count] = (char)('0' + (value % 10U));
+        value /= 10U;
+        count++;
+    }
+
+    while (count > 0U)
+    {
+        count--;
+        hello_svg_append_char(buffer, size, offset, digits[count]);
+    }
+}
+
+static void hello_svg_append_int(char *buffer, size_t size, size_t *offset, int value)
+{
+    unsigned magnitude;
+
+    if (value < 0)
+    {
+        hello_svg_append_char(buffer, size, offset, '-');
+        magnitude = (unsigned)(-(value + 1)) + 1U;
+    }
+    else
+    {
+        magnitude = (unsigned)value;
+    }
+
+    hello_svg_append_uint(buffer, size, offset, magnitude);
+}
 
 static void hello_svg_append(char *buffer, size_t size, size_t *offset, const char *format, ...)
 {
     va_list args;
-    int written;
-
-    if (*offset >= size)
-    {
-        return;
-    }
 
     va_start(args, format);
-    written = vsnprintf(buffer + *offset, size - *offset, format, args);
+    while (*format != '\0')
+    {
+        if (*format != '%')
+        {
+            hello_svg_append_char(buffer, size, offset, *format);
+            format++;
+            continue;
+        }
+
+        format++;
+        switch (*format)
+        {
+        case '\0':
+            hello_svg_append_char(buffer, size, offset, '%');
+            goto finish;
+        case '%':
+            hello_svg_append_char(buffer, size, offset, '%');
+            break;
+        case 'd':
+            hello_svg_append_int(buffer, size, offset, va_arg(args, int));
+            break;
+        case 'u':
+            hello_svg_append_uint(buffer, size, offset, va_arg(args, unsigned));
+            break;
+        case 's':
+            hello_svg_append_text(buffer, size, offset, va_arg(args, const char *));
+            break;
+        default:
+            hello_svg_append_char(buffer, size, offset, '%');
+            hello_svg_append_char(buffer, size, offset, *format);
+            break;
+        }
+
+        format++;
+    }
+
+finish:
     va_end(args);
-
-    if (written < 0)
-    {
-        return;
-    }
-
-    if ((size_t)written >= size - *offset)
-    {
-        *offset = size - 1;
-    }
-    else
-    {
-        *offset += (size_t)written;
-    }
 }
 
 static hello_svg_real_t hello_svg_deg_to_rad(int degrees)
@@ -112,65 +236,17 @@ static void hello_svg_orbit_point(int cx, int cy, int rx, int ry, int tilt_deg, 
 {
     hello_svg_real_t orbit_angle = hello_svg_deg_to_rad(tilt_deg);
     hello_svg_real_t phase_angle = hello_svg_deg_to_rad(phase_deg);
-    hello_svg_real_t local_x = (hello_svg_real_t)rx * cosf(phase_angle);
-    hello_svg_real_t local_y = (hello_svg_real_t)ry * sinf(phase_angle);
+    hello_svg_real_t local_x = (hello_svg_real_t)rx * hello_svg_cos(phase_angle);
+    hello_svg_real_t local_y = (hello_svg_real_t)ry * hello_svg_sin(phase_angle);
 
-    *x = cx + hello_svg_round_to_int(local_x * cosf(orbit_angle) - local_y * sinf(orbit_angle));
-    *y = cy + hello_svg_round_to_int(local_x * sinf(orbit_angle) + local_y * cosf(orbit_angle));
-}
-
-static void hello_svg_append_rotated_ellipse_band(char *buffer, size_t size, size_t *offset, int cx, int cy, int rx, int ry, int tilt_deg, int thickness,
-                                                  const char *fill, int opacity)
-{
-    int samples = hello_svg_clamp_int(((rx > ry ? rx : ry) / 2) + 4, 32, 48);
-    hello_svg_real_t tilt = hello_svg_deg_to_rad(tilt_deg);
-    hello_svg_real_t cos_tilt = cosf(tilt);
-    hello_svg_real_t sin_tilt = sinf(tilt);
-    hello_svg_real_t half_thickness = (hello_svg_real_t)thickness * 0.5f;
-    hello_svg_real_t outer_rx = (hello_svg_real_t)rx + half_thickness;
-    hello_svg_real_t outer_ry = (hello_svg_real_t)ry + half_thickness;
-    hello_svg_real_t inner_rx = (hello_svg_real_t)rx - half_thickness;
-    hello_svg_real_t inner_ry = (hello_svg_real_t)ry - half_thickness;
-    int i;
-
-    if (inner_rx < 1.0f)
-    {
-        inner_rx = 1.0f;
-    }
-    if (inner_ry < 1.0f)
-    {
-        inner_ry = 1.0f;
-    }
-
-    hello_svg_append(buffer, size, offset, "<path d='");
-    for (i = 0; i < samples; i++)
-    {
-        hello_svg_real_t angle = (hello_svg_real_t)i * HELLO_SVG_PI * 2.0f / (hello_svg_real_t)samples;
-        hello_svg_real_t local_x = outer_rx * cosf(angle);
-        hello_svg_real_t local_y = outer_ry * sinf(angle);
-        int x = cx + hello_svg_round_to_int(local_x * cos_tilt - local_y * sin_tilt);
-        int y = cy + hello_svg_round_to_int(local_x * sin_tilt + local_y * cos_tilt);
-
-        hello_svg_append(buffer, size, offset, i == 0 ? "M%d %d " : "L%d %d ", x, y);
-    }
-    hello_svg_append(buffer, size, offset, "Z ");
-    for (i = 0; i < samples; i++)
-    {
-        hello_svg_real_t angle = (hello_svg_real_t)i * HELLO_SVG_PI * 2.0f / (hello_svg_real_t)samples;
-        hello_svg_real_t local_x = inner_rx * cosf(angle);
-        hello_svg_real_t local_y = inner_ry * sinf(angle);
-        int x = cx + hello_svg_round_to_int(local_x * cos_tilt - local_y * sin_tilt);
-        int y = cy + hello_svg_round_to_int(local_x * sin_tilt + local_y * cos_tilt);
-
-        hello_svg_append(buffer, size, offset, i == 0 ? "M%d %d " : "L%d %d ", x, y);
-    }
-    hello_svg_append(buffer, size, offset, "Z' fill='%s' fill-rule='evenodd' opacity='%d%%'/>", fill, opacity);
+    *x = cx + hello_svg_round_to_int(local_x * hello_svg_cos(orbit_angle) - local_y * hello_svg_sin(orbit_angle));
+    *y = cy + hello_svg_round_to_int(local_x * hello_svg_sin(orbit_angle) + local_y * hello_svg_cos(orbit_angle));
 }
 
 static void hello_svg_append_wave_band(char *buffer, size_t size, size_t *offset, int x_start, int x_end, int y_base, int amplitude, int thickness,
                                        hello_svg_real_t cycles, hello_svg_real_t speed, hello_svg_real_t phase, const char *fill, int opacity, uint32_t tick)
 {
-    int samples = hello_svg_clamp_int((x_end - x_start) / 8, 24, 32);
+    int samples = hello_svg_clamp_int((x_end - x_start) / 8, 18, 24);
     hello_svg_real_t half_thickness = (hello_svg_real_t)thickness * 0.5f;
     hello_svg_real_t motion = (hello_svg_real_t)tick * speed + phase;
     int i;
@@ -179,7 +255,7 @@ static void hello_svg_append_wave_band(char *buffer, size_t size, size_t *offset
     for (i = 0; i < samples; i++)
     {
         hello_svg_real_t t = (hello_svg_real_t)i / (hello_svg_real_t)(samples - 1);
-        hello_svg_real_t wave = sinf(t * cycles * HELLO_SVG_PI * 2.0f + motion);
+        hello_svg_real_t wave = hello_svg_sin(t * cycles * HELLO_SVG_PI * 2.0f + motion);
         int x = x_start + hello_svg_round_to_int((hello_svg_real_t)(x_end - x_start) * t);
         int y = y_base + hello_svg_round_to_int((hello_svg_real_t)amplitude * wave);
 
@@ -188,20 +264,13 @@ static void hello_svg_append_wave_band(char *buffer, size_t size, size_t *offset
     for (i = samples - 1; i >= 0; i--)
     {
         hello_svg_real_t t = (hello_svg_real_t)i / (hello_svg_real_t)(samples - 1);
-        hello_svg_real_t wave = sinf(t * cycles * HELLO_SVG_PI * 2.0f + motion);
+        hello_svg_real_t wave = hello_svg_sin(t * cycles * HELLO_SVG_PI * 2.0f + motion);
         int x = x_start + hello_svg_round_to_int((hello_svg_real_t)(x_end - x_start) * t);
         int y = y_base + hello_svg_round_to_int((hello_svg_real_t)amplitude * wave);
 
         hello_svg_append(buffer, size, offset, "%d,%d ", x, hello_svg_round_to_int((hello_svg_real_t)y + half_thickness));
     }
     hello_svg_append(buffer, size, offset, "' fill='%s' opacity='%d%%'/>", fill, opacity);
-}
-
-static void hello_svg_build_header(uint8_t page_index)
-{
-    snprintf(page_label_text, sizeof(page_label_text), "%u/%u", (unsigned)page_index + 1U, (unsigned)HELLO_SVG_PAGE_COUNT);
-    egui_view_label_set_text(EGUI_VIEW_OF(&title_label), hello_svg_titles[page_index]);
-    egui_view_label_set_text(EGUI_VIEW_OF(&page_label), page_label_text);
 }
 
 static void hello_svg_build_pulse_frame(char *buffer, size_t size, uint32_t tick)
@@ -222,9 +291,9 @@ static void hello_svg_build_pulse_frame(char *buffer, size_t size, uint32_t tick
     int orbit_angle = (int)((tick * 9U) % 360U);
     int orbit_angle_b = (int)((tick * 4U + 48U) % 360U);
     int core_angle = (int)((tick * 6U) % 360U);
-    hello_svg_real_t wave_a = sinf((hello_svg_real_t)tick * 0.14f);
-    hello_svg_real_t wave_b = cosf((hello_svg_real_t)tick * 0.09f);
-    hello_svg_real_t wave_c = sinf((hello_svg_real_t)tick * 0.11f + 1.2f);
+    hello_svg_real_t wave_a = hello_svg_sin((hello_svg_real_t)tick * 0.14f);
+    hello_svg_real_t wave_b = hello_svg_cos((hello_svg_real_t)tick * 0.09f);
+    hello_svg_real_t wave_c = hello_svg_sin((hello_svg_real_t)tick * 0.11f + 1.2f);
     int outer_r = min_side / 2 - 24;
     int mid_r = outer_r - 24;
     int inner_r = mid_r - 24;
@@ -327,7 +396,7 @@ static void hello_svg_build_tunnel_frame(char *buffer, size_t size, uint32_t tic
     int packet_i;
     int gate_angle = (int)((tick * 5U) % 360U);
     int gate_angle_b = (int)((360U - (tick * 4U) % 360U) % 360U);
-    hello_svg_real_t glow = sinf((hello_svg_real_t)tick * 0.08f);
+    hello_svg_real_t glow = hello_svg_sin((hello_svg_real_t)tick * 0.08f);
     int core_radius = 20 + (int)(4.0f * (glow + 1.0f));
     int core_halo = 36 + (int)(10.0f * (glow + 1.0f));
 
@@ -352,7 +421,7 @@ static void hello_svg_build_tunnel_frame(char *buffer, size_t size, uint32_t tic
 
     for (ring_i = 0; ring_i < 6; ring_i++)
     {
-        hello_svg_real_t phase = fmodf((hello_svg_real_t)tick * 0.045f + (hello_svg_real_t)ring_i * 0.17f, 1.0f);
+        hello_svg_real_t phase = hello_svg_fraction((hello_svg_real_t)tick * 0.045f + (hello_svg_real_t)ring_i * 0.17f);
         hello_svg_real_t depth = 1.0f - phase;
         int half_w = 18 + (int)(depth * (hello_svg_real_t)(w * 38 / 100));
         int half_h = 12 + (int)(depth * (hello_svg_real_t)(h * 34 / 100));
@@ -372,7 +441,7 @@ static void hello_svg_build_tunnel_frame(char *buffer, size_t size, uint32_t tic
 
     for (packet_i = 0; packet_i < 4; packet_i++)
     {
-        hello_svg_real_t phase = fmodf((hello_svg_real_t)tick * 0.06f + (hello_svg_real_t)packet_i * 0.25f, 1.0f);
+        hello_svg_real_t phase = hello_svg_fraction((hello_svg_real_t)tick * 0.06f + (hello_svg_real_t)packet_i * 0.25f);
         int left_x = 22 + (int)((hello_svg_real_t)(cx - 22) * phase);
         int right_x = w - left_x;
         int upper_y = cy - 102 + (int)(94.0f * phase);
@@ -420,7 +489,7 @@ static void hello_svg_build_orbit_frame(char *buffer, size_t size, uint32_t tick
     int sat3_prev_x;
     int sat3_prev_y;
     int star_i;
-    hello_svg_real_t pulse = sinf((hello_svg_real_t)tick * 0.10f);
+    hello_svg_real_t pulse = hello_svg_sin((hello_svg_real_t)tick * 0.10f);
     int aura_radius = 18 + (int)(6.0f * (pulse + 1.0f));
     int halo_radius = 34 + (int)(10.0f * (pulse + 1.0f));
     int phase_a = (int)((tick * 6U) % 360U);
@@ -446,19 +515,21 @@ static void hello_svg_build_orbit_frame(char *buffer, size_t size, uint32_t tick
     {
         int star_x = (int)((hello_svg_real_t)w * (hello_svg_real_t)star_x_ratio[star_i] / 100.0f);
         int star_y = (int)((hello_svg_real_t)h * (hello_svg_real_t)star_y_ratio[star_i] / 100.0f);
-        int opacity = 18 + (int)(40.0f * (sinf((hello_svg_real_t)tick * 0.09f + (hello_svg_real_t)star_i) + 1.0f) * 0.5f);
+        int opacity = 18 + (int)(40.0f * (hello_svg_sin((hello_svg_real_t)tick * 0.09f + (hello_svg_real_t)star_i) + 1.0f) * 0.5f);
 
         hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='2' fill='#B7FBFF' opacity='%d%%'/>", star_x, star_y, opacity);
     }
 
     hello_svg_append(buffer, size, &offset, "<g transform='translate(%d,%d)'>", cx, cy);
-    hello_svg_append_rotated_ellipse_band(buffer, size, &offset, 0, 0, 96, 96, 0, 2, "#103848", 20);
-    hello_svg_append_rotated_ellipse_band(buffer, size, &offset, 0, 0, 86, 34, 18, 3, "#1ED8FF", 48);
-    hello_svg_append_rotated_ellipse_band(buffer, size, &offset, 0, 0, 58, 18, -22, 3, "#57FFA0", 52);
-    hello_svg_append_rotated_ellipse_band(buffer, size, &offset, 0, 0, 28, 84, 0, 3, "#FF5E7A", 46);
-    hello_svg_append_rotated_ellipse_band(buffer, size, &offset, 0, 0, halo_radius, halo_radius, 0, 3, "#FFD166", 36);
+    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='96' fill='none' stroke='#103848' stroke-width='2' opacity='20%%'/>");
+    hello_svg_append(buffer, size, &offset,
+                     "<ellipse cx='0' cy='0' rx='86' ry='34' transform='rotate(18)' fill='none' stroke='#1ED8FF' stroke-width='3' opacity='48%%'/>");
+    hello_svg_append(buffer, size, &offset,
+                     "<ellipse cx='0' cy='0' rx='58' ry='18' transform='rotate(-22)' fill='none' stroke='#57FFA0' stroke-width='3' opacity='52%%'/>");
+    hello_svg_append(buffer, size, &offset, "<ellipse cx='0' cy='0' rx='28' ry='84' fill='none' stroke='#FF5E7A' stroke-width='3' opacity='46%%'/>");
+    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#FFD166' stroke-width='3' opacity='36%%'/>", halo_radius);
     hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='#0B1B29' opacity='90%%'/>", aura_radius);
-    hello_svg_append_rotated_ellipse_band(buffer, size, &offset, 0, 0, aura_radius, aura_radius, 0, 3, "#B7FBFF", 90);
+    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#B7FBFF' stroke-width='3' opacity='90%%'/>", aura_radius);
     hello_svg_append(buffer, size, &offset, "<polygon points='0,-14 12,-6 12,8 0,16 -12,8 -12,-6' fill='#7EF7FF' opacity='22%%'/>");
     hello_svg_append(buffer, size, &offset, "<path fill='#FFFFFF' d='M-10 0 L0 -10 L10 0 L0 10 Z' opacity='78%%'/>");
     hello_svg_append(buffer, size, &offset, "</g>");
@@ -502,7 +573,7 @@ static void hello_svg_refresh_page(uint8_t page_index, uint32_t tick)
         return;
     }
 
-    hello_svg_build_page_frame(page_index, svg_buffers[page_index], sizeof(svg_buffers[page_index]), tick);
+    hello_svg_build_page_frame(page_index, svg_buffers[page_index], svg_buffer_sizes[page_index], tick);
     if (egui_image_svg_load_memory_borrowed(&pages[page_index].svg, svg_buffers[page_index]))
     {
         egui_view_invalidate(EGUI_VIEW_OF(&pages[page_index].image));
@@ -539,7 +610,6 @@ static void hello_svg_on_page_changed(egui_view_t *self, int page_index)
     }
 
     current_page_index = (uint8_t)page_index;
-    hello_svg_build_header(current_page_index);
     hello_svg_refresh_visible_pages(hero_tick);
 }
 
@@ -607,19 +677,11 @@ static void hello_svg_init_ui(egui_core_t *core)
     }
     egui_view_viewpage_layout_childs(EGUI_VIEW_OF(&viewpage));
 
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&title_label), core, &title_label_params);
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&title_label), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&page_label), core, &page_label_params);
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&page_label), EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER);
-
     current_page_index = 0;
     hero_tick = 0;
-    hello_svg_build_header(current_page_index);
     hello_svg_refresh_visible_pages(hero_tick);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&viewpage));
-    egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&title_label));
-    egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&page_label));
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&root));
 }

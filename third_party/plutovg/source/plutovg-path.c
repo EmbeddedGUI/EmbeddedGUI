@@ -150,6 +150,7 @@ void plutovg_path_cubic_to(plutovg_path_t *path, float x1, float y1, float x2, f
     path->num_curves += 1;
 }
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_PATH_ARC
 void plutovg_path_arc_to(plutovg_path_t *path, float rx, float ry, float angle, bool large_arc_flag, bool sweep_flag, float x, float y)
 {
     float current_x, current_y;
@@ -241,6 +242,17 @@ void plutovg_path_arc_to(plutovg_path_t *path, float rx, float ry, float angle, 
         plutovg_path_cubic_to(path, cp1x, cp1y, cp2x, cp2y, x3, y3);
     }
 }
+#else
+void plutovg_path_arc_to(plutovg_path_t *path, float rx, float ry, float angle, bool large_arc_flag, bool sweep_flag, float x, float y)
+{
+    (void)rx;
+    (void)ry;
+    (void)angle;
+    (void)large_arc_flag;
+    (void)sweep_flag;
+    plutovg_path_line_to(path, x, y);
+}
+#endif
 
 void plutovg_path_close(plutovg_path_t *path)
 {
@@ -356,6 +368,7 @@ void plutovg_path_add_circle(plutovg_path_t *path, float cx, float cy, float r)
     plutovg_path_add_ellipse(path, cx, cy, r, r);
 }
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_PATH_ARC
 void plutovg_path_add_arc(plutovg_path_t *path, float cx, float cy, float r, float a0, float a1, bool ccw)
 {
     float da = a1 - a0;
@@ -408,6 +421,18 @@ void plutovg_path_add_arc(plutovg_path_t *path, float cx, float cy, float r, flo
         plutovg_path_cubic_to(path, cp1x, cp1y, cp2x, cp2y, ax, ay);
     }
 }
+#else
+void plutovg_path_add_arc(plutovg_path_t *path, float cx, float cy, float r, float a0, float a1, bool ccw)
+{
+    (void)path;
+    (void)cx;
+    (void)cy;
+    (void)r;
+    (void)a0;
+    (void)a1;
+    (void)ccw;
+}
+#endif
 
 void plutovg_path_transform(plutovg_path_t *path, const plutovg_matrix_t *matrix)
 {
@@ -784,7 +809,11 @@ static void extents_traverse_func(void *closure, plutovg_path_command_t command,
         calculator->x2 = plutovg_max(calculator->x2, points[i].x);
         calculator->y2 = plutovg_max(calculator->y2, points[i].y);
         if (command != PLUTOVG_PATH_COMMAND_MOVE_TO)
+        {
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_PATH_LENGTH
             calculator->length += hypotf(points[i].x - calculator->current_point.x, points[i].y - calculator->current_point.y);
+#endif
+        }
         calculator->current_point = points[i];
     }
 }
