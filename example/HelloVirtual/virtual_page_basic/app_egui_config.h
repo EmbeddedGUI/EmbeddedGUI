@@ -8,8 +8,8 @@ extern "C" {
 
 #define EGUI_CONFIG_FUNCTION_SUPPORT_KEY   1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS 1
-#define EGUI_CONFIG_SCREEN_WIDTH            320
-#define EGUI_CONFIG_SCREEN_HEIGHT           320
+#define EGUI_CONFIG_SCREEN_WIDTH           320
+#define EGUI_CONFIG_SCREEN_HEIGHT          320
 #define EGUI_CONFIG_PFB_WIDTH              40
 #define EGUI_CONFIG_PFB_HEIGHT             40
 

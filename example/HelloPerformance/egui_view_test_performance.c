@@ -805,8 +805,8 @@ static void egui_view_test_performance_test_image_color(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_resize_color(egui_view_t *self)
 {
-    egui_canvas_draw_image_resize_color((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_RESIZE_COLOR_NAME, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT,
-                                        EGUI_COLOR_MAKE(0xFF, 0x80, 0x00), EGUI_ALPHA_100);
+    egui_canvas_draw_image_resize_color((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_RESIZE_COLOR_NAME, 0, 0, EGUI_CONFIG_SCREEN_WIDTH,
+                                        EGUI_CONFIG_SCREEN_HEIGHT, EGUI_COLOR_MAKE(0xFF, 0x80, 0x00), EGUI_ALPHA_100);
 }
 
 // ============================================================================

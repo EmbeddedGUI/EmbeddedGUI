@@ -12,8 +12,8 @@ extern "C" {
 /* Display 1 uses a compact status panel. */
 #define EGUI_CONFIG_SCREEN_1_WIDTH  128
 #define EGUI_CONFIG_SCREEN_1_HEIGHT 64
-#define EGUI_CONFIG_PFB_1_WIDTH    16
-#define EGUI_CONFIG_PFB_1_HEIGHT   8
+#define EGUI_CONFIG_PFB_1_WIDTH     16
+#define EGUI_CONFIG_PFB_1_HEIGHT    8
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

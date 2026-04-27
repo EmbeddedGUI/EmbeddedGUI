@@ -123,7 +123,7 @@ struct egui_view_virtual_stage_array_bridge
     EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_BRIDGE_INIT(_name, &_name##_params, _items, _item_type, _desc_member, _ops, _user_context)
 
 #define EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SCREEN_BRIDGE_INIT_WITH_LIMIT(_name, _live_slot_limit, _items, _item_type, _desc_member, _ops, _user_context)       \
-    EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_BRIDGE_INIT_WITH_LIMIT(_name, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, _live_slot_limit, _items,        \
+    EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_BRIDGE_INIT_WITH_LIMIT(_name, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, _live_slot_limit, _items,      \
                                                               _item_type, _desc_member, _ops, _user_context)
 
 #define EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SIMPLE_BRIDGE_INIT_WITH_LIMIT(_name, _x, _y, _w, _h, _live_slot_limit, _items, _item_type, _desc_member,            \
@@ -149,21 +149,21 @@ struct egui_view_virtual_stage_array_bridge
 
 #define EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SCREEN_SIMPLE_BRIDGE_INIT_WITH_LIMIT(_name, _live_slot_limit, _items, _item_type, _desc_member, _create_view,       \
                                                                                 _destroy_view, _bind_view, _draw_node, _user_context)                          \
-    EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SIMPLE_BRIDGE_INIT_WITH_LIMIT(_name, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, _live_slot_limit, _items, \
-                                                                     _item_type, _desc_member, _create_view, _destroy_view, _bind_view, _draw_node,            \
+    EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SIMPLE_BRIDGE_INIT_WITH_LIMIT(_name, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, _live_slot_limit,       \
+                                                                     _items, _item_type, _desc_member, _create_view, _destroy_view, _bind_view, _draw_node,    \
                                                                      _user_context)
 
 #define EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SCREEN_INTERACTIVE_BRIDGE_INIT_WITH_LIMIT(_name, _live_slot_limit, _items, _item_type, _desc_member, _create_view,  \
                                                                                      _destroy_view, _bind_view, _draw_node, _hit_test, _should_keep_alive,     \
                                                                                      _user_context)                                                            \
-    EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_INTERACTIVE_BRIDGE_INIT_WITH_LIMIT(_name, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, _live_slot_limit,    \
+    EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_INTERACTIVE_BRIDGE_INIT_WITH_LIMIT(_name, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, _live_slot_limit,  \
                                                                           _items, _item_type, _desc_member, _create_view, _destroy_view, _bind_view,           \
                                                                           _draw_node, _hit_test, _should_keep_alive, _user_context)
 
 #define EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SCREEN_STATEFUL_BRIDGE_INIT_WITH_LIMIT(_name, _live_slot_limit, _items, _item_type, _desc_member, _create_view,     \
                                                                                   _destroy_view, _bind_view, _save_state, _restore_state, _draw_node,          \
                                                                                   _hit_test, _should_keep_alive, _user_context)                                \
-    EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_STATEFUL_BRIDGE_INIT_WITH_LIMIT(_name, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, _live_slot_limit,       \
+    EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_STATEFUL_BRIDGE_INIT_WITH_LIMIT(_name, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, _live_slot_limit,     \
                                                                        _items, _item_type, _desc_member, _create_view, _destroy_view, _bind_view, _save_state, \
                                                                        _restore_state, _draw_node, _hit_test, _should_keep_alive, _user_context)
 
