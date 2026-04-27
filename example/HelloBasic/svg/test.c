@@ -1,15 +1,13 @@
 #include "egui.h"
+#include <limits.h>
 #include <stdarg.h>
 #include "uicode_disp0.h"
 
-#define HELLO_SVG_FRAME_MS           50
-#define HELLO_SVG_PAGE_COUNT         3
-#define HELLO_SVG_PULSE_BUFFER_SIZE  4096
-#define HELLO_SVG_TUNNEL_BUFFER_SIZE 4096
-#define HELLO_SVG_ORBIT_BUFFER_SIZE  3072
-#define HELLO_SVG_PI                 3.14159265358979323846f
-#define HELLO_SVG_HALF_PI            1.57079632679489661923f
-#define HELLO_SVG_TWO_PI             6.28318530717958647692f
+#define HELLO_SVG_FRAME_MS   50
+#define HELLO_SVG_PAGE_COUNT 3
+#define HELLO_SVG_PI         3.14159265358979323846f
+#define HELLO_SVG_HALF_PI    1.57079632679489661923f
+#define HELLO_SVG_TWO_PI     6.28318530717958647692f
 
 #ifndef QEMU_HEAP_MEASURE
 #define QEMU_HEAP_MEASURE 0
@@ -61,17 +59,28 @@ typedef struct hello_svg_page
     egui_image_svg_t svg;
 } hello_svg_page_t;
 
+typedef struct hello_svg_builder
+{
+    char *buffer;
+    size_t capacity;
+    size_t offset;
+    size_t required;
+} hello_svg_builder_t;
+
+typedef struct hello_svg_buffer
+{
+    char *data;
+    size_t capacity;
+} hello_svg_buffer_t;
+
 static egui_view_group_t root;
 static egui_view_viewpage_t viewpage;
 static hello_svg_page_t pages[HELLO_SVG_PAGE_COUNT];
 static egui_timer_t hero_timer;
+static egui_core_t *hello_svg_core;
 static uint32_t hero_tick;
 static uint8_t current_page_index;
-static char svg_pulse_buffer[HELLO_SVG_PULSE_BUFFER_SIZE];
-static char svg_tunnel_buffer[HELLO_SVG_TUNNEL_BUFFER_SIZE];
-static char svg_orbit_buffer[HELLO_SVG_ORBIT_BUFFER_SIZE];
-static char *const svg_buffers[HELLO_SVG_PAGE_COUNT] = {svg_pulse_buffer, svg_tunnel_buffer, svg_orbit_buffer};
-static const size_t svg_buffer_sizes[HELLO_SVG_PAGE_COUNT] = {sizeof(svg_pulse_buffer), sizeof(svg_tunnel_buffer), sizeof(svg_orbit_buffer)};
+static hello_svg_buffer_t svg_buffers[HELLO_SVG_PAGE_COUNT];
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PORT == EGUI_PORT_TYPE_PC
 static const char *const hello_svg_titles[HELLO_SVG_PAGE_COUNT] = {"Pulse", "Tunnel", "Orbit"};
 #endif
@@ -85,26 +94,38 @@ EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, 
 EGUI_VIEW_GROUP_PARAMS_INIT(page_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
 EGUI_VIEW_IMAGE_PARAMS_INIT(page_image_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT, NULL);
 
-static void hello_svg_append_char(char *buffer, size_t size, size_t *offset, char value)
+static void hello_svg_builder_init(hello_svg_builder_t *builder, char *buffer, size_t capacity)
 {
-    if (size == 0)
+    builder->buffer = buffer;
+    builder->capacity = capacity;
+    builder->offset = 0;
+    builder->required = 0;
+    if (buffer != NULL && capacity > 0U)
     {
-        return;
+        buffer[0] = '\0';
     }
-
-    if (*offset >= size - 1)
-    {
-        *offset = size - 1;
-        buffer[*offset] = '\0';
-        return;
-    }
-
-    buffer[*offset] = value;
-    (*offset)++;
-    buffer[*offset] = '\0';
 }
 
-static void hello_svg_append_text(char *buffer, size_t size, size_t *offset, const char *text)
+static void hello_svg_append_char(hello_svg_builder_t *builder, char value)
+{
+    builder->required++;
+    if (builder->buffer == NULL || builder->capacity == 0U)
+    {
+        return;
+    }
+
+    if (builder->offset < builder->capacity - 1U)
+    {
+        builder->buffer[builder->offset] = value;
+        builder->offset++;
+        builder->buffer[builder->offset] = '\0';
+        return;
+    }
+
+    builder->buffer[builder->capacity - 1U] = '\0';
+}
+
+static void hello_svg_append_text(hello_svg_builder_t *builder, const char *text)
 {
     if (text == NULL)
     {
@@ -113,19 +134,19 @@ static void hello_svg_append_text(char *buffer, size_t size, size_t *offset, con
 
     while (*text != '\0')
     {
-        hello_svg_append_char(buffer, size, offset, *text);
+        hello_svg_append_char(builder, *text);
         text++;
     }
 }
 
-static void hello_svg_append_uint(char *buffer, size_t size, size_t *offset, unsigned value)
+static void hello_svg_append_uint(hello_svg_builder_t *builder, unsigned value)
 {
     char digits[10];
     size_t count = 0;
 
     if (value == 0U)
     {
-        hello_svg_append_char(buffer, size, offset, '0');
+        hello_svg_append_char(builder, '0');
         return;
     }
 
@@ -139,17 +160,17 @@ static void hello_svg_append_uint(char *buffer, size_t size, size_t *offset, uns
     while (count > 0U)
     {
         count--;
-        hello_svg_append_char(buffer, size, offset, digits[count]);
+        hello_svg_append_char(builder, digits[count]);
     }
 }
 
-static void hello_svg_append_int(char *buffer, size_t size, size_t *offset, int value)
+static void hello_svg_append_int(hello_svg_builder_t *builder, int value)
 {
     unsigned magnitude;
 
     if (value < 0)
     {
-        hello_svg_append_char(buffer, size, offset, '-');
+        hello_svg_append_char(builder, '-');
         magnitude = (unsigned)(-(value + 1)) + 1U;
     }
     else
@@ -157,10 +178,10 @@ static void hello_svg_append_int(char *buffer, size_t size, size_t *offset, int 
         magnitude = (unsigned)value;
     }
 
-    hello_svg_append_uint(buffer, size, offset, magnitude);
+    hello_svg_append_uint(builder, magnitude);
 }
 
-static void hello_svg_append(char *buffer, size_t size, size_t *offset, const char *format, ...)
+static void hello_svg_append(hello_svg_builder_t *builder, const char *format, ...)
 {
     va_list args;
 
@@ -169,7 +190,7 @@ static void hello_svg_append(char *buffer, size_t size, size_t *offset, const ch
     {
         if (*format != '%')
         {
-            hello_svg_append_char(buffer, size, offset, *format);
+            hello_svg_append_char(builder, *format);
             format++;
             continue;
         }
@@ -178,23 +199,23 @@ static void hello_svg_append(char *buffer, size_t size, size_t *offset, const ch
         switch (*format)
         {
         case '\0':
-            hello_svg_append_char(buffer, size, offset, '%');
+            hello_svg_append_char(builder, '%');
             goto finish;
         case '%':
-            hello_svg_append_char(buffer, size, offset, '%');
+            hello_svg_append_char(builder, '%');
             break;
         case 'd':
-            hello_svg_append_int(buffer, size, offset, va_arg(args, int));
+            hello_svg_append_int(builder, va_arg(args, int));
             break;
         case 'u':
-            hello_svg_append_uint(buffer, size, offset, va_arg(args, unsigned));
+            hello_svg_append_uint(builder, va_arg(args, unsigned));
             break;
         case 's':
-            hello_svg_append_text(buffer, size, offset, va_arg(args, const char *));
+            hello_svg_append_text(builder, va_arg(args, const char *));
             break;
         default:
-            hello_svg_append_char(buffer, size, offset, '%');
-            hello_svg_append_char(buffer, size, offset, *format);
+            hello_svg_append_char(builder, '%');
+            hello_svg_append_char(builder, *format);
             break;
         }
 
@@ -243,15 +264,15 @@ static void hello_svg_orbit_point(int cx, int cy, int rx, int ry, int tilt_deg, 
     *y = cy + hello_svg_round_to_int(local_x * hello_svg_sin(orbit_angle) + local_y * hello_svg_cos(orbit_angle));
 }
 
-static void hello_svg_append_wave_band(char *buffer, size_t size, size_t *offset, int x_start, int x_end, int y_base, int amplitude, int thickness,
-                                       hello_svg_real_t cycles, hello_svg_real_t speed, hello_svg_real_t phase, const char *fill, int opacity, uint32_t tick)
+static void hello_svg_append_wave_band(hello_svg_builder_t *builder, int x_start, int x_end, int y_base, int amplitude, int thickness, hello_svg_real_t cycles,
+                                       hello_svg_real_t speed, hello_svg_real_t phase, const char *fill, int opacity, uint32_t tick)
 {
     int samples = hello_svg_clamp_int((x_end - x_start) / 8, 18, 24);
     hello_svg_real_t half_thickness = (hello_svg_real_t)thickness * 0.5f;
     hello_svg_real_t motion = (hello_svg_real_t)tick * speed + phase;
     int i;
 
-    hello_svg_append(buffer, size, offset, "<polygon points='");
+    hello_svg_append(builder, "<polygon points='");
     for (i = 0; i < samples; i++)
     {
         hello_svg_real_t t = (hello_svg_real_t)i / (hello_svg_real_t)(samples - 1);
@@ -259,7 +280,7 @@ static void hello_svg_append_wave_band(char *buffer, size_t size, size_t *offset
         int x = x_start + hello_svg_round_to_int((hello_svg_real_t)(x_end - x_start) * t);
         int y = y_base + hello_svg_round_to_int((hello_svg_real_t)amplitude * wave);
 
-        hello_svg_append(buffer, size, offset, "%d,%d ", x, hello_svg_round_to_int((hello_svg_real_t)y - half_thickness));
+        hello_svg_append(builder, "%d,%d ", x, hello_svg_round_to_int((hello_svg_real_t)y - half_thickness));
     }
     for (i = samples - 1; i >= 0; i--)
     {
@@ -268,14 +289,13 @@ static void hello_svg_append_wave_band(char *buffer, size_t size, size_t *offset
         int x = x_start + hello_svg_round_to_int((hello_svg_real_t)(x_end - x_start) * t);
         int y = y_base + hello_svg_round_to_int((hello_svg_real_t)amplitude * wave);
 
-        hello_svg_append(buffer, size, offset, "%d,%d ", x, hello_svg_round_to_int((hello_svg_real_t)y + half_thickness));
+        hello_svg_append(builder, "%d,%d ", x, hello_svg_round_to_int((hello_svg_real_t)y + half_thickness));
     }
-    hello_svg_append(buffer, size, offset, "' fill='%s' opacity='%d%%'/>", fill, opacity);
+    hello_svg_append(builder, "' fill='%s' opacity='%d%%'/>", fill, opacity);
 }
 
-static void hello_svg_build_pulse_frame(char *buffer, size_t size, uint32_t tick)
+static void hello_svg_build_pulse_frame(hello_svg_builder_t *builder, uint32_t tick)
 {
-    size_t offset = 0;
     int w = EGUI_CONFIG_SCREEN_WIDTH;
     int h = EGUI_CONFIG_SCREEN_HEIGHT;
     int cx = w / 2;
@@ -313,81 +333,76 @@ static void hello_svg_build_pulse_frame(char *buffer, size_t size, uint32_t tick
     int bar_y_b = h - 28;
     int bar_y_c = h - 20;
 
-    hello_svg_append(buffer, size, &offset, "<svg viewBox='0 0 %d %d'>", w, h);
-    hello_svg_append(buffer, size, &offset, "<rect x='0' y='0' width='%d' height='%d' fill='#030913'/>", w, h);
-    hello_svg_append(buffer, size, &offset, "<g opacity='18%%'>");
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", grid_left, grid_top + 16, grid_right,
-                     grid_top + 16);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", grid_left, grid_top + 60, grid_right,
-                     grid_top + 60);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", grid_left, grid_bottom - 60,
-                     grid_right, grid_bottom - 60);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", grid_left, grid_bottom - 16,
-                     grid_right, grid_bottom - 16);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", 48, grid_top, 48, grid_bottom);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", cx, grid_top - 8, cx, grid_bottom + 8);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", w - 48, grid_top, w - 48, grid_bottom);
-    hello_svg_append(buffer, size, &offset, "</g>");
+    hello_svg_append(builder, "<svg viewBox='0 0 %d %d'>", w, h);
+    hello_svg_append(builder, "<rect x='0' y='0' width='%d' height='%d' fill='#030913'/>", w, h);
+    hello_svg_append(builder, "<g opacity='18%%'>");
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", grid_left, grid_top + 16, grid_right, grid_top + 16);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", grid_left, grid_top + 60, grid_right, grid_top + 60);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", grid_left, grid_bottom - 60, grid_right,
+                     grid_bottom - 60);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", grid_left, grid_bottom - 16, grid_right,
+                     grid_bottom - 16);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", 48, grid_top, 48, grid_bottom);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", cx, grid_top - 8, cx, grid_bottom + 8);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#14384B' stroke-width='1'/>", w - 48, grid_top, w - 48, grid_bottom);
+    hello_svg_append(builder, "</g>");
 
-    hello_svg_append(buffer, size, &offset, "<g opacity='24%%'>");
-    hello_svg_append(buffer, size, &offset, "<path fill='#173B4E' d='M24 72 H58 V76 H28 V108 H24 Z'/>");
-    hello_svg_append(buffer, size, &offset, "<path fill='#173B4E' d='M%d 72 H%d V76 H%d V108 H%d Z'/>", w - 24, w - 58, w - 28, w - 24);
-    hello_svg_append(buffer, size, &offset, "<path fill='#173B4E' d='M24 %d H58 V%d H28 V%d H24 Z'/>", h - 72, h - 76, h - 108);
-    hello_svg_append(buffer, size, &offset, "<path fill='#173B4E' d='M%d %d H%d V%d H%d V%d H%d Z'/>", w - 24, h - 72, w - 58, h - 76, w - 28, h - 108, w - 24);
-    hello_svg_append(buffer, size, &offset, "</g>");
+    hello_svg_append(builder, "<g opacity='24%%'>");
+    hello_svg_append(builder, "<path fill='#173B4E' d='M24 72 H58 V76 H28 V108 H24 Z'/>");
+    hello_svg_append(builder, "<path fill='#173B4E' d='M%d 72 H%d V76 H%d V108 H%d Z'/>", w - 24, w - 58, w - 28, w - 24);
+    hello_svg_append(builder, "<path fill='#173B4E' d='M24 %d H58 V%d H28 V%d H24 Z'/>", h - 72, h - 76, h - 108);
+    hello_svg_append(builder, "<path fill='#173B4E' d='M%d %d H%d V%d H%d V%d H%d Z'/>", w - 24, h - 72, w - 58, h - 76, w - 28, h - 108, w - 24);
+    hello_svg_append(builder, "</g>");
 
-    hello_svg_append(buffer, size, &offset, "<g transform='translate(%d,%d)'>", cx, cy);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#12384B' stroke-width='2' opacity='34%%'/>", outer_r);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#12384B' stroke-width='1' opacity='40%%'/>", mid_r);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#12384B' stroke-width='1' opacity='48%%'/>", inner_r);
-    hello_svg_append(buffer, size, &offset, "<g transform='rotate(%d)'>", sweep_angle);
-    hello_svg_append(buffer, size, &offset, "<polygon points='0,-%d 16,-18 -16,-18' fill='#16D7FF' opacity='%d%%'/>", outer_r + 6, beam_opacity);
-    hello_svg_append(buffer, size, &offset, "<line x1='0' y1='-18' x2='0' y2='-%d' stroke='#9AFBFF' stroke-width='2' opacity='78%%'/>", outer_r + 8);
-    hello_svg_append(buffer, size, &offset, "</g>");
-    hello_svg_append(buffer, size, &offset, "<g transform='rotate(%d)'>", frame_angle);
-    hello_svg_append(buffer, size, &offset, "<rect x='-%d' y='-%d' width='%d' height='%d' fill='none' stroke='#0F7FA8' stroke-width='2' opacity='56%%'/>",
-                     mid_r - 6, mid_r - 6, (mid_r - 6) * 2, (mid_r - 6) * 2);
-    hello_svg_append(buffer, size, &offset, "</g>");
-    hello_svg_append(buffer, size, &offset, "<g transform='rotate(%d)'>", diamond_angle);
-    hello_svg_append(buffer, size, &offset, "<rect x='-%d' y='-%d' width='%d' height='%d' fill='none' stroke='#87F6FF' stroke-width='3' opacity='72%%'/>",
-                     inner_r - 6, inner_r - 6, (inner_r - 6) * 2, (inner_r - 6) * 2);
-    hello_svg_append(buffer, size, &offset, "<polygon points='0,-32 32,0 0,32 -32,0' fill='none' stroke='#87F6FF' stroke-width='2' opacity='72%%'/>");
-    hello_svg_append(buffer, size, &offset, "</g>");
-    hello_svg_append(buffer, size, &offset, "<g transform='rotate(%d)'>", orbit_angle);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='-%d' r='7' fill='#FFD166'/>", outer_r - 2);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='%d' r='5' fill='#7EF7FF'/>", outer_r - 2);
-    hello_svg_append(buffer, size, &offset, "</g>");
-    hello_svg_append(buffer, size, &offset, "<g transform='rotate(%d)'>", orbit_angle_b);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='-%d' r='4' fill='#FF5E7A'/>", mid_r - 4);
-    hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='0' r='4' fill='#57FFA0'/>", mid_r - 4);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='%d' r='4' fill='#7EF7FF'/>", mid_r - 4);
-    hello_svg_append(buffer, size, &offset, "<circle cx='-%d' cy='0' r='4' fill='#FF5E7A'/>", mid_r - 4);
-    hello_svg_append(buffer, size, &offset, "</g>");
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='#0B1B29' stroke='#7EF7FF' stroke-width='2' opacity='%d%%'/>", pulse_radius,
-                     core_opacity);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#1ED8FF' stroke-width='2' opacity='%d%%'/>", halo_radius,
-                     halo_opacity);
-    hello_svg_append(buffer, size, &offset, "<g transform='rotate(%d)'>", core_angle);
-    hello_svg_append(buffer, size, &offset, "<polygon points='0,-20 20,0 0,20 -20,0' fill='#7EF7FF' opacity='18%%'/>");
-    hello_svg_append(buffer, size, &offset, "<path fill='#B7FBFF' d='M-18 0 L0 -18 L18 0 L0 18 Z'/>");
-    hello_svg_append(buffer, size, &offset, "</g>");
-    hello_svg_append(buffer, size, &offset, "</g>");
+    hello_svg_append(builder, "<g transform='translate(%d,%d)'>", cx, cy);
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#12384B' stroke-width='2' opacity='34%%'/>", outer_r);
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#12384B' stroke-width='1' opacity='40%%'/>", mid_r);
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#12384B' stroke-width='1' opacity='48%%'/>", inner_r);
+    hello_svg_append(builder, "<g transform='rotate(%d)'>", sweep_angle);
+    hello_svg_append(builder, "<polygon points='0,-%d 16,-18 -16,-18' fill='#16D7FF' opacity='%d%%'/>", outer_r + 6, beam_opacity);
+    hello_svg_append(builder, "<line x1='0' y1='-18' x2='0' y2='-%d' stroke='#9AFBFF' stroke-width='2' opacity='78%%'/>", outer_r + 8);
+    hello_svg_append(builder, "</g>");
+    hello_svg_append(builder, "<g transform='rotate(%d)'>", frame_angle);
+    hello_svg_append(builder, "<rect x='-%d' y='-%d' width='%d' height='%d' fill='none' stroke='#0F7FA8' stroke-width='2' opacity='56%%'/>", mid_r - 6,
+                     mid_r - 6, (mid_r - 6) * 2, (mid_r - 6) * 2);
+    hello_svg_append(builder, "</g>");
+    hello_svg_append(builder, "<g transform='rotate(%d)'>", diamond_angle);
+    hello_svg_append(builder, "<rect x='-%d' y='-%d' width='%d' height='%d' fill='none' stroke='#87F6FF' stroke-width='3' opacity='72%%'/>", inner_r - 6,
+                     inner_r - 6, (inner_r - 6) * 2, (inner_r - 6) * 2);
+    hello_svg_append(builder, "<polygon points='0,-32 32,0 0,32 -32,0' fill='none' stroke='#87F6FF' stroke-width='2' opacity='72%%'/>");
+    hello_svg_append(builder, "</g>");
+    hello_svg_append(builder, "<g transform='rotate(%d)'>", orbit_angle);
+    hello_svg_append(builder, "<circle cx='0' cy='-%d' r='7' fill='#FFD166'/>", outer_r - 2);
+    hello_svg_append(builder, "<circle cx='0' cy='%d' r='5' fill='#7EF7FF'/>", outer_r - 2);
+    hello_svg_append(builder, "</g>");
+    hello_svg_append(builder, "<g transform='rotate(%d)'>", orbit_angle_b);
+    hello_svg_append(builder, "<circle cx='0' cy='-%d' r='4' fill='#FF5E7A'/>", mid_r - 4);
+    hello_svg_append(builder, "<circle cx='%d' cy='0' r='4' fill='#57FFA0'/>", mid_r - 4);
+    hello_svg_append(builder, "<circle cx='0' cy='%d' r='4' fill='#7EF7FF'/>", mid_r - 4);
+    hello_svg_append(builder, "<circle cx='-%d' cy='0' r='4' fill='#FF5E7A'/>", mid_r - 4);
+    hello_svg_append(builder, "</g>");
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='#0B1B29' stroke='#7EF7FF' stroke-width='2' opacity='%d%%'/>", pulse_radius, core_opacity);
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#1ED8FF' stroke-width='2' opacity='%d%%'/>", halo_radius, halo_opacity);
+    hello_svg_append(builder, "<g transform='rotate(%d)'>", core_angle);
+    hello_svg_append(builder, "<polygon points='0,-20 20,0 0,20 -20,0' fill='#7EF7FF' opacity='18%%'/>");
+    hello_svg_append(builder, "<path fill='#B7FBFF' d='M-18 0 L0 -18 L18 0 L0 18 Z'/>");
+    hello_svg_append(builder, "</g>");
+    hello_svg_append(builder, "</g>");
 
-    hello_svg_append(buffer, size, &offset, "<rect x='%d' y='%d' width='%d' height='1' fill='#1A4258' opacity='38%%'/>", telemetry_x, bar_y_a - 8, telemetry_w);
-    hello_svg_append(buffer, size, &offset, "<rect x='%d' y='%d' width='%d' height='4' fill='#081824' opacity='88%%'/>", telemetry_x, bar_y_a, telemetry_w);
-    hello_svg_append(buffer, size, &offset, "<rect x='%d' y='%d' width='%d' height='4' fill='#1ED8FF' opacity='52%%'/>", telemetry_x, bar_y_a, telemetry_a);
-    hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='3' fill='#B7FBFF' opacity='86%%'/>", telemetry_marker_a, bar_y_a + 2);
-    hello_svg_append(buffer, size, &offset, "<rect x='%d' y='%d' width='%d' height='3' fill='#081824' opacity='82%%'/>", telemetry_x, bar_y_b, telemetry_w);
-    hello_svg_append(buffer, size, &offset, "<rect x='%d' y='%d' width='%d' height='3' fill='#57FFA0' opacity='56%%'/>", telemetry_x, bar_y_b, telemetry_b);
-    hello_svg_append(buffer, size, &offset, "<rect x='%d' y='%d' width='18' height='5' fill='#FFD166' opacity='82%%'/>", telemetry_marker_b, bar_y_b - 1);
-    hello_svg_append(buffer, size, &offset, "<rect x='%d' y='%d' width='%d' height='2' fill='#081824' opacity='72%%'/>", telemetry_x, bar_y_c, telemetry_w);
-    hello_svg_append(buffer, size, &offset, "<rect x='%d' y='%d' width='%d' height='2' fill='#FF5E7A' opacity='78%%'/>", telemetry_x, bar_y_c, telemetry_c);
-    hello_svg_append(buffer, size, &offset, "</svg>");
+    hello_svg_append(builder, "<rect x='%d' y='%d' width='%d' height='1' fill='#1A4258' opacity='38%%'/>", telemetry_x, bar_y_a - 8, telemetry_w);
+    hello_svg_append(builder, "<rect x='%d' y='%d' width='%d' height='4' fill='#081824' opacity='88%%'/>", telemetry_x, bar_y_a, telemetry_w);
+    hello_svg_append(builder, "<rect x='%d' y='%d' width='%d' height='4' fill='#1ED8FF' opacity='52%%'/>", telemetry_x, bar_y_a, telemetry_a);
+    hello_svg_append(builder, "<circle cx='%d' cy='%d' r='3' fill='#B7FBFF' opacity='86%%'/>", telemetry_marker_a, bar_y_a + 2);
+    hello_svg_append(builder, "<rect x='%d' y='%d' width='%d' height='3' fill='#081824' opacity='82%%'/>", telemetry_x, bar_y_b, telemetry_w);
+    hello_svg_append(builder, "<rect x='%d' y='%d' width='%d' height='3' fill='#57FFA0' opacity='56%%'/>", telemetry_x, bar_y_b, telemetry_b);
+    hello_svg_append(builder, "<rect x='%d' y='%d' width='18' height='5' fill='#FFD166' opacity='82%%'/>", telemetry_marker_b, bar_y_b - 1);
+    hello_svg_append(builder, "<rect x='%d' y='%d' width='%d' height='2' fill='#081824' opacity='72%%'/>", telemetry_x, bar_y_c, telemetry_w);
+    hello_svg_append(builder, "<rect x='%d' y='%d' width='%d' height='2' fill='#FF5E7A' opacity='78%%'/>", telemetry_x, bar_y_c, telemetry_c);
+    hello_svg_append(builder, "</svg>");
 }
 
-static void hello_svg_build_tunnel_frame(char *buffer, size_t size, uint32_t tick)
+static void hello_svg_build_tunnel_frame(hello_svg_builder_t *builder, uint32_t tick)
 {
-    size_t offset = 0;
     int w = EGUI_CONFIG_SCREEN_WIDTH;
     int h = EGUI_CONFIG_SCREEN_HEIGHT;
     int cx = w / 2;
@@ -400,24 +415,20 @@ static void hello_svg_build_tunnel_frame(char *buffer, size_t size, uint32_t tic
     int core_radius = 20 + (int)(4.0f * (glow + 1.0f));
     int core_halo = 36 + (int)(10.0f * (glow + 1.0f));
 
-    hello_svg_append(buffer, size, &offset, "<svg viewBox='0 0 %d %d'>", w, h);
-    hello_svg_append(buffer, size, &offset, "<rect x='0' y='0' width='%d' height='%d' fill='#04070D'/>", w, h);
-    hello_svg_append(buffer, size, &offset, "<g opacity='18%%'>");
-    hello_svg_append(buffer, size, &offset,
+    hello_svg_append(builder, "<svg viewBox='0 0 %d %d'>", w, h);
+    hello_svg_append(builder, "<rect x='0' y='0' width='%d' height='%d' fill='#04070D'/>", w, h);
+    hello_svg_append(builder, "<g opacity='18%%'>");
+    hello_svg_append(builder,
                      "<polyline points='0,%d %d,%d 0,%d' fill='none' stroke='#12364A' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/>",
                      cy - 58, cx, cy, cy + 58);
-    hello_svg_append(buffer, size, &offset,
+    hello_svg_append(builder,
                      "<polyline points='%d,%d %d,%d %d,%d' fill='none' stroke='#12364A' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/>", w,
                      cy - 58, cx, cy, w, cy + 58);
-    hello_svg_append(buffer, size, &offset, "<line x1='20' y1='%d' x2='%d' y2='%d' stroke='#12364A' stroke-width='1' stroke-linecap='round'/>", cy - 96, cx,
-                     cy - 8);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#12364A' stroke-width='1' stroke-linecap='round'/>", w - 20, cy - 96,
-                     cx, cy - 8);
-    hello_svg_append(buffer, size, &offset, "<line x1='20' y1='%d' x2='%d' y2='%d' stroke='#12364A' stroke-width='1' stroke-linecap='round'/>", cy + 96, cx,
-                     cy + 8);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#12364A' stroke-width='1' stroke-linecap='round'/>", w - 20, cy + 96,
-                     cx, cy + 8);
-    hello_svg_append(buffer, size, &offset, "</g>");
+    hello_svg_append(builder, "<line x1='20' y1='%d' x2='%d' y2='%d' stroke='#12364A' stroke-width='1' stroke-linecap='round'/>", cy - 96, cx, cy - 8);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#12364A' stroke-width='1' stroke-linecap='round'/>", w - 20, cy - 96, cx, cy - 8);
+    hello_svg_append(builder, "<line x1='20' y1='%d' x2='%d' y2='%d' stroke='#12364A' stroke-width='1' stroke-linecap='round'/>", cy + 96, cx, cy + 8);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#12364A' stroke-width='1' stroke-linecap='round'/>", w - 20, cy + 96, cx, cy + 8);
+    hello_svg_append(builder, "</g>");
 
     for (ring_i = 0; ring_i < 6; ring_i++)
     {
@@ -430,13 +441,13 @@ static void hello_svg_build_tunnel_frame(char *buffer, size_t size, uint32_t tic
         int stroke = ring_i < 2 ? 2 : 1;
         const char *color = (ring_i & 1) ? "#1ED8FF" : "#57FFA0";
 
-        hello_svg_append(buffer, size, &offset,
+        hello_svg_append(builder,
                          "<polygon points='%d,%d %d,%d %d,%d %d,%d %d,%d %d,%d %d,%d' fill='none' stroke='%s' stroke-width='%d' opacity='%d%%' "
                          "stroke-linejoin='round'/>",
                          cx, cy - half_h, cx + half_w - notch, cy - half_h / 2, cx + half_w, cy, cx + half_w - notch, cy + half_h / 2, cx, cy + half_h,
                          cx - half_w + notch, cy + half_h / 2, cx - half_w, cy, color, stroke, opacity);
-        hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='%s' stroke-width='1' opacity='%d%%' stroke-linecap='round'/>",
-                         cx - half_w, cy, cx + half_w, cy, color, opacity / 2 + 8);
+        hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='%s' stroke-width='1' opacity='%d%%' stroke-linecap='round'/>", cx - half_w, cy,
+                         cx + half_w, cy, color, opacity / 2 + 8);
     }
 
     for (packet_i = 0; packet_i < 4; packet_i++)
@@ -449,29 +460,28 @@ static void hello_svg_build_tunnel_frame(char *buffer, size_t size, uint32_t tic
         int radius = 2 + (int)(phase * 5.0f);
         int opacity = 24 + (int)(phase * 58.0f);
 
-        hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='%d' fill='#FFD166' opacity='%d%%'/>", left_x, upper_y, radius, opacity);
-        hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='%d' fill='#7EF7FF' opacity='%d%%'/>", right_x, upper_y, radius, opacity);
-        hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='%d' fill='#57FFA0' opacity='%d%%'/>", left_x, lower_y, radius, opacity / 2 + 12);
-        hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='%d' fill='#FF5E7A' opacity='%d%%'/>", right_x, lower_y, radius, opacity / 2 + 12);
+        hello_svg_append(builder, "<circle cx='%d' cy='%d' r='%d' fill='#FFD166' opacity='%d%%'/>", left_x, upper_y, radius, opacity);
+        hello_svg_append(builder, "<circle cx='%d' cy='%d' r='%d' fill='#7EF7FF' opacity='%d%%'/>", right_x, upper_y, radius, opacity);
+        hello_svg_append(builder, "<circle cx='%d' cy='%d' r='%d' fill='#57FFA0' opacity='%d%%'/>", left_x, lower_y, radius, opacity / 2 + 12);
+        hello_svg_append(builder, "<circle cx='%d' cy='%d' r='%d' fill='#FF5E7A' opacity='%d%%'/>", right_x, lower_y, radius, opacity / 2 + 12);
     }
 
-    hello_svg_append(buffer, size, &offset, "<g transform='translate(%d,%d)'>", cx, cy);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#0E3246' stroke-width='2' opacity='42%%'/>", core_halo);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='#07131C' stroke='#B7FBFF' stroke-width='2' opacity='82%%'/>", core_radius);
-    hello_svg_append(buffer, size, &offset, "<g transform='rotate(%d)'>", gate_angle);
-    hello_svg_append(buffer, size, &offset, "<rect x='-38' y='-8' width='76' height='16' fill='none' stroke='#FF8E3C' stroke-width='2' opacity='76%%'/>");
-    hello_svg_append(buffer, size, &offset, "</g>");
-    hello_svg_append(buffer, size, &offset, "<g transform='rotate(%d)'>", gate_angle_b);
-    hello_svg_append(buffer, size, &offset, "<rect x='-8' y='-38' width='16' height='76' fill='none' stroke='#1ED8FF' stroke-width='2' opacity='70%%'/>");
-    hello_svg_append(buffer, size, &offset, "</g>");
-    hello_svg_append(buffer, size, &offset, "<polygon points='0,-18 14,0 0,18 -14,0' fill='#FFFFFF' opacity='84%%'/>");
-    hello_svg_append(buffer, size, &offset, "</g>");
-    hello_svg_append(buffer, size, &offset, "</svg>");
+    hello_svg_append(builder, "<g transform='translate(%d,%d)'>", cx, cy);
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#0E3246' stroke-width='2' opacity='42%%'/>", core_halo);
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='#07131C' stroke='#B7FBFF' stroke-width='2' opacity='82%%'/>", core_radius);
+    hello_svg_append(builder, "<g transform='rotate(%d)'>", gate_angle);
+    hello_svg_append(builder, "<rect x='-38' y='-8' width='76' height='16' fill='none' stroke='#FF8E3C' stroke-width='2' opacity='76%%'/>");
+    hello_svg_append(builder, "</g>");
+    hello_svg_append(builder, "<g transform='rotate(%d)'>", gate_angle_b);
+    hello_svg_append(builder, "<rect x='-8' y='-38' width='16' height='76' fill='none' stroke='#1ED8FF' stroke-width='2' opacity='70%%'/>");
+    hello_svg_append(builder, "</g>");
+    hello_svg_append(builder, "<polygon points='0,-18 14,0 0,18 -14,0' fill='#FFFFFF' opacity='84%%'/>");
+    hello_svg_append(builder, "</g>");
+    hello_svg_append(builder, "</svg>");
 }
 
-static void hello_svg_build_orbit_frame(char *buffer, size_t size, uint32_t tick)
+static void hello_svg_build_orbit_frame(hello_svg_builder_t *builder, uint32_t tick)
 {
-    size_t offset = 0;
     int w = EGUI_CONFIG_SCREEN_WIDTH;
     int h = EGUI_CONFIG_SCREEN_HEIGHT;
     int cx = w / 2;
@@ -509,72 +519,132 @@ static void hello_svg_build_orbit_frame(char *buffer, size_t size, uint32_t tick
     hello_svg_orbit_point(cx, cy, 28, 84, 0, phase_c, &sat3_x, &sat3_y);
     hello_svg_orbit_point(cx, cy, 28, 84, 0, phase_c - 24, &sat3_prev_x, &sat3_prev_y);
 
-    hello_svg_append(buffer, size, &offset, "<svg viewBox='0 0 %d %d'>", w, h);
-    hello_svg_append(buffer, size, &offset, "<rect x='0' y='0' width='%d' height='%d' fill='#041018'/>", w, h);
+    hello_svg_append(builder, "<svg viewBox='0 0 %d %d'>", w, h);
+    hello_svg_append(builder, "<rect x='0' y='0' width='%d' height='%d' fill='#041018'/>", w, h);
     for (star_i = 0; star_i < 6; star_i++)
     {
         int star_x = (int)((hello_svg_real_t)w * (hello_svg_real_t)star_x_ratio[star_i] / 100.0f);
         int star_y = (int)((hello_svg_real_t)h * (hello_svg_real_t)star_y_ratio[star_i] / 100.0f);
         int opacity = 18 + (int)(40.0f * (hello_svg_sin((hello_svg_real_t)tick * 0.09f + (hello_svg_real_t)star_i) + 1.0f) * 0.5f);
 
-        hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='2' fill='#B7FBFF' opacity='%d%%'/>", star_x, star_y, opacity);
+        hello_svg_append(builder, "<circle cx='%d' cy='%d' r='2' fill='#B7FBFF' opacity='%d%%'/>", star_x, star_y, opacity);
     }
 
-    hello_svg_append(buffer, size, &offset, "<g transform='translate(%d,%d)'>", cx, cy);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='96' fill='none' stroke='#103848' stroke-width='2' opacity='20%%'/>");
-    hello_svg_append(buffer, size, &offset,
-                     "<ellipse cx='0' cy='0' rx='86' ry='34' transform='rotate(18)' fill='none' stroke='#1ED8FF' stroke-width='3' opacity='48%%'/>");
-    hello_svg_append(buffer, size, &offset,
-                     "<ellipse cx='0' cy='0' rx='58' ry='18' transform='rotate(-22)' fill='none' stroke='#57FFA0' stroke-width='3' opacity='52%%'/>");
-    hello_svg_append(buffer, size, &offset, "<ellipse cx='0' cy='0' rx='28' ry='84' fill='none' stroke='#FF5E7A' stroke-width='3' opacity='46%%'/>");
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#FFD166' stroke-width='3' opacity='36%%'/>", halo_radius);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='#0B1B29' opacity='90%%'/>", aura_radius);
-    hello_svg_append(buffer, size, &offset, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#B7FBFF' stroke-width='3' opacity='90%%'/>", aura_radius);
-    hello_svg_append(buffer, size, &offset, "<polygon points='0,-14 12,-6 12,8 0,16 -12,8 -12,-6' fill='#7EF7FF' opacity='22%%'/>");
-    hello_svg_append(buffer, size, &offset, "<path fill='#FFFFFF' d='M-10 0 L0 -10 L10 0 L0 10 Z' opacity='78%%'/>");
-    hello_svg_append(buffer, size, &offset, "</g>");
+    hello_svg_append(builder, "<g transform='translate(%d,%d)'>", cx, cy);
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='96' fill='none' stroke='#103848' stroke-width='2' opacity='20%%'/>");
+    hello_svg_append(builder, "<ellipse cx='0' cy='0' rx='86' ry='34' transform='rotate(18)' fill='none' stroke='#1ED8FF' stroke-width='3' opacity='48%%'/>");
+    hello_svg_append(builder, "<ellipse cx='0' cy='0' rx='58' ry='18' transform='rotate(-22)' fill='none' stroke='#57FFA0' stroke-width='3' opacity='52%%'/>");
+    hello_svg_append(builder, "<ellipse cx='0' cy='0' rx='28' ry='84' fill='none' stroke='#FF5E7A' stroke-width='3' opacity='46%%'/>");
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#FFD166' stroke-width='3' opacity='36%%'/>", halo_radius);
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='#0B1B29' opacity='90%%'/>", aura_radius);
+    hello_svg_append(builder, "<circle cx='0' cy='0' r='%d' fill='none' stroke='#B7FBFF' stroke-width='3' opacity='90%%'/>", aura_radius);
+    hello_svg_append(builder, "<polygon points='0,-14 12,-6 12,8 0,16 -12,8 -12,-6' fill='#7EF7FF' opacity='22%%'/>");
+    hello_svg_append(builder, "<path fill='#FFFFFF' d='M-10 0 L0 -10 L10 0 L0 10 Z' opacity='78%%'/>");
+    hello_svg_append(builder, "</g>");
 
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#1ED8FF' stroke-width='2' opacity='38%%' stroke-linecap='butt'/>",
-                     sat1_prev_x, sat1_prev_y, sat1_x, sat1_y);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#57FFA0' stroke-width='2' opacity='42%%' stroke-linecap='butt'/>",
-                     sat2_prev_x, sat2_prev_y, sat2_x, sat2_y);
-    hello_svg_append(buffer, size, &offset, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#FF5E7A' stroke-width='2' opacity='40%%' stroke-linecap='butt'/>",
-                     sat3_prev_x, sat3_prev_y, sat3_x, sat3_y);
-    hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='7' fill='#1ED8FF' opacity='86%%'/>", sat1_x, sat1_y);
-    hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='6' fill='#57FFA0' opacity='88%%'/>", sat2_x, sat2_y);
-    hello_svg_append(buffer, size, &offset, "<circle cx='%d' cy='%d' r='5' fill='#FF5E7A' opacity='90%%'/>", sat3_x, sat3_y);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#1ED8FF' stroke-width='2' opacity='38%%' stroke-linecap='butt'/>", sat1_prev_x,
+                     sat1_prev_y, sat1_x, sat1_y);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#57FFA0' stroke-width='2' opacity='42%%' stroke-linecap='butt'/>", sat2_prev_x,
+                     sat2_prev_y, sat2_x, sat2_y);
+    hello_svg_append(builder, "<line x1='%d' y1='%d' x2='%d' y2='%d' stroke='#FF5E7A' stroke-width='2' opacity='40%%' stroke-linecap='butt'/>", sat3_prev_x,
+                     sat3_prev_y, sat3_x, sat3_y);
+    hello_svg_append(builder, "<circle cx='%d' cy='%d' r='7' fill='#1ED8FF' opacity='86%%'/>", sat1_x, sat1_y);
+    hello_svg_append(builder, "<circle cx='%d' cy='%d' r='6' fill='#57FFA0' opacity='88%%'/>", sat2_x, sat2_y);
+    hello_svg_append(builder, "<circle cx='%d' cy='%d' r='5' fill='#FF5E7A' opacity='90%%'/>", sat3_x, sat3_y);
 
-    hello_svg_append_wave_band(buffer, size, &offset, wave_x_start, wave_x_end, wave_y, 8, 3, 1.35f, 0.14f, 0.2f, "#1ED8FF", 64, tick);
-    hello_svg_append_wave_band(buffer, size, &offset, wave_x_start, wave_x_end, wave_y_2, 6, 2, 1.15f, 0.11f, 1.1f, "#FFD166", 68, tick);
-    hello_svg_append(buffer, size, &offset, "</svg>");
+    hello_svg_append_wave_band(builder, wave_x_start, wave_x_end, wave_y, 8, 3, 1.35f, 0.14f, 0.2f, "#1ED8FF", 64, tick);
+    hello_svg_append_wave_band(builder, wave_x_start, wave_x_end, wave_y_2, 6, 2, 1.15f, 0.11f, 1.1f, "#FFD166", 68, tick);
+    hello_svg_append(builder, "</svg>");
 }
 
-static void hello_svg_build_page_frame(uint8_t page_index, char *buffer, size_t size, uint32_t tick)
+static void hello_svg_build_page_frame(uint8_t page_index, hello_svg_builder_t *builder, uint32_t tick)
 {
     switch (page_index)
     {
     case 0:
-        hello_svg_build_pulse_frame(buffer, size, tick);
+        hello_svg_build_pulse_frame(builder, tick);
         break;
     case 1:
-        hello_svg_build_tunnel_frame(buffer, size, tick);
+        hello_svg_build_tunnel_frame(builder, tick);
         break;
     case 2:
     default:
-        hello_svg_build_orbit_frame(buffer, size, tick);
+        hello_svg_build_orbit_frame(builder, tick);
         break;
     }
 }
 
+static void hello_svg_release_page_buffer(uint8_t page_index)
+{
+    if (page_index >= HELLO_SVG_PAGE_COUNT || svg_buffers[page_index].data == NULL)
+    {
+        return;
+    }
+
+    egui_free(hello_svg_core, svg_buffers[page_index].data);
+    svg_buffers[page_index].data = NULL;
+    svg_buffers[page_index].capacity = 0;
+}
+
+static int hello_svg_ensure_page_buffer(uint8_t page_index, size_t required_capacity)
+{
+    char *data;
+
+    if (page_index >= HELLO_SVG_PAGE_COUNT || required_capacity == 0U || required_capacity > (size_t)INT_MAX)
+    {
+        return 0;
+    }
+    if (svg_buffers[page_index].data != NULL && svg_buffers[page_index].capacity >= required_capacity)
+    {
+        return 1;
+    }
+
+    egui_image_svg_deinit(&pages[page_index].svg);
+    hello_svg_release_page_buffer(page_index);
+
+    data = (char *)egui_malloc(hello_svg_core, (int)required_capacity);
+    if (data == NULL)
+    {
+        return 0;
+    }
+
+    svg_buffers[page_index].data = data;
+    svg_buffers[page_index].capacity = required_capacity;
+    return 1;
+}
+
 static void hello_svg_refresh_page(uint8_t page_index, uint32_t tick)
 {
+    hello_svg_builder_t builder;
+    size_t required_capacity;
+
     if (page_index >= HELLO_SVG_PAGE_COUNT)
     {
         return;
     }
 
-    hello_svg_build_page_frame(page_index, svg_buffers[page_index], svg_buffer_sizes[page_index], tick);
-    if (egui_image_svg_load_memory_borrowed(&pages[page_index].svg, svg_buffers[page_index]))
+    hello_svg_builder_init(&builder, NULL, 0);
+    hello_svg_build_page_frame(page_index, &builder, tick);
+    if (builder.required >= (size_t)INT_MAX)
+    {
+        return;
+    }
+
+    required_capacity = builder.required + 1U;
+    if (!hello_svg_ensure_page_buffer(page_index, required_capacity))
+    {
+        return;
+    }
+
+    egui_image_svg_deinit(&pages[page_index].svg);
+    hello_svg_builder_init(&builder, svg_buffers[page_index].data, svg_buffers[page_index].capacity);
+    hello_svg_build_page_frame(page_index, &builder, tick);
+    if (builder.required + 1U > svg_buffers[page_index].capacity)
+    {
+        return;
+    }
+
+    if (egui_image_svg_load_memory_borrowed(&pages[page_index].svg, svg_buffers[page_index].data))
     {
         egui_view_invalidate(EGUI_VIEW_OF(&pages[page_index].image));
     }
@@ -591,6 +661,7 @@ static void hello_svg_refresh_visible_pages(uint32_t tick)
         if (page_index < start || page_index > end)
         {
             egui_image_svg_deinit(&pages[page_index].svg);
+            hello_svg_release_page_buffer((uint8_t)page_index);
         }
     }
 
@@ -666,6 +737,7 @@ static void hello_svg_init_ui(egui_core_t *core)
 {
     uint8_t page_index;
 
+    hello_svg_core = core;
     egui_view_group_init_with_params(EGUI_VIEW_OF(&root), core, &root_params);
     egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), core, &viewpage_params);
     egui_view_viewpage_set_on_page_changed(EGUI_VIEW_OF(&viewpage), hello_svg_on_page_changed);
