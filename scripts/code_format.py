@@ -1,7 +1,7 @@
+import argparse
 import os
-import subprocess
-import re
 import sys
+import subprocess
 
 def format_all_file(root):
     for root, dirs, files in os.walk(root):
@@ -46,11 +46,28 @@ def format_all_file(root):
                 #print("root: %s, path: %s" % (root, full_path))
                 print(full_path)
                 
-                command = 'clang-format -style=file -i %s' % full_path
+                command = ['clang-format', '-style=file', '-i', full_path]
                 #print(command)
-                proc = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
+                proc = subprocess.run(command, stdout=subprocess.PIPE)
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(
+        description='Format C/C++ source files with clang-format.',
+    )
+    parser.add_argument(
+        'root',
+        nargs='?',
+        default='.',
+        help='Root directory to scan. Defaults to the current directory.',
+    )
+    return parser.parse_args(argv)
+
+def main(argv=None):
+    args = parse_args(sys.argv[1:] if argv is None else argv)
+    format_all_file(args.root)
+    return 0
 
 if __name__ == '__main__':
-    format_all_file('.')
+    sys.exit(main())
 
     #proc = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
