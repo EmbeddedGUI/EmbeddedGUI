@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view.h"
+#include "widget/egui_view_group.h"
 #include "core/egui_core.h"
 #include "core/egui_core_internal.h"
 #include "core/egui_api.h"
@@ -22,6 +23,8 @@
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 #include "core/egui_focus.h"
 #endif
+
+static void egui_view_invalidate_visible_tree_internal(egui_view_t *self);
 
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
 static void egui_view_log_dirty_source(const char *kind, egui_view_t *self, const egui_region_t *region)
@@ -99,6 +102,20 @@ static void egui_view_invalidate_full_region(egui_view_t *self)
 void egui_view_invalidate_full(egui_view_t *self)
 {
     egui_view_invalidate_full_region(self);
+}
+
+static void egui_view_invalidate_visual_region(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    if (self->is_dirty_passthrough)
+    {
+        egui_view_invalidate_visible_tree_internal(self);
+    }
+    else
+#endif
+    {
+        egui_view_invalidate(self);
+    }
 }
 
 void egui_view_invalidate(egui_view_t *self)
@@ -440,12 +457,26 @@ void egui_view_invalidate_sub_region(egui_view_t *self, const egui_sub_region_ta
 
 void egui_view_set_background(egui_view_t *self, egui_background_t *background)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    egui_background_t *old_background = self->background;
+#endif
+
     if (background == self->background)
     {
         return;
     }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    if (self->is_dirty_passthrough && old_background != NULL && background == NULL)
+    {
+        egui_view_invalidate_full_region(self);
+        self->background = background;
+        return;
+    }
+#endif
+
     self->background = background;
-    egui_view_invalidate(self);
+    egui_view_invalidate_visual_region(self);
 }
 
 void egui_view_draw_background(egui_view_t *self)
@@ -467,7 +498,7 @@ void egui_view_set_alpha(egui_view_t *self, egui_alpha_t alpha)
     {
         self->alpha = alpha;
 
-        egui_view_invalidate(self);
+        egui_view_invalidate_visual_region(self);
     }
 }
 
@@ -494,10 +525,92 @@ void egui_view_get_raw_pos(egui_view_t *self, egui_location_t *location)
     }
 }
 
+static void egui_view_clip_to_visible_ancestors(egui_view_t *self, egui_region_t *clip)
+{
+    egui_view_t *p_clip = (egui_view_t *)self->parent;
+
+    while (p_clip != NULL && !egui_region_is_empty(clip))
+    {
+        egui_region_intersect(clip, &p_clip->region_screen, clip);
+        p_clip = (egui_view_t *)p_clip->parent;
+    }
+}
+
+static void egui_view_invalidate_visible_self_region(egui_view_t *self)
+{
+    egui_region_t dirty_clip;
+
+    if (self == NULL || !egui_view_is_visible(self) || self->is_gone)
+    {
+        return;
+    }
+
+    egui_region_copy(&dirty_clip, &self->region_screen);
+    egui_view_clip_to_visible_ancestors(self, &dirty_clip);
+    if (!egui_region_is_empty(&dirty_clip))
+    {
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+        egui_view_log_dirty_source("visible_tree", self, &dirty_clip);
+#endif
+        egui_view_update_region_dirty(self, &dirty_clip);
+    }
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+static int egui_view_is_dirty_passthrough_group(egui_view_t *self)
+{
+    return self != NULL && self->is_dirty_passthrough && self->api->calculate_layout == egui_view_group_calculate_layout;
+}
+#endif
+
+static void egui_view_invalidate_visible_tree_internal(egui_view_t *self)
+{
+    if (self == NULL || !egui_view_is_visible(self) || self->is_gone)
+    {
+        return;
+    }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    if (egui_view_is_dirty_passthrough_group(self) && self->background == NULL)
+    {
+        egui_view_group_t *group = (egui_view_group_t *)self;
+        egui_dnode_t *p_head;
+
+        if (!egui_dlist_is_empty(&group->childs))
+        {
+            EGUI_DLIST_FOR_EACH_NODE(&group->childs, p_head)
+            {
+                egui_view_t *child = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+                egui_view_invalidate_visible_tree_internal(child);
+            }
+        }
+        return;
+    }
+#endif
+
+    egui_view_invalidate_visible_self_region(self);
+}
+
+void egui_view_invalidate_visible_tree(egui_view_t *self)
+{
+    egui_view_invalidate_visible_tree_internal(self);
+}
+
 void egui_view_layout(egui_view_t *self, egui_region_t *region)
 {
-    // update dirty region
-    egui_view_update_region_dirty(self, &self->region_screen);
+    /* The view's old region_screen may extend outside the visible viewport
+     * (e.g. a scrolled container with negative top). Clip it against every
+     * ancestor's region_screen before marking dirty so the dirty area stays
+     * bounded by the actual viewport instead of inflating to full screen. */
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    if (!self->is_dirty_passthrough)
+#endif
+    {
+        egui_region_t dirty_clip;
+        egui_region_copy(&dirty_clip, &self->region_screen);
+        egui_view_clip_to_visible_ancestors(self, &dirty_clip);
+        egui_view_update_region_dirty(self, &dirty_clip);
+    }
 
     // update region
     egui_region_copy(&self->region, region);
@@ -661,17 +774,37 @@ void egui_view_set_visible(egui_view_t *self, int is_visible)
         return;
     }
     // avoid self change to invisible.
-    egui_view_invalidate(self);
+    egui_view_invalidate_visual_region(self);
 
     self->is_visible = is_visible;
 
     // avoid self change to invisible.
-    egui_view_invalidate(self);
+    egui_view_invalidate_visual_region(self);
 }
 
 int egui_view_get_visible(egui_view_t *self)
 {
     return self->is_visible;
+}
+
+void egui_view_set_dirty_passthrough(egui_view_t *self, int on)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    self->is_dirty_passthrough = on ? 1 : 0;
+#else
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(on);
+#endif
+}
+
+int egui_view_get_dirty_passthrough(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    return self->is_dirty_passthrough;
+#else
+    EGUI_UNUSED(self);
+    return 0;
+#endif
 }
 
 void egui_view_set_gone(egui_view_t *self, int is_gone)
@@ -752,7 +885,7 @@ void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow)
     }
 
     self->shadow = shadow;
-    egui_view_invalidate(self);
+    egui_view_invalidate_visual_region(self);
 #else
     EGUI_UNUSED(self);
     EGUI_UNUSED(shadow);
@@ -1007,60 +1140,305 @@ void egui_view_compute_scroll(egui_view_t *self)
     // work in child process.
 }
 
-void egui_view_calculate_layout(egui_view_t *self)
+/* Recompute self->region_screen from parent layout without emitting dirty. */
+static void egui_view_recompute_region_screen_silent(egui_view_t *self)
 {
-    // recaculate layout raw pos
-    if (self->is_request_layout)
+    egui_region_t *p_raw_region = &self->region_screen;
+    egui_view_t *p_parent = (egui_view_t *)self->parent;
+
+    if (p_parent)
     {
-        self->is_request_layout = false;
-
-        egui_region_t *p_raw_region = &self->region_screen;
-        egui_view_t *p_parent = (egui_view_t *)self->parent;
-        // get parent raw pos, the parent raw pos is already calculated.
-        if (p_parent)
-        {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
-            egui_region_intersect_with_size(&self->region, p_parent->region_screen.size.width - (p_parent->padding.left + p_parent->padding.right),
-                                            p_parent->region_screen.size.height - (p_parent->padding.top + p_parent->padding.bottom), p_raw_region);
-            p_raw_region->location.x += p_parent->region_screen.location.x + p_parent->padding.left;
-            p_raw_region->location.y += p_parent->region_screen.location.y + p_parent->padding.top;
+        egui_region_intersect_with_size(&self->region, p_parent->region_screen.size.width - (p_parent->padding.left + p_parent->padding.right),
+                                        p_parent->region_screen.size.height - (p_parent->padding.top + p_parent->padding.bottom), p_raw_region);
+        p_raw_region->location.x += p_parent->region_screen.location.x + p_parent->padding.left;
+        p_raw_region->location.y += p_parent->region_screen.location.y + p_parent->padding.top;
 #else
-            egui_region_intersect_with_size(&self->region, p_parent->region_screen.size.width, p_parent->region_screen.size.height, p_raw_region);
-            p_raw_region->location.x += p_parent->region_screen.location.x;
-            p_raw_region->location.y += p_parent->region_screen.location.y;
+        egui_region_intersect_with_size(&self->region, p_parent->region_screen.size.width, p_parent->region_screen.size.height, p_raw_region);
+        p_raw_region->location.x += p_parent->region_screen.location.x;
+        p_raw_region->location.y += p_parent->region_screen.location.y;
 #endif
+    }
+    else
+    {
+        egui_region_copy(p_raw_region, &self->region);
+    }
+}
 
-            // EGUI_LOG_DBG("id: 0x%x\n", self->id);
-            // EGUI_LOG_DBG("parent, raw_region: %d %d %d %d\n", p_parent->region_screen.location.x, p_parent->region_screen.location.y,
-            // p_parent->region_screen.size.width, p_parent->region_screen.size.height); EGUI_LOG_DBG("self, region: %d %d %d %d\n", self->region.location.x,
-            // self->region.location.y, self->region.size.width, self->region.size.height); EGUI_LOG_DBG("self, raw_region: %d %d %d %d\n",
-            // p_raw_region->location.x, p_raw_region->location.y, p_raw_region->size.width, p_raw_region->size.height);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+static void egui_view_recompute_subtree_silent(egui_view_t *self)
+{
+    egui_view_recompute_region_screen_silent(self);
+    self->is_request_layout = false;
+
+    if (self->api->calculate_layout == egui_view_group_calculate_layout)
+    {
+        egui_view_group_t *group = (egui_view_group_t *)self;
+        egui_dnode_t *p_head;
+
+        if (!egui_dlist_is_empty(&group->childs))
+        {
+            EGUI_DLIST_FOR_EACH_NODE(&group->childs, p_head)
+            {
+                egui_view_t *child = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+                egui_view_recompute_subtree_silent(child);
+            }
+        }
+    }
+}
+
+static void egui_view_recompute_children_silent(egui_view_t *self)
+{
+    if (self->api->calculate_layout == egui_view_group_calculate_layout)
+    {
+        egui_view_group_t *group = (egui_view_group_t *)self;
+        egui_dnode_t *p_head;
+
+        if (!egui_dlist_is_empty(&group->childs))
+        {
+            EGUI_DLIST_FOR_EACH_NODE(&group->childs, p_head)
+            {
+                egui_view_t *child = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+                egui_view_recompute_subtree_silent(child);
+            }
+        }
+    }
+}
+
+static void egui_view_request_children_layout(egui_view_t *self)
+{
+    egui_view_group_t *group = (egui_view_group_t *)self;
+    egui_dnode_t *p_head;
+
+    if (!egui_dlist_is_empty(&group->childs))
+    {
+        EGUI_DLIST_FOR_EACH_NODE(&group->childs, p_head)
+        {
+            egui_view_t *child = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+            child->api->request_layout(child);
+        }
+    }
+}
+
+static void egui_view_emit_swept_region(egui_view_t *self, const egui_region_t *old_rs, const egui_region_t *new_rs, const egui_region_t *clip,
+                                        const char *kind)
+{
+    egui_region_t swept;
+    egui_region_t clipped;
+    egui_dim_t x0;
+    egui_dim_t y0;
+    egui_dim_t x1_old;
+    egui_dim_t x1_new;
+    egui_dim_t y1_old;
+    egui_dim_t y1_new;
+    egui_dim_t x1;
+    egui_dim_t y1;
+
+    if (self->is_gone || !self->is_visible || clip == NULL)
+    {
+        return;
+    }
+
+    if (egui_region_is_empty((egui_region_t *)old_rs))
+    {
+        egui_region_copy(&swept, new_rs);
+    }
+    else if (egui_region_is_empty((egui_region_t *)new_rs))
+    {
+        egui_region_copy(&swept, old_rs);
+    }
+    else
+    {
+        x0 = (old_rs->location.x < new_rs->location.x) ? old_rs->location.x : new_rs->location.x;
+        y0 = (old_rs->location.y < new_rs->location.y) ? old_rs->location.y : new_rs->location.y;
+        x1_old = old_rs->location.x + old_rs->size.width;
+        x1_new = new_rs->location.x + new_rs->size.width;
+        y1_old = old_rs->location.y + old_rs->size.height;
+        y1_new = new_rs->location.y + new_rs->size.height;
+        x1 = (x1_old > x1_new) ? x1_old : x1_new;
+        y1 = (y1_old > y1_new) ? y1_old : y1_new;
+        egui_region_init(&swept, x0, y0, x1 - x0, y1 - y0);
+    }
+
+    egui_region_intersect(&swept, clip, &clipped);
+    if (!egui_region_is_empty(&clipped))
+    {
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+        egui_view_log_dirty_source(kind, self, &clipped);
+#endif
+        egui_view_update_region_dirty(self, &clipped);
+    }
+}
+
+static void egui_view_get_dirty_passthrough_self_clip(egui_view_t *self, egui_region_t *clip)
+{
+    egui_view_t *parent = (egui_view_t *)self->parent;
+    egui_core_t *core;
+
+    if (parent != NULL)
+    {
+        egui_region_copy(clip, &parent->region_screen);
+    }
+    else
+    {
+        core = egui_view_get_core(self);
+        if (core != NULL)
+        {
+            egui_region_init(clip, 0, 0, core->screen_width, core->screen_height);
         }
         else
         {
-            egui_region_copy(p_raw_region, &self->region);
-
-            // EGUI_LOG_DBG("no parent, raw_region: %d %d %d %d\n", p_raw_region->location.x, p_raw_region->location.y, p_raw_region->size.width,
-            // p_raw_region->size.height);
+            egui_region_copy(clip, &self->region_screen);
         }
-
-        // update dirty region
-#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
-        egui_view_log_dirty_source("layout", self, p_raw_region);
-#endif
-        egui_view_update_region_dirty(self, p_raw_region);
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
-        if (self->shadow != NULL)
-        {
-            egui_region_t shadow_region;
-            egui_shadow_get_region(self->shadow, p_raw_region, &shadow_region);
-#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
-            egui_view_log_dirty_source("shadow", self, &shadow_region);
-#endif
-            egui_view_update_region_dirty(self, &shadow_region);
-        }
-#endif
     }
+
+    egui_view_clip_to_visible_ancestors(self, clip);
+}
+
+static void egui_view_emit_swept_for_view(egui_view_t *self, const egui_region_t *clip)
+{
+    egui_region_t old_rs;
+    egui_region_t new_rs;
+    egui_region_t local_clip;
+
+    if (self->is_gone || !self->is_visible || clip == NULL)
+    {
+        return;
+    }
+
+    egui_region_copy(&local_clip, clip);
+    egui_view_clip_to_visible_ancestors(self, &local_clip);
+
+    egui_region_copy(&old_rs, &self->region_screen);
+    egui_view_recompute_region_screen_silent(self);
+    self->is_request_layout = false;
+    egui_region_copy(&new_rs, &self->region_screen);
+
+    if (self->is_dirty_passthrough && self->api->calculate_layout == egui_view_group_calculate_layout)
+    {
+        egui_view_group_t *group = (egui_view_group_t *)self;
+        egui_dnode_t *p_head;
+
+        if (self->background != NULL)
+        {
+            egui_view_recompute_children_silent(self);
+            egui_view_emit_swept_region(self, &old_rs, &new_rs, &local_clip, "dirty_passthrough_self");
+            return;
+        }
+
+        if (!egui_dlist_is_empty(&group->childs))
+        {
+            EGUI_DLIST_FOR_EACH_NODE(&group->childs, p_head)
+            {
+                egui_view_t *child = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+                egui_view_emit_swept_for_view(child, &local_clip);
+            }
+        }
+        return;
+    }
+
+    egui_view_recompute_children_silent(self);
+    egui_view_emit_swept_region(self, &old_rs, &new_rs, &local_clip, "dirty_passthrough_swept");
+}
+
+static void egui_view_emit_swept_per_child(egui_view_t *self, egui_dim_t dx, egui_dim_t dy)
+{
+    egui_view_group_t *group = (egui_view_group_t *)self;
+    egui_dnode_t *p_head;
+    egui_region_t clip;
+
+    egui_region_copy(&clip, &self->region_screen);
+    egui_view_clip_to_visible_ancestors(self, &clip);
+
+    if (!egui_dlist_is_empty(&group->childs))
+    {
+        EGUI_DLIST_FOR_EACH_NODE(&group->childs, p_head)
+        {
+            egui_view_t *child = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+            egui_view_emit_swept_for_view(child, &clip);
+        }
+    }
+
+    EGUI_UNUSED(dx);
+    EGUI_UNUSED(dy);
+}
+#endif
+
+void egui_view_calculate_layout(egui_view_t *self)
+{
+    if (!self->is_request_layout)
+    {
+        return;
+    }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    if (self->is_dirty_passthrough)
+    {
+        egui_region_t prev;
+        egui_region_t now;
+        egui_region_t self_clip;
+        int prev_empty;
+        int bounds_changed;
+        egui_dim_t dx;
+        egui_dim_t dy;
+
+        egui_region_copy(&prev, &self->region_screen);
+        self->is_request_layout = false;
+        egui_view_recompute_region_screen_silent(self);
+        egui_region_copy(&now, &self->region_screen);
+
+        prev_empty = egui_region_is_empty(&prev);
+        bounds_changed = prev_empty || !egui_region_equal(&prev, &now);
+        dx = now.location.x - prev.location.x;
+        dy = now.location.y - prev.location.y;
+
+        if (self->background != NULL && bounds_changed)
+        {
+            egui_view_get_dirty_passthrough_self_clip(self, &self_clip);
+            egui_view_emit_swept_region(self, &prev, &now, &self_clip, "dirty_passthrough_self");
+            egui_view_recompute_children_silent(self);
+        }
+        else if (!prev_empty && (dx != 0 || dy != 0))
+        {
+            egui_view_emit_swept_per_child(self, dx, dy);
+        }
+        else
+        {
+            egui_view_request_children_layout(self);
+        }
+
+        return;
+    }
+#endif
+
+    self->is_request_layout = false;
+    egui_view_recompute_region_screen_silent(self);
+
+    // update dirty region
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+    egui_view_log_dirty_source("layout", self, &self->region_screen);
+#endif
+    /* Clip dirty against ancestors so scrolled children outside their viewport
+     * do not inflate the dirty area. Keep region_screen intact so descendants
+
+     * * can still compute correct draw positions. */
+    {
+        egui_region_t dirty_clip;
+        egui_region_copy(&dirty_clip, &self->region_screen);
+        egui_view_clip_to_visible_ancestors(self, &dirty_clip);
+        egui_view_update_region_dirty(self, &dirty_clip);
+    }
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    if (self->shadow != NULL)
+    {
+        egui_region_t shadow_region;
+        egui_shadow_get_region(self->shadow, &self->region_screen, &shadow_region);
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+        egui_view_log_dirty_source("shadow", self, &shadow_region);
+#endif
+        egui_view_update_region_dirty(self, &shadow_region);
+    }
+#endif
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -1200,12 +1578,17 @@ void egui_view_init(egui_view_t *self, egui_core_t *core)
     self->id = egui_core_get_unique_id(core);
 #endif
     self->parent = NULL; // set parent later
-    self->node.next = NULL;
+    egui_dnode_init(&self->node);
 
     self->region.location.x = 0;
     self->region.location.y = 0;
     self->region.size.width = 0;
     self->region.size.height = 0;
+
+    self->region_screen.location.x = 0;
+    self->region_screen.location.y = 0;
+    self->region_screen.size.width = 0;
+    self->region_screen.size.height = 0;
 
     self->padding.left = 0;
     self->padding.right = 0;
@@ -1225,6 +1608,9 @@ void egui_view_init(egui_view_t *self, egui_core_t *core)
     self->is_gone = false;
     self->is_request_layout = true;
     self->is_attached_to_window = false;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    self->is_dirty_passthrough = false;
+#endif
 
     self->background = NULL;
     self->last_dirty_epoch = UINT32_MAX;

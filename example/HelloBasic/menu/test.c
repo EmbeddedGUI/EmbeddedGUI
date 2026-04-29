@@ -93,30 +93,58 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("menu initial state mismatch");
         }
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         set_menu_item_action(p_action, 0, 320);
         return true;
     case 1:
+        EGUI_SIM_SET_WAIT(p_action, 200);
+        return true;
+    case 2:
         if (first_call && (menu_1.current_page != 1 || menu_1.stack_depth != 1))
         {
             report_runtime_failure("menu did not enter Settings page");
         }
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         set_menu_back_action(p_action, 320);
         return true;
-    case 2:
+    case 3:
+        EGUI_SIM_SET_WAIT(p_action, 200);
+        return true;
+    case 4:
         if (first_call && (menu_1.current_page != 0 || menu_1.stack_depth != 0))
         {
             report_runtime_failure("menu did not return to Main page");
         }
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         set_menu_item_action(p_action, 1, 320);
         return true;
-    case 3:
+    case 5:
+        EGUI_SIM_SET_WAIT(p_action, 200);
+        return true;
+    case 6:
         if (first_call && (menu_1.current_page != 2 || menu_1.stack_depth != 1))
         {
             report_runtime_failure("menu did not enter About page");
         }
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         set_menu_back_action(p_action, 320);
         return true;
-    case 4:
+    case 7:
+        EGUI_SIM_SET_WAIT(p_action, 200);
+        return true;
+    case 8:
         if (first_call)
         {
             if (menu_1.current_page != 0 || menu_1.stack_depth != 0)

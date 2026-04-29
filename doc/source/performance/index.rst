@@ -14,3 +14,5 @@
    low_ram_config_macros
    dirty_region_interfaces
    dirty_region_tuning
+   dirty_passthrough_container
+   is_dirty_passthrough

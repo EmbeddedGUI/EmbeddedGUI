@@ -1,6 +1,14 @@
 #ifndef _APP_EGUI_CONFIG_H_
 #define _APP_EGUI_CONFIG_H_
 
+#ifndef EGUI_CONFIG_DIRTY_AREA_COUNT
+#define EGUI_CONFIG_DIRTY_AREA_COUNT 16
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+#define EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH 1
+#endif
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
@@ -12,6 +20,22 @@ extern "C" {
 #define EGUI_CONFIG_SCREEN_HEIGHT          320
 #define EGUI_CONFIG_PFB_WIDTH              40
 #define EGUI_CONFIG_PFB_HEIGHT             40
+
+#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+#define EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH 1
+#endif
+
+#ifndef EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR
+#define EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR 0
+#endif
+
+#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+#define EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS 1
+#endif
+
+#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+#define EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE 1
+#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

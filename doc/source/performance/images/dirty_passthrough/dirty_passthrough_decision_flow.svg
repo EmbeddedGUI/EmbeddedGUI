@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520" overflow="visible">
+  <defs>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title { font: 700 28px Arial, sans-serif; fill: #172033; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 10; }
+      .decision { fill: #eff6ff; stroke: #2563eb; stroke-width: 2; }
+      .self { fill: #fff1f2; stroke: #e11d48; stroke-width: 2; }
+      .child { fill: #ecfdf5; stroke: #10b981; stroke-width: 2; }
+      .text { font: 16px Arial, sans-serif; fill: #243044; }
+      .small { font: 13px Arial, sans-serif; fill: #526173; }
+      .line { stroke: #475569; stroke-width: 2; marker-end: url(#arrow); fill: none; }
+      .note { fill: #f8fafc; stroke: #d8dee9; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="520" fill="#ffffff"/>
+  <text class="title" x="40" y="48">dirty_passthrough decision flow</text>
+
+  <rect class="box" x="56" y="96" width="190" height="72" rx="10"/>
+  <text class="text" x="86" y="126">Layout changed</text>
+  <text class="small" x="86" y="148">position, size, page move</text>
+
+  <path class="line" d="M 246 132 L 316 132"/>
+
+  <path class="decision" d="M 410 82 L 504 132 L 410 182 L 316 132 Z"/>
+  <text class="text" x="361" y="125">Draws own</text>
+  <text class="text" x="375" y="146">pixels?</text>
+
+  <path class="line" d="M 504 132 L 586 132"/>
+  <text class="small" x="530" y="116">yes</text>
+  <rect class="self" x="586" y="96" width="176" height="72" rx="10"/>
+  <text class="text" x="626" y="126">Self dirty</text>
+  <text class="small" x="612" y="148">background, border, shadow</text>
+
+  <path class="line" d="M 410 182 L 410 244"/>
+  <text class="small" x="424" y="218">no</text>
+
+  <path class="decision" d="M 410 244 L 514 300 L 410 356 L 306 300 Z"/>
+  <text class="text" x="350" y="294">is_dirty_passthrough</text>
+  <text class="text" x="383" y="316">enabled?</text>
+
+  <path class="line" d="M 306 300 L 192 300 L 192 188"/>
+  <text class="small" x="220" y="284">no</text>
+  <path class="line" d="M 514 300 L 590 300"/>
+  <text class="small" x="538" y="284">yes</text>
+
+  <rect class="child" x="590" y="264" width="180" height="72" rx="10"/>
+  <text class="text" x="620" y="294">Child sweeps</text>
+  <text class="small" x="617" y="316">old and new child bounds</text>
+
+  <path class="line" d="M 770 300 L 840 300"/>
+  <rect class="box" x="840" y="264" width="120" height="72" rx="10"/>
+  <text class="text" x="876" y="294">Clip</text>
+  <text class="small" x="858" y="316">visible parent</text>
+
+  <path class="line" d="M 674 168 L 674 230 L 900 230 L 900 264"/>
+  <path class="line" d="M 900 336 L 900 398"/>
+
+  <rect class="box" x="790" y="398" width="170" height="72" rx="10"/>
+  <text class="text" x="822" y="428">Merge dirty list</text>
+  <text class="small" x="824" y="450">then redraw PFB tiles</text>
+
+  <rect class="note" x="56" y="398" width="620" height="72" rx="8"/>
+  <text class="text" x="78" y="426">Rule of thumb</text>
+  <text class="small" x="78" y="448">Enable it only for structural containers. If the container paints pixels, keep self dirty for correctness.</text>
+</svg>

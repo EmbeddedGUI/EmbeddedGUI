@@ -64,6 +64,9 @@ APP_SUB ?= button
 # APP_SUB ?= window
 # APP_SUB ?= menu
 # APP_SUB ?= enhanced_widgets
+# APP_SUB ?= dirty_passthrough_container
+# APP_SUB ?= dirty_passthrough_page
+# APP_SUB ?= dirty_passthrough_activity
 
 EGUI_APP_SUB_PATH := $(EGUI_APP_PATH)/$(APP_SUB)
 

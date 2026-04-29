@@ -40,6 +40,27 @@ static egui_core_t *test_list_view_get_core(void)
     return core;
 }
 
+static int list_view_dirty_count(void)
+{
+    egui_region_t *arr = egui_core_get_region_dirty_arr(test_list_view_get_core());
+    int count = 0;
+
+    if (arr == NULL)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    {
+        if (!egui_region_is_empty(&arr[i]))
+        {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 static int find_holder_index(const egui_view_list_view_holder_t *holder)
 {
     uint8_t i;
@@ -267,9 +288,25 @@ static void test_list_view_resize_helpers_bridge_virtual_list(void)
     EGUI_TEST_ASSERT_EQUAL_INT(before_y + 8, egui_view_list_view_get_item_y(EGUI_VIEW_OF(&test_list_view), 4));
 }
 
+static void test_list_view_idle_layout_does_not_emit_dirty(void)
+{
+    uint16_t bind_count;
+
+    setup_list_view();
+    bind_count = test_context.bind_count;
+    egui_core_clear_region_dirty(test_list_view_get_core());
+
+    EGUI_VIEW_OF(&test_list_view)->api->calculate_layout(EGUI_VIEW_OF(&test_list_view));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_context.bind_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, list_view_dirty_count());
+}
+
 void test_list_view_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(list_view);
     EGUI_TEST_RUN(test_list_view_bridge_and_lookup_helpers);
     EGUI_TEST_RUN(test_list_view_resize_helpers_bridge_virtual_list);
+    EGUI_TEST_RUN(test_list_view_idle_layout_does_not_emit_dirty);
+    EGUI_TEST_SUITE_END();
 }

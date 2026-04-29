@@ -356,6 +356,16 @@ extern "C" {
 
 /**
  * Function options.
+ * Enable dirty passthrough support for structural containers. if 0,
+ * egui_view_set_dirty_passthrough() is a no-op and normal container dirty
+ * regions are used.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+#define EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH 0
+#endif
+
+/**
+ * Function options.
  * Select support scrollbar indicator for scrollable views. if 0, disable scrollbar.
  */
 #ifndef EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR

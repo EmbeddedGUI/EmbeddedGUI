@@ -328,8 +328,6 @@ void egui_core_dirty_region_stats_count_tile(egui_core_t *core, const egui_regio
 void egui_core_dirty_region_stats_end_frame(egui_core_t *core)
 {
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
-    int i;
-
     egui_dirty_region_stats.is_collecting_frame = 0;
     egui_dirty_region_stats.frame_count++;
     egui_dirty_region_stats.total_dirty_area += egui_dirty_region_stats.current_dirty_area;
@@ -343,6 +341,8 @@ void egui_core_dirty_region_stats_end_frame(egui_core_t *core)
                  (unsigned long long)egui_dirty_region_stats.total_dirty_area, (unsigned long long)egui_dirty_region_stats.total_tile_count);
 
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL
+    int i;
+
     for (i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {
         egui_region_t *p_region_dirty = &core->scene.region_dirty_arr[i];

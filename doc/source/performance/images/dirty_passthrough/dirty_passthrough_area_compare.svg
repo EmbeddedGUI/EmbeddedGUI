@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" overflow="visible">
+  <defs>
+    <style>
+      .title { font: 700 28px Arial, sans-serif; fill: #172033; }
+      .panel-title { font: 700 20px Arial, sans-serif; fill: #172033; }
+      .label { font: 15px Arial, sans-serif; fill: #354052; }
+      .small { font: 13px Arial, sans-serif; fill: #56657a; }
+      .container { fill: #f8fafc; stroke: #8291a8; stroke-width: 2; }
+      .child-a { fill: #2563eb; }
+      .child-b { fill: #14b8a6; }
+      .child-c { fill: #f59e0b; }
+      .dirty-full { fill: #ef4444; opacity: 0.16; stroke: #dc2626; stroke-width: 4; }
+      .dirty-child { fill: #22c55e; opacity: 0.18; stroke: #16a34a; stroke-width: 4; }
+      .gap { fill: none; stroke: #94a3b8; stroke-width: 2; stroke-dasharray: 8 8; }
+      .caption-bg { fill: #ffffff; stroke: #d8dee9; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="560" fill="#ffffff"/>
+  <text class="title" x="40" y="48">dirty_passthrough reduces the dirty area of structural containers</text>
+
+  <g transform="translate(40 82)">
+    <rect x="0" y="0" width="430" height="420" rx="10" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+    <text class="panel-title" x="24" y="38">Default container dirty</text>
+    <text class="small" x="24" y="62">Layout change marks the whole container.</text>
+
+    <rect class="dirty-full" x="66" y="92" width="300" height="230" rx="8"/>
+    <rect class="container" x="78" y="104" width="276" height="206" rx="6"/>
+
+    <rect class="child-a" x="105" y="130" width="140" height="38" rx="4"/>
+    <text x="126" y="154" font-family="Arial, sans-serif" font-size="15" fill="#ffffff">Child A</text>
+
+    <rect class="child-b" x="172" y="218" width="130" height="38" rx="4"/>
+    <text x="194" y="242" font-family="Arial, sans-serif" font-size="15" fill="#ffffff">Child B</text>
+
+    <rect class="gap" x="108" y="176" width="210" height="34" rx="4"/>
+    <text class="small" x="132" y="198">empty gap repainted</text>
+
+    <rect class="caption-bg" x="24" y="348" width="382" height="46" rx="6"/>
+    <text class="label" x="42" y="376">Dirty region follows container bounds, even when most pixels are empty.</text>
+  </g>
+
+  <g transform="translate(530 82)">
+    <rect x="0" y="0" width="430" height="420" rx="10" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+    <text class="panel-title" x="24" y="38">dirty_passthrough enabled</text>
+    <text class="small" x="24" y="62">Layout dirty is emitted by children.</text>
+
+    <rect class="container" x="78" y="104" width="276" height="206" rx="6"/>
+
+    <rect class="dirty-child" x="96" y="121" width="158" height="56" rx="8"/>
+    <rect class="child-a" x="105" y="130" width="140" height="38" rx="4"/>
+    <text x="126" y="154" font-family="Arial, sans-serif" font-size="15" fill="#ffffff">Child A</text>
+
+    <rect class="dirty-child" x="163" y="209" width="148" height="56" rx="8"/>
+    <rect class="child-b" x="172" y="218" width="130" height="38" rx="4"/>
+    <text x="194" y="242" font-family="Arial, sans-serif" font-size="15" fill="#ffffff">Child B</text>
+
+    <rect class="gap" x="108" y="176" width="210" height="34" rx="4"/>
+    <text class="small" x="139" y="198">gap stays clean</text>
+
+    <rect class="caption-bg" x="24" y="348" width="382" height="46" rx="6"/>
+    <text class="label" x="42" y="376">Dirty region follows visible child sweeps, reducing PFB tiles and draw work.</text>
+  </g>
+</svg>

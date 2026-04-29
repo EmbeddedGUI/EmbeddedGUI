@@ -1,7 +1,7 @@
 # Performance Report
 
-- Commit: `19e728f2`
-- Date: 2026-04-26T18:32:28.644686
+- Commit: `249c22b0`
+- Date: 2026-04-29T17:13:29.621569
 - Profile: cortex-m3
 
 ![Performance Chart](images/perf_report.png)
@@ -33,8 +33,8 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| IMAGE_565 | 0.248 |
-| IMAGE_565_8 | 0.513 |
+| IMAGE_565 | 0.249 |
+| IMAGE_565_8 | 0.512 |
 
 ## Image Color Tint
 
@@ -50,23 +50,23 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT | 3.013 |
 | EXTERN_IMAGE_RLE_565_8 | 2.263 |
 | EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT | 2.477 |
-| IMAGE_QOI_565_8 | 2.143 |
+| IMAGE_QOI_565_8 | 2.144 |
 | IMAGE_RLE_565_8 | 1.411 |
-| MASK_IMAGE_QOI_8_ROUND_RECT | 2.355 |
+| MASK_IMAGE_QOI_8_ROUND_RECT | 2.356 |
 | MASK_IMAGE_RLE_8_ROUND_RECT | 1.624 |
 
 ## Gradient
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| GRADIENT_RECT | 0.400 |
+| GRADIENT_RECT | 0.399 |
 
 ## Mask
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| MASK_RECT_FILL_ROUND_RECT | 0.327 |
-| MASK_IMAGE_IMAGE | 0.305 |
+| MASK_RECT_FILL_ROUND_RECT | 0.326 |
+| MASK_IMAGE_IMAGE | 0.306 |
 
 ## Widgets
 
@@ -75,11 +75,11 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | CHART_LINE_DENSE | 1.220 |
 | CHART_BAR_DENSE | 0.777 |
 | CHART_SCATTER_DENSE | 1.068 |
-| CHART_PIE_DENSE | 2.325 |
+| CHART_PIE_DENSE | 2.324 |
 
 ## Animation
 
 | Test Case | Time (ms) |
 |-----------|-----------|
 | ANIMATION_TRANSLATE | 0.138 |
-| ANIMATION_SCALE | 0.146 |
+| ANIMATION_SCALE | 0.145 |

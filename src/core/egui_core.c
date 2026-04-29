@@ -95,8 +95,13 @@ void egui_core_add_user_root_view(egui_view_t *view)
 /** Remove a child from the user root and dirty the scene so the gap is repainted. */
 void egui_core_remove_user_root_view(egui_core_t *core, egui_view_t *view)
 {
+    if (core == NULL || view == NULL)
+    {
+        return;
+    }
+
+    egui_view_invalidate_visible_tree(view);
     egui_view_group_remove_child(EGUI_CORE_USER_ROOT_VIEW_PTR(core), view);
-    egui_core_update_region_dirty_all(core);
 }
 
 /** Run the generic group-layout helper on the user root container. */

@@ -106,6 +106,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         set_matrix_cell_click_by_index(p_action, 1U, 1200);
         return true;
     case 1:
+        EGUI_SIM_SET_WAIT(p_action, 200);
+        return true;
+    case 2:
         if (first_call)
         {
             if (egui_view_button_matrix_get_selected_index(EGUI_VIEW_OF(&btn_matrix)) != 1 || last_clicked_index != 1)
@@ -115,7 +118,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         set_matrix_cell_click_by_index(p_action, 4U, 1200);
         return true;
-    case 2:
+    case 3:
+        EGUI_SIM_SET_WAIT(p_action, 200);
+        return true;
+    case 4:
         if (first_call)
         {
             if (egui_view_button_matrix_get_selected_index(EGUI_VIEW_OF(&btn_matrix)) != 4 || last_clicked_index != 4)
@@ -125,7 +131,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         set_matrix_cell_click_by_index(p_action, 8U, 1200);
         return true;
-    case 3:
+    case 5:
+        EGUI_SIM_SET_WAIT(p_action, 200);
+        return true;
+    case 6:
         if (first_call)
         {
             if (egui_view_button_matrix_get_selected_index(EGUI_VIEW_OF(&btn_matrix)) != 8 || last_clicked_index != 8)

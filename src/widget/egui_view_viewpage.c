@@ -621,6 +621,9 @@ void egui_view_viewpage_init(egui_view_t *self, egui_core_t *core)
     egui_view_linearlayout_set_orientation((egui_view_t *)&local->container, 1);
     egui_view_group_add_child(self, (egui_view_t *)&local->container);
 
+    egui_view_set_dirty_passthrough(self, 1);
+    egui_view_set_dirty_passthrough((egui_view_t *)&local->container, 1);
+
     egui_scroller_init(&local->scroller, core);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR

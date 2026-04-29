@@ -6,6 +6,119 @@
 #include "font/egui_font.h"
 #include "core/egui_input.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+static int egui_view_scroll_get_scrollbar_thumb_region(egui_view_t *self, egui_region_t *thumb_region)
+{
+    EGUI_LOCAL_INIT(egui_view_scroll_t);
+    egui_view_t *container = (egui_view_t *)&local->container;
+    egui_dim_t content_height = container->region.size.height;
+    egui_dim_t view_height = self->region.size.height;
+    egui_dim_t scroll_offset;
+    egui_dim_t max_scroll;
+    egui_dim_t margin;
+    egui_dim_t track_length;
+    egui_dim_t thumb_length;
+    egui_dim_t thumb_travel;
+    egui_dim_t thumb_y = 0;
+    egui_dim_t bar_x;
+    egui_dim_t bar_y;
+
+    if (thumb_region == NULL || !local->is_scrollbar_enabled || !self->is_visible || self->is_gone)
+    {
+        return 0;
+    }
+
+    if (content_height <= view_height || content_height == 0 || view_height == 0)
+    {
+        return 0;
+    }
+
+    scroll_offset = -container->region.location.y;
+    if (scroll_offset < 0)
+    {
+        scroll_offset = 0;
+    }
+    max_scroll = content_height - view_height;
+    if (scroll_offset > max_scroll)
+    {
+        scroll_offset = max_scroll;
+    }
+
+    margin = EGUI_THEME_SCROLLBAR_MARGIN;
+    track_length = view_height - 2 * margin;
+    if (track_length <= 0)
+    {
+        return 0;
+    }
+
+    thumb_length = (egui_dim_t)(((int32_t)track_length * view_height) / content_height);
+    if (thumb_length < EGUI_THEME_SCROLLBAR_MIN_LENGTH)
+    {
+        thumb_length = EGUI_THEME_SCROLLBAR_MIN_LENGTH;
+    }
+    if (thumb_length > track_length)
+    {
+        thumb_length = track_length;
+    }
+
+    thumb_travel = track_length - thumb_length;
+    if (max_scroll > 0 && thumb_travel > 0)
+    {
+        thumb_y = (egui_dim_t)(((int32_t)scroll_offset * thumb_travel) / max_scroll);
+        if (thumb_y > thumb_travel)
+        {
+            thumb_y = thumb_travel;
+        }
+    }
+
+    bar_x = self->region.size.width - EGUI_THEME_SCROLLBAR_THICKNESS - margin;
+    bar_y = margin + thumb_y;
+    egui_region_init(thumb_region, bar_x, bar_y, EGUI_THEME_SCROLLBAR_THICKNESS, thumb_length);
+
+    return !egui_region_is_empty(thumb_region);
+}
+
+static void egui_view_scroll_invalidate_scrollbar_thumb_swept(egui_view_t *self, const egui_region_t *old_thumb)
+{
+    egui_region_t new_thumb;
+    egui_region_t dirty_region;
+    int has_old = old_thumb != NULL && !egui_region_is_empty((egui_region_t *)old_thumb);
+    int has_new = egui_view_scroll_get_scrollbar_thumb_region(self, &new_thumb);
+
+    if (!has_old && !has_new)
+    {
+        return;
+    }
+
+    if (has_old && has_new)
+    {
+        egui_region_union((egui_region_t *)old_thumb, &new_thumb, &dirty_region);
+    }
+    else if (has_old)
+    {
+        egui_region_copy(&dirty_region, old_thumb);
+    }
+    else
+    {
+        egui_region_copy(&dirty_region, &new_thumb);
+    }
+
+    egui_view_invalidate_region(self, &dirty_region);
+}
+
+static void egui_view_scroll_invalidate_after_container_scroll(egui_view_t *self, const egui_region_t *old_thumb)
+{
+    if (egui_view_get_dirty_passthrough(self))
+    {
+        egui_view_scroll_invalidate_scrollbar_thumb_swept(self, old_thumb);
+    }
+    else
+    {
+        egui_view_invalidate(self);
+    }
+}
+#endif
+
 /**
  * @file egui_view_scroll.c
  * @brief Vertical scroll view with an inner linear container and fling support.
@@ -49,6 +162,10 @@ void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
     // EGUI_LOG_DBG("egui_view_scroll_start_container_scroll diff_y: %d\n", diff_y);
     // get container view.
     egui_view_t *container = (egui_view_t *)&local->container;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+    egui_region_t old_thumb;
+    int has_old_thumb = egui_view_scroll_get_scrollbar_thumb_region(self, &old_thumb);
+#endif
     if (diff_y == 0)
     {
         return;
@@ -67,7 +184,11 @@ void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
             diff_y = EGUI_MAX(diff_y, -bottom_limit);
             // EGUI_LOG_DBG("egui_view_scroll_start_container_scroll up limit: %d\n", diff_y);
             egui_view_scroll_by(container, 0, diff_y);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+            egui_view_scroll_invalidate_after_container_scroll(self, has_old_thumb ? &old_thumb : NULL);
+#else
             egui_view_invalidate(self);
+#endif
             return;
         }
         else
@@ -80,6 +201,11 @@ void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
             {
                 // Use scroll_to so region_screen and dirty regions are properly updated.
                 egui_view_scroll_to(container, 0, -(egui_dim_t)max_scroll);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+                egui_view_scroll_invalidate_after_container_scroll(self, has_old_thumb ? &old_thumb : NULL);
+#else
+                egui_view_invalidate(self);
+#endif
             }
             egui_scroller_about_animation(&local->scroller);
         }
@@ -94,7 +220,11 @@ void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
             diff_y = EGUI_MIN(diff_y, -real_top);
             // EGUI_LOG_DBG("egui_view_scroll_start_container_scroll down limit: %d\n", diff_y);
             egui_view_scroll_by(container, 0, diff_y);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+            egui_view_scroll_invalidate_after_container_scroll(self, has_old_thumb ? &old_thumb : NULL);
+#else
             egui_view_invalidate(self);
+#endif
             return;
         }
         else
@@ -104,6 +234,11 @@ void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
             {
                 // Use scroll_to so region_screen and dirty regions are properly updated.
                 egui_view_scroll_to(container, 0, 0);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+                egui_view_scroll_invalidate_after_container_scroll(self, has_old_thumb ? &old_thumb : NULL);
+#else
+                egui_view_invalidate(self);
+#endif
             }
             egui_scroller_about_animation(&local->scroller);
         }
@@ -339,6 +474,10 @@ int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *even
                     egui_dim_t thumb_travel = track_length - thumb_length;
                     if (thumb_travel > 0)
                     {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+                        egui_region_t old_thumb;
+                        int has_old_thumb = egui_view_scroll_get_scrollbar_thumb_region(self, &old_thumb);
+#endif
                         egui_dim_t thumb_pos = local_y - margin - thumb_length / 2;
                         if (thumb_pos < 0)
                         {
@@ -353,7 +492,11 @@ int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *even
                         egui_dim_t target_offset = (egui_dim_t)(((int32_t)thumb_pos * max_scroll) / thumb_travel);
 
                         egui_view_scroll_to(container, 0, -target_offset);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+                        egui_view_scroll_invalidate_after_container_scroll(self, has_old_thumb ? &old_thumb : NULL);
+#else
                         egui_view_invalidate(self);
+#endif
                     }
                 }
             }
@@ -433,8 +576,17 @@ void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
     EGUI_LOCAL_INIT(egui_view_scroll_t);
     if (local->is_scrollbar_enabled != enabled)
     {
+        egui_region_t old_thumb;
+        int has_old_thumb = egui_view_scroll_get_scrollbar_thumb_region(self, &old_thumb);
         local->is_scrollbar_enabled = enabled;
-        egui_view_invalidate(self);
+        if (egui_view_get_dirty_passthrough(self))
+        {
+            egui_view_scroll_invalidate_scrollbar_thumb_swept(self, has_old_thumb ? &old_thumb : NULL);
+        }
+        else
+        {
+            egui_view_invalidate(self);
+        }
     }
 }
 
@@ -459,56 +611,10 @@ void egui_view_scroll_draw(egui_view_t *self)
         return;
     }
 
-    egui_view_t *container = (egui_view_t *)&local->container;
-    egui_dim_t content_height = container->region.size.height;
-    egui_dim_t view_height = self->region.size.height;
-
-    // Only draw scrollbar if content is taller than view
-    if (content_height <= view_height || content_height == 0 || view_height == 0)
+    egui_region_t thumb_region;
+    if (!egui_view_scroll_get_scrollbar_thumb_region(self, &thumb_region))
     {
         return;
-    }
-
-    // Convert the shifted container origin back into a positive logical scroll offset.
-    egui_dim_t scroll_offset = -container->region.location.y;
-    if (scroll_offset < 0)
-    {
-        scroll_offset = 0;
-    }
-    egui_dim_t max_scroll = content_height - view_height;
-    if (scroll_offset > max_scroll)
-    {
-        scroll_offset = max_scroll;
-    }
-
-    // Calculate thumb dimensions
-    egui_dim_t margin = EGUI_THEME_SCROLLBAR_MARGIN;
-    egui_dim_t track_length = view_height - 2 * margin;
-    if (track_length <= 0)
-    {
-        return;
-    }
-
-    egui_dim_t thumb_length = (egui_dim_t)(((int32_t)track_length * view_height) / content_height);
-    if (thumb_length < EGUI_THEME_SCROLLBAR_MIN_LENGTH)
-    {
-        thumb_length = EGUI_THEME_SCROLLBAR_MIN_LENGTH;
-    }
-    if (thumb_length > track_length)
-    {
-        thumb_length = track_length;
-    }
-
-    // Calculate thumb position
-    egui_dim_t thumb_travel = track_length - thumb_length;
-    egui_dim_t thumb_y = 0;
-    if (max_scroll > 0 && thumb_travel > 0)
-    {
-        thumb_y = (egui_dim_t)(((int32_t)scroll_offset * thumb_travel) / max_scroll);
-        if (thumb_y > thumb_travel)
-        {
-            thumb_y = thumb_travel;
-        }
     }
 
     // Re-establish canvas state because the scrollbar is drawn in viewport coordinates, not child-content coordinates.
@@ -520,11 +626,8 @@ void egui_view_scroll_draw(egui_view_t *self)
     if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
     {
         // Draw scrollbar on right side
-        egui_dim_t bar_x = self->region.size.width - EGUI_THEME_SCROLLBAR_THICKNESS - margin;
-        egui_dim_t bar_y = margin + thumb_y;
-
-        egui_canvas_draw_round_rectangle_fill(canvas, bar_x, bar_y, EGUI_THEME_SCROLLBAR_THICKNESS, thumb_length, EGUI_THEME_SCROLLBAR_RADIUS,
-                                              EGUI_THEME_SCROLLBAR_COLOR, EGUI_THEME_SCROLLBAR_ALPHA);
+        egui_canvas_draw_round_rectangle_fill(canvas, thumb_region.location.x, thumb_region.location.y, thumb_region.size.width, thumb_region.size.height,
+                                              EGUI_THEME_SCROLLBAR_RADIUS, EGUI_THEME_SCROLLBAR_COLOR, EGUI_THEME_SCROLLBAR_ALPHA);
     }
 
     egui_canvas_set_alpha(canvas, alpha);
@@ -589,6 +692,9 @@ void egui_view_scroll_init(egui_view_t *self, egui_core_t *core)
     egui_view_linearlayout_set_auto_height((egui_view_t *)&local->container, 1);
     egui_view_linearlayout_set_orientation((egui_view_t *)&local->container, 0);
     egui_view_group_add_child(self, (egui_view_t *)&local->container);
+
+    egui_view_set_dirty_passthrough(self, 1);
+    egui_view_set_dirty_passthrough((egui_view_t *)&local->container, 1);
 
     egui_scroller_init(&local->scroller, core);
 

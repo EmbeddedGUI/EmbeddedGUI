@@ -212,5 +212,6 @@ void egui_page_base_init(egui_page_base_t *self, egui_core_t *core)
     egui_view_set_size((egui_view_t *)&self->root_view, core->screen_width, core->screen_height);
 
     egui_view_set_view_name((egui_view_t *)&self->root_view, "egui_page_base_root_view");
+    egui_view_set_dirty_passthrough((egui_view_t *)&self->root_view, 1);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_page_base_t);
 }

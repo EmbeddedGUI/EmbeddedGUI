@@ -105,6 +105,34 @@ static egui_core_t *test_virtual_viewport_get_core(void)
     return core;
 }
 
+static int test_virtual_dirty_count(void)
+{
+    egui_region_t *arr = egui_core_get_region_dirty_arr(test_virtual_viewport_get_core());
+    int count = 0;
+
+    if (arr == NULL)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    {
+        if (!egui_region_is_empty(&arr[i]))
+        {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+static void test_virtual_assert_idle_layout_clean(egui_view_t *view)
+{
+    egui_core_clear_region_dirty(test_virtual_viewport_get_core());
+    view->api->calculate_layout(view);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_virtual_dirty_count());
+}
+
 static int find_pool_index(egui_view_t *view)
 {
     uint8_t i;
@@ -1792,6 +1820,70 @@ static uint8_t test_virtual_tree_match_node(egui_view_t *self, const egui_view_v
     EGUI_UNUSED(node_view);
     return (uint8_t)(entry != NULL && entry->visible_index >= ctx->min_visible_index && entry->depth >= ctx->min_depth &&
                      entry->has_children == ctx->want_branch);
+}
+
+static void test_virtual_viewport_idle_layout_does_not_emit_dirty(void)
+{
+    uint16_t bind_count;
+
+    setup_viewport(20, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
+    bind_count = test_context.bind_count;
+
+    test_virtual_assert_idle_layout_clean(EGUI_VIEW_OF(&test_viewport));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_context.bind_count);
+}
+
+static void test_virtual_viewport_same_offset_does_not_emit_dirty(void)
+{
+    uint16_t bind_count;
+
+    setup_viewport(20, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
+    egui_view_virtual_viewport_set_logical_offset(EGUI_VIEW_OF(&test_viewport), 20);
+    EGUI_VIEW_OF(&test_viewport)->api->calculate_layout(EGUI_VIEW_OF(&test_viewport));
+    bind_count = test_context.bind_count;
+    egui_core_clear_region_dirty(test_virtual_viewport_get_core());
+
+    egui_view_virtual_viewport_set_logical_offset(EGUI_VIEW_OF(&test_viewport), 20);
+    EGUI_VIEW_OF(&test_viewport)->api->calculate_layout(EGUI_VIEW_OF(&test_viewport));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_context.bind_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_virtual_dirty_count());
+}
+
+static void test_virtual_wrappers_idle_layout_does_not_emit_dirty(void)
+{
+    uint16_t bind_count;
+
+    setup_list_with_data_source(10);
+    bind_count = test_context.bind_count;
+    test_virtual_assert_idle_layout_clean(EGUI_VIEW_OF(&test_list));
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_context.bind_count);
+
+    setup_strip_with_data_source();
+    bind_count = test_context.bind_count;
+    test_virtual_assert_idle_layout_clean(EGUI_VIEW_OF(&test_strip));
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_context.bind_count);
+
+    setup_page_with_data_source(10);
+    bind_count = test_context.bind_count;
+    test_virtual_assert_idle_layout_clean(EGUI_VIEW_OF(&test_page));
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_context.bind_count);
+
+    setup_section_list_with_data_source();
+    bind_count = test_section_list_context.bind_count;
+    test_virtual_assert_idle_layout_clean(EGUI_VIEW_OF(&test_section_list));
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_section_list_context.bind_count);
+
+    setup_grid_with_data_source();
+    bind_count = test_grid_context.bind_count;
+    test_virtual_assert_idle_layout_clean(EGUI_VIEW_OF(&test_grid));
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_grid_context.bind_count);
+
+    setup_tree_with_data_source();
+    bind_count = test_tree_context.bind_count;
+    test_virtual_assert_idle_layout_clean(EGUI_VIEW_OF(&test_tree));
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_tree_context.bind_count);
 }
 
 static void test_virtual_viewport_initial_window_uses_bounded_slots(void)
@@ -3486,6 +3578,9 @@ static void test_virtual_tree_ensure_visible_helper(void)
 void test_virtual_viewport_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(virtual_viewport);
+    EGUI_TEST_RUN(test_virtual_viewport_idle_layout_does_not_emit_dirty);
+    EGUI_TEST_RUN(test_virtual_viewport_same_offset_does_not_emit_dirty);
+    EGUI_TEST_RUN(test_virtual_wrappers_idle_layout_does_not_emit_dirty);
     EGUI_TEST_RUN(test_virtual_viewport_initial_window_uses_bounded_slots);
     EGUI_TEST_RUN(test_virtual_viewport_scroll_reuses_slot_pool);
     EGUI_TEST_RUN(test_virtual_viewport_slot_visibility_helpers);

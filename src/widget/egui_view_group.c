@@ -1145,6 +1145,7 @@ void egui_view_root_group_init(egui_view_t *self, egui_core_t *core)
     local->is_disallow_process_touch_event = 0;
 
     egui_view_set_view_name(self, "egui_view_root_group");
+    egui_view_set_dirty_passthrough(self, 1);
 }
 
 void egui_view_group_apply_params(egui_view_t *self, const egui_view_group_params_t *params)

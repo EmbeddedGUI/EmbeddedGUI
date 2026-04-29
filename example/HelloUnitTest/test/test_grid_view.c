@@ -41,6 +41,27 @@ static egui_core_t *test_grid_view_get_core(void)
     return core;
 }
 
+static int grid_view_dirty_count(void)
+{
+    egui_region_t *arr = egui_core_get_region_dirty_arr(test_grid_view_get_core());
+    int count = 0;
+
+    if (arr == NULL)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    {
+        if (!egui_region_is_empty(&arr[i]))
+        {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 static int find_holder_index(const egui_view_grid_view_holder_t *holder)
 {
     uint8_t i;
@@ -285,9 +306,25 @@ static void test_grid_view_resize_helpers_bridge_virtual_grid(void)
     EGUI_TEST_ASSERT_EQUAL_INT(before_y + 10, egui_view_grid_view_get_item_y(EGUI_VIEW_OF(&test_grid_view), 4));
 }
 
+static void test_grid_view_idle_layout_does_not_emit_dirty(void)
+{
+    uint16_t bind_count;
+
+    setup_grid_view();
+    bind_count = test_context.bind_count;
+    egui_core_clear_region_dirty(test_grid_view_get_core());
+
+    EGUI_VIEW_OF(&test_grid_view)->api->calculate_layout(EGUI_VIEW_OF(&test_grid_view));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(bind_count, test_context.bind_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, grid_view_dirty_count());
+}
+
 void test_grid_view_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(grid_view);
     EGUI_TEST_RUN(test_grid_view_bridge_and_lookup_helpers);
     EGUI_TEST_RUN(test_grid_view_resize_helpers_bridge_virtual_grid);
+    EGUI_TEST_RUN(test_grid_view_idle_layout_does_not_emit_dirty);
+    EGUI_TEST_SUITE_END();
 }

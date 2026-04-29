@@ -561,6 +561,7 @@ static egui_view_t *basic_adapter_create_view(void *adapter_context, uint16_t vi
 
         memset(row, 0, sizeof(*row));
         egui_view_group_init(EGUI_VIEW_OF(&row->root), s_core);
+        egui_view_set_dirty_passthrough(EGUI_VIEW_OF(&row->root), 1);
 
         egui_view_card_init(EGUI_VIEW_OF(&row->card), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&row->card), BASIC_ROW_SIDE_INSET, 4);
@@ -605,6 +606,7 @@ static egui_view_t *basic_adapter_create_view(void *adapter_context, uint16_t vi
 
         memset(row, 0, sizeof(*row));
         egui_view_group_init(EGUI_VIEW_OF(&row->root), s_core);
+        egui_view_set_dirty_passthrough(EGUI_VIEW_OF(&row->root), 1);
         egui_view_button_init(EGUI_VIEW_OF(&row->button), s_core);
         egui_view_set_position(EGUI_VIEW_OF(&row->button), BASIC_ROW_SIDE_INSET, 4);
         egui_view_set_size(EGUI_VIEW_OF(&row->button), BASIC_VIEWPORT_W - BASIC_ROW_SIDE_INSET * 2, BASIC_BUTTON_INNER_H);
@@ -798,6 +800,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         return true;
     case 2:
+        EGUI_SIM_SET_WAIT(p_action, 160);
+        return true;
+    case 3:
         if (basic_ctx.selected_id != basic_ctx.items[0].stable_id)
         {
             if (basic_recording_schedule_verify_retry(&recording_select_verify_retry, BASIC_SELECT_VERIFY_RETRY_MAX, p_action))
@@ -807,24 +812,50 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             report_runtime_failure("button row click did not update selected item");
         }
         recording_select_verify_retry = 0U;
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         basic_set_slider_drag_action(p_action, 1, 260);
         return true;
-    case 3:
+    case 4:
+        EGUI_SIM_SET_WAIT(p_action, 180);
+        return true;
+    case 5:
         if (first_call && basic_ctx.items[1].value <= 38U)
         {
             report_runtime_failure("slider drag did not update item value");
         }
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         basic_set_scroll_action(p_action, 360);
         return true;
-    case 4:
-        if (first_call && basic_get_first_visible_index() == BASIC_INVALID_INDEX)
+    case 6:
+        EGUI_SIM_SET_WAIT(p_action, 200);
+        return true;
+    case 7:
+        if (first_call)
         {
-            report_runtime_failure("scroll did not keep visible items");
+            uint32_t first_visible = basic_get_first_visible_index();
+            if (first_visible == BASIC_INVALID_INDEX)
+            {
+                report_runtime_failure("scroll did not keep visible items");
+            }
+            else if (first_visible == 0U)
+            {
+                report_runtime_failure("scroll did not move visible window");
+            }
+            recording_request_snapshot();
         }
         recording_patch_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[BASIC_ACTION_PATCH]), 220);
         return true;
-    case 5:
+    case 8:
+        EGUI_SIM_SET_WAIT(p_action, 160);
+        return true;
+    case 9:
         if (basic_ctx.patch_count == 0U)
         {
             if (basic_recording_schedule_verify_retry(&recording_patch_verify_retry, BASIC_PATCH_VERIFY_RETRY_MAX, p_action))
@@ -835,9 +866,16 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         recording_patch_verify_retry = 0U;
         recording_jump_verify_retry = 0U;
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[BASIC_ACTION_JUMP]), 220);
         return true;
-    case 6:
+    case 10:
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 11:
         view = basic_find_visible_view_by_index(basic_ctx.jump_cursor);
         if (basic_ctx.selected_id != basic_ctx.items[basic_ctx.jump_cursor].stable_id)
         {
@@ -850,6 +888,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             return true;
         }
         recording_jump_verify_retry = 0U;
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         if (view != NULL && !basic_set_click_item_action(p_action, view, 220))
         {
             report_runtime_failure("jump target item click point was not clickable");
@@ -858,11 +900,17 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 7:
+    case 12:
+        EGUI_SIM_SET_WAIT(p_action, 160);
+        return true;
+    case 13:
         recording_reset_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[BASIC_ACTION_RESET]), 220);
         return true;
-    case 8:
+    case 14:
+        EGUI_SIM_SET_WAIT(p_action, 180);
+        return true;
+    case 15:
         if (basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID || egui_view_virtual_viewport_get_logical_offset(EGUI_VIEW_OF(&viewport_view)) != 0)
         {
             if (basic_recording_schedule_verify_retry(&recording_reset_verify_retry, BASIC_RESET_VERIFY_RETRY_MAX, p_action))

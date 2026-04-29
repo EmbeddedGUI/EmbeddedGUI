@@ -144,6 +144,11 @@ static void test_view_init_defaults(void)
 {
     egui_core_t *core = test_view_get_core();
 
+    test_view.region_screen.location.x = 11;
+    test_view.region_screen.location.y = 12;
+    test_view.region_screen.size.width = 13;
+    test_view.region_screen.size.height = 14;
+
     egui_view_init(&test_view, core);
     test_view.core = core;
     EGUI_TEST_ASSERT_TRUE(test_view.is_enable == 1);
@@ -154,6 +159,10 @@ static void test_view_init_defaults(void)
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_100, test_view.alpha);
     EGUI_TEST_ASSERT_NULL(test_view.parent);
     EGUI_TEST_ASSERT_NULL(test_view.background);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_view.region_screen.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_view.region_screen.location.y);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_view.region_screen.size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_view.region_screen.size.height);
 }
 
 static void test_view_set_position(void)

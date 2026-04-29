@@ -30,6 +30,7 @@
 #include "test/test_menu.h"
 #include "test/test_mini_calendar.h"
 #include "test/test_notification_badge.h"
+#include "test/test_dirty_passthrough_container.h"
 #include "test/test_number_picker.h"
 #include "test/test_page_activity_lifecycle.h"
 #include "test/test_region.h"
@@ -144,6 +145,8 @@ void uicode_disp0_init(egui_core_t *core)
         test_animation_run();
     if (uicode_should_run_suite("dirty_region"))
         test_dirty_region_run();
+    if (uicode_should_run_suite("dirty_passthrough_container"))
+        test_dirty_passthrough_container_run();
     if (uicode_should_run_suite("activity_ring_dirty"))
         test_activity_ring_dirty_run();
     if (uicode_should_run_suite("basic_widget_dirty"))

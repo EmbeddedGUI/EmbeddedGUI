@@ -228,6 +228,7 @@ static egui_view_t *egui_view_list_view_data_source_create_item_view(void *data_
 
     egui_api_memset(host, 0, sizeof(*host));
     egui_view_group_init(EGUI_VIEW_OF(&host->root), EGUI_VIEW_OF(local)->core);
+    egui_view_set_dirty_passthrough(EGUI_VIEW_OF(&host->root), 1);
     egui_view_set_view_name(EGUI_VIEW_OF(&host->root), "egui_view_list_view_item");
 
     host->holder = holder;

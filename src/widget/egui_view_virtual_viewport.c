@@ -830,6 +830,10 @@ static void egui_view_virtual_viewport_mark_dirty(egui_view_t *self, egui_view_v
     {
         local->is_layout_dirty = 1;
     }
+    if (data_dirty)
+    {
+        egui_view_invalidate_full(self);
+    }
     egui_view_invalidate(self);
 }
 
@@ -849,8 +853,17 @@ static void egui_view_virtual_viewport_sync_metrics(egui_view_t *self, egui_view
 
 static void egui_view_virtual_viewport_sync_content_layer(egui_view_t *self, egui_view_virtual_viewport_t *local)
 {
-    egui_view_set_position(EGUI_VIEW_OF(&local->content_layer), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&local->content_layer), self->region.size.width, self->region.size.height);
+    egui_view_t *content_layer = EGUI_VIEW_OF(&local->content_layer);
+
+    if (content_layer->region.location.x != 0 || content_layer->region.location.y != 0)
+    {
+        egui_view_set_position(content_layer, 0, 0);
+    }
+
+    if (content_layer->region.size.width != self->region.size.width || content_layer->region.size.height != self->region.size.height)
+    {
+        egui_view_set_size(content_layer, self->region.size.width, self->region.size.height);
+    }
 }
 
 static int32_t egui_view_virtual_viewport_get_max_offset(egui_view_virtual_viewport_t *local)
@@ -2084,9 +2097,14 @@ int32_t egui_view_virtual_viewport_get_logical_extent(egui_view_t *self)
 void egui_view_virtual_viewport_set_logical_offset(egui_view_t *self, int32_t offset)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    int32_t old_offset = local->logical_offset;
 
     local->logical_offset = offset;
     egui_view_virtual_viewport_clamp_offset(local);
+    if (local->logical_offset == old_offset)
+    {
+        return;
+    }
     egui_view_virtual_viewport_mark_dirty(self, local, 0, 1);
 }
 
@@ -2541,6 +2559,8 @@ void egui_view_virtual_viewport_init(egui_view_t *self, egui_core_t *core)
     egui_view_group_init(EGUI_VIEW_OF(&local->content_layer), core);
     egui_view_set_position(EGUI_VIEW_OF(&local->content_layer), 0, 0);
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->content_layer));
+    egui_view_set_dirty_passthrough(self, 1);
+    egui_view_set_dirty_passthrough(EGUI_VIEW_OF(&local->content_layer), 1);
 
     local->adapter = NULL;
     local->adapter_context = NULL;

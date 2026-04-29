@@ -100,6 +100,9 @@ struct egui_view
     uint8_t is_clickable : 1;      // whether the view is clickable
     uint8_t is_request_layout : 1; // whether the view is requested to layout
     uint8_t is_attached_to_window : 1;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    uint8_t is_dirty_passthrough : 1; // structural container only: emit per-child dirty rects, not self
+#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     uint8_t is_focusable : 1;      // whether the view can receive focus
     uint8_t is_focused : 1;        // whether the view currently has focus
@@ -150,6 +153,8 @@ void egui_view_invalidate(egui_view_t *self);
 void egui_view_invalidate_full(egui_view_t *self);
 /** Mark only one local sub-region dirty to reduce redraw cost. */
 void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_region);
+/** Mark this visible subtree dirty, using child regions for dirty-passthrough containers without their own background. */
+void egui_view_invalidate_visible_tree(egui_view_t *self);
 /** Return whether the owning core still has pending dirty work to flush. */
 uint8_t egui_view_has_pending_dirty(egui_view_t *self);
 
@@ -266,6 +271,17 @@ int egui_view_get_pressed(egui_view_t *self);
 void egui_view_set_visible(egui_view_t *self, int is_visible);
 /** Return whether the view is visible. */
 int egui_view_get_visible(egui_view_t *self);
+/**
+ * Mark this view as a structural container that does not paint pixels in self space.
+ * Layout-caused dirty marking is delegated to direct children:
+ *
+ * Pure translation emits swept old/new child rects; other layout causes request child layout.
+ * The flag does not change background, shadow, visible, alpha,
+ * or pressed dirty paths.
+ * Requires EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH=1. When disabled, this API is a no-op and the getter returns 0.
+ */
+void egui_view_set_dirty_passthrough(egui_view_t *self, int on);
+int egui_view_get_dirty_passthrough(egui_view_t *self);
 /** Mark the view as gone so layout containers can skip its occupied space. */
 void egui_view_set_gone(egui_view_t *self, int is_gone);
 /** Return whether the view is currently marked gone. */

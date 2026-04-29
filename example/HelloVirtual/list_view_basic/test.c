@@ -170,6 +170,7 @@ static egui_view_list_view_holder_t *list_view_basic_create_holder(void *data_mo
 
     memset(holder, 0, sizeof(*holder));
     egui_view_group_init(EGUI_VIEW_OF(&holder->root), s_core);
+    egui_view_set_dirty_passthrough(EGUI_VIEW_OF(&holder->root), 1);
 
     egui_view_card_init(EGUI_VIEW_OF(&holder->card), s_core);
     egui_view_set_position(EGUI_VIEW_OF(&holder->card), 4, 4);

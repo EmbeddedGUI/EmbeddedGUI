@@ -539,6 +539,7 @@ static egui_view_t *grid_basic_ds_create_item_view(void *context, uint16_t view_
 
     memset(view, 0, sizeof(*view));
     egui_view_group_init(EGUI_VIEW_OF(&view->root), s_core);
+    egui_view_set_dirty_passthrough(EGUI_VIEW_OF(&view->root), 1);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->root), grid_basic_item_click_cb);
 
     egui_view_card_init(EGUI_VIEW_OF(&view->card), s_core);

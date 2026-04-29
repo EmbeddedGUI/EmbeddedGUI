@@ -592,8 +592,7 @@ void egui_core_activity_finish(egui_core_t *core, egui_activity_t *self)
         core->scene.activity_anim_finish_open_owner = NULL;
     }
 
-    // Force a full redraw because activity transitions can replace the whole scene graph.
-    egui_core_update_region_dirty_all(core);
+    // Transition animations and root attach/detach now invalidate the affected visible subtrees.
 }
 
 /** Force-destroy every activity above the target one, then restart/resume the target as the foreground page. */

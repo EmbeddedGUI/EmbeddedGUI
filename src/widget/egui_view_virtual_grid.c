@@ -496,6 +496,7 @@ static void egui_view_virtual_grid_row_view_init(egui_view_virtual_grid_row_view
     uint8_t i;
 
     egui_view_group_init(EGUI_VIEW_OF(&row_view->root), core);
+    egui_view_set_dirty_passthrough(EGUI_VIEW_OF(&row_view->root), 1);
     row_view->row_index = EGUI_VIEW_VIRTUAL_GRID_INVALID_INDEX;
     row_view->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
     row_view->bound_count = 0;
