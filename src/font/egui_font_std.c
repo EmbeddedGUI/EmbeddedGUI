@@ -3462,7 +3462,14 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
 
         if (p_char_desc == NULL)
         {
-            offset += adv;
+            if ((offset + font->height) > work_x0)
+            {
+                offset += egui_font_std_draw_single_char_desc(font, p_char_desc, offset, y, color, alpha, canvas, work_region, draw_alpha, blend_ctx);
+            }
+            else
+            {
+                offset += adv;
+            }
             continue;
         }
 
