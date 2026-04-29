@@ -17,14 +17,6 @@
 #define EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR 0
 #endif
 
-#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
-#define EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS 1
-#endif
-
-#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
-#define EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE 1
-#endif
-
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
