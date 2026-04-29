@@ -208,6 +208,51 @@ static void test_region_is_same(void)
     EGUI_TEST_ASSERT_FALSE(egui_region_is_same(&a, &b));
 }
 
+static void test_region_subtract_rect_center_punch(void)
+{
+    egui_region_t dirty;
+    egui_region_t punch;
+    egui_region_t out[4];
+    int count;
+
+    egui_region_init(&dirty, 0, 0, 100, 80);
+    egui_region_init(&punch, 20, 10, 30, 40);
+    count = egui_region_subtract_rect(&dirty, &punch, out);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(4, count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, out[0].location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, out[0].location.y);
+    EGUI_TEST_ASSERT_EQUAL_INT(100, out[0].size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(10, out[0].size.height);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, out[1].location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(50, out[1].location.y);
+    EGUI_TEST_ASSERT_EQUAL_INT(100, out[1].size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(30, out[1].size.height);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, out[2].location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(10, out[2].location.y);
+    EGUI_TEST_ASSERT_EQUAL_INT(20, out[2].size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(40, out[2].size.height);
+    EGUI_TEST_ASSERT_EQUAL_INT(50, out[3].location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(10, out[3].location.y);
+    EGUI_TEST_ASSERT_EQUAL_INT(50, out[3].size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(40, out[3].size.height);
+}
+
+static void test_region_subtract_rect_no_overlap_keeps_dirty(void)
+{
+    egui_region_t dirty;
+    egui_region_t punch;
+    egui_region_t out[4];
+    int count;
+
+    egui_region_init(&dirty, 4, 5, 30, 20);
+    egui_region_init(&punch, 100, 100, 10, 10);
+    count = egui_region_subtract_rect(&dirty, &punch, out);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(1, count);
+    EGUI_TEST_ASSERT_TRUE(egui_region_equal(&dirty, &out[0]));
+}
+
 void test_region_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(region);
@@ -226,6 +271,8 @@ void test_region_run(void)
     EGUI_TEST_RUN(test_region_union_basic);
     EGUI_TEST_RUN(test_region_union_disjoint);
     EGUI_TEST_RUN(test_region_is_same);
+    EGUI_TEST_RUN(test_region_subtract_rect_center_punch);
+    EGUI_TEST_RUN(test_region_subtract_rect_no_overlap_keeps_dirty);
 
     EGUI_TEST_SUITE_END();
 }

@@ -261,6 +261,56 @@ void egui_core_draw_view_group(egui_core_t *core, egui_region_t *p_region_dirty,
     }
 }
 
+/** Draw one dirty region after removing the app-owned punch region from it. */
+static void egui_core_draw_view_group_without_punch(egui_core_t *core, egui_region_t *p_region_dirty, int is_debug_mode)
+{
+    egui_region_t rects[4];
+    int rect_count;
+    int i;
+
+    if (core == NULL || p_region_dirty == NULL)
+    {
+        return;
+    }
+
+    rect_count = egui_region_subtract_rect(p_region_dirty, &core->punch_region, rects);
+    for (i = 0; i < rect_count; i++)
+    {
+        egui_core_draw_view_group(core, &rects[i], is_debug_mode);
+    }
+}
+
+void egui_core_set_punch_region(egui_core_t *core, int16_t x, int16_t y, int16_t w, int16_t h)
+{
+    egui_region_t old_region;
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    old_region = core->punch_region;
+
+    if (w < 0)
+    {
+        w = 0;
+    }
+    if (h < 0)
+    {
+        h = 0;
+    }
+
+    core->punch_region.location.x = x;
+    core->punch_region.location.y = y;
+    core->punch_region.size.width = w;
+    core->punch_region.size.height = h;
+
+    if (!egui_region_is_empty(&old_region) && !egui_region_equal(&old_region, &core->punch_region))
+    {
+        egui_core_update_region_dirty(core, &old_region);
+    }
+}
+
 #define EGUI_CORE_REFRESH_INTERVAL_MS (1000 / EGUI_CONFIG_MAX_FPS)
 
 /** Timer callback that keeps the auto-refresh loop close to the configured FPS cap. */
@@ -304,7 +354,7 @@ void egui_polling_refresh_display(egui_core_t *core)
 #if EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR == 0
     // In stepped debug modes, clear the previous highlight pass before drawing the current dirty regions.
     EGUI_REGION_DEFINE(region, 0, 0, core->screen_width, core->screen_height);
-    egui_core_draw_view_group(core, &region, false);
+    egui_core_draw_view_group_without_punch(core, &region, false);
 #endif
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
 
@@ -325,7 +375,7 @@ void egui_polling_refresh_display(egui_core_t *core)
             break;
         }
 
-        egui_core_draw_view_group(core, p_region_dirty, EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH);
+        egui_core_draw_view_group_without_punch(core, p_region_dirty, EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH);
     }
 
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS

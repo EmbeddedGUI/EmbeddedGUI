@@ -66,6 +66,98 @@ __EGUI_STATIC_INLINE__ int egui_region_is_empty(egui_region_t *self)
     return self->size.width <= 0 || self->size.height <= 0;
 }
 
+/**
+ * Subtract `punch` from `dirty` and emit up to 4 axis-aligned rectangles that
+ * cover the remaining visible area. Output order is top, bottom, left,
+ * right.
+ */
+__EGUI_STATIC_INLINE__ int egui_region_subtract_rect(const egui_region_t *dirty, const egui_region_t *punch, egui_region_t out[4])
+{
+    int n = 0;
+    egui_dim_t dx0;
+    egui_dim_t dy0;
+    egui_dim_t dx1;
+    egui_dim_t dy1;
+    egui_dim_t px0;
+    egui_dim_t py0;
+    egui_dim_t px1;
+    egui_dim_t py1;
+    egui_dim_t ix0;
+    egui_dim_t iy0;
+    egui_dim_t ix1;
+    egui_dim_t iy1;
+
+    if (dirty == NULL || out == NULL)
+    {
+        return 0;
+    }
+
+    dx0 = dirty->location.x;
+    dy0 = dirty->location.y;
+    dx1 = dx0 + dirty->size.width;
+    dy1 = dy0 + dirty->size.height;
+    if (dx0 >= dx1 || dy0 >= dy1)
+    {
+        return 0;
+    }
+
+    if (punch == NULL || punch->size.width <= 0 || punch->size.height <= 0)
+    {
+        out[0] = *dirty;
+        return 1;
+    }
+
+    px0 = punch->location.x;
+    py0 = punch->location.y;
+    px1 = px0 + punch->size.width;
+    py1 = py0 + punch->size.height;
+
+    ix0 = dx0 > px0 ? dx0 : px0;
+    iy0 = dy0 > py0 ? dy0 : py0;
+    ix1 = dx1 < px1 ? dx1 : px1;
+    iy1 = dy1 < py1 ? dy1 : py1;
+    if (ix0 >= ix1 || iy0 >= iy1)
+    {
+        out[0] = *dirty;
+        return 1;
+    }
+
+    if (iy0 > dy0)
+    {
+        out[n].location.x = dx0;
+        out[n].location.y = dy0;
+        out[n].size.width = (egui_dim_t)(dx1 - dx0);
+        out[n].size.height = (egui_dim_t)(iy0 - dy0);
+        n++;
+    }
+    if (iy1 < dy1)
+    {
+        out[n].location.x = dx0;
+        out[n].location.y = iy1;
+        out[n].size.width = (egui_dim_t)(dx1 - dx0);
+        out[n].size.height = (egui_dim_t)(dy1 - iy1);
+        n++;
+    }
+    if (ix0 > dx0)
+    {
+        out[n].location.x = dx0;
+        out[n].location.y = iy0;
+        out[n].size.width = (egui_dim_t)(ix0 - dx0);
+        out[n].size.height = (egui_dim_t)(iy1 - iy0);
+        n++;
+    }
+    if (ix1 < dx1)
+    {
+        out[n].location.x = ix1;
+        out[n].location.y = iy0;
+        out[n].size.width = (egui_dim_t)(dx1 - ix1);
+        out[n].size.height = (egui_dim_t)(iy1 - iy0);
+        n++;
+    }
+
+    return n;
+}
+
 /** Compute the intersection of two regions, returning an empty result when they do not overlap. */
 __EGUI_STATIC_INLINE__ void egui_region_intersect(egui_region_t *self, const egui_region_t *rect, egui_region_t *result)
 {

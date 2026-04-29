@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="430" viewBox="0 0 820 430" role="img" aria-labelledby="title desc">
+  <title id="title">Dirty rectangle subtracts punch region</title>
+  <desc id="desc">A dirty rectangle minus an overlapping punch region becomes up to four rectangles: top, bottom, left, and right.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#334155" />
+    </marker>
+  </defs>
+  <rect width="820" height="430" fill="#f8fafc" />
+  <text x="36" y="40" font-size="22" font-weight="700" fill="#0f172a" font-family="Arial, 'Microsoft YaHei', sans-serif">dirty rect - punch region</text>
+  <text x="36" y="66" font-size="13" fill="#475569" font-family="Arial, 'Microsoft YaHei', sans-serif">相交时最多拆成上、下、左、右 4 个待渲染矩形</text>
+
+  <g transform="translate(54 105)">
+    <rect x="0" y="0" width="270" height="220" fill="#dbeafe" stroke="#2563eb" stroke-width="2" />
+    <rect x="95" y="72" width="110" height="76" fill="#fed7aa" stroke="#ea580c" stroke-width="2" stroke-dasharray="6 4" />
+    <text x="135" y="-16" text-anchor="middle" font-size="14" font-weight="700" fill="#1e40af" font-family="Arial, 'Microsoft YaHei', sans-serif">输入 dirty 矩形</text>
+    <text x="150" y="115" text-anchor="middle" font-size="13" font-weight="700" fill="#9a3412" font-family="Arial, 'Microsoft YaHei', sans-serif">punch</text>
+  </g>
+
+  <line x1="350" y1="215" x2="452" y2="215" stroke="#334155" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="400" y="197" text-anchor="middle" font-size="13" fill="#475569" font-family="Arial, 'Microsoft YaHei', sans-serif">subtract</text>
+
+  <g transform="translate(494 105)">
+    <rect x="0" y="0" width="270" height="220" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2" />
+    <rect x="0" y="0" width="270" height="72" fill="#bfdbfe" stroke="#2563eb" />
+    <rect x="0" y="148" width="270" height="72" fill="#bae6fd" stroke="#0284c7" />
+    <rect x="0" y="72" width="95" height="76" fill="#bbf7d0" stroke="#16a34a" />
+    <rect x="205" y="72" width="65" height="76" fill="#ddd6fe" stroke="#7c3aed" />
+    <rect x="95" y="72" width="110" height="76" fill="#ffffff" stroke="#ea580c" stroke-width="2" stroke-dasharray="6 4" />
+    <text x="135" y="-16" text-anchor="middle" font-size="14" font-weight="700" fill="#0f172a" font-family="Arial, 'Microsoft YaHei', sans-serif">输出剩余矩形</text>
+    <text x="135" y="40" text-anchor="middle" font-size="13" fill="#1e40af" font-family="Arial, 'Microsoft YaHei', sans-serif">top</text>
+    <text x="135" y="190" text-anchor="middle" font-size="13" fill="#075985" font-family="Arial, 'Microsoft YaHei', sans-serif">bottom</text>
+    <text x="47" y="115" text-anchor="middle" font-size="13" fill="#166534" font-family="Arial, 'Microsoft YaHei', sans-serif">left</text>
+    <text x="238" y="115" text-anchor="middle" font-size="13" fill="#5b21b6" font-family="Arial, 'Microsoft YaHei', sans-serif">right</text>
+    <text x="150" y="115" text-anchor="middle" font-size="13" fill="#9a3412" font-family="Arial, 'Microsoft YaHei', sans-serif">skip</text>
+  </g>
+
+  <g transform="translate(92 365)">
+    <rect x="0" y="-24" width="636" height="42" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+    <text x="318" y="3" text-anchor="middle" font-size="13" fill="#334155" font-family="Arial, 'Microsoft YaHei', sans-serif">如果没有相交，原 dirty 矩形直接进入 PFB；如果 punch 完全覆盖 dirty，则本次没有 EGUI 渲染输出。</text>
+  </g>
+</svg>

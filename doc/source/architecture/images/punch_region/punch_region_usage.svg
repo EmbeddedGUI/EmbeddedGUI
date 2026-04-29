@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="390" viewBox="0 0 900 390" role="img" aria-labelledby="title desc">
+  <title id="title">Punch region usage scenarios</title>
+  <desc id="desc">EGUI draws static UI around a rectangular area while an external producer draws video, camera, decoded image, or hardware overlay pixels into that area.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#334155" />
+    </marker>
+    <linearGradient id="media" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0ea5e9" />
+      <stop offset="0.52" stop-color="#22c55e" />
+      <stop offset="1" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+  <rect width="900" height="390" fill="#f8fafc" />
+  <text x="38" y="40" font-size="22" font-weight="700" fill="#0f172a" font-family="Arial, 'Microsoft YaHei', sans-serif">典型布局：EGUI 外框 + 应用自绘中心区域</text>
+  <text x="38" y="66" font-size="13" fill="#475569" font-family="Arial, 'Microsoft YaHei', sans-serif">控件、文字、边框由 EGUI 管理；高频或外部像素由应用直接写入 punch 区域</text>
+
+  <g transform="translate(60 94)">
+    <rect x="0" y="0" width="250" height="270" rx="16" fill="#111827" stroke="#334155" stroke-width="3" />
+    <rect x="18" y="20" width="214" height="34" rx="4" fill="#334155" />
+    <text x="125" y="43" text-anchor="middle" font-size="14" font-weight="700" fill="#f8fafc" font-family="Arial, 'Microsoft YaHei', sans-serif">EGUI 标题 / 状态</text>
+    <rect x="28" y="75" width="194" height="130" rx="4" fill="url(#media)" />
+    <rect x="28" y="75" width="194" height="130" rx="4" fill="none" stroke="#f97316" stroke-width="3" stroke-dasharray="7 5" />
+    <text x="125" y="135" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff" font-family="Arial, 'Microsoft YaHei', sans-serif">punch region</text>
+    <text x="125" y="158" text-anchor="middle" font-size="12" fill="#ffffff" font-family="Arial, 'Microsoft YaHei', sans-serif">应用 / 硬件直绘</text>
+    <rect x="18" y="224" width="98" height="24" rx="4" fill="#475569" />
+    <rect x="134" y="224" width="98" height="24" rx="4" fill="#475569" />
+    <text x="67" y="241" text-anchor="middle" font-size="11" fill="#f8fafc" font-family="Arial, 'Microsoft YaHei', sans-serif">EGUI 按钮</text>
+    <text x="183" y="241" text-anchor="middle" font-size="11" fill="#f8fafc" font-family="Arial, 'Microsoft YaHei', sans-serif">EGUI 文本</text>
+  </g>
+
+  <line x1="340" y1="168" x2="430" y2="168" stroke="#334155" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="340" y1="222" x2="430" y2="222" stroke="#334155" stroke-width="2" marker-end="url(#arrow)" />
+
+  <g transform="translate(450 105)">
+    <rect x="0" y="0" width="170" height="64" rx="8" fill="#ecfeff" stroke="#0891b2" />
+    <text x="85" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="#155e75" font-family="Arial, 'Microsoft YaHei', sans-serif">视频 / 摄像头</text>
+    <text x="85" y="48" text-anchor="middle" font-size="12" fill="#155e75" font-family="Arial, 'Microsoft YaHei', sans-serif">高频帧直接显示</text>
+
+    <rect x="0" y="88" width="170" height="64" rx="8" fill="#f0fdf4" stroke="#16a34a" />
+    <text x="85" y="115" text-anchor="middle" font-size="14" font-weight="700" fill="#166534" font-family="Arial, 'Microsoft YaHei', sans-serif">文件解码</text>
+    <text x="85" y="136" text-anchor="middle" font-size="12" fill="#166534" font-family="Arial, 'Microsoft YaHei', sans-serif">按行 / 按块渐进写入</text>
+  </g>
+
+  <g transform="translate(660 105)">
+    <rect x="0" y="0" width="170" height="64" rx="8" fill="#fff7ed" stroke="#f97316" />
+    <text x="85" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="#9a3412" font-family="Arial, 'Microsoft YaHei', sans-serif">硬件 overlay</text>
+    <text x="85" y="48" text-anchor="middle" font-size="12" fill="#9a3412" font-family="Arial, 'Microsoft YaHei', sans-serif">绕开 EGUI 合成</text>
+
+    <rect x="0" y="88" width="170" height="64" rx="8" fill="#f5f3ff" stroke="#7c3aed" />
+    <text x="85" y="115" text-anchor="middle" font-size="14" font-weight="700" fill="#5b21b6" font-family="Arial, 'Microsoft YaHei', sans-serif">共享总线直绘</text>
+    <text x="85" y="136" text-anchor="middle" font-size="12" fill="#5b21b6" font-family="Arial, 'Microsoft YaHei', sans-serif">acquire / release 同步</text>
+  </g>
+
+  <g transform="translate(450 286)">
+    <rect x="0" y="-28" width="380" height="52" rx="8" fill="#ffffff" stroke="#cbd5e1" />
+    <text x="190" y="4" text-anchor="middle" font-size="13" fill="#334155" font-family="Arial, 'Microsoft YaHei', sans-serif">原则：punch 内部像素归应用，punch 外部界面归 EGUI。</text>
+  </g>
+</svg>

@@ -11,6 +11,7 @@ APP_SUB ?= button
 # APP_SUB ?= svg
 # APP_SUB ?= file_image
 # APP_SUB ?= deferred_image
+# APP_SUB ?= punch_region
 # APP_SUB ?= label
 # APP_SUB ?= linearlayout
 # APP_SUB ?= mask

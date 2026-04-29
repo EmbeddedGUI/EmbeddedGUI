@@ -7,6 +7,7 @@
    pfb_design
    core_ram_guide
    dirty_rect
+   punch_region
    oop_pattern
    view_system
    event_system

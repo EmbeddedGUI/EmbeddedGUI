@@ -111,6 +111,8 @@ struct egui_core
     egui_core_debug_state_t debug;   // debug/monitor owned state
     egui_core_image_state_t image;   // image/cache owned state
     egui_core_text_state_t text;     // font/text-transform owned state
+
+    egui_region_t punch_region; // app-owned screen region excluded from PFB rendering
 };
 
 /**
@@ -206,6 +208,8 @@ void egui_core_update_region_dirty(egui_core_t *core, egui_region_t *region_dirt
 void egui_core_update_region_dirty_all(egui_core_t *core);
 /** Clear all dirty slots after a frame completes and advance the dirty epoch. */
 void egui_core_clear_region_dirty(egui_core_t *core);
+/** Set one app-owned screen region that the PFB renderer must not overdraw. */
+void egui_core_set_punch_region(egui_core_t *core, int16_t x, int16_t y, int16_t w, int16_t h);
 /** Return the user root container used for activities, dialogs, and other app-owned trees. */
 egui_view_group_t *egui_core_get_user_root_view(egui_core_t *core);
 /** Add a view to the user root container. */

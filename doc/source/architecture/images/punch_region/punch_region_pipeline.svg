@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="360" viewBox="0 0 920 360" role="img" aria-labelledby="title desc">
+  <title id="title">Punch region refresh pipeline</title>
+  <desc id="desc">Dirty rectangles are subtracted by the punch region before PFB rendering. The application draws the punched area directly.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#334155" />
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.18" />
+    </filter>
+  </defs>
+  <rect width="920" height="360" fill="#f8fafc" />
+  <text x="32" y="38" font-size="22" font-weight="700" fill="#0f172a" font-family="Arial, 'Microsoft YaHei', sans-serif">punch region 刷新路径</text>
+  <text x="32" y="64" font-size="13" fill="#475569" font-family="Arial, 'Microsoft YaHei', sans-serif">EGUI 保持 dirty/PFB 机制，只在渲染前扣掉应用自绘区域</text>
+
+  <g filter="url(#shadow)">
+    <rect x="42" y="112" width="150" height="86" rx="8" fill="#ffffff" stroke="#94a3b8" />
+    <text x="117" y="145" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a" font-family="Arial, 'Microsoft YaHei', sans-serif">dirty list</text>
+    <text x="117" y="170" text-anchor="middle" font-size="12" fill="#64748b" font-family="Arial, 'Microsoft YaHei', sans-serif">控件失效区域</text>
+  </g>
+
+  <line x1="202" y1="155" x2="268" y2="155" stroke="#334155" stroke-width="2" marker-end="url(#arrow)" />
+
+  <g filter="url(#shadow)">
+    <rect x="280" y="96" width="170" height="118" rx="8" fill="#fff7ed" stroke="#f97316" />
+    <text x="365" y="128" text-anchor="middle" font-size="15" font-weight="700" fill="#9a3412" font-family="Arial, 'Microsoft YaHei', sans-serif">subtract</text>
+    <text x="365" y="152" text-anchor="middle" font-size="12" fill="#9a3412" font-family="Arial, 'Microsoft YaHei', sans-serif">dirty - punch</text>
+    <rect x="318" y="166" width="94" height="30" fill="#fed7aa" stroke="#fb923c" />
+    <rect x="350" y="166" width="30" height="30" fill="#f8fafc" stroke="#ea580c" stroke-dasharray="4 3" />
+  </g>
+
+  <line x1="460" y1="155" x2="526" y2="155" stroke="#334155" stroke-width="2" marker-end="url(#arrow)" />
+
+  <g filter="url(#shadow)">
+    <rect x="538" y="112" width="150" height="86" rx="8" fill="#ecfeff" stroke="#0891b2" />
+    <text x="613" y="145" text-anchor="middle" font-size="15" font-weight="700" fill="#155e75" font-family="Arial, 'Microsoft YaHei', sans-serif">PFB render</text>
+    <text x="613" y="170" text-anchor="middle" font-size="12" fill="#155e75" font-family="Arial, 'Microsoft YaHei', sans-serif">只绘制剩余矩形</text>
+  </g>
+
+  <line x1="698" y1="155" x2="764" y2="155" stroke="#334155" stroke-width="2" marker-end="url(#arrow)" />
+
+  <g filter="url(#shadow)">
+    <rect x="776" y="84" width="110" height="142" rx="10" fill="#111827" stroke="#334155" />
+    <rect x="790" y="101" width="82" height="108" rx="4" fill="#e2e8f0" />
+    <rect x="800" y="112" width="62" height="18" fill="#64748b" opacity="0.7" />
+    <rect x="802" y="138" width="58" height="42" fill="#fb923c" opacity="0.9" />
+    <rect x="802" y="138" width="58" height="42" fill="none" stroke="#fff7ed" stroke-width="2" stroke-dasharray="4 3" />
+    <rect x="800" y="188" width="62" height="12" fill="#64748b" opacity="0.7" />
+  </g>
+
+  <path d="M365 224 C365 288 610 288 802 210" fill="none" stroke="#f97316" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+  <g filter="url(#shadow)">
+    <rect x="404" y="256" width="196" height="50" rx="8" fill="#fff7ed" stroke="#f97316" />
+    <text x="502" y="286" text-anchor="middle" font-size="14" font-weight="700" fill="#9a3412" font-family="Arial, 'Microsoft YaHei', sans-serif">应用直绘 punch 区域</text>
+  </g>
+
+  <text x="794" y="246" font-size="13" fill="#475569" font-family="Arial, 'Microsoft YaHei', sans-serif">EGUI UI</text>
+  <text x="794" y="266" font-size="13" fill="#ea580c" font-family="Arial, 'Microsoft YaHei', sans-serif">应用像素</text>
+</svg>
