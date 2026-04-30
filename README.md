@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="doc/source/images/embeddedgui-ai-pfb-dirty-flat-logo.svg" alt="EGUI AI PFB Dirty Rect Logo" width="160" />
+</p>
+
 # EmbeddedGUI
 
 [![Compile Check](https://github.com/EmbeddedGUI/EmbeddedGUI/actions/workflows/github-actions-demo.yml/badge.svg)](https://github.com/EmbeddedGUI/EmbeddedGUI/actions/workflows/github-actions-demo.yml) [![Documentation Status](https://readthedocs.org/projects/embeddedgui/badge/?version=latest)](https://embeddedgui.readthedocs.io/en/latest/?badge=latest)
@@ -6,6 +10,14 @@
 > RAM < 8 KB · ROM < 64 KB · CPU ~100 MHz · 无 FPU · 纯 C99 · MIT 许可
 
 **[在线体验](https://embeddedgui.github.io/EmbeddedGUI/) · [完整文档](https://embeddedgui.readthedocs.io/en/latest/) · [Gitee](https://gitee.com/embeddedgui/EmbeddedGUI) · [GitHub](https://github.com/EmbeddedGUI/EmbeddedGUI)**
+
+![EmbeddedGUI AI PFB Dirty Rect Banner](doc/source/images/embeddedgui-ai-pfb-dirty-banner.png)
+
+EmbeddedGUI 把嵌入式 GUI 的低资源约束、PFB 局部帧缓冲、脏矩形渲染和自动化验证流程放在同一个工程体系里；配合 AI 辅助开发，可以更快完成控件设计、资源生成、性能分析和跨平台验证。
+
+- **程序员友好**：纯 C99、结构体 OOP、宏辅助类型转换，核心路径清晰可读
+- **AI 协作友好**：文档化 workflow、可复现构建、QEMU 微秒级基准，适合让 AI 参与设计、排错和回归检查
+- **嵌入式友好**：无 FPU、低 RAM/ROM、PC/STM32/QEMU/WASM 多平台覆盖
 
 ---
 
