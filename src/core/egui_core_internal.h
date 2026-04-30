@@ -95,6 +95,8 @@ void egui_core_init_display_scene(egui_core_t *core, int16_t screen_w, int16_t s
 void egui_core_setup_display_start(egui_core_t *core, const egui_display_setup_t *setup);
 /** Weak port hook called after one frame has been fully rendered and presented. */
 void egui_port_notify_frame_render_complete(void);
+/** Weak port hook that can defer one pending refresh frame without clearing dirty regions. */
+int egui_port_should_defer_refresh(egui_core_t *core);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

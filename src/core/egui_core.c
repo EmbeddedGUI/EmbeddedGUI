@@ -338,6 +338,13 @@ __EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
 {
 }
 
+/** Weak hook for ports that need to delay an expensive refresh frame temporarily. */
+__EGUI_WEAK__ int egui_port_should_defer_refresh(egui_core_t *core)
+{
+    EGUI_UNUSED(core);
+    return 0;
+}
+
 /**
  * Render all pending dirty regions immediately.
  * This is the core of the polling-mode renderer and is also reused by the auto-refresh timer.
@@ -457,6 +464,11 @@ void egui_core_refresh_screen(egui_core_t *core)
     if (egui_check_need_refresh(core))
     {
         egui_display_driver_t *drv = egui_display_driver_get(core);
+
+        if (egui_port_should_defer_refresh(core))
+        {
+            return;
+        }
 
         if (drv != NULL)
         {
