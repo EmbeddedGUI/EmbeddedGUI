@@ -20,10 +20,6 @@ struct egui_circle_item
     uint16_t data_offset;
 };
 
-#ifndef EGUI_CIRCLE_INFO_T_DEFINED
-#define EGUI_CIRCLE_INFO_T_DEFINED
-typedef struct egui_circle_info egui_circle_info_t;
-#endif
 struct egui_circle_info
 {
     uint16_t radius;
@@ -99,6 +95,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_extra_clip(egui_canvas_t *self, cons
 #if EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
     self->extra_clip_region = clip_region;
 #else
+    EGUI_UNUSED(self);
     EGUI_UNUSED(clip_region);
 #endif
 }
@@ -107,6 +104,8 @@ __EGUI_STATIC_INLINE__ void egui_canvas_clear_extra_clip(egui_canvas_t *self)
 {
 #if EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
     self->extra_clip_region = NULL;
+#else
+    EGUI_UNUSED(self);
 #endif
 }
 
@@ -115,6 +114,7 @@ __EGUI_STATIC_INLINE__ const egui_region_t *egui_canvas_get_extra_clip(egui_canv
 #if EGUI_CONFIG_FUNCTION_CANVAS_EXTRA_CLIP
     return self->extra_clip_region;
 #else
+    EGUI_UNUSED(self);
     return NULL;
 #endif
 }
@@ -135,6 +135,7 @@ __EGUI_STATIC_INLINE__ egui_mask_t *egui_canvas_get_mask(egui_canvas_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     return self->mask;
 #else
+    EGUI_UNUSED(self);
     return NULL;
 #endif
 }
@@ -1116,7 +1117,7 @@ void egui_canvas_transform_release_frame_cache(egui_canvas_t *self);
 
 void egui_canvas_calc_work_region(egui_canvas_t *self, egui_region_t *base_region);
 void egui_canvas_register_spec_circle_info(egui_canvas_t *self, uint16_t res_circle_info_count_spec, const egui_circle_info_t *res_circle_info_spec_arr);
-egui_core_t *egui_canvas_get_core(egui_canvas_t *self);
+egui_core_t *egui_canvas_get_core(const egui_canvas_t *self);
 void egui_canvas_init(egui_canvas_t *self, egui_core_t *core, egui_color_int_t *pfb, egui_region_t *region);
 
 int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha);

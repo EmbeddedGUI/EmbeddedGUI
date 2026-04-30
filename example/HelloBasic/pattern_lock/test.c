@@ -46,6 +46,7 @@ static void build_pattern_text(char *out, size_t out_size, const uint8_t *nodes,
 
 static void on_pattern_complete(egui_view_t *self, uint8_t node_count)
 {
+    EGUI_UNUSED(node_count);
     (void)self;
     EGUI_LOG_INF("pattern_lock completed, node_count=%d\r\n", node_count);
 }

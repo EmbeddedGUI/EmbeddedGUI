@@ -118,7 +118,7 @@ typedef int32_t egui_fixed_t;
 /**
  *  Integer to fixed-point conversion.
  */
-#define EGUI_FX_ITOX(ival, frac) ((int32_t)(ival) << (frac))
+#define EGUI_FX_ITOX(ival, frac) ((int32_t)((uint32_t)(int32_t)(ival) << (frac)))
 
 /**
  *  Single precision float to fixed-point conversion.

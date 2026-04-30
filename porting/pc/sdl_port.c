@@ -475,6 +475,7 @@ static void sdl_port_touch_push_event(uint8_t pressed, int16_t x, int16_t y)
 
 void sdl_port_touch_read(egui_core_t *core_ctx, uint8_t *pressed, int16_t *x, int16_t *y)
 {
+    EGUI_UNUSED(core_ctx);
     sdl_touch_event_t event;
 
     if (pressed == NULL || x == NULL || y == NULL)
@@ -700,6 +701,7 @@ static void sdl_frame_unlock(void)
 
 static void sdl_port_commit_frame(egui_core_t *core_ctx)
 {
+    EGUI_UNUSED(core_ctx);
 #if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
     int disp_id = core_ctx != NULL ? core_ctx->id : 0;
     if (disp_id > 0 && disp_id <= sdl_extra_count)
@@ -836,6 +838,8 @@ static void sdl_port_present_window_frame(uint32_t window_id)
 
 __EGUI_WEAK__ void egui_port_hanlde_key_event(int key, int event)
 {
+    EGUI_UNUSED(event);
+    EGUI_UNUSED(key);
     // printf("key event: %d, %d\n", key, event);
 }
 
@@ -1830,6 +1834,7 @@ void recording_set_snapshot_stability(int stable_cycles, int max_wait_ms)
     {
         if (max_wait_ms > 10000)
         {
+            EGUI_UNUSED(block_actions);
             max_wait_ms = 10000;
         }
         g_recording_snapshot_max_wait_ms = max_wait_ms;
@@ -1843,6 +1848,7 @@ void recording_set_snapshot_stability(int stable_cycles, int max_wait_ms)
 
 static void recording_request_snapshot_internal(bool block_actions)
 {
+    EGUI_UNUSED(block_actions);
     recording_lock();
     if (g_recording_enabled)
     {
@@ -1944,7 +1950,9 @@ static void recording_execute_action_step(void)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     const egui_sim_action_t *action = &g_recording_current_action;
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1 || EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
     int target_display = 0;
+#endif
     int x1 = action->x1;
     int y1 = action->y1;
     int x2 = action->x2;

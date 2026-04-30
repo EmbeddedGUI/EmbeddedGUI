@@ -67,6 +67,7 @@ static void update_status(const char *front_name)
 // ============== Button callbacks ==============
 static void btn_red_top_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("btn_red_top_cb\n");
     egui_view_set_layer(EGUI_VIEW_OF(&label_red), EGUI_VIEW_LAYER_TOP);
     egui_view_set_layer(EGUI_VIEW_OF(&label_green), EGUI_VIEW_LAYER_DEFAULT);
@@ -76,6 +77,7 @@ static void btn_red_top_cb(egui_view_t *self)
 
 static void btn_green_top_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("btn_green_top_cb\n");
     egui_view_set_layer(EGUI_VIEW_OF(&label_red), EGUI_VIEW_LAYER_DEFAULT);
     egui_view_set_layer(EGUI_VIEW_OF(&label_green), EGUI_VIEW_LAYER_TOP);
@@ -85,6 +87,7 @@ static void btn_green_top_cb(egui_view_t *self)
 
 static void btn_blue_top_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("btn_blue_top_cb\n");
     egui_view_set_layer(EGUI_VIEW_OF(&label_red), EGUI_VIEW_LAYER_DEFAULT);
     egui_view_set_layer(EGUI_VIEW_OF(&label_green), EGUI_VIEW_LAYER_DEFAULT);

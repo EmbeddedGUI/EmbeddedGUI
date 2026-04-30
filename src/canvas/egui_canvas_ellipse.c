@@ -413,6 +413,7 @@ static void ellipse_prepare_scanline_info(egui_dim_t abs_dy, int32_t rx_sq, int3
 __EGUI_STATIC_INLINE__ void ellipse_draw_direct_span(egui_canvas_t *self, egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t x_start, egui_dim_t x_end,
                                                      egui_color_t color, egui_alpha_t alpha)
 {
+    EGUI_UNUSED(self);
     egui_color_int_t *dst;
     uint32_t count;
 

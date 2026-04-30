@@ -212,12 +212,25 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, egui_canvas_t *canva
 int egui_font_draw_string(const egui_font_t *self, egui_canvas_t *canvas, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color,
                           egui_alpha_t alpha)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(canvas);
+    EGUI_UNUSED(string);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+    EGUI_UNUSED(color);
+    EGUI_UNUSED(alpha);
     // implement is sub-class.
     return 0;
 }
 
 int egui_font_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width, egui_dim_t *height)
 {
+    EGUI_UNUSED(height);
+    EGUI_UNUSED(is_multi_line);
+    EGUI_UNUSED(line_space);
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(string);
+    EGUI_UNUSED(width);
     // implement is sub-class.
     return 0;
 }

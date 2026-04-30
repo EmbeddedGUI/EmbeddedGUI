@@ -34,6 +34,8 @@ static int egui_image_rle_prepare_decode_info(const egui_image_rle_info_t *info,
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 __EGUI_STATIC_INLINE__ void egui_image_rle_external_sync_window_cache(egui_core_t *core, egui_image_rle_external_window_cache_t *cache)
 {
+    EGUI_UNUSED(cache);
+    EGUI_UNUSED(core);
 #if EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW
     uint32_t generation = egui_image_std_claim_shared_external_row_cache(core, EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_RLE);
 
@@ -123,10 +125,13 @@ __EGUI_STATIC_INLINE__ void egui_image_rle_fill_u16(uint16_t *dst, uint16_t valu
         {
         case 4:
             dst[3] = value;
+            /* fall through */
         case 3:
             dst[2] = value;
+            /* fall through */
         case 2:
             dst[1] = value;
+            /* fall through */
         case 1:
             dst[0] = value;
         default:
@@ -256,6 +261,9 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row_external(egui_canvas_t *
 __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row(egui_canvas_t *canvas, const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint16_t pixels,
                                                         uint8_t blk_size, uint8_t res_type, egui_image_rle_external_window_cache_t *cache)
 {
+    EGUI_UNUSED(canvas);
+    EGUI_UNUSED(cache);
+    EGUI_UNUSED(res_type);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
@@ -1199,6 +1207,7 @@ static uint8_t egui_image_rle_get_data_blk_size(uint8_t data_type)
  */
 static uint8_t egui_image_rle_get_alpha_blk_size(uint8_t alpha_type)
 {
+    EGUI_UNUSED(alpha_type);
     /* Alpha is always stored as 1 byte per unit in RLE stream */
     return 1;
 }
@@ -1261,6 +1270,9 @@ static int egui_image_rle_restore_checkpoint(egui_core_t *core, const egui_image
 
 static int egui_image_rle_get_point(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
     /* Compressed images don't support efficient random access get_point.
      * Return default values. */
     color->full = 0;
@@ -1271,6 +1283,11 @@ static int egui_image_rle_get_point(const egui_image_t *self, egui_dim_t x, egui
 static int egui_image_rle_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color,
                                            egui_alpha_t *alpha)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+    EGUI_UNUSED(width);
+    EGUI_UNUSED(height);
     /* Resize not supported for compressed images */
     color->full = 0;
     *alpha = 0;
@@ -2101,6 +2118,7 @@ cleanup:
 
 static void egui_image_rle_draw_image_resize(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
+    EGUI_UNUSED(canvas);
     /* Resize not supported for compressed images */
     (void)self;
     (void)x;

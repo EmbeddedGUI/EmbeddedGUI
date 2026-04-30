@@ -45,6 +45,8 @@ void egui_dialog_add_view(egui_dialog_t *self, egui_view_t *view)
 /** Store a debug-only dialog name when class-name logging is enabled. */
 void egui_dialog_set_name(egui_dialog_t *self, const char *name)
 {
+    EGUI_UNUSED(name);
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     self->name = name;
 #endif
@@ -200,6 +202,7 @@ static void bg_click_cb(egui_view_t *self)
 /** Eat clicks inside the user-content root so they do not dismiss the dialog background. */
 static void bg_user_click_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_DBG("bg_user_click_cb\n");
 }
 

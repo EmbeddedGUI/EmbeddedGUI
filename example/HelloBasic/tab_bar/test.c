@@ -36,6 +36,7 @@ EGUI_VIEW_LABEL_PARAMS_INIT(page_3_params, 0, 0, PAGE_WIDTH, PAGE_HEIGHT, "Setti
 
 static void tab_changed_cb(egui_view_t *self, uint8_t index)
 {
+    EGUI_UNUSED(self);
     egui_view_viewpage_scroll_to_page(EGUI_VIEW_OF(&viewpage), index);
 }
 
@@ -43,6 +44,7 @@ static egui_timer_t sync_timer;
 
 static void sync_timer_callback(egui_timer_t *timer)
 {
+    EGUI_UNUSED(timer);
     egui_view_viewpage_t *vp = (egui_view_viewpage_t *)&viewpage;
     egui_view_tab_bar_t *tb = (egui_view_tab_bar_t *)&tab_bar;
     if (tb->current_index != vp->current_page_index)

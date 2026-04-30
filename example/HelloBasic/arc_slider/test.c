@@ -30,6 +30,8 @@ static uint8_t runtime_fail_reported;
 
 static void on_arc_value_changed(egui_view_t *self, uint8_t value)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(value);
     EGUI_LOG_INF("Arc slider value: %d\r\n", value);
 }
 

@@ -51,6 +51,8 @@ static uint8_t schedule_radio_verify_retry(uint8_t verify_index, egui_sim_action
 
 static void radio_changed_cb(egui_view_t *self, int index)
 {
+    EGUI_UNUSED(index);
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("Radio selected index: %d\n", index);
 }
 

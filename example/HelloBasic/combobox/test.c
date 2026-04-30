@@ -36,6 +36,8 @@ EGUI_VIEW_COMBOBOX_PARAMS_INIT(combo_l_params, 0, 0, 200, 44, items_l, 4, 0);
 
 static void on_combo_selected(egui_view_t *self, uint8_t index)
 {
+    EGUI_UNUSED(index);
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("Combobox selected index: %d\r\n", index);
 }
 

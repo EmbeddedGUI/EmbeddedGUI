@@ -32,6 +32,8 @@ static uint8_t runtime_fail_reported;
 
 static void on_roller_selected(egui_view_t *self, uint8_t index)
 {
+    EGUI_UNUSED(index);
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("Roller selected: %s (index=%d)\r\n", weekdays[index], index);
 }
 

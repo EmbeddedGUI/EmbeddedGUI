@@ -68,16 +68,19 @@ static egui_interpolator_accelerate_decelerate_t interp_accel_decel;
 // ============================================================================
 static void on_animation_start(egui_animation_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("on_animation_start\n");
 }
 
 static void on_animation_end(egui_animation_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("on_animation_end\n");
 }
 
 static void on_animation_repeat(egui_animation_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("on_animation_repeat\n");
 }
 

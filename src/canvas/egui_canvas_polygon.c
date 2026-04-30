@@ -147,6 +147,7 @@ __EGUI_STATIC_INLINE__ void polygon_blend_direct(egui_color_t *dst, egui_color_t
 __EGUI_STATIC_INLINE__ void polygon_fill_direct_span(egui_canvas_t *self, egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t x_start, egui_dim_t x_end,
                                                      egui_color_t color, egui_alpha_t alpha)
 {
+    EGUI_UNUSED(self);
     egui_color_int_t *dst;
     uint32_t count;
 

@@ -11,12 +11,14 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_page_1, &bg_page_1_params);
 
 static void button_1_click_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("button_1_click_cb\n");
     uicode_start_next_page();
 }
 
 static void button_2_click_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("button_2_click_cb\n");
 
     uicode_start_prev_page();

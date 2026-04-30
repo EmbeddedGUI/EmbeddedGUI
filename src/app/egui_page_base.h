@@ -8,8 +8,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_page_base egui_page_base_t;
-
 typedef struct egui_page_base_api egui_page_base_api_t;
 struct egui_page_base_api
 {

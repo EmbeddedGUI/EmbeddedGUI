@@ -30,6 +30,8 @@ static uint8_t runtime_fail_reported;
 
 static void slider_value_changed_cb(egui_view_t *self, uint8_t value)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(value);
     EGUI_LOG_INF("Slider value: %d\n", value);
 }
 

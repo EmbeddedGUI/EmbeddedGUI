@@ -82,6 +82,7 @@ static void apply_rotation(int index)
 
 static void btn_rotate_click_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("Rotate button clicked, switching rotation\n");
     apply_rotation(rotation_index + 1);
 }

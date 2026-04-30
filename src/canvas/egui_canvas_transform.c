@@ -2568,6 +2568,10 @@ typedef struct
 #define g_text_transform_prepare_cache (core->text.text_transform_prepare_cache)
 #endif
 
+#define TEXT_TRANSFORM_LAYOUT_STACK_ENABLE ((EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS > 0) && (EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES > 0))
+#define TEXT_TRANSFORM_LAYOUT_BUILD_ENABLE                                                                                                                     \
+    (EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE || EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE || TEXT_TRANSFORM_LAYOUT_STACK_ENABLE)
+
 static int text_transform_draw_visible_alpha8_tile_layout(egui_canvas_t *canvas, const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y,
                                                           egui_color_t color, const egui_font_std_info_t *font_info,
                                                           const text_transform_layout_glyph_t *layout_glyphs,
@@ -2577,8 +2581,8 @@ static int text_transform_draw_visible_alpha8_tile_layout(egui_canvas_t *canvas,
 static int text_transform_prepare(egui_canvas_t *canvas, int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
                                   egui_alpha_t alpha, text_transform_ctx_t *ctx)
 {
-    egui_core_t *core = canvas->core;
 #if EGUI_CONFIG_FUNCTION_FONT_TRANSFORM_FAST_DRAW
+    egui_core_t *core = canvas->core;
     text_transform_prepare_cache_t *cache = &g_text_transform_prepare_cache;
 #else
     text_transform_prepare_cache_t local_cache = {0};
@@ -2736,6 +2740,8 @@ static void text_transform_release_layout_cache(egui_core_t *core)
 #endif
     g_text_transform_layout_capacity = 0;
     g_text_transform_layout_line_capacity = 0;
+#else
+    EGUI_UNUSED(core);
 #endif
 }
 
@@ -2749,6 +2755,7 @@ static void text_transform_release_visible_tile_cache(egui_core_t *core)
     egui_api_memset(&g_text_transform_visible_tile_cache, 0, sizeof(g_text_transform_visible_tile_cache));
 }
 
+#if TEXT_TRANSFORM_LAYOUT_BUILD_ENABLE
 static void text_transform_measure_layout_slots(const char *string, int *glyph_count, int *line_count)
 {
     const char *s = string;
@@ -2796,6 +2803,7 @@ static void text_transform_measure_layout_slots(const char *string, int *glyph_c
         *line_count = lines;
     }
 }
+#endif
 
 __EGUI_STATIC_INLINE__ uint8_t read_packed_mask_alpha_4(const uint8_t *buf, int buf_w, int x, int y)
 {
@@ -2876,6 +2884,7 @@ void egui_canvas_transform_release_frame_cache(egui_canvas_t *self)
     text_transform_release_visible_tile_cache(core);
 }
 
+#if TEXT_TRANSFORM_LAYOUT_BUILD_ENABLE
 static int text_transform_build_layout(egui_canvas_t *canvas, const egui_font_std_info_t *font_info, const char *string, text_transform_layout_glyph_t *glyphs,
                                        int max_glyphs, text_transform_layout_line_t *lines, int max_lines, int *line_count, egui_dim_t line_space)
 {
@@ -3034,6 +3043,7 @@ static int text_transform_build_layout(egui_canvas_t *canvas, const egui_font_st
 
     return count;
 }
+#endif
 
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
 static int text_transform_prepare_layout(egui_canvas_t *canvas, const egui_font_t *font, const egui_font_std_info_t *font_info, const char *string,
@@ -4126,6 +4136,7 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
         }
 #else
         {
+            EGUI_UNUSED(text);
             EGUI_ASSERT(0);
             return;
         }
@@ -5085,6 +5096,7 @@ static int text_transform_rasterize_visible_alpha8_layout(egui_canvas_t *canvas,
                                                           const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *layout_glyphs,
                                                           const text_transform_layout_index_t *glyph_indices, int glyph_count, int glyphs_overlap)
 {
+    EGUI_UNUSED(canvas);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     text_transform_external_layout_glyph_row_scratch_t external_row_scratch = {
             0,
@@ -5211,6 +5223,7 @@ static int text_transform_draw_alpha8_buffer_opaque_nomask(const text_transform_
                                                            const uint8_t *alpha8_buf, int16_t src_x0, int16_t src_y0, int buf_w, int buf_h,
                                                            int32_t core_src_lo_y_q15, int32_t core_src_hi_y_q15)
 {
+    EGUI_UNUSED(y);
     int32_t inv_m00;
     int32_t inv_m01;
     int32_t inv_m10;
@@ -5500,6 +5513,7 @@ static int text_transform_draw_alpha8_buffer_opaque_row_color(const text_transfo
                                                               const uint8_t *alpha8_buf, int16_t src_x0, int16_t src_y0, int buf_w, int buf_h,
                                                               int32_t core_src_lo_y_q15, int32_t core_src_hi_y_q15)
 {
+    EGUI_UNUSED(y);
     int32_t inv_m00;
     int32_t inv_m01;
     int32_t inv_m10;
@@ -6504,6 +6518,7 @@ static inline int batch_extract_packed_raw_4_trivial(const uint8_t *buf, int rb,
 static int text_transform_draw_packed4_buffer(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color, const uint8_t *packed_buf,
                                               int16_t src_x0, int16_t src_y0, int buf_w, int buf_h)
 {
+    EGUI_UNUSED(y);
     int32_t Cx_base;
     int32_t Cy_base;
     int32_t row_start_offset_x;

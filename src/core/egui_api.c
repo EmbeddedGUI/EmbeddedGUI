@@ -176,6 +176,9 @@ static void egui_api_free_raw(egui_core_t *core, void *ptr)
 /** Emit a consistent allocation-failure log including both payload and tracked sizes. */
 static void egui_api_log_alloc_fail(const char *reason, size_t payload_size, size_t tracked_size)
 {
+    EGUI_UNUSED(payload_size);
+    EGUI_UNUSED(reason);
+    EGUI_UNUSED(tracked_size);
     EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu\r\n", reason, (unsigned long)payload_size, (unsigned long)tracked_size);
 }
 
@@ -218,6 +221,8 @@ void egui_api_log(const char *format, ...)
 /** Trap forever after an assertion failure so embedded targets stop at the failing point. */
 void egui_api_assert(const char *file, int line)
 {
+    EGUI_UNUSED(file);
+    EGUI_UNUSED(line);
     while (1)
         ;
 }
@@ -299,6 +304,7 @@ void *egui_api_malloc(egui_core_t *core, int size)
 /** Snapshot the current memory monitor values for the given core. */
 int egui_api_get_mem_monitor(egui_core_t *core, egui_mem_monitor_t *monitor)
 {
+    EGUI_UNUSED(core);
     if (monitor == NULL)
     {
         return 0;
@@ -463,7 +469,7 @@ void egui_api_memcpy(void *dst, const void *src, int n)
  * When a canvas/core is available, the PFB bus is locked around the read so shared SPI
  * flash and LCD transfers cannot collide.
  */
-void egui_api_load_external_resource(egui_canvas_t *canvas, void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size)
+void egui_api_load_external_resource(const egui_canvas_t *canvas, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size)
 {
     egui_core_t *core = canvas != NULL ? egui_canvas_get_core(canvas) : NULL;
     egui_platform_t *plat = egui_platform_get();

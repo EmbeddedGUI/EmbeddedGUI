@@ -31,15 +31,22 @@ typedef int egui_base_t; // saved platform interrupt state or other small platfo
 typedef struct egui_font egui_font_t;
 typedef struct egui_font_std egui_font_std_t;
 typedef struct egui_image egui_image_t;
+typedef struct egui_image_file egui_image_file_t;
+typedef struct egui_image_file_decoder egui_image_file_decoder_t;
+typedef struct egui_image_file_io egui_image_file_io_t;
+typedef struct egui_image_file_open_result egui_image_file_open_result_t;
 typedef struct egui_mask egui_mask_t;
 
 /* Core runtime and view tree */
 typedef struct egui_core egui_core_t;
+typedef struct egui_theme egui_theme_t;
 typedef struct egui_view egui_view_t;
 typedef struct egui_view_group egui_view_group_t;
 
 /* Rendering helpers */
 typedef struct egui_canvas egui_canvas_t;
+typedef struct egui_circle_info egui_circle_info_t;
+typedef struct egui_gradient egui_gradient_t;
 typedef struct egui_shadow egui_shadow_t;
 
 /* Geometry and diagnostics */
@@ -48,11 +55,7 @@ typedef struct egui_size egui_size_t;
 typedef struct egui_region egui_region_t;
 typedef struct egui_mem_monitor egui_mem_monitor_t;
 
-/* Shared guard because `egui_key_event.h` also forward-declares this type. */
-#ifndef EGUI_KEY_EVENT_T_DEFINED
-#define EGUI_KEY_EVENT_T_DEFINED
 typedef struct egui_key_event egui_key_event_t;
-#endif
 
 /* Input, platform, and display backends */
 typedef struct egui_focus_manager egui_focus_manager_t;

@@ -25,6 +25,7 @@
  */
 __EGUI_STATIC_INLINE__ void egui_canvas_line_blend_direct(egui_canvas_t *self, egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
+    EGUI_UNUSED(self);
     if (alpha == 0)
     {
         return;

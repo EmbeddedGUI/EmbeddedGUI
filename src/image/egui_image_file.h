@@ -10,16 +10,9 @@ extern "C" {
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
 
-typedef struct egui_core egui_core_t;
-
 #define EGUI_IMAGE_FILE_SEEK_SET 0
 #define EGUI_IMAGE_FILE_SEEK_CUR 1
 #define EGUI_IMAGE_FILE_SEEK_END 2
-
-typedef struct egui_image_file_io egui_image_file_io_t;
-typedef struct egui_image_file_decoder egui_image_file_decoder_t;
-typedef struct egui_image_file_open_result egui_image_file_open_result_t;
-typedef struct egui_image_file egui_image_file_t;
 
 typedef enum
 {

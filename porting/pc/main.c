@@ -687,6 +687,8 @@ static int pc_core_thread_entry(void *argument)
 
 void app_set_gpio(uint8_t pin, uint8_t state)
 {
+    EGUI_UNUSED(pin);
+    EGUI_UNUSED(state);
 }
 
 EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);

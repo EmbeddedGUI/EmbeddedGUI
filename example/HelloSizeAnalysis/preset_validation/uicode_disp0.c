@@ -3,4 +3,5 @@
 
 void uicode_disp0_init(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
 }

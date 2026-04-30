@@ -51,12 +51,14 @@ static uint8_t recording_cursor_verify_retry;
 
 static void on_submit(egui_view_t *self, const char *text)
 {
+    EGUI_UNUSED(self);
     egui_api_sprintf(result_str, "Submitted: %s", text);
     egui_view_label_set_text(EGUI_VIEW_OF(&label_result), result_str);
 }
 
 static void button_click_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     const char *text = egui_view_textinput_get_text(EGUI_VIEW_OF(&textinput_1));
     on_submit(EGUI_VIEW_OF(&textinput_1), text);
 }

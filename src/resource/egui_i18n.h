@@ -22,12 +22,12 @@
 
 #include <stdint.h>
 
+#include "core/egui_typedef.h"
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct egui_core egui_core_t;
 
 /**
  * @brief A locale string table: array of C strings indexed by string_id.

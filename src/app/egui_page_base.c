@@ -27,6 +27,8 @@ void egui_page_base_add_view(egui_page_base_t *self, egui_view_t *view)
 /** Store a debug-only page name when class-name logging is enabled. */
 void egui_page_base_set_name(egui_page_base_t *self, const char *name)
 {
+    EGUI_UNUSED(name);
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     self->name = name;
 #endif

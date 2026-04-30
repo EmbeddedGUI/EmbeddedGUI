@@ -92,6 +92,8 @@ int egui_font_lattice_draw_string(const egui_font_t *self, egui_canvas_t *canvas
 int egui_font_lattice_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width,
                                    egui_dim_t *height)
 {
+    EGUI_UNUSED(is_multi_line);
+    EGUI_UNUSED(line_space);
     const char *s = (const char *)string;
     LATTICE_FONT_INFO *font = (LATTICE_FONT_INFO *)self->res;
     if (NULL == s || NULL == font)

@@ -9,6 +9,7 @@ import argparse
 import time
 import shutil
 import subprocess
+import shlex
 from pathlib import Path
 
 make_jobs = None
@@ -29,6 +30,14 @@ APP_SUB_ROOTS = {
 SUB_APP_FAMILY_APPS = tuple(APP_SUB_ROOTS.keys())
 FULL_CHECK_SKIP_APPS = {"HelloUnitTest"}
 MULTI_DISPLAY_APPS = ("HelloMultiDisplay", "HelloMultiDisplayHetero")
+TYPICAL_COMPILE_CASES = (
+    ("HelloSimple", None),
+    ("HelloBasic", "button"),
+    ("HelloBasic", "image"),
+    ("HelloBasic", "label"),
+    ("HelloShowcase", None),
+    ("HelloVirtual", "virtual_stage_showcase"),
+)
 COMPILE_OUTPUT_ROOT = Path("output") / "cc"
 
 def get_example_list():
@@ -97,29 +106,38 @@ def get_config_hash(app, app_sub=None):
     return hashlib.sha256(config_path.read_bytes()).hexdigest()[:12]
 
 
-def get_compile_output_signature(app, port, app_sub=None, bits64=False, user_cflags=""):
+def get_compile_output_signature(app, port, app_sub=None, bits64=False, user_cflags="", user_cflags_std=""):
     payload = {
         "app": app,
         "port": port,
         "app_sub": app_sub or "",
         "bits64": bool(bits64),
         "user_cflags": normalize_user_cflags(user_cflags),
+        "user_cflags_std": normalize_user_cflags(user_cflags_std),
         "build_system": build_system,
     }
     return hashlib.sha1(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:10]
 
 
-def get_compile_output_dir(app, port, app_sub=None, bits64=False, user_cflags=""):
-    return COMPILE_OUTPUT_ROOT / get_compile_output_signature(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags)
+def get_compile_output_dir(app, port, app_sub=None, bits64=False, user_cflags="", user_cflags_std=""):
+    return COMPILE_OUTPUT_ROOT / get_compile_output_signature(
+        app,
+        port,
+        app_sub=app_sub,
+        bits64=bits64,
+        user_cflags=user_cflags,
+        user_cflags_std=user_cflags_std,
+    )
 
 
-def get_compile_obj_suffix(app, port, app_sub=None, bits64=False, user_cflags=""):
+def get_compile_obj_suffix(app, port, app_sub=None, bits64=False, user_cflags="", user_cflags_std=""):
     scope_hash = hashlib.sha1(
         json.dumps(
             {
                 "port": port,
                 "bits64": bool(bits64),
                 "user_cflags": normalize_user_cflags(user_cflags),
+                "user_cflags_std": normalize_user_cflags(user_cflags_std),
             },
             sort_keys=True,
             separators=(",", ":"),
@@ -127,7 +145,10 @@ def get_compile_obj_suffix(app, port, app_sub=None, bits64=False, user_cflags=""
     ).hexdigest()[:8]
     if app in SUB_APP_FAMILY_APPS:
         return "cc_%s_cfg_%s_%s" % (app.lower(), get_config_hash(app, app_sub), scope_hash)
-    return "cc_%s_%s" % (app.lower(), get_compile_output_signature(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags))
+    return "cc_%s_%s" % (
+        app.lower(),
+        get_compile_output_signature(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags, user_cflags_std=user_cflags_std),
+    )
 
 
 def get_make_parallel_arg():
@@ -200,6 +221,16 @@ def build_compile_cases(scope, app_sets, ports, sub_app_sets):
         selected_apps = build_standard_app_list(app_sets)
     elif scope == "multi-display":
         selected_apps = [app for app in MULTI_DISPLAY_APPS if app in app_sets and app not in FULL_CHECK_SKIP_APPS]
+    elif scope == "typical":
+        cases = []
+        for app, app_sub in TYPICAL_COMPILE_CASES:
+            if app not in app_sets or app in FULL_CHECK_SKIP_APPS:
+                continue
+            if app_sub is not None and app_sub not in sub_app_sets.get(app, ()):
+                continue
+            for port in ports:
+                cases.append((app, port, app_sub))
+        return cases
     elif scope == "basic":
         selected_apps = ["HelloBasic"]
     elif scope == "virtual":
@@ -259,8 +290,10 @@ def compile_code_cmake(params):
     port = 'pc'
     app_sub = ''
     bits = ''
+    user_cflags = ''
+    user_cflags_std = ''
 
-    parts = params.split()
+    parts = shlex.split(params)
     for part in parts:
         if part.startswith('APP='):
             app = part[4:]
@@ -270,6 +303,10 @@ def compile_code_cmake(params):
             app_sub = part[8:]
         elif part.startswith('BITS='):
             bits = part[5:]
+        elif part.startswith('USER_CFLAGS='):
+            user_cflags = part[12:].strip('"')
+        elif part.startswith('USER_CFLAGS_STD='):
+            user_cflags_std = part[16:].strip('"')
 
     # Build directory name includes app (and sub) to avoid conflicts
     if app_sub:
@@ -288,24 +325,27 @@ def compile_code_cmake(params):
     ]
     if app_sub:
         cmake_args.append('-DAPP_SUB=%s' % app_sub)
+    if user_cflags_std:
+        cmake_args.append('-DEGUI_USER_CFLAGS_STD=%s' % user_cflags_std)
+    if user_cflags:
+        cmake_args.append('-DEGUI_USER_CFLAGS=%s' % user_cflags)
 
     # Use MinGW Makefiles on Windows to match gcc toolchain
     if os.name == 'nt':
-        cmake_args.extend(['-G', '"MinGW Makefiles"'])
+        cmake_args.extend(['-G', 'MinGW Makefiles'])
 
-    cmd = ' '.join(cmake_args)
-    print(cmd)
-    res = os.system(cmd)
+    print(" ".join(cmake_args))
+    res = subprocess.call(cmake_args)
     if res != 0:
         return res
 
     # CMake build
-    build_cmd = 'cmake --build %s' % build_dir
+    build_cmd = ['cmake', '--build', build_dir]
     parallel_arg = get_make_parallel_arg()
     if parallel_arg:
-        build_cmd += ' ' + parallel_arg
-    print(build_cmd)
-    res = os.system(build_cmd)
+        build_cmd.append(parallel_arg)
+    print(" ".join(build_cmd))
+    res = subprocess.call(build_cmd)
     if res != 0:
         return res
 
@@ -423,7 +463,7 @@ def parse_args():
                         help="Compile all tracked standard examples plus HelloBasic/HelloVirtual/HelloSizeAnalysis sub-apps.")
 
     parser.add_argument("--scope",
-                        choices=["standard", "multi-display", "basic", "virtual", "size-analysis"],
+                        choices=["standard", "multi-display", "typical", "basic", "virtual", "size-analysis"],
                         default=None,
                         help="Compile only one case family, useful for CI sharding.")
 
@@ -497,6 +537,12 @@ def parse_args():
                         default="",
                         help="Append raw USER_CFLAGS to compile builds (for config override / A-B probe).")
 
+    parser.add_argument("--std",
+                        type=str,
+                        choices=["gnu99"],
+                        default="",
+                        help="Override USER_CFLAGS_STD with a C language standard flag for compile compatibility checks.")
+
     parser.add_argument("--queue-capacity-probe",
                         type=int,
                         default=0,
@@ -567,7 +613,7 @@ def format_app_name(app, app_sub=None):
     return "%s_%s" % (app, app_sub.replace("\\", "_").replace("/", "_"))
 
 
-def run_compile_cases_parallel(cases, params, bits64=False, user_cflags="", case_jobs=0):
+def run_compile_cases_parallel(cases, params, bits64=False, user_cflags="", user_cflags_std="", case_jobs=0):
     global make_jobs
 
     total_work_cnt = len(cases)
@@ -598,8 +644,22 @@ def run_compile_cases_parallel(cases, params, bits64=False, user_cflags="", case
         grouped_cases = {}
         direct_cases = []
         for app, port, app_sub in cases:
-            output_dir = get_compile_output_dir(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags)
-            obj_suffix = get_compile_obj_suffix(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags)
+            output_dir = get_compile_output_dir(
+                app,
+                port,
+                app_sub=app_sub,
+                bits64=bits64,
+                user_cflags=user_cflags,
+                user_cflags_std=user_cflags_std,
+            )
+            obj_suffix = get_compile_obj_suffix(
+                app,
+                port,
+                app_sub=app_sub,
+                bits64=bits64,
+                user_cflags=user_cflags,
+                user_cflags_std=user_cflags_std,
+            )
             case_info = {
                 "app": app,
                 "port": port,
@@ -776,6 +836,9 @@ if __name__ == '__main__':
     #params = ' V=1'
     params = ''
     user_cflags = normalize_user_cflags(args.user_cflags)
+    user_cflags_std = ""
+    if args.std:
+        user_cflags_std = "-std=%s" % args.std
 
     if args.queue_capacity_probe > 0:
         user_cflags = normalize_user_cflags("%s -DEGUI_PORT_PC_CORE_TASK_QUEUE_CAPACITY=%d" % (user_cflags, args.queue_capacity_probe))
@@ -790,6 +853,8 @@ if __name__ == '__main__':
 
     if args.bits64:
         params += ' BITS=64'
+    if user_cflags_std:
+        params += ' USER_CFLAGS_STD="%s"' % user_cflags_std
     if user_cflags:
         params += ' USER_CFLAGS="%s"' % user_cflags
 
@@ -829,7 +894,14 @@ if __name__ == '__main__':
             sys.exit(res)
 
         full_cases = build_compile_cases("full", app_sets, port_sets, sub_app_sets)
-        run_compile_cases_parallel(full_cases, params, bits64=args.bits64, user_cflags=user_cflags, case_jobs=args.case_jobs)
+        run_compile_cases_parallel(
+            full_cases,
+            params,
+            bits64=args.bits64,
+            user_cflags=user_cflags,
+            user_cflags_std=user_cflags_std,
+            case_jobs=args.case_jobs,
+        )
 
         if not args.skip_icon_font_check:
             res = run_example_icon_font_check()
@@ -859,7 +931,14 @@ if __name__ == '__main__':
             args.shard_count,
             len(scope_cases),
         ))
-        run_compile_cases_parallel(scope_cases, params, bits64=args.bits64, user_cflags=user_cflags, case_jobs=args.case_jobs)
+        run_compile_cases_parallel(
+            scope_cases,
+            params,
+            bits64=args.bits64,
+            user_cflags=user_cflags,
+            user_cflags_std=user_cflags_std,
+            case_jobs=args.case_jobs,
+        )
 
         elapsed = time.time() - start_time
         print("=================================================================================")
@@ -874,7 +953,14 @@ if __name__ == '__main__':
 
         app_cases = build_compile_cases_for_apps([args.app], port_sets, sub_app_sets)
         print("Selected app=%s cases=%d" % (args.app, len(app_cases)))
-        run_compile_cases_parallel(app_cases, params, bits64=args.bits64, user_cflags=user_cflags, case_jobs=args.case_jobs)
+        run_compile_cases_parallel(
+            app_cases,
+            params,
+            bits64=args.bits64,
+            user_cflags=user_cflags,
+            user_cflags_std=user_cflags_std,
+            case_jobs=args.case_jobs,
+        )
 
         elapsed = time.time() - start_time
         print("=================================================================================")

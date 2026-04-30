@@ -45,6 +45,8 @@ void egui_activity_add_view(egui_activity_t *self, egui_view_t *view)
 /** Store a debug-only activity name when class-name logging is enabled. */
 void egui_activity_set_name(egui_activity_t *self, const char *name)
 {
+    EGUI_UNUSED(name);
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     self->name = name;
 #endif

@@ -81,6 +81,8 @@ static void button_click_cb(egui_view_t *self)
     {
         button_click_counts[3]++;
     }
+#else
+    EGUI_UNUSED(self);
 #endif
     EGUI_LOG_INF("Button clicked\n");
 }

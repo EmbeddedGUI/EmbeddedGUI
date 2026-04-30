@@ -213,6 +213,7 @@ static void line_hq_init_sample_ctx(line_hq_sample_ctx_t *ctx, int32_t dx, int32
  */
 __EGUI_STATIC_INLINE__ int32_t line_hq_fp16_to_int_trunc0(egui_canvas_t *self, int64_t value)
 {
+    EGUI_UNUSED(self);
     if (value >= 0)
     {
         return (int32_t)(value >> 16);

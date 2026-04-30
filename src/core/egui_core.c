@@ -805,7 +805,6 @@ void egui_init_display(egui_core_t *core, int16_t screen_w, int16_t screen_h, eg
     EGUI_ASSERT(pfb_bufs[0] != NULL);
     EGUI_ASSERT(buf_count > 0 && buf_count <= EGUI_PFB_BUFFER_MAX_COUNT);
     EGUI_ASSERT(screen_w > 0 && screen_h > 0);
-    EGUI_ASSERT(screen_w <= 32767 && screen_h <= 32767);
     EGUI_ASSERT(pfb_w > 0 && pfb_h > 0);
     EGUI_ASSERT(pfb_w <= 32767 && pfb_h <= 32767);
 

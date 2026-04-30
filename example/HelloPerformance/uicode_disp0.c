@@ -69,7 +69,9 @@ static const char *egui_view_test_performance_type_string(int test_mode);
 static void egui_view_test_performance_set_test_mode(int test_mode);
 static int egui_view_test_performance_is_qoi_test_mode(int test_mode);
 static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test_mode);
+#if EGUI_PORT == EGUI_PORT_TYPE_QEMU
 static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_index);
+#endif
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY
 static int egui_view_test_performance_get_perf_capture_test_mode(int scene_index);
 #endif
@@ -838,6 +840,7 @@ static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test
     }
 }
 
+#if EGUI_PORT == EGUI_PORT_TYPE_QEMU
 static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_index)
 {
     /* Keep release_check perf on a representative subset.
@@ -880,6 +883,7 @@ static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_ind
     }
     return s_qemu_benchmark_scenes[scene_index];
 }
+#endif
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY
 static int egui_view_test_performance_get_perf_capture_test_mode(int scene_index)
@@ -1002,6 +1006,7 @@ void egui_view_test_performance_process(void)
 static egui_timer_t ui_timer;
 void egui_view_test_performance_timer_callback(egui_timer_t *timer)
 {
+    EGUI_UNUSED(timer);
     egui_view_test_performance_process();
 }
 

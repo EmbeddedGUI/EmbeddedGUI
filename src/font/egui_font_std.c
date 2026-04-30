@@ -64,6 +64,7 @@ __EGUI_STATIC_INLINE__ int egui_font_std_bitmap_codec_is_raw(const egui_font_std
 
 __EGUI_STATIC_INLINE__ int egui_font_std_bitmap_codec_is_supported_compressed_value(uint8_t bitmap_codec)
 {
+    EGUI_UNUSED(bitmap_codec);
 #if EGUI_FONT_STD_BITMAP_CODEC_RLE4_ENABLED
     if (bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4)
     {
@@ -529,7 +530,7 @@ __EGUI_STATIC_INLINE__ int egui_font_std_ascii_lookup_cache_supports_font(const 
         return 0;
     }
 
-    return font->count <= EGUI_FONT_STD_ASCII_INDEX_INVALID;
+    return font->count < EGUI_FONT_STD_ASCII_INDEX_INVALID;
 }
 
 __EGUI_STATIC_INLINE__ int egui_font_std_get_ascii_lookup_index(const egui_font_std_ascii_lookup_cache_t *cache, uint8_t ascii_code)
@@ -597,6 +598,7 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
                                                                                         const egui_font_std_info_t *font, const char *s)
 {
 #if !EGUI_FONT_STD_DRAW_PREFIX_CACHE_ENABLED
+    (void)canvas;
     (void)font_key;
     (void)font;
     (void)s;
@@ -1016,6 +1018,7 @@ static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *
 egui_font_std_get_desc_by_index(egui_canvas_t *canvas, const egui_font_std_info_t *font, int code_index, egui_font_std_char_descriptor_t *external_desc_scratch)
 {
+    EGUI_UNUSED(canvas);
     if (font == NULL || code_index < 0 || code_index >= font->count)
     {
         return NULL;
@@ -2420,7 +2423,7 @@ static void egui_font_std_draw_4(egui_canvas_t *canvas, egui_dim_t x, egui_dim_t
                                  egui_color_t color, egui_alpha_t alpha)
 {
     uint8_t bit_pos;
-    uint8_t sel_data;
+    uint8_t sel_data = 0;
     uint8_t sel_value;
     for (egui_dim_t y_ = 0; y_ < height; y_++)
     {
@@ -2702,6 +2705,7 @@ static int egui_font_std_prepare_compressed_glyph_pixels(const egui_canvas_t *ca
                                                          const uint8_t **pixel_buf)
 {
 #if !EGUI_FONT_STD_COMPRESSED_GLYPH_CACHE_ENABLED
+    (void)canvas;
     (void)font;
     (void)p_char_desc;
     (void)scratch;

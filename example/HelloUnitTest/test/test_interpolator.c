@@ -18,6 +18,7 @@ static egui_interpolator_cycle_t interp_cycle;
 // At input=0, output should be 0; at input=1.0, output should be 1.0
 static void check_interpolator_boundaries(egui_interpolator_t *interp, const char *name)
 {
+    EGUI_UNUSED(name);
     egui_float_t val_0 = EGUI_FLOAT_VALUE_INT(0);
     egui_float_t val_1 = EGUI_FLOAT_VALUE_INT(1);
 

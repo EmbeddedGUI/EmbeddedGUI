@@ -271,6 +271,7 @@ void egui_core_activity_append(egui_core_t *core, egui_activity_t *activity)
 /** Remove one activity from the core-owned activity stack. */
 void egui_core_activity_remove(egui_core_t *core, egui_activity_t *activity)
 {
+    EGUI_UNUSED(core);
     egui_dlist_remove(&activity->node);
 }
 

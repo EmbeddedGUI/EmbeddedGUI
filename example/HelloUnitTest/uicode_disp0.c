@@ -100,6 +100,7 @@ void uicode_set_test_filter(const char *filter)
 
 static void uicode_disp0_init_ui(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
 }
 
 void uicode_disp0_init(egui_core_t *core)

@@ -14,6 +14,11 @@ static int egui_image_default_get_size(const egui_image_t *self, egui_dim_t *wid
 
 static int egui_image_default_get_point(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+    EGUI_UNUSED(color);
+    EGUI_UNUSED(alpha);
     // implement is sub-class.
     return 0;
 }
@@ -21,18 +26,35 @@ static int egui_image_default_get_point(const egui_image_t *self, egui_dim_t x, 
 static int egui_image_default_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color,
                                                egui_alpha_t *alpha)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+    EGUI_UNUSED(width);
+    EGUI_UNUSED(height);
+    EGUI_UNUSED(color);
+    EGUI_UNUSED(alpha);
     // implement is sub-class.
     return 0;
 }
 
 static void egui_image_default_draw_image(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(canvas);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
     // implement is sub-class.
 }
 
 static void egui_image_default_draw_image_resize(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width,
                                                  egui_dim_t height)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(canvas);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+    EGUI_UNUSED(width);
+    EGUI_UNUSED(height);
     // implement is sub-class.
 }
 

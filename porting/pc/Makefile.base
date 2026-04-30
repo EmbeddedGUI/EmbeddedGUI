@@ -37,12 +37,12 @@ COMPILE_DEBUG ?= -g
 COMMON_FLAGS  += $(COMPILE_OPT_LEVEL)
 COMMON_FLAGS  += $(COMPILE_DEBUG)
 
-# User-defined extra CFLAGS (for runtime testing, resolution overrides, etc.)
-USER_CFLAGS ?=
-COMMON_FLAGS += $(USER_CFLAGS)
-
 # warning param setting
 COMMON_FLAGS	+= -Wall
+COMMON_FLAGS	+= -Wextra
+COMMON_FLAGS	+= -Werror=implicit-function-declaration
+COMMON_FLAGS	+= -Werror=incompatible-pointer-types
+COMMON_FLAGS	+= -Werror=return-type
 # think use -Os.
 # COMMON_FLAGS	+= -Wno-unused-function
 # COMMON_FLAGS	+= -Wno-unused-variable
@@ -53,9 +53,15 @@ COMMON_FLAGS	+= -Wshadow
 
 # COMMON_FLAGS	+= -Wno-typedef-redefinition
 
-# spec c version
-COMMON_FLAGS  += -std=c99
+# C standard flag is split out so compile checks can override it without
+# stacking multiple -std options in COMMON_FLAGS.
+USER_CFLAGS_STD ?= -std=c99
+COMMON_FLAGS  += $(USER_CFLAGS_STD)
 # COMMON_FLAGS  += -Wno-format
+
+# User-defined extra CFLAGS (for runtime testing, resolution overrides, etc.)
+USER_CFLAGS ?=
+COMMON_FLAGS += $(USER_CFLAGS)
 
 # for makefile depend tree create
 COMMON_FLAGS  += -MMD -MP
@@ -235,6 +241,7 @@ endif
 
 OUTPUT_MAIN           := $(OUTPUT_PATH)/$(MAIN)
 OUTPUT_MAIN_RESOURCE  := $(OUTPUT_PATH)/app_egui_resource_merge.bin
+LINK_RESPONSE_FILE    := $(OUTPUT_PATH)/$(TARGET)_$(BUILD_OBJ_SUFFIX).rsp
 
 # Fix path error.
 #OUTPUT_MAIN := $(call FIXPATH,$(OUTPUT_MAIN))
@@ -301,12 +308,17 @@ else
 endif
 
 ifneq ($(wildcard $(EGUI_APP_RESOURCE_PATH)),)
-$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP) $(OUTPUT_MAIN_RESOURCE)
+$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP) $(OUTPUT_MAIN_RESOURCE) | $(OUTPUT_PATH)
 else
-$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP)
+$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP) | $(OUTPUT_PATH)
 endif
 	@$(ECHO) Linking    : "$@"
+ifeq ($(OS),Windows_NT)
+	$(file >$(LINK_RESPONSE_FILE),$(OBJECTS) $(LFLAGS) $(LIBS) $(OUTPUT_BT_LIB))
+	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) @$(LINK_RESPONSE_FILE)
+else
 	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) $(OBJECTS) $(LFLAGS) $(LIBS) $(OUTPUT_BT_LIB)
+endif
 
 $(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(USER_COMPILE_TARGETS) $(OUTPUT_MAIN)
 	@$(ECHO) Building   : "$(OUTPUT_MAIN)"

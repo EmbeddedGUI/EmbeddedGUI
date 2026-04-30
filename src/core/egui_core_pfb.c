@@ -50,6 +50,7 @@ void egui_core_pfb_set_buffer(egui_core_t *core, egui_color_int_t *pfb, uint16_t
 /** Weak extension hook that lets ports or applications suggest a preferred logical probe width. */
 __EGUI_WEAK__ egui_dim_t egui_core_get_logical_pfb_target_width_hint(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
     return 0;
 }
 

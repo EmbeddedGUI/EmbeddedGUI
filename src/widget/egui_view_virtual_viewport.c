@@ -7,10 +7,7 @@
 #include "core/egui_input.h"
 
 typedef struct egui_view_virtual_viewport_item_layout egui_view_virtual_viewport_item_layout_t;
-#ifndef EGUI_VIEW_VIRTUAL_VIEWPORT_STATE_ENTRY_T_DEFINED
-#define EGUI_VIEW_VIRTUAL_VIEWPORT_STATE_ENTRY_T_DEFINED
 typedef struct egui_view_virtual_viewport_state_entry egui_view_virtual_viewport_state_entry_t;
-#endif
 struct egui_view_virtual_viewport_item_layout
 {
     uint16_t view_type;

@@ -743,6 +743,7 @@ plutovg_path_t *plutovg_path_clone(const plutovg_path_t *path)
 
 static void clone_traverse_func(void *closure, plutovg_path_command_t command, const plutovg_point_t *points, int npoints)
 {
+    (void)npoints;
     plutovg_path_t *path = (plutovg_path_t *)(closure);
     switch (command)
     {

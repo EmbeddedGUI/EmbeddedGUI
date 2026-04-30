@@ -13,7 +13,7 @@ extern "C" {
  *
  * Each field points at one widget family's `(part, state)` style descriptor.
  */
-typedef struct egui_theme
+struct egui_theme
 {
     const char *name;
     const egui_widget_style_desc_t *button;
@@ -24,8 +24,7 @@ typedef struct egui_theme
     const egui_widget_style_desc_t *card;
     const egui_widget_style_desc_t *progress_bar;
     const egui_widget_style_desc_t *circular_progress_bar;
-} egui_theme_t;
-
+};
 extern const egui_theme_t egui_theme_light;
 extern const egui_theme_t egui_theme_dark;
 

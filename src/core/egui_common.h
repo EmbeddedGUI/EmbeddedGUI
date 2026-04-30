@@ -75,24 +75,15 @@ extern "C" {
 
 /*---------------------- Graphic LCD color definitions -----------------------*/
 
-/* The most simple macro to create a color from R,G and B values
- * The order of bit field is different on Big-endian and Little-endian machines*/
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+/* The most simple macro to create a color from R,G and B values.
+ * Keep the scalar full value canonical; endian only changes memory byte order. */
 #if EGUI_CONFIG_COLOR_DEPTH == 8
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color = {(_b8) >> 6, (_g8) >> 5, (_r8) >> 5}})
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t)(uint8_t)((((uint16_t)(_r8)) + ((uint16_t)(_g8)) + ((uint16_t)(_b8))) / 3U))
 #elif EGUI_CONFIG_COLOR_DEPTH == 16
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color = {.blue = (_b8) >> 3, .green = (_g8) >> 2, .red = (_r8) >> 3}})
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8)                                                                                                                         \
+    ((egui_color_t)(uint16_t)(((((uint16_t)(_r8)) & 0xF8U) << 8) | ((((uint16_t)(_g8)) & 0xFCU) << 3) | (((uint16_t)(_b8)) >> 3)))
 #elif EGUI_CONFIG_COLOR_DEPTH == 32
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color = {.blue = (_b8), .green = (_g8), .red = (_r8)}})
-#endif
-#else
-#if EGUI_CONFIG_COLOR_DEPTH == 8
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color = {(_r8) >> 6, (_g8) >> 5, (_b8) >> 5}})
-#elif EGUI_CONFIG_COLOR_DEPTH == 16
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color = {(_r8) >> 3, (_g8) >> 2, (_b8) >> 3}})
-#elif EGUI_CONFIG_COLOR_DEPTH == 32
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color = {.blue = (_b8), .green = (_g8), .red = (_r8)}})
-#endif
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t)(uint32_t)((((uint32_t)(_r8)) << 16) | (((uint32_t)(_g8)) << 8) | ((uint32_t)(_b8))))
 #endif
 
 #define EGUI_COLOR_HEX(c) EGUI_COLOR_MAKE(((uint32_t)((uint32_t)c >> 16) & 0xFF), ((uint32_t)((uint32_t)c >> 8) & 0xFF), ((uint32_t)c & 0xFF))
@@ -120,18 +111,6 @@ extern "C" {
             .full
 #endif
 
-#if 0
-#define GLCD_ARGB(_a, _r, _g, _b) ((((uint32_t)(_a)) << 24) | (((uint32_t)(_r)) << 16) | (((uint32_t)(_g)) << 8) | ((uint32_t)(_b)))
-#define GLCD_ARGB_A(_rgb)         ((((uint32_t)(_rgb)) >> 24) & 0xFF)
-
-#define GLCD_ARGB_A_SET(_rgb, _a) (((uint32_t)(_rgb) & 0x00ffffff) | (((uint32_t)(_a)) << 24))
-
-#define GLCD_RGB(_r, _g, _b) GLCD_ARGB(0xff, _r, _g, _b)
-#define GLCD_RGB_R(_rgb)     ((((uint32_t)(_rgb)) >> 16) & 0xFF)
-#define GLCD_RGB_G(_rgb)     ((((uint32_t)(_rgb)) >> 8) & 0xFF)
-#define GLCD_RGB_B(_rgb)     (((uint32_t)(_rgb)) & 0xFF)
-#endif
-
 /* GLCD RGB color definitions                            */
 #define EGUI_COLOR_BLACK      EGUI_COLOR_MAKE(0, 0, 0)
 #define EGUI_COLOR_NAVY       EGUI_COLOR_MAKE(0, 0, 128)
@@ -150,8 +129,6 @@ extern "C" {
 #define EGUI_COLOR_YELLOW     EGUI_COLOR_MAKE(255, 255, 0)
 #define EGUI_COLOR_WHITE      EGUI_COLOR_MAKE(255, 255, 255)
 #define EGUI_COLOR_ORANGE     EGUI_COLOR_MAKE(255, 128, 0)
-
-#define EGUI_COLOR_TRANSPARENT GLCD_ARGB(0, 0, 0, 0)
 
 enum
 {
@@ -213,7 +190,7 @@ struct egui_mem_monitor
  * \brief the colour type for gray8 (8bit gray scale)
  *
  */
-typedef struct egui_color_gray8_t
+typedef union egui_color_gray8_t
 {
     uint8_t full;
 } egui_color_gray8_t;

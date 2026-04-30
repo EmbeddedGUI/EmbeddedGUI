@@ -136,6 +136,7 @@ static int test_count = 0;
 static egui_timer_t egui_test_refresh_timer;
 static void egui_test_refresh_timer_callback(egui_timer_t *timer)
 {
+    EGUI_UNUSED(timer);
     switch (test_count)
     {
     case 0:

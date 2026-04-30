@@ -836,6 +836,8 @@ static void on_layer_click(egui_view_t *view)
 #if !EGUI_SHOWCASE_PARITY_RECORDING
 static void anim_cb(egui_timer_t *timer)
 {
+    EGUI_UNUSED(timer);
+
     anim_tick++;
 
     // ProgressBar: 0..90 cycle

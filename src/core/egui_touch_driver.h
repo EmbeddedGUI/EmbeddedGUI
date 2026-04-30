@@ -18,7 +18,6 @@ extern "C" {
  * The port implements this table to expose raw touch state.
  * `read()` is polled from `egui_input_polling_work()`, and the core converts the reported pressed/released state into motion events automatically.
  */
-typedef struct egui_touch_driver_ops egui_touch_driver_ops_t;
 struct egui_touch_driver_ops
 {
     /** Initialize touch hardware and any driver-private state. Called once when the driver is registered. */
@@ -48,7 +47,6 @@ struct egui_touch_driver_ops
  * One touch-driver instance bound to one core.
  * The port usually allocates this structure statically.
  */
-typedef struct egui_touch_driver egui_touch_driver_t;
 struct egui_touch_driver
 {
     const egui_touch_driver_ops_t *ops; // driver callback table implemented by the port

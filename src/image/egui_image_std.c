@@ -1521,6 +1521,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_circle_corner_alpha_fixed
                                                                                      egui_dim_t corner_col, const egui_circle_info_t *info,
                                                                                      const egui_circle_item_t *items)
 {
+    EGUI_UNUSED(canvas);
     if (info != NULL)
     {
         return egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items);
@@ -3224,6 +3225,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_invalidate(egui
 
 __EGUI_STATIC_INLINE__ int egui_image_std_round_rect_fast_cache_init(egui_image_std_round_rect_fast_cache_t *cache, egui_dim_t row_cache_capacity)
 {
+    EGUI_UNUSED(row_cache_capacity);
     if (cache == NULL)
     {
         return 0;
@@ -4847,6 +4849,7 @@ int egui_image_std_get_point_resize(const egui_image_t *self, egui_dim_t x, egui
 
 void egui_image_std_load_data_resource(egui_canvas_t *canvas, void *dest, egui_image_std_info_t *image, uint32_t start_offset, uint32_t size)
 {
+    EGUI_UNUSED(canvas);
     // EGUI_LOG_INF("egui_image_std_load_data_resource, start_offset: %d, size: %d\n", start_offset, size);
     if (image->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
     {
@@ -4867,6 +4870,7 @@ void egui_image_std_load_data_resource(egui_canvas_t *canvas, void *dest, egui_i
 
 void egui_image_std_load_alpha_resource(egui_canvas_t *canvas, void *dest, egui_image_std_info_t *image, uint32_t start_offset, uint32_t size)
 {
+    EGUI_UNUSED(canvas);
     // EGUI_LOG_INF("egui_image_std_load_alpha_resource, start_offset: %d, size: %d\n", start_offset, size);
     if (image->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
     {
@@ -8697,6 +8701,8 @@ static void egui_image_std_set_image_alpha_color_1(const egui_image_t *self, egu
 
 void egui_image_std_draw_image_color(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t color_alpha)
 {
+    EGUI_UNUSED(color);
+    EGUI_UNUSED(color_alpha);
     egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
     egui_dim_t width = image->width;
     egui_dim_t height = image->height;
@@ -8819,6 +8825,7 @@ void egui_image_std_draw_image_color(const egui_image_t *self, egui_canvas_t *ca
 void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
                                             egui_color_t color, egui_alpha_t color_alpha)
 {
+    EGUI_UNUSED(color);
     egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
     if (width == 0 || height == 0)
     {

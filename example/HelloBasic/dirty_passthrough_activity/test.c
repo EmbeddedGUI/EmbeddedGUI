@@ -91,15 +91,6 @@ static const char *s_activity_mixed_texts[DIRTY_PASSTHROUGH_ACTIVITY_VIEWPAGE_PA
         {"Mix Activity 2", "Scroll row A", "Linear row B", "Nested row C", "Leaf row D"},
 };
 
-static egui_activity_t *dirty_passthrough_activity_get_current(void)
-{
-    if (s_core == NULL)
-    {
-        return NULL;
-    }
-    return egui_core_activity_get_current_active(s_core);
-}
-
 static egui_background_t *dirty_passthrough_activity_get_card_bg(int index)
 {
     switch (index % 3)
@@ -391,6 +382,7 @@ static void dirty_passthrough_activity_init_instance(dirty_passthrough_activity_
 
 static void dirty_passthrough_activity_init_anims(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
     egui_animation_translate_init(EGUI_ANIM_OF(&anim_start_open));
     egui_animation_translate_params_set(&anim_start_open, &anim_start_open_param);
     egui_animation_duration_set(EGUI_ANIM_OF(&anim_start_open), 260);
@@ -427,6 +419,15 @@ void test_init_ui(egui_core_t *core)
 }
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
+static egui_activity_t *dirty_passthrough_activity_get_current(void)
+{
+    if (s_core == NULL)
+    {
+        return NULL;
+    }
+    return egui_core_activity_get_current_active(s_core);
+}
+
 static dirty_passthrough_activity_t *dirty_passthrough_activity_get_current_local(void)
 {
     return (dirty_passthrough_activity_t *)dirty_passthrough_activity_get_current();

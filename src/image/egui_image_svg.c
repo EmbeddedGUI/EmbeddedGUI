@@ -372,6 +372,11 @@ static size_t egui_svg_align_size(size_t value, size_t alignment)
     return ((value + alignment - 1u) / alignment) * alignment;
 }
 
+static int egui_svg_count_fits_int(uint16_t count, size_t item_size)
+{
+    return (size_t)count <= ((size_t)INT_MAX / item_size);
+}
+
 static int egui_svg_calc_rect_fast_path_doc_size(uint16_t rect_count, size_t *rect_offset, size_t *pixel_rect_offset, size_t *alloc_size)
 {
     size_t offset = sizeof(egui_svg_doc_t);
@@ -384,7 +389,7 @@ static int egui_svg_calc_rect_fast_path_doc_size(uint16_t rect_count, size_t *re
     {
         return 0;
     }
-    if ((size_t)rect_count > ((size_t)INT_MAX / sizeof(egui_svg_rect_t)))
+    if (!egui_svg_count_fits_int(rect_count, sizeof(egui_svg_rect_t)))
     {
         return 0;
     }
@@ -399,7 +404,7 @@ static int egui_svg_calc_rect_fast_path_doc_size(uint16_t rect_count, size_t *re
     offset += rect_bytes;
 
 #if EGUI_CONFIG_IMAGE_SVG_RECT_FAST_PATH_PIXEL_CACHE
-    if ((size_t)rect_count > ((size_t)INT_MAX / sizeof(egui_svg_pixel_rect_t)))
+    if (!egui_svg_count_fits_int(rect_count, sizeof(egui_svg_pixel_rect_t)))
     {
         return 0;
     }

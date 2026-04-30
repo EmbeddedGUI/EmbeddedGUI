@@ -26,6 +26,7 @@ EGUI_VIEW_SEGMENTED_CONTROL_PARAMS_INIT(segmented_disabled_params, 0, 0, 220, 46
 
 static void on_segment_changed(egui_view_t *self, uint8_t index)
 {
+    EGUI_UNUSED(index);
     (void)self;
     EGUI_LOG_INF("Segment changed: %d\r\n", index);
 }

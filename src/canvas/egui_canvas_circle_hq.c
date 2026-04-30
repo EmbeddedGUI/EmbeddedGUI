@@ -107,6 +107,7 @@ __EGUI_STATIC_INLINE__ void circle_hq_blend_direct(egui_color_t *dst, egui_color
 __EGUI_STATIC_INLINE__ void circle_hq_fill_direct_span(egui_canvas_t *self, egui_color_t *dst_base, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
                                                        egui_alpha_t alpha)
 {
+    EGUI_UNUSED(self);
     egui_color_int_t *dst;
     uint32_t count;
 
@@ -390,8 +391,8 @@ __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_arc_edge_smoothstep(egui_float_t s
         t = (1 << EGUI_FLOAT_FRAC);
     int32_t t_sq = (int32_t)(((int64_t)t * t) >> EGUI_FLOAT_FRAC);
     int32_t smooth = (int32_t)(((int64_t)t_sq * (3 * (1 << EGUI_FLOAT_FRAC) - 2 * t)) >> EGUI_FLOAT_FRAC);
-    egui_alpha_t a = (egui_alpha_t)((smooth * EGUI_ALPHA_100) >> EGUI_FLOAT_FRAC);
-    return (a > EGUI_ALPHA_100) ? EGUI_ALPHA_100 : a;
+    int32_t alpha = (smooth * EGUI_ALPHA_100) >> EGUI_FLOAT_FRAC;
+    return (egui_alpha_t)EGUI_MIN(alpha, EGUI_ALPHA_100);
 }
 
 /**
@@ -512,6 +513,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_arc_angle_alpha_from_ctx(const cir
  */
 __EGUI_STATIC_INLINE__ void circle_hq_arc_row_ctx_step(egui_canvas_t *self, circle_hq_arc_row_ctx_t *ctx)
 {
+    EGUI_UNUSED(self);
     if (ctx->has_start)
     {
         ctx->start_signed += ctx->start_step;
@@ -865,7 +867,7 @@ static void circle_hq_draw_arc_corner_fill(egui_canvas_t *self, egui_dim_t cx, e
             int32_t dx_init = (int32_t)(x_lo - cx);
             int32_t d_sq = dx_init * dx_init + dy_sq;
             int32_t d_sq_step = (dx_init << 1) + 1;
-            circle_hq_arc_row_ctx_t angle_ctx;
+            circle_hq_arc_row_ctx_t angle_ctx = {0};
 
             if (!is_full)
             {
@@ -921,7 +923,7 @@ static void circle_hq_draw_arc_corner_fill(egui_canvas_t *self, egui_dim_t cx, e
             int32_t dx_init = (int32_t)(x_lo - cx);
             int32_t d_sq = dx_init * dx_init + dy_sq;
             int32_t d_sq_step = (dx_init << 1) + 1;
-            circle_hq_arc_row_ctx_t angle_ctx;
+            circle_hq_arc_row_ctx_t angle_ctx = {0};
 
             if (!is_full)
             {

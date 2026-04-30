@@ -132,6 +132,8 @@ void egui_toast_show_info(egui_toast_t *self, const char *text)
 /** Store a debug-only toast name when class-name logging is enabled. */
 void egui_toast_set_name(egui_toast_t *self, const char *name)
 {
+    EGUI_UNUSED(name);
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     self->name = name;
 #endif

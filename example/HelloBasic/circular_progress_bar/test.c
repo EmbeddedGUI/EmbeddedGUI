@@ -25,6 +25,8 @@ EGUI_VIEW_CIRCULAR_PROGRESS_BAR_PARAMS_INIT(cpb_l_params, 0, 0, 112, 112, 100);
 
 static void progress_changed_cb(egui_view_t *self, uint8_t progress)
 {
+    EGUI_UNUSED(progress);
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("Circular Progress: %d\n", progress);
 }
 

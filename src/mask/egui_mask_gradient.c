@@ -18,6 +18,7 @@
  */
 void egui_mask_gradient_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
+    EGUI_UNUSED(alpha);
     EGUI_LOCAL_INIT(egui_mask_gradient_t);
 
     if (local->gradient == NULL || local->overlay_alpha == 0)

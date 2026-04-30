@@ -95,6 +95,7 @@ static void assert_full_dirty_region(const egui_view_t *view)
 
 static void assert_dirty_area_less_than(const egui_view_t *view, int32_t area_limit)
 {
+    EGUI_UNUSED(view);
     egui_region_t *arr = egui_core_get_region_dirty_arr(test_basic_widget_dirty_get_core());
 
     EGUI_TEST_ASSERT_FALSE(egui_region_is_empty(&arr[0]));

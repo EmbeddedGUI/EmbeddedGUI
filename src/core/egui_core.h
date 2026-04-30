@@ -70,9 +70,6 @@ typedef struct egui_debug_perf_stats
 } egui_debug_perf_stats_t;
 #endif
 
-typedef struct egui_image_file_io egui_image_file_io_t;
-typedef struct egui_image_file_decoder egui_image_file_decoder_t;
-
 #include "egui_core_state.h"
 
 struct egui_core

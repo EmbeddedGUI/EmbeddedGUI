@@ -490,6 +490,7 @@ int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_c
 
 int egui_view_group_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
+    EGUI_UNUSED(event);
     // view object should not work here. just return 0.
     // EGUI_LOG_DBG("egui_view_group_on_intercept_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
     EGUI_LOCAL_INIT(egui_view_group_t);
@@ -858,21 +859,31 @@ void egui_view_group_touch_state_exchange(egui_core_t *core, egui_view_group_tou
 
 int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)
 {
+    EGUI_UNUSED(child);
+    EGUI_UNUSED(event);
+    EGUI_UNUSED(is_canceled);
+    EGUI_UNUSED(self);
     return 0;
 }
 
 int egui_view_group_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
+    EGUI_UNUSED(event);
+    EGUI_UNUSED(self);
     return 0;
 }
 
 int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
+    EGUI_UNUSED(event);
+    EGUI_UNUSED(self);
     return 0;
 }
 
 int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
+    EGUI_UNUSED(event);
+    EGUI_UNUSED(self);
     return 0;
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -1079,11 +1090,13 @@ void egui_view_group_reorder_child(egui_view_t *self, egui_view_t *child)
 
 void egui_view_group_bring_child_to_front(egui_view_t *self, egui_view_t *child)
 {
+    EGUI_UNUSED(self);
     egui_view_set_layer(child, EGUI_VIEW_LAYER_TOP);
 }
 
 void egui_view_group_send_child_to_back(egui_view_t *self, egui_view_t *child)
 {
+    EGUI_UNUSED(self);
     egui_view_set_layer(child, EGUI_VIEW_LAYER_BACKGROUND);
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_LAYER

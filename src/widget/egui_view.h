@@ -18,7 +18,6 @@ extern "C" {
 #endif
 
 typedef struct egui_view_api egui_view_api_t;
-typedef struct egui_theme egui_theme_t;
 
 /** Custom touch listener. Return non-zero when the event is consumed. */
 typedef int (*egui_view_on_touch_listener_t)(egui_view_t *self, egui_motion_event_t *event);

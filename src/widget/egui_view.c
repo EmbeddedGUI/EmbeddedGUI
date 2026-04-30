@@ -674,6 +674,8 @@ void egui_view_override_api_on_touch(egui_view_t *self, egui_view_api_t *api, eg
 
 void egui_view_set_on_click_listener(egui_view_t *self, egui_view_on_click_listener_t listener)
 {
+    EGUI_UNUSED(listener);
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     self->on_click_listener = listener;
     self->is_clickable = true;
@@ -902,6 +904,8 @@ void egui_view_set_view_name(egui_view_t *self, const char *name)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 int egui_view_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
+    EGUI_UNUSED(event);
+    EGUI_UNUSED(self);
     // view object should not work here. just return 0.
     // EGUI_LOG_DBG("egui_view_on_intercept_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
 
@@ -1008,16 +1012,22 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 #else
 int egui_view_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
+    EGUI_UNUSED(event);
+    EGUI_UNUSED(self);
     return 0;
 }
 
 int egui_view_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
+    EGUI_UNUSED(event);
+    EGUI_UNUSED(self);
     return 0;
 }
 
 int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
+    EGUI_UNUSED(event);
+    EGUI_UNUSED(self);
     return 0;
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -1053,16 +1063,19 @@ void egui_view_dispatch_detach_from_window(egui_view_t *self)
 
 void egui_view_on_attach_to_window(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     // EGUI_LOG_DBG("on_attach_to_window %d\n", self->id);
 }
 
 void egui_view_on_draw(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     // EGUI_LOG_DBG("on_draw %d\n", self->id);
 }
 
 void egui_view_on_detach_from_window(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     // EGUI_LOG_DBG("on_detach_from_window %d\n", self->id);
 }
 
@@ -1137,6 +1150,7 @@ void egui_view_request_layout(egui_view_t *self)
 
 void egui_view_compute_scroll(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     // work in child process.
 }
 
@@ -1223,6 +1237,8 @@ static void egui_view_request_children_layout(egui_view_t *self)
 static void egui_view_emit_swept_region(egui_view_t *self, const egui_region_t *old_rs, const egui_region_t *new_rs, const egui_region_t *clip,
                                         const char *kind)
 {
+    EGUI_UNUSED(kind);
+
     egui_region_t swept;
     egui_region_t clipped;
     egui_dim_t x0;

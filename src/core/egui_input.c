@@ -167,6 +167,7 @@ int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t
 /** Return the last measured horizontal fling velocity, or zero when tracking is disabled. */
 egui_float_t egui_input_get_velocity_x(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
 #if !EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
     return 0;
 #else
@@ -177,6 +178,7 @@ egui_float_t egui_input_get_velocity_x(egui_core_t *core)
 /** Return the last measured vertical fling velocity, or zero when tracking is disabled. */
 egui_float_t egui_input_get_velocity_y(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
 #if !EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
     return 0;
 #else
@@ -369,6 +371,7 @@ void egui_input_key_init(egui_core_t *core)
 /** No-op stub used when both touch and key support are compiled out. */
 int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_dim_t y)
 {
+    EGUI_UNUSED(core);
     EGUI_UNUSED(type);
     EGUI_UNUSED(x);
     EGUI_UNUSED(y);
@@ -378,29 +381,34 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
 /** No-op stub used when both touch and key support are compiled out. */
 egui_float_t egui_input_get_velocity_x(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
     return 0;
 }
 
 /** No-op stub used when both touch and key support are compiled out. */
 egui_float_t egui_input_get_velocity_y(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
     return 0;
 }
 
 /** No-op stub used when both touch and key support are compiled out. */
 int egui_input_check_idle(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
     return 1;
 }
 
 /** No-op stub used when both touch and key support are compiled out. */
 void egui_input_polling_work(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
 }
 
 /** No-op stub used when both touch and key support are compiled out. */
 void egui_input_init(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
 }
 
 #endif

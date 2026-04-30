@@ -595,10 +595,10 @@ static int qemu_get_external_resource_handle(void)
     return s_qemu_resource_handle;
 }
 
-static void qemu_load_external_resource(egui_core_t *core, void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
+static void qemu_load_external_resource(egui_core_t *core, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size)
 {
     extern const uint32_t egui_ext_res_id_map[];
-    uint32_t res_offset = egui_ext_res_id_map[res_id];
+    uint32_t res_offset = egui_ext_res_id_map[(uint32_t)res_id];
     uint32_t res_real_offset = res_offset + start_offset;
     int handle = qemu_get_external_resource_handle();
 

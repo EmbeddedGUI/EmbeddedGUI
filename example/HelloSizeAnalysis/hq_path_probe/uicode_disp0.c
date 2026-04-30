@@ -5,7 +5,11 @@
 #include "size_analysis_probe_config.h"
 
 /* Dummy canvas pointer used by size-probe functions (never executed). */
+#if defined(__GNUC__)
+static egui_canvas_t *canvas __attribute__((unused));
+#else
 static egui_canvas_t *canvas;
+#endif
 
 #if defined(__GNUC__)
 #define EGUI_SIZE_PROBE_FUNC static void __attribute__((unused))

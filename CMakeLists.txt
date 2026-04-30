@@ -9,17 +9,38 @@ set(CMAKE_C_STANDARD 99)
 set(APP "HelloSimple" CACHE STRING "Application to build (e.g. HelloSimple, HelloBasic, HelloVirtual, HelloActivity, ...)")
 set(APP_SUB "" CACHE STRING "Sub-application for HelloBasic/HelloVirtual (e.g. button, virtual_stage_basic, slider, ...)")
 set(PORT "pc" CACHE STRING "Target port (pc, pc_test)")
+set(EGUI_USER_CFLAGS_STD "" CACHE STRING "Optional C language standard flag for compatibility checks")
+set(EGUI_USER_CFLAGS "" CACHE STRING "Additional compiler flags for compatibility checks")
 
 # Macro definitions
 add_compile_definitions(EGUI_APP="${APP}")
 if(PORT STREQUAL "pc" OR PORT STREQUAL "designer")
     add_compile_definitions(EGUI_PORT=EGUI_PORT_TYPE_PC)
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(
+            -Wall
+            -Wextra
+            -Werror=implicit-function-declaration
+            -Werror=incompatible-pointer-types
+            -Werror=return-type
+        )
+    endif()
 elseif(PORT STREQUAL "pc_test")
     add_compile_definitions(EGUI_PORT=EGUI_PORT_TYPE_PC)
 elseif(PORT STREQUAL "qemu")
     add_compile_definitions(EGUI_PORT=EGUI_PORT_TYPE_QEMU)
 else()
     add_compile_definitions(EGUI_PORT=EGUI_PORT_TYPE_MCU)
+endif()
+
+if(EGUI_USER_CFLAGS_STD)
+    separate_arguments(EGUI_USER_CFLAGS_STD_LIST NATIVE_COMMAND "${EGUI_USER_CFLAGS_STD}")
+    add_compile_options(${EGUI_USER_CFLAGS_STD_LIST})
+endif()
+
+separate_arguments(EGUI_USER_CFLAGS_LIST NATIVE_COMMAND "${EGUI_USER_CFLAGS}")
+if(EGUI_USER_CFLAGS_LIST)
+    add_compile_options(${EGUI_USER_CFLAGS_LIST})
 endif()
 
 # Output directory

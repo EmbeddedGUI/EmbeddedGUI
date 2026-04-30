@@ -18,12 +18,14 @@ static egui_background_color_t bg_button;
 
 static void button_1_click_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("button_1_click_cb\n");
     uicode_start_next_page();
 }
 
 static void button_2_click_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("button_2_click_cb\n");
 
     uicode_start_prev_page();

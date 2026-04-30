@@ -18,6 +18,7 @@ static egui_view_t *uicode_disp0_init_ui(egui_core_t *core)
 static egui_timer_t ui_timer;
 void egui_view_test_timer_callback(egui_timer_t *timer)
 {
+    EGUI_UNUSED(timer);
 }
 
 void uicode_disp0_init(egui_core_t *core)

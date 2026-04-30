@@ -58,6 +58,8 @@ static uint8_t schedule_switch_verify_retry(uint8_t verify_index, egui_sim_actio
 
 static void switch_checked_cb(egui_view_t *self, int is_checked)
 {
+    EGUI_UNUSED(is_checked);
+    EGUI_UNUSED(self);
     EGUI_LOG_INF("Switch checked: %d\n", is_checked);
 }
 

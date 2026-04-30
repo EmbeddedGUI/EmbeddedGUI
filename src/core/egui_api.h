@@ -130,7 +130,7 @@ void egui_api_memset(void *s, int c, int n);
 /** Wrapper around the platform `memcpy` hook. */
 void egui_api_memcpy(void *dst, const void *src, int n);
 /** Load bytes from an external resource backend, synchronizing the PFB bus when a canvas is provided. */
-void egui_api_load_external_resource(egui_canvas_t *canvas, void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size);
+void egui_api_load_external_resource(const egui_canvas_t *canvas, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

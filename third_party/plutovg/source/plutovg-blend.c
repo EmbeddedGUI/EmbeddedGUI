@@ -354,6 +354,7 @@ static void fetch_radial_gradient(uint32_t *buffer, const radial_gradient_values
 
 static void composition_solid_clear(uint32_t *dest, int length, uint32_t color, uint32_t const_alpha)
 {
+    (void)color;
     if (const_alpha == 255)
     {
         plutovg_memfill32(dest, length, 0);
@@ -387,6 +388,10 @@ static void composition_solid_source(uint32_t *dest, int length, uint32_t color,
 
 static void composition_solid_destination(uint32_t *dest, int length, uint32_t color, uint32_t const_alpha)
 {
+    (void)color;
+    (void)const_alpha;
+    (void)dest;
+    (void)length;
 }
 
 static void composition_solid_source_over(uint32_t *dest, int length, uint32_t color, uint32_t const_alpha)
@@ -523,8 +528,10 @@ static const composition_solid_function_t composition_solid_table[] = {
         composition_solid_destination_in, composition_solid_source_out,       composition_solid_destination_out,
         composition_solid_source_atop,    composition_solid_destination_atop, composition_solid_xor};
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_GRADIENT || EGUI_CONFIG_FUNCTION_IMAGE_RUNTIME_SVG_IMAGE_ELEMENT
 static void composition_clear(uint32_t *dest, int length, const uint32_t *src, uint32_t const_alpha)
 {
+    (void)src;
     if (const_alpha == 255)
     {
         plutovg_memfill32(dest, length, 0);
@@ -557,6 +564,10 @@ static void composition_source(uint32_t *dest, int length, const uint32_t *src, 
 
 static void composition_destination(uint32_t *dest, int length, const uint32_t *src, uint32_t const_alpha)
 {
+    (void)const_alpha;
+    (void)dest;
+    (void)length;
+    (void)src;
 }
 
 static void composition_source_over(uint32_t *dest, int length, const uint32_t *src, uint32_t const_alpha)
@@ -763,6 +774,7 @@ static const composition_function_t composition_table[] = {composition_clear,   
                                                            composition_source_over,    composition_destination_over, composition_source_in,
                                                            composition_destination_in, composition_source_out,       composition_destination_out,
                                                            composition_source_atop,    composition_destination_atop, composition_xor};
+#endif
 
 static void blend_solid(plutovg_surface_t *surface, plutovg_operator_t op, uint32_t solid, const plutovg_span_buffer_t *span_buffer)
 {

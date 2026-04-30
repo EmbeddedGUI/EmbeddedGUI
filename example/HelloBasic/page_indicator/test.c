@@ -41,6 +41,7 @@ static egui_timer_t sync_timer;
 
 static void sync_timer_callback(egui_timer_t *timer)
 {
+    EGUI_UNUSED(timer);
     egui_view_viewpage_t *vp = (egui_view_viewpage_t *)&viewpage;
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&indicator), vp->current_page_index);
 }

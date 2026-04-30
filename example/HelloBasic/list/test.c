@@ -26,6 +26,7 @@ EGUI_VIEW_LIST_PARAMS_INIT(list_1_params, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, EGUI_C
 
 static void list_item_click_cb(egui_view_t *self, uint8_t index)
 {
+    EGUI_UNUSED(index);
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     (void)self;
     list_click_count++;

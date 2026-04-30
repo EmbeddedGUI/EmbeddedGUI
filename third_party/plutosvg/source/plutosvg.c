@@ -130,7 +130,7 @@ static int lookupid(const char *data, size_t length, const name_entry_t *table, 
     if (length > MAX_NAME)
         return 0;
     char name[MAX_NAME + 1];
-    for (int i = 0; i < length; i++)
+    for (size_t i = 0; i < length; i++)
         name[i] = data[i];
     name[length] = '\0';
 
@@ -1657,7 +1657,7 @@ plutosvg_document_t *plutosvg_document_load_from_file(const char *filename, floa
     size_t nread = fread(data, 1, length, fp);
     fclose(fp);
 
-    if (nread != length)
+    if (nread != (size_t)length)
     {
         free(data);
         return NULL;
@@ -1821,7 +1821,7 @@ static plutovg_color_t convert_color(const color_t *color)
 
 static plutovg_color_t resolve_current_color(const render_context_t *context, const element_t *element)
 {
-    color_t color = {color_type_current};
+    color_t color = {color_type_current, 0};
     parse_color(element, ATTR_COLOR, &color, true);
     if (color.type == color_type_fixed)
         return convert_color(&color);
@@ -2148,7 +2148,7 @@ static bool apply_paint(render_state_t *state, const render_context_t *context, 
 
 static void draw_shape(const element_t *element, const render_context_t *context, render_state_t *state)
 {
-    paint_t stroke = {paint_type_none};
+    paint_t stroke = {paint_type_none, {color_type_fixed, 0}, {NULL, 0}};
     parse_paint(element, ATTR_STROKE, &stroke);
 
     length_t stroke_width = {1.f, length_type_fixed};
@@ -2186,7 +2186,7 @@ static void draw_shape(const element_t *element, const render_context_t *context
         return;
     }
 
-    paint_t fill = {paint_type_color, {color_type_fixed, 0xFF000000}};
+    paint_t fill = {paint_type_color, {color_type_fixed, 0xFF000000}, {NULL, 0}};
     parse_paint(element, ATTR_FILL, &fill);
 
     if (apply_paint(state, context, &fill))
@@ -2217,7 +2217,7 @@ static void draw_shape(const element_t *element, const render_context_t *context
             parse_dash_array(element, ATTR_STROKE_DASHARRAY, &dash_array);
 
             float dashes[MAX_DASHES];
-            for (int i = 0; i < dash_array.size; ++i)
+            for (size_t i = 0; i < dash_array.size; ++i)
             {
                 dashes[i] = resolve_length(state, dash_array.data + i, 'o');
             }

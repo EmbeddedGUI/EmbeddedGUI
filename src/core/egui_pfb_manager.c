@@ -51,7 +51,9 @@ void egui_pfb_manager_set_backup_buffer(egui_pfb_manager_t *mgr, egui_color_int_
  * Called from submit() or from notify_flush_complete() to chain next transfer.
  */
 #if EGUI_CONFIG_COLOR_DEPTH == 16
-#if defined(__GNUC__) || defined(__clang__)
+#if EGUI_TARGET_TC32
+#define EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH 0
+#elif defined(__GNUC__) || defined(__clang__)
 typedef uint32_t egui_pfb_manager_rgb565_pair_t __attribute__((__may_alias__));
 #define EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH 1
 #else
@@ -275,6 +277,7 @@ int egui_pfb_manager_is_async(egui_pfb_manager_t *mgr)
 /** Legacy no-op kept for old double-buffer call sites. */
 void egui_pfb_manager_swap(egui_pfb_manager_t *mgr)
 {
+    EGUI_UNUSED(mgr);
     // Legacy no-op: multi-buffer mode uses submit/notify instead.
     // For single buffer, nothing to swap.
 }

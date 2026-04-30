@@ -33,6 +33,7 @@ ALL_STEP_NAMES = [
     "icon_font",
     "keil_sync",
     "compile",
+    "compile_gnu99",
     "wasm",
     "runtime",
     "dirty_anim",
@@ -49,6 +50,7 @@ STEP_DESCRIPTIONS = {
     "icon_font": "Example icon font explicitness check",
     "keil_sync": "Keil project file sync (src/ vs .uvprojx)",
     "compile": "Full compile check (all examples)",
+    "compile_gnu99": "GNU99 compile check (typical apps)",
     "wasm": "WASM demos build",
     "runtime": "Runtime verification (screenshots)",
     "dirty_anim": "Dirty-region animation verification",
@@ -119,6 +121,20 @@ def build_steps(args):
     if args.cmake:
         compile_cmd.append("--cmake")
     compile_cmd.append("--skip-icon-font-check")
+    compile_gnu99_cmd = [
+        py,
+        str(SCRIPT_DIR / "code_compile_check.py"),
+        "--scope",
+        "typical",
+        "--case-jobs",
+        str(SCOPED_RELEASE_COMPILE_CASE_JOBS),
+        "--std",
+        "gnu99",
+    ]
+    if args.bits64:
+        compile_gnu99_cmd.append("--bits64")
+    if args.cmake:
+        compile_gnu99_cmd.append("--cmake")
 
     runtime_cmd = [py, str(SCRIPT_DIR / "code_runtime_check.py"), "--full-check", "--jobs", str(LOCAL_RELEASE_RUNTIME_JOBS)]
     dirty_anim_cmd = [py, str(SCRIPT_DIR / "checks" / "code_dirty_animation_check.py")]
@@ -233,6 +249,7 @@ def build_steps(args):
         ("icon_font", STEP_DESCRIPTIONS["icon_font"], [py, str(SCRIPT_DIR / "checks" / "check_example_icon_font.py")]),
         ("keil_sync", STEP_DESCRIPTIONS["keil_sync"], [py, str(SCRIPT_DIR / "platform" / "keil_project_sync.py")]),
         ("compile", STEP_DESCRIPTIONS["compile"], compile_cmd),
+        ("compile_gnu99", STEP_DESCRIPTIONS["compile_gnu99"], compile_gnu99_cmd),
         ("wasm", STEP_DESCRIPTIONS["wasm"], wasm_cmd),
         ("runtime", STEP_DESCRIPTIONS["runtime"], runtime_cmd),
         ("dirty_anim", STEP_DESCRIPTIONS["dirty_anim"], dirty_anim_cmd),

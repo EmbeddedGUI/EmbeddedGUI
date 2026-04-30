@@ -201,7 +201,7 @@ plutovg_font_face_t *plutovg_font_face_load_from_file(const char *filename, int 
     size_t nread = fread(data, 1, length, fp);
     fclose(fp);
 
-    if (nread != length)
+    if (nread != (size_t)length)
     {
         free(data);
         return NULL;
@@ -212,6 +212,7 @@ plutovg_font_face_t *plutovg_font_face_load_from_file(const char *filename, int 
 
 plutovg_font_face_t *plutovg_font_face_load_from_data(const void *data, unsigned int length, int ttcindex, plutovg_destroy_func_t destroy_func, void *closure)
 {
+    (void)length;
     stbtt_fontinfo info;
     int offset = stbtt_GetFontOffsetForIndex(data, ttcindex);
     if (offset == -1 || !stbtt_InitFont(&info, data, offset))
@@ -341,6 +342,7 @@ void plutovg_font_face_get_glyph_metrics(plutovg_font_face_t *face, float size, 
 
 static void glyph_traverse_func(void *closure, plutovg_path_command_t command, const plutovg_point_t *points, int npoints)
 {
+    (void)npoints;
     plutovg_path_t *path = (plutovg_path_t *)(closure);
     switch (command)
     {

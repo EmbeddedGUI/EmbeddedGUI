@@ -443,5 +443,6 @@ static void canvas_probe_link_enabled_paths(void)
 
 void uicode_disp0_init(egui_core_t *core)
 {
+    EGUI_UNUSED(core);
     canvas_probe_link_enabled_paths();
 }

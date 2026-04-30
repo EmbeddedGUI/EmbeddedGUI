@@ -49,6 +49,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
 static egui_timer_t ui_timer;
 void egui_view_test_timer_callback(egui_timer_t *timer)
 {
+    EGUI_UNUSED(timer);
     // test scroll
     // egui_view_scroll_to(EGUI_VIEW_OF(&test_view), 50, 10);
     // egui_view_scroll_by(EGUI_VIEW_OF(&test_view), 50, 50);

@@ -112,6 +112,7 @@ static egui_timer_t sync_timer;
 
 static void btn_zoom_out_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
     egui_view_viewpage_t *vp = (egui_view_viewpage_t *)&viewpage;
     switch (vp->current_page_index)
@@ -133,6 +134,7 @@ static void btn_zoom_out_cb(egui_view_t *self)
 
 static void btn_zoom_reset_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
     egui_view_viewpage_t *vp = (egui_view_viewpage_t *)&viewpage;
     switch (vp->current_page_index)
@@ -154,6 +156,7 @@ static void btn_zoom_reset_cb(egui_view_t *self)
 
 static void btn_zoom_in_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
     egui_view_viewpage_t *vp = (egui_view_viewpage_t *)&viewpage;
     switch (vp->current_page_index)
@@ -175,6 +178,7 @@ static void btn_zoom_in_cb(egui_view_t *self)
 
 static void btn_zoom_y_out_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
     egui_view_viewpage_t *vp = (egui_view_viewpage_t *)&viewpage;
     switch (vp->current_page_index)
@@ -196,6 +200,7 @@ static void btn_zoom_y_out_cb(egui_view_t *self)
 
 static void btn_zoom_y_reset_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
     egui_view_viewpage_t *vp = (egui_view_viewpage_t *)&viewpage;
     switch (vp->current_page_index)
@@ -217,6 +222,7 @@ static void btn_zoom_y_reset_cb(egui_view_t *self)
 
 static void btn_zoom_y_in_cb(egui_view_t *self)
 {
+    EGUI_UNUSED(self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
     egui_view_viewpage_t *vp = (egui_view_viewpage_t *)&viewpage;
     switch (vp->current_page_index)
@@ -238,6 +244,7 @@ static void btn_zoom_y_in_cb(egui_view_t *self)
 
 static void sync_timer_callback(egui_timer_t *timer)
 {
+    EGUI_UNUSED(timer);
     egui_view_viewpage_t *vp = (egui_view_viewpage_t *)&viewpage;
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&indicator), vp->current_page_index);
 }

@@ -84,6 +84,7 @@ __EGUI_STATIC_INLINE__ uint16_t egui_canvas_arc_get_cos_q15(int16_t angle)
  */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_arc_mul_cot_limit(egui_canvas_t *self, egui_dim_t value, int16_t angle)
 {
+    EGUI_UNUSED(self);
     if (angle <= 0)
     {
         return EGUI_DIM_MAX;
@@ -104,6 +105,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_arc_mul_cot_limit(egui_canvas_t *s
  */
 __EGUI_STATIC_INLINE__ int egui_canvas_arc_mul_cot_q8_nonnegative(egui_canvas_t *self, egui_dim_t value, int16_t angle, int32_t *result_q8)
 {
+    EGUI_UNUSED(self);
     if (result_q8 == NULL)
     {
         return 0;
@@ -128,6 +130,7 @@ __EGUI_STATIC_INLINE__ int egui_canvas_arc_mul_cot_q8_nonnegative(egui_canvas_t 
  */
 __EGUI_STATIC_INLINE__ int32_t egui_canvas_arc_get_transition_over_cos_q8(egui_canvas_t *self, int16_t angle)
 {
+    EGUI_UNUSED(self);
     return arc_transition_over_cos_q8_lut[angle];
 }
 
@@ -327,6 +330,7 @@ const egui_circle_info_t *egui_canvas_get_circle_item(egui_canvas_t *self, egui_
  */
 static egui_dim_t egui_canvas_clamp_round_radius(egui_canvas_t *self, egui_dim_t radius, egui_dim_t width, egui_dim_t height)
 {
+    EGUI_UNUSED(self);
     egui_dim_t max_radius;
 
     if (radius <= 0 || width <= 2 || height <= 2)
@@ -353,6 +357,7 @@ static egui_dim_t egui_canvas_clamp_round_radius(egui_canvas_t *self, egui_dim_t
  */
 __EGUI_STATIC_INLINE__ int egui_canvas_round_rect_is_circle_case(egui_canvas_t *self, egui_dim_t width, egui_dim_t height, egui_dim_t radius)
 {
+    EGUI_UNUSED(self);
     return (radius > 0 && width == height && (((radius << 1) + 2) == width));
 }
 
@@ -361,6 +366,7 @@ __EGUI_STATIC_INLINE__ int egui_canvas_round_rect_is_circle_case(egui_canvas_t *
  */
 __EGUI_STATIC_INLINE__ int egui_canvas_circle_corner_is_left(egui_canvas_t *self, int type)
 {
+    EGUI_UNUSED(self);
     return (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM);
 }
 
@@ -369,6 +375,7 @@ __EGUI_STATIC_INLINE__ int egui_canvas_circle_corner_is_left(egui_canvas_t *self
  */
 __EGUI_STATIC_INLINE__ int egui_canvas_circle_corner_is_top(egui_canvas_t *self, int type)
 {
+    EGUI_UNUSED(self);
     return (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP);
 }
 
@@ -411,6 +418,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_circle_corner_col_range_to_screen_x(egui
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_screen_x_to_col(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t radius, int type,
                                                                             egui_dim_t screen_x)
 {
+    EGUI_UNUSED(self);
     if (egui_canvas_circle_corner_is_left(self, type))
     {
         return screen_x - (center_x - radius);
@@ -429,6 +437,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_screen_x_to_col(egui
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_visible_boundary(egui_canvas_t *self, egui_dim_t row_in_corner, const egui_circle_info_t *info,
                                                                                  const egui_circle_item_t *items)
 {
+    EGUI_UNUSED(self);
     egui_dim_t item_count = (egui_dim_t)info->item_count;
     egui_dim_t left_boundary = (row_in_corner < item_count) ? (egui_dim_t)items[row_in_corner].start_offset : item_count;
     egui_dim_t mirror_limit = EGUI_MIN(row_in_corner, item_count);
@@ -471,6 +480,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_visible_boundary
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_opaque_boundary(egui_canvas_t *self, egui_dim_t row_in_corner, const egui_circle_info_t *info,
                                                                                 const egui_circle_item_t *items)
 {
+    EGUI_UNUSED(self);
     egui_dim_t item_count = (egui_dim_t)info->item_count;
     egui_dim_t left_boundary;
     egui_dim_t mirror_limit;
@@ -522,6 +532,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_opaque_boundary(
  */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_opaque_threshold(egui_canvas_t *self, const egui_circle_item_t *items, egui_dim_t index)
 {
+    EGUI_UNUSED(self);
     return (egui_dim_t)items[index].start_offset + (egui_dim_t)items[index].valid_count;
 }
 
@@ -543,6 +554,7 @@ typedef struct
 static void egui_canvas_circle_corner_init_region(egui_canvas_t *self, egui_canvas_corner_bounds_t *bounds, egui_dim_t center_x, egui_dim_t center_y,
                                                   egui_dim_t radius, int type)
 {
+    EGUI_UNUSED(self);
     switch (type)
     {
     case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
@@ -630,6 +642,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_row_span(egui_canvas_t *self
                                                              egui_dim_t clip_x_end, egui_dim_t seg_x_start, egui_dim_t seg_x_end, egui_color_t color,
                                                              egui_alpha_t alpha)
 {
+    EGUI_UNUSED(self);
     if (alpha == 0)
     {
         return;
@@ -657,6 +670,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_row_span(egui_canvas_t *self
  */
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_pixel(egui_canvas_t *self, egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
+    EGUI_UNUSED(self);
     if (alpha == 0)
     {
         return;
@@ -680,6 +694,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_vertical_span(egui_canvas_t 
                                                                   egui_dim_t clip_y_end, egui_dim_t screen_x, egui_dim_t seg_y_start, egui_dim_t seg_y_end,
                                                                   egui_color_t color, egui_alpha_t alpha)
 {
+    EGUI_UNUSED(self);
     egui_dim_t local_x;
 
     if (alpha == 0)
@@ -2224,12 +2239,14 @@ void egui_canvas_draw_circle_corner(egui_canvas_t *self, egui_dim_t center_x, eg
                                     egui_color_t color, egui_alpha_t alpha)
 {
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     egui_dim_t row_index;
     egui_dim_t col_index;
     egui_alpha_t mix_alpha;
     egui_dim_t sel_x;
     egui_dim_t sel_y;
     egui_alpha_t circle_alpha;
+#endif
 
     if (radius <= 0 || stroke_width <= 0)
     {
@@ -2270,8 +2287,14 @@ void egui_canvas_draw_circle_corner(egui_canvas_t *self, egui_dim_t center_x, eg
         EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius_inner);
         return;
     }
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     const egui_circle_item_t *items = (const egui_circle_item_t *)info->items;
+#endif
 
+#if !EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+    egui_canvas_draw_circle_corner_direct_stroke(self, center_x, radius, stroke_width, type, color, alpha, &region, &region_intersect, info, info_inner);
+    return;
+#else
     if (self->mask == NULL)
     {
         egui_canvas_draw_circle_corner_direct_stroke(self, center_x, radius, stroke_width, type, color, alpha, &region, &region_intersect, info, info_inner);
@@ -2399,6 +2422,7 @@ void egui_canvas_draw_circle_corner(egui_canvas_t *self, egui_dim_t center_x, eg
             }
         }
     }
+#endif
 }
 
 #define ARC_AA_HALF_TRANSITION ARC_AA_HALF_TRANSITION_Q15
@@ -2433,6 +2457,7 @@ typedef struct
  */
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_arc_fill_basic_qx_ceil_nonnegative(egui_canvas_t *self, int32_t value_q8)
 {
+    EGUI_UNUSED(self);
     if (value_q8 <= 0)
     {
         return 0;
@@ -2450,6 +2475,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_arc_fill_basic_qx_ceil_nonnegative
  */
 __EGUI_STATIC_INLINE__ int egui_canvas_arc_fill_basic_qx_floor_nonnegative(egui_canvas_t *self, int32_t value_q8, egui_dim_t *result)
 {
+    EGUI_UNUSED(self);
     if (value_q8 < 0)
     {
         return 0;
@@ -2650,6 +2676,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t arc_get_point_alpha(egui_dim_t x, egui_dim_t
 __EGUI_STATIC_INLINE__ int egui_canvas_arc_try_apply_edge_alpha(egui_canvas_t *self, const egui_canvas_arc_scan_state_t *scan_state, egui_dim_t sel_x,
                                                                 egui_dim_t sel_y, egui_alpha_t *mix_alpha)
 {
+    EGUI_UNUSED(self);
     egui_alpha_t point_alpha;
 
     if ((sel_x < scan_state->x_allow_min) || (sel_x > scan_state->x_allow_max))
@@ -3496,6 +3523,7 @@ void egui_canvas_draw_circle_fill_basic(egui_canvas_t *self, egui_dim_t center_x
 static int egui_canvas_arc_try_get_single_quadrant(egui_canvas_t *self, int16_t start_angle, int16_t end_angle, int *type, int16_t *start_angle_local,
                                                    int16_t *end_angle_local)
 {
+    EGUI_UNUSED(self);
     int16_t quadrant;
 
     if (start_angle < 0 || end_angle <= start_angle || end_angle > 360)
@@ -4361,6 +4389,7 @@ void egui_canvas_register_spec_circle_info(egui_canvas_t *self, uint16_t res_cir
     self->res_circle_info_count_spec = res_circle_info_count_spec;
     self->res_circle_info_spec_arr = res_circle_info_spec_arr;
 #else
+    EGUI_UNUSED(self);
     EGUI_UNUSED(res_circle_info_count_spec);
     EGUI_UNUSED(res_circle_info_spec_arr);
 #endif
@@ -4369,7 +4398,7 @@ void egui_canvas_register_spec_circle_info(egui_canvas_t *self, uint16_t res_cir
 /**
  * @brief Return the core that currently owns this canvas.
  */
-egui_core_t *egui_canvas_get_core(egui_canvas_t *self)
+egui_core_t *egui_canvas_get_core(const egui_canvas_t *self)
 {
     if (self == NULL)
     {

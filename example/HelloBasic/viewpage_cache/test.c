@@ -20,6 +20,7 @@ void *on_page_load_listener(egui_view_t *self, int current_page_index)
 
 void on_page_free_listener(egui_view_t *self, int current_page_index, egui_view_t *page)
 {
+    EGUI_UNUSED(current_page_index);
     EGUI_LOG_INF("on_page_free_listener, current_page_index: %d\r\n", current_page_index);
     egui_api_free(egui_view_get_core(self), page);
 }

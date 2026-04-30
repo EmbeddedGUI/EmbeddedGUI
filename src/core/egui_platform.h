@@ -59,7 +59,7 @@ struct egui_platform_ops
     void (*interrupt_enable)(egui_base_t level);
 
     /** Load part of one external resource into RAM for a specific core. Optional. */
-    void (*load_external_resource)(egui_core_t *core, void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size);
+    void (*load_external_resource)(egui_core_t *core, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size);
 
     /* ---- Timer callback ---- */
 

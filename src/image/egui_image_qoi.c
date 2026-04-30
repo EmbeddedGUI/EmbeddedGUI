@@ -214,11 +214,13 @@ static int egui_image_qoi_prepare_decode_info(const egui_image_qoi_info_t *info,
 {
     *decode_info = *info;
 
+#if EGUI_IMAGE_QOI_ROW_INDEX_MAX < UINT16_MAX
     if (decode_info->height > EGUI_IMAGE_QOI_ROW_INDEX_MAX)
     {
         EGUI_ASSERT(0);
         return 0;
     }
+#endif
 
 #if !EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
@@ -312,10 +314,13 @@ __EGUI_STATIC_INLINE__ void egui_image_qoi_fill_rgb565(uint16_t *dst, uint16_t p
         {
         case 4:
             dst[3] = pixel;
+            /* fall through */
         case 3:
             dst[2] = pixel;
+            /* fall through */
         case 2:
             dst[1] = pixel;
+            /* fall through */
         case 1:
             dst[0] = pixel;
         default:
@@ -1708,6 +1713,9 @@ static void egui_image_qoi_skip_row(egui_canvas_t *canvas, const egui_image_qoi_
 
 static int egui_image_qoi_get_point(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
     /* QOI is sequential-only; random access not efficiently supported */
     color->full = 0;
     *alpha = 0;
@@ -1717,6 +1725,11 @@ static int egui_image_qoi_get_point(const egui_image_t *self, egui_dim_t x, egui
 static int egui_image_qoi_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color,
                                            egui_alpha_t *alpha)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+    EGUI_UNUSED(width);
+    EGUI_UNUSED(height);
     /* Resize not supported for compressed images */
     color->full = 0;
     *alpha = 0;
@@ -2567,6 +2580,7 @@ cleanup:
 
 static void egui_image_qoi_draw_image_resize(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
+    EGUI_UNUSED(canvas);
     /* Resize not supported for compressed images */
     (void)self;
     (void)x;
