@@ -7,6 +7,7 @@
 - `code_format.py`
 - `release_check.py`
 - `setup_env.py`
+- `start_app.py`
 
 其中 `release_check.py --scope multi-display` 适合本地快速串起多屏 compile/runtime/doc 回归；runtime scope 现在会按 `EGUI_CONFIG_MAX_DISPLAY_COUNT` 逐屏校验录制帧是否成套输出，校验多屏示例的关键录制阶段标签是否完整，并覆盖 `HelloMultiDisplay` 的主屏点击隔离与双屏并发 activity 动画、`HelloMultiDisplayHetero` 的副屏 tick 连续性/点击复位，以及退出摘要里的线程回收、SDL 窗口销毁顺序和 core task queue 指标。如果一时记不清某个 scope 会跑什么，直接执行 `python scripts/release_check.py --help`，底部的 `Scoped profiles` 会列出 scope 摘要；`multi-display` 当前支持的 `--only` 值是 `format, compile, runtime, doc`。实际运行 `python scripts/release_check.py --scope multi-display` 时，开头会直接打印这些 step filters、当前激活的 `--only/--skip` 过滤结果、可拆看的 compile/runtime/doc drill-down 命令和关键产物目录；失败摘要末尾会重复列出“只重跑当前失败步骤”的 `python scripts/release_check.py --scope multi-display --only <step>`、对应底层命令与产物位置，通过时也会把已完成步骤的关键产物目录再汇总一遍。若要做低容量队列探针，可直接用 `python scripts/release_check.py --scope multi-display --only compile,runtime --queue-capacity-probe 1`；若要做 burst core-task 压力探针，可用 `python scripts/release_check.py --scope multi-display --only compile,runtime --queue-stress-probe 8`；若要探测 backpressure 配置本身，可加 `--queue-post-retry-probe N` / `--queue-post-retry-delay-probe N`；若要把 backpressure 也变成显式约束，可加 `--max-core-task-retries N`、`--max-single-post-core-task-retries N` 或 `--fail-on-full-core-task-queue`。这些参数可以组合使用，用来验证“温和 workload 能过，但 burst 场景下会不会靠高 retries、单次尖峰重试或队列打满硬扛”的边界。
 
