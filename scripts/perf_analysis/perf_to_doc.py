@@ -271,7 +271,7 @@ def _get_categorized_tests(available_tests):
     return result
 
 
-def _load_cpu_only_data(expected_commit=None):
+def _load_cpu_only_data(expected_commit=None, expected_tests=None):
     """Try to load CPU-only rendering data from spi_matrix_results.json.
 
     Returns (data_dict, timestamp, commit, profile_name) or None if unavailable.
@@ -288,8 +288,15 @@ def _load_cpu_only_data(expected_commit=None):
     # Find the config with spi_mhz == 0 (CPU only)
     for cfg_name, cfg_data in spi_matrix.items():
         if cfg_data.get("spi_mhz", -1) == 0:
+            cpu_only_results = cfg_data["results"]
+            if expected_tests is not None and set(cpu_only_results.keys()) != set(expected_tests):
+                print(
+                    "  [INFO] CPU-only SPI data test set does not match "
+                    "perf_results.json; using perf_results.json instead"
+                )
+                return None
             return (
-                cfg_data["results"],
+                cpu_only_results,
                 spi_data.get("timestamp", "N/A"),
                 spi_data.get("git_commit", "N/A"),
                 spi_data.get("profile", "N/A"),
@@ -323,7 +330,7 @@ def generate_perf_report():
 
     # Prefer CPU-only data from SPI matrix (no SPI transfer overhead) only when
     # it matches the current perf_results commit. This avoids generating stale docs.
-    cpu_only = _load_cpu_only_data(expected_commit=fallback_commit)
+    cpu_only = _load_cpu_only_data(expected_commit=fallback_commit, expected_tests=fallback_data.keys())
     if cpu_only:
         data, timestamp, commit, profile_name = cpu_only
         print("  Using CPU-only data from spi_matrix_results.json (no SPI overhead)")
@@ -447,12 +454,10 @@ def generate_pfb_matrix_report():
     first_cfg = matrix[config_names[0]]
     all_tests = list(first_cfg["results"].keys())
 
-    # Filter out tests with near-zero values across all configs (not meaningful)
-    test_names = []
-    for t in all_tests:
-        vals = [matrix[c]["results"].get(t, {}).get("time_ms", 0) for c in config_names]
-        if max(vals) > 0.5:
-            test_names.append(t)
+    # Keep the report table aligned with the benchmark result set. Release
+    # checks use the row count as a coverage signal, so do not filter out fast
+    # scenes here.
+    test_names = all_tests
 
     # --- Grouped horizontal bar chart (one row per test) ---
     n_tests = len(test_names)
@@ -556,14 +561,10 @@ def generate_spi_matrix_report():
         else:
             config_labels.append(f"SPI {spi}MHz\nbuf={buf}")
 
-    # Collect test names, filter low-value ones
+    # Collect test names. Keep the report table aligned with the benchmark
+    # result set even when some scenes are very fast.
     first_cfg = spi_matrix[config_names[0]]
-    all_tests = list(first_cfg["results"].keys())
-    test_names = []
-    for t in all_tests:
-        vals = [spi_matrix[c]["results"].get(t, {}).get("time_ms", 0) for c in config_names]
-        if max(vals) > 1.0:
-            test_names.append(t)
+    test_names = list(first_cfg["results"].keys())
 
     # --- Grouped horizontal bar chart (one row per test) ---
     n_tests = len(test_names)

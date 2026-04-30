@@ -78,6 +78,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--snapshot-stable-cycles", type=int, default=runtime_check.RECORDING_SNAPSHOT_STABLE_CYCLES, help="Stable frame cycles before snapshot")
     parser.add_argument("--snapshot-max-wait-ms", type=int, default=runtime_check.RECORDING_SNAPSHOT_MAX_WAIT_MS, help="Snapshot max wait")
     parser.add_argument("--filter", default="", help="Comma-separated substrings used to filter the final sheet")
+    parser.add_argument("--quick-scenes", action="store_true", help="Capture the representative smoke subset instead of all enabled scenes")
     return parser.parse_args()
 
 
@@ -140,7 +141,7 @@ def flatten_categories(available_tests: set[str]) -> tuple[list[str], dict[str, 
     return ordered_names, category_map
 
 
-def build_capture_app() -> None:
+def build_capture_app(quick_scenes: bool) -> None:
     print("Building HelloPerformance capture app...")
 
     clean_result = subprocess.run(["make", "clean"], cwd=PROJECT_ROOT, capture_output=True, text=True)
@@ -149,7 +150,10 @@ def build_capture_app() -> None:
 
     cmd = ["make", "-j", "APP=HelloPerformance", "PORT=pc", f"TARGET={BUILD_TARGET}", f"APP_OBJ_SUFFIX={BUILD_OBJ_SUFFIX}"]
     cmd.extend(runtime_check.COMPILE_FAST_FLAGS)
-    cmd.append(f"USER_CFLAGS={REQUIRED_CFLAGS}")
+    cflags = REQUIRED_CFLAGS
+    if quick_scenes:
+        cflags = f"{cflags} -DEGUI_PERF_QEMU_BENCHMARK_QUICK=1"
+    cmd.append(f"USER_CFLAGS={cflags}")
 
     result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True)
     if result.returncode != 0:
@@ -570,7 +574,7 @@ def main() -> int:
         )
         perf_results = {}
 
-    build_capture_app()
+    build_capture_app(args.quick_scenes)
     scene_names, frame_map = run_capture(frames_dir, args)
     entries, extra_names, missing_timing_names = map_scenes(scene_names, frame_map, perf_results, args.filter)
     if not entries:

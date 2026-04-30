@@ -16,6 +16,10 @@ static egui_core_t *s_core;
 #define EGUI_PERF_CAPTURE_BENCHMARK_ONLY 0
 #endif
 
+#ifndef EGUI_PERF_QEMU_BENCHMARK_QUICK
+#define EGUI_PERF_QEMU_BENCHMARK_QUICK 0
+#endif
+
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 #include "core/egui_input_simulator.h"
 #endif
@@ -69,11 +73,14 @@ static const char *egui_view_test_performance_type_string(int test_mode);
 static void egui_view_test_performance_set_test_mode(int test_mode);
 static int egui_view_test_performance_is_qoi_test_mode(int test_mode);
 static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test_mode);
-#if EGUI_PORT == EGUI_PORT_TYPE_QEMU
-static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_index);
+#if !EGUI_PERF_QEMU_BENCHMARK_QUICK || EGUI_CONFIG_FUNCTION_RECORDING_TEST
+static int egui_view_test_performance_get_enabled_test_mode(int scene_index);
 #endif
-#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY
-static int egui_view_test_performance_get_perf_capture_test_mode(int scene_index);
+#if EGUI_PORT == EGUI_PORT_TYPE_QEMU || (EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY)
+#if EGUI_PERF_QEMU_BENCHMARK_QUICK
+static int egui_view_test_performance_get_representative_test_mode(int scene_index);
+#endif
+static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_index);
 #endif
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static void egui_view_test_performance_show_test_mode(int test_mode);
@@ -840,12 +847,39 @@ static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test
     }
 }
 
-#if EGUI_PORT == EGUI_PORT_TYPE_QEMU
-static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_index)
+#if !EGUI_PERF_QEMU_BENCHMARK_QUICK || EGUI_CONFIG_FUNCTION_RECORDING_TEST
+static int egui_view_test_performance_get_enabled_test_mode(int scene_index)
 {
-    /* Keep release_check perf on a representative subset.
-     * Full HelloPerformance coverage still exists via single-scene/manual runs,
-     * but the QEMU benchmark path should stay bounded and deterministic. */
+    int enabled_index = 0;
+
+    if (scene_index < 0)
+    {
+        return -1;
+    }
+
+    for (int test_mode = 0; test_mode < EGUI_VIEW_TEST_PERFORMANCE_TYPE_MAX; test_mode++)
+    {
+        if (!egui_view_test_performance_is_enabled(test_mode))
+        {
+            continue;
+        }
+        if (enabled_index == scene_index)
+        {
+            return test_mode;
+        }
+        enabled_index++;
+    }
+    return -1;
+}
+#endif
+
+#if EGUI_PORT == EGUI_PORT_TYPE_QEMU || (EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY)
+#if EGUI_PERF_QEMU_BENCHMARK_QUICK
+static int egui_view_test_performance_get_representative_test_mode(int scene_index)
+{
+    /* Representative smoke subset for quick local perf checks. Release perf uses
+     * the full enabled scene list unless EGUI_PERF_QEMU_BENCHMARK_QUICK is
+     * set. */
     static const int s_qemu_benchmark_scenes[] = {
             EGUI_VIEW_TEST_PERFORMANCE_TYPE_LINE,
             EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565,
@@ -885,46 +919,13 @@ static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_ind
 }
 #endif
 
-#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY
-static int egui_view_test_performance_get_perf_capture_test_mode(int scene_index)
+static int egui_view_test_performance_get_qemu_benchmark_test_mode(int scene_index)
 {
-    /* Scene capture is documentation-only. Keep benchmark coverage broad, but
-     * skip external RLE recording while that PC-frame cache teardown path is
-     * unstable. */
-    static const int s_perf_capture_scenes[] = {
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_LINE,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RLE4,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_RECTANGLE_FILL,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_CIRCLE_FILL,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_LINE_HQ,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_RECT,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_COLOR,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_RECT_FILL_ROUND_RECT,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_IMAGE,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_ANIMATION_TRANSLATE,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_ANIMATION_SCALE,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565_8,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565_8,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_ROUND_RECT,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RLE_565_8,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_ROUND_RECT,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_BAR_DENSE,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_SCATTER_DENSE,
-            EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE,
-    };
-    int scene_count = (int)(sizeof(s_perf_capture_scenes) / sizeof(s_perf_capture_scenes[0]));
-
-    if (scene_index < 0 || scene_index >= scene_count)
-    {
-        return -1;
-    }
-    return s_perf_capture_scenes[scene_index];
+#if EGUI_PERF_QEMU_BENCHMARK_QUICK
+    return egui_view_test_performance_get_representative_test_mode(scene_index);
+#else
+    return egui_view_test_performance_get_enabled_test_mode(scene_index);
+#endif
 }
 #endif
 
@@ -1088,7 +1089,7 @@ static int egui_view_test_performance_get_recording_test_mode(int action_index)
     return s_qemu_heap_measure_scenes[action_index];
 #endif
 #elif EGUI_PERF_CAPTURE_BENCHMARK_ONLY
-    return egui_view_test_performance_get_perf_capture_test_mode(action_index);
+    return egui_view_test_performance_get_qemu_benchmark_test_mode(action_index);
 #elif EGUI_TEST_CONFIG_SINGLE_TEST >= 0
     if (action_index > 0)
     {
@@ -1100,20 +1101,7 @@ static int egui_view_test_performance_get_recording_test_mode(int action_index)
     }
     return EGUI_TEST_CONFIG_SINGLE_TEST;
 #else
-    int enabled_index = 0;
-    for (int test_mode = 0; test_mode < EGUI_VIEW_TEST_PERFORMANCE_TYPE_MAX; test_mode++)
-    {
-        if (!egui_view_test_performance_is_enabled(test_mode))
-        {
-            continue;
-        }
-        if (enabled_index == action_index)
-        {
-            return test_mode;
-        }
-        enabled_index++;
-    }
-    return -1;
+    return egui_view_test_performance_get_enabled_test_mode(action_index);
 #endif
 }
 

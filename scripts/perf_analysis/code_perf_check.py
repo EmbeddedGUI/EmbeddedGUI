@@ -39,6 +39,7 @@ SCENE_INDEX_FILE = OUTPUT_DIR / "perf_scenes_index.json"
 
 DEFAULT_TIMEOUT = 300
 DEFAULT_THRESHOLD = 10
+MIN_FULL_BENCHMARK_RESULT_COUNT = 200
 
 
 def load_config_macro_eval():
@@ -239,6 +240,61 @@ def parse_perf_results(output):
     return results, complete, skipped
 
 
+def _get_cflags_macro_value(extra_cflags, macro_name):
+    if not extra_cflags:
+        return None
+    pattern = rf"(?:^|\s)-D{re.escape(macro_name)}(?:=([^\s]+))?(?=\s|$)"
+    match = re.search(pattern, extra_cflags)
+    if match is None:
+        return None
+    return match.group(1) if match.group(1) is not None else "1"
+
+
+def _cflags_macro_is_enabled(extra_cflags, macro_name):
+    value = _get_cflags_macro_value(extra_cflags, macro_name)
+    if value is None:
+        return False
+    return value not in ("0", "false", "False", "FALSE")
+
+
+def _cflags_single_test_is_set(extra_cflags):
+    value = _get_cflags_macro_value(extra_cflags, "EGUI_TEST_CONFIG_SINGLE_TEST")
+    return value is not None and value != "-1"
+
+
+def build_user_extra_cflags(args):
+    parts = []
+    if args.quick_scenes:
+        parts.append("-DEGUI_PERF_QEMU_BENCHMARK_QUICK=1")
+    if args.extra_cflags:
+        parts.append(args.extra_cflags)
+    return " ".join(parts)
+
+
+def should_enforce_full_result_count(args):
+    if args.filter:
+        return False
+    if args.quick_scenes or _cflags_macro_is_enabled(args.extra_cflags, "EGUI_PERF_QEMU_BENCHMARK_QUICK"):
+        return False
+    if _cflags_single_test_is_set(args.extra_cflags):
+        return False
+    return True
+
+
+def validate_min_result_count(results, context, min_result_count):
+    if min_result_count <= 0:
+        return True
+    if len(results) >= min_result_count:
+        return True
+
+    print(
+        f"  ERROR: {context} produced only {len(results)} test results; "
+        f"expected at least {min_result_count} for the full benchmark."
+    )
+    print("  Use --quick-scenes only for the representative smoke subset.")
+    return False
+
+
 def _scene_sheet_matches(commit, profile_name):
     if not SCENE_SHEET_FILE.exists() or not SCENE_INDEX_FILE.exists():
         return False
@@ -349,7 +405,7 @@ def read_screen_size(user_extra_cflags=None):
     return default_w, default_h
 
 
-def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout, user_extra_cflags=None):
+def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout, user_extra_cflags=None, min_result_count=0):
     """Run performance tests across all PFB configurations."""
     matrix_results = {}
 
@@ -389,6 +445,9 @@ def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout, user_extr
 
             if not complete:
                 print(f"  WARNING: PERF_COMPLETE not found")
+
+            if not validate_min_result_count(results, f"PFB {pfb_name}", min_result_count):
+                continue
 
             print(f"  Parsed {len(results)} test results")
             matrix_results[pfb_name] = {
@@ -485,7 +544,7 @@ def generate_pfb_matrix_report(matrix_results, profile_name, git_commit):
     return "\n".join(lines)
 
 
-def run_spi_matrix(profile_name, profile_config, spi_configs, timeout, user_extra_cflags=None):
+def run_spi_matrix(profile_name, profile_config, spi_configs, timeout, user_extra_cflags=None, min_result_count=0):
     """Run performance tests across SPI/buffer configurations."""
     matrix_results = {}
 
@@ -532,6 +591,9 @@ def run_spi_matrix(profile_name, profile_config, spi_configs, timeout, user_extr
 
             if not complete:
                 print(f"  WARNING: PERF_COMPLETE not found")
+
+            if not validate_min_result_count(results, cfg_name, min_result_count):
+                continue
 
             print(f"  Parsed {len(results)} test results")
             matrix_results[cfg_name] = {
@@ -681,9 +743,13 @@ def _do_pfb_matrix(profiles, pfb_configs, args, timeout):
     if args.clean:
         subprocess.run(["make", "clean"], capture_output=True, cwd=PROJECT_ROOT)
 
+    user_extra_cflags = build_user_extra_cflags(args)
+    min_result_count = MIN_FULL_BENCHMARK_RESULT_COUNT if should_enforce_full_result_count(args) else 0
+
     print(f"PFB Matrix Test: profile={profile_name}, {len(pfb_configs)} configs")
     matrix_results = run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout,
-                                    user_extra_cflags=args.extra_cflags)
+                                    user_extra_cflags=user_extra_cflags,
+                                    min_result_count=min_result_count)
 
     matrix_data = {
         "timestamp": datetime.now().isoformat(),
@@ -722,9 +788,13 @@ def _do_spi_matrix(profiles, spi_configs, args, timeout):
     if args.clean:
         subprocess.run(["make", "clean"], capture_output=True, cwd=PROJECT_ROOT)
 
+    user_extra_cflags = build_user_extra_cflags(args)
+    min_result_count = MIN_FULL_BENCHMARK_RESULT_COUNT if should_enforce_full_result_count(args) else 0
+
     print(f"SPI Matrix Test: profile={profile_name}, {len(spi_configs)} configs")
     matrix_results = run_spi_matrix(profile_name, profile_config, spi_configs, timeout,
-                                    user_extra_cflags=args.extra_cflags)
+                                    user_extra_cflags=user_extra_cflags,
+                                    min_result_count=min_result_count)
 
     matrix_data = {
         "timestamp": datetime.now().isoformat(),
@@ -736,7 +806,7 @@ def _do_spi_matrix(profiles, spi_configs, args, timeout):
         json.dump(matrix_data, f, indent=2)
     print(f"  SPI matrix results saved to: {SPI_MATRIX_RESULTS_FILE}")
 
-    report = generate_spi_matrix_report(matrix_results, profile_name, git_commit, user_extra_cflags=args.extra_cflags)
+    report = generate_spi_matrix_report(matrix_results, profile_name, git_commit, user_extra_cflags=user_extra_cflags)
     with open(SPI_MATRIX_REPORT_FILE, "w", encoding="utf-8") as f:
         f.write(report)
     print(f"  SPI matrix report saved to: {SPI_MATRIX_REPORT_FILE}")
@@ -746,7 +816,7 @@ def _do_spi_matrix(profiles, spi_configs, args, timeout):
     return success
 
 
-def run_scene_capture(profile_name, keyword_filter=None, timeout=180):
+def run_scene_capture(profile_name, keyword_filter=None, timeout=180, quick_scenes=False):
     """Capture HelloPerformance scene renders and compose a contact sheet."""
     script_path = SCRIPT_DIR / "perf_scene_capture.py"
     if not script_path.exists():
@@ -765,6 +835,8 @@ def run_scene_capture(profile_name, keyword_filter=None, timeout=180):
     ]
     if keyword_filter:
         cmd.extend(["--filter", keyword_filter])
+    if quick_scenes:
+        cmd.append("--quick-scenes")
 
     try:
         result = subprocess.run(
@@ -850,6 +922,8 @@ def main():
                         help="Filter test results by keyword (e.g., RECT,CIRCLE)")
     parser.add_argument("--with-scenes", action="store_true",
                         help="Capture HelloPerformance renders and generate a scene contact sheet")
+    parser.add_argument("--quick-scenes", action="store_true",
+                        help="Run the representative 27-scene smoke subset instead of the full enabled benchmark")
     parser.add_argument("--extra-cflags", type=str,
                         help="Append extra USER_CFLAGS for A/B config testing (e.g. -DMY_MACRO=0)")
     parser.add_argument("--doc", action="store_true",
@@ -859,6 +933,8 @@ def main():
     profiles, defaults, pfb_configs, spi_configs = load_profiles()
     threshold = args.threshold or defaults.get("regression_threshold_percent", DEFAULT_THRESHOLD)
     timeout = args.timeout or defaults.get("timeout_seconds", DEFAULT_TIMEOUT)
+    user_extra_cflags = build_user_extra_cflags(args)
+    min_result_count = MIN_FULL_BENCHMARK_RESULT_COUNT if should_enforce_full_result_count(args) else 0
 
     # Determine which profiles to run
     if args.profile:
@@ -900,7 +976,7 @@ def main():
 
         # Build — enable all image tests via USER_CFLAGS (no flash limit on QEMU)
         if not build_for_profile(name, config, clean=need_clean,
-                                 extra_cflags=merge_extra_cflags(args.extra_cflags)):
+                                 extra_cflags=merge_extra_cflags(user_extra_cflags)):
             failed_profiles.append(name)
             continue
 
@@ -928,6 +1004,10 @@ def main():
             results = {k: v for k, v in results.items()
                        if any(kw in k.upper() for kw in keywords)}
 
+        if not validate_min_result_count(results, name, min_result_count):
+            failed_profiles.append(name)
+            continue
+
         print(f"  Parsed {len(results)} test results")
 
         all_results[name] = results
@@ -950,7 +1030,7 @@ def main():
         print(f"\n{'='*60}")
         print("Scene Capture")
         print(f"{'='*60}")
-        if not run_scene_capture(first_profile_name, args.filter, timeout=max(timeout, 180)):
+        if not run_scene_capture(first_profile_name, args.filter, timeout=max(timeout, 180), quick_scenes=args.quick_scenes):
             scenes_failed = True
 
     # Generate Markdown report
