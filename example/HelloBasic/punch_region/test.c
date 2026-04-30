@@ -10,6 +10,7 @@
 #define PUNCH_REGION_ROWS_PER_TICK  4
 #define PUNCH_REGION_START_DELAY_MS 1200
 #define PUNCH_REGION_TICK_MS        45
+#define PUNCH_REGION_FINISH_WAIT_MS (PUNCH_REGION_START_DELAY_MS + ((PUNCH_REGION_H / PUNCH_REGION_ROWS_PER_TICK) + 2) * PUNCH_REGION_TICK_MS)
 
 #define DEMO_TITLE_FONT    ((const egui_font_t *)&egui_res_font_montserrat_16_4)
 #define DEMO_BODY_FONT     ((const egui_font_t *)&egui_res_font_montserrat_12_4)
@@ -29,8 +30,10 @@ static egui_view_t border_right;
 static egui_timer_t render_timer;
 static egui_core_t *s_core;
 static uint16_t s_next_row;
+static uint16_t s_defer_refresh_hit_count;
 static uint8_t s_timer_inited;
 static uint8_t s_placeholder_drawn;
+static uint8_t s_defer_egui_refresh;
 static char s_status_text[40];
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
@@ -169,6 +172,20 @@ static void punch_region_draw_placeholder(void)
     punch_region_update_status("Placeholder", 0u);
 }
 
+int egui_port_should_defer_refresh(egui_core_t *core)
+{
+    if (core == s_core && s_defer_egui_refresh)
+    {
+        if (s_defer_refresh_hit_count < 0xFFFFu)
+        {
+            s_defer_refresh_hit_count++;
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
 static uint8_t punch_region_draw_next_batch(void)
 {
     uint16_t rows_left;
@@ -181,16 +198,26 @@ static uint8_t punch_region_draw_next_batch(void)
 
     rows_left = (uint16_t)(PUNCH_REGION_H - s_next_row);
     rows_to_draw = rows_left < PUNCH_REGION_ROWS_PER_TICK ? rows_left : PUNCH_REGION_ROWS_PER_TICK;
+    s_defer_egui_refresh = 1u;
     punch_region_direct_draw_rows(s_next_row, rows_to_draw, 1u);
     s_next_row = (uint16_t)(s_next_row + rows_to_draw);
 
     if (s_next_row >= PUNCH_REGION_H)
     {
-        punch_region_update_status("Direct draw complete", s_next_row);
+        s_defer_egui_refresh = 0u;
+        punch_region_update_status("EGUI refresh released", s_next_row);
+        if (s_core != NULL)
+        {
+            egui_core_refresh_screen(s_core);
+        }
         return 0u;
     }
 
-    punch_region_update_status("Direct drawing", s_next_row);
+    punch_region_update_status("Deferring EGUI refresh", s_next_row);
+    if (s_core != NULL)
+    {
+        egui_core_refresh_screen(s_core);
+    }
     return 1u;
 }
 
@@ -216,7 +243,9 @@ void test_init_ui(egui_core_t *core)
 {
     s_core = core;
     s_next_row = 0u;
+    s_defer_refresh_hit_count = 0u;
     s_placeholder_drawn = 0u;
+    s_defer_egui_refresh = 0u;
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     s_runtime_fail_reported = 0u;
 #endif
@@ -235,7 +264,7 @@ void test_init_ui(egui_core_t *core)
     egui_view_set_background(EGUI_VIEW_OF(&root_group), EGUI_BG_OF(&bg_root));
 
     punch_region_init_label(&title_label, 8, 12, 224, 22, "Punch Region", DEMO_TITLE_FONT, DEMO_HEADING_COLOR);
-    punch_region_init_label(&body_label, 14, 40, 212, 32, "EGUI skips center; app draws it.", DEMO_BODY_FONT, DEMO_STATUS_COLOR);
+    punch_region_init_label(&body_label, 14, 40, 212, 32, "Direct draw defers UI refresh.", DEMO_BODY_FONT, DEMO_STATUS_COLOR);
     punch_region_init_label(&status_label, 16, 232, 208, 20, "Waiting", DEMO_STATUS_FONT, DEMO_STATUS_COLOR);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&root_group), EGUI_VIEW_OF(&title_label));
@@ -283,6 +312,14 @@ static void punch_region_runtime_verify(void)
     {
         punch_region_report_runtime_failure("punch region direct render did not finish");
     }
+    if (s_defer_refresh_hit_count == 0u)
+    {
+        punch_region_report_runtime_failure("egui_port_should_defer_refresh was not used");
+    }
+    if (s_defer_egui_refresh)
+    {
+        punch_region_report_runtime_failure("deferred refresh was not released");
+    }
 }
 
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
@@ -305,9 +342,15 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 180);
         return true;
     case 2:
+        EGUI_SIM_SET_WAIT(p_action, PUNCH_REGION_FINISH_WAIT_MS);
+        return true;
+    case 3:
         if (first_call)
         {
-            punch_region_complete_render();
+            if (s_next_row < PUNCH_REGION_H)
+            {
+                punch_region_complete_render();
+            }
             punch_region_runtime_verify();
             recording_request_snapshot();
         }

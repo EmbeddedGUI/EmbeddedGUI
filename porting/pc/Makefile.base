@@ -128,6 +128,8 @@ OBJDIR = $(OBJROOT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 APP_CONFIG_STAMP := $(OBJDIR)/.app_stamp_$(BUILD_OBJ_SUFFIX)
 APP_CONFIG_STAMP_CASE := $(if $(APP_SUB),$(subst /,_,$(APP_SUB)),default)
 APP_CONFIG_STAMP_TMP := $(APP_CONFIG_STAMP).$(APP_CONFIG_STAMP_CASE).tmp
+LINK_CONFIG_STAMP := $(OUTPUT_PATH)/.$(TARGET)_link_stamp
+LINK_CONFIG_STAMP_TMP := $(LINK_CONFIG_STAMP).$(BUILD_OBJ_SUFFIX).tmp
 
 define APP_CONFIG_STAMP_CONTENT
 APP=$(APP)
@@ -220,6 +222,24 @@ src_to_obj = $(OBJDIR)/$(call sanitize_obj_rel,$(1:.c=.o))
 OBJECTS			:= $(foreach src,$(SOURCES),$(call src_to_obj,$(src)))
 OBJ_MD			:= $(sort $(patsubst %/,%,$(dir $(OBJECTS))))
 
+define LINK_CONFIG_STAMP_CONTENT
+APP=$(APP)
+APP_SUB=$(APP_SUB)
+PORT=$(PORT)
+TARGET=$(TARGET)
+MAIN=$(MAIN)
+BUILD_OBJ_SUFFIX=$(BUILD_OBJ_SUFFIX)
+EGUI_APP_RESOURCE_PATH=$(EGUI_APP_RESOURCE_PATH)
+CC=$(CC)
+COMMON_FLAGS=$(COMMON_FLAGS)
+LDFLAGS=$(LDFLAGS)
+INCLUDES=$(INCLUDES)
+OBJECTS=$(OBJECTS)
+LFLAGS=$(LFLAGS)
+LIBS=$(LIBS)
+OUTPUT_BT_LIB=$(OUTPUT_BT_LIB)
+endef
+
 
 
 ALL_DEPS := $(OBJECTS:.o=.d)
@@ -307,10 +327,18 @@ else
 	$(Q)if [ -f "$(call FIXPATH,$@)" ] && cmp -s "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; then rm -f "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))"; else mv "$(call FIXPATH,$(APP_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; fi
 endif
 
-ifneq ($(wildcard $(EGUI_APP_RESOURCE_PATH)),)
-$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP) $(OUTPUT_MAIN_RESOURCE) | $(OUTPUT_PATH)
+$(LINK_CONFIG_STAMP): FORCE | $(OUTPUT_PATH)
+	$(file >$(LINK_CONFIG_STAMP_TMP),$(LINK_CONFIG_STAMP_CONTENT))
+ifeq ($(OS),Windows_NT)
+	$(Q)if exist "$(call FIXPATH,$@)" (fc /b "$(call FIXPATH,$(LINK_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL && (del /q "$(call FIXPATH,$(LINK_CONFIG_STAMP_TMP))") || (move /Y "$(call FIXPATH,$(LINK_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL)) else (move /Y "$(call FIXPATH,$(LINK_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)" >NUL)
 else
-$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP) | $(OUTPUT_PATH)
+	$(Q)if [ -f "$(call FIXPATH,$@)" ] && cmp -s "$(call FIXPATH,$(LINK_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; then rm -f "$(call FIXPATH,$(LINK_CONFIG_STAMP_TMP))"; else mv "$(call FIXPATH,$(LINK_CONFIG_STAMP_TMP))" "$(call FIXPATH,$@)"; fi
+endif
+
+ifneq ($(wildcard $(EGUI_APP_RESOURCE_PATH)),)
+$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP) $(LINK_CONFIG_STAMP) $(OUTPUT_MAIN_RESOURCE) | $(OUTPUT_PATH)
+else
+$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP) $(LINK_CONFIG_STAMP) | $(OUTPUT_PATH)
 endif
 	@$(ECHO) Linking    : "$@"
 ifeq ($(OS),Windows_NT)

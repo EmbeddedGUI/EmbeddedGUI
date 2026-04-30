@@ -1834,7 +1834,6 @@ void recording_set_snapshot_stability(int stable_cycles, int max_wait_ms)
     {
         if (max_wait_ms > 10000)
         {
-            EGUI_UNUSED(block_actions);
             max_wait_ms = 10000;
         }
         g_recording_snapshot_max_wait_ms = max_wait_ms;
