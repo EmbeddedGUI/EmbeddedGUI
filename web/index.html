@@ -15,8 +15,16 @@
 
     <div class="page-shell home-shell">
         <section class="hero">
+            <div class="readme-banner" aria-label="EmbeddedGUI PFB dirty rect AI banner"></div>
             <div class="hero-grid">
                 <div class="hero-copy">
+                    <div class="brand-banner" aria-label="EmbeddedGUI brand">
+                        <img class="site-logo" src="assets/embeddedgui-ai-pfb-dirty-flat-logo.svg" alt="EmbeddedGUI logo">
+                        <div class="brand-banner-text">
+                            <div class="brand-banner-title">EmbeddedGUI</div>
+                            <div class="brand-banner-subtitle">WASM demos for embedded UI</div>
+                        </div>
+                    </div>
                     <div class="eyebrow">EmbeddedGUI</div>
                     <h1>先看 HelloShowcase，再深入控件细节。</h1>
                     <p>
@@ -26,7 +34,7 @@
                         <a class="button-link" href="#showcase">打开首页示例</a>
                         <a class="button-link secondary" href="basic.html">HelloBasic</a>
                         <a class="button-link secondary" href="examples.html">其他例程</a>
-                        <a class="button-link secondary" href="https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets" target="_blank" rel="noreferrer">扩展控件仓库</a>
+                        <a class="button-link secondary" href="https://embeddedgui.github.io/EmbeddedGUI_Widgets/" target="_blank" rel="noreferrer">扩展控件演示</a>
                     </div>
                     <div class="hero-links">
                         <a class="button-link ghost" href="https://github.com/EmbeddedGUI/EmbeddedGUI/blob/main/README.md" target="_blank" rel="noreferrer">打开 README</a>
@@ -52,7 +60,7 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">浏览入口</div>
-                        <div class="stat-value" id="route-summary">基础控件 / 其他例程 / 扩展控件仓库</div>
+                        <div class="stat-value" id="route-summary">基础控件 / 其他例程 / Widgets 演示</div>
                         <div class="stat-detail" id="route-detail">
                             分类数量会从 <span class="code-inline">web/demos/demos.json</span> 动态读取。
                         </div>
@@ -106,7 +114,7 @@
                             <ul>
                                 <li>去 <span class="code-inline">basic.html</span> 查看单个基础控件。</li>
                                 <li>去 <span class="code-inline">examples.html</span> 查看 <span class="code-inline">example/</span> 下剩余独立例程。</li>
-                                <li>自定义控件请前往独立仓库 <span class="code-inline">EmbeddedGUI_Widgets</span>。</li>
+                                <li>自定义控件请前往 <span class="code-inline">EmbeddedGUI_Widgets</span> 演示页面。</li>
                             </ul>
                         </div>
                     </div>
@@ -120,7 +128,7 @@
                     <h2 id="focused-pages-heading">选择一个聚焦页面</h2>
                     <p id="focused-pages-description">
                         现在的入口直接对应仓库结构：<span class="code-inline">HelloBasic</span>、
-                        <span class="code-inline">example/</span> 下的独立示例；自定义控件已迁移到独立仓库 <span class="code-inline">EmbeddedGUI_Widgets</span>。
+                        <span class="code-inline">example/</span> 下的独立示例；自定义控件直接跳转到 <span class="code-inline">EmbeddedGUI_Widgets</span> 演示页面。
                     </p>
                 </div>
             </div>
@@ -161,17 +169,17 @@
 
                 <article class="entry-card">
                     <div class="badge" id="custom-badge">自定义控件</div>
-                    <h3>扩展控件独立仓库</h3>
+                    <h3>扩展控件演示页面</h3>
                     <p>
-                        按分类浏览默认网页包中的精选自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。
+                        按分类浏览默认网页包中的精选自定义控件，直接查看实时预览和同目录 README，不用离开演示站点。
                     </p>
                     <div class="metric-row">
                         <span class="metric-chip" id="custom-count">0 个自定义控件示例</span>
                         <span class="metric-chip" id="custom-chip">默认发布精选</span>
                     </div>
                     <div class="hero-links">
-                        <a class="button-link secondary" href="https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets" target="_blank" rel="noreferrer">打开独立 Widgets 仓库</a>
-                        <a class="button-link ghost" href="https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets" target="_blank" rel="noreferrer">查看迁移说明</a>
+                        <a class="button-link secondary" href="https://embeddedgui.github.io/EmbeddedGUI_Widgets/" target="_blank" rel="noreferrer">打开 Widgets 演示</a>
+                        <a class="button-link ghost" href="https://embeddedgui.github.io/EmbeddedGUI_Widgets/" target="_blank" rel="noreferrer">查看控件页面</a>
                     </div>
                 </article>
             </div>
@@ -194,7 +202,7 @@
             },
             heroSummary: {
                 "zh-CN": "首页只保留一个完整示例和三个清晰入口：基础控件、其他例程、自定义控件。不再混入场景页、报价导航或额外包装层。",
-                "en": "The homepage now stays focused on one full example and three clear routes: core widgets, standalone examples, and the standalone extension-widgets repository. No scenario pages, no quote navigation, no extra layers."
+                "en": "The homepage now stays focused on one full example and three clear routes: core widgets, standalone examples, and the extension widgets demo page. No scenario pages, no quote navigation, no extra layers."
             },
             openHomepageDemo: {
                 "zh-CN": "打开首页示例",
@@ -229,8 +237,8 @@
                 "en": "Browse Routes"
             },
             routeSummary: {
-                "zh-CN": "基础控件 / 其他例程 / 自定义控件",
-                "en": "Basic / Examples / Widgets Repo"
+                "zh-CN": "基础控件 / 其他例程 / Widgets 演示",
+                "en": "Basic / Examples / Widgets Demo"
             },
             showcaseHeading: {
                 "zh-CN": "首页直接展示 HelloShowcase",
@@ -269,16 +277,16 @@
                 "en": "Where to go next"
             },
             whereNextBody: {
-                "zh-CN": "<ul><li>去 <span class=\"code-inline\">basic.html</span> 查看单个基础控件。</li><li>去 <span class=\"code-inline\">examples.html</span> 查看 <span class=\"code-inline\">example/</span> 下剩余独立例程。</li><li>自定义控件请前往独立仓库 <span class=\"code-inline\">EmbeddedGUI_Widgets</span>。</li></ul>",
-                "en": "<ul><li>Use <span class=\"code-inline\">basic.html</span> when you want one widget at a time.</li><li>Use <span class=\"code-inline\">examples.html</span> for the remaining standalone example apps under <span class=\"code-inline\">example/</span>.</li><li>Use the standalone <span class=\"code-inline\">EmbeddedGUI_Widgets</span> repository for custom widgets.</li></ul>"
+                "zh-CN": "<ul><li>去 <span class=\"code-inline\">basic.html</span> 查看单个基础控件。</li><li>去 <span class=\"code-inline\">examples.html</span> 查看 <span class=\"code-inline\">example/</span> 下剩余独立例程。</li><li>自定义控件请前往 <span class=\"code-inline\">EmbeddedGUI_Widgets</span> 演示页面。</li></ul>",
+                "en": "<ul><li>Use <span class=\"code-inline\">basic.html</span> when you want one widget at a time.</li><li>Use <span class=\"code-inline\">examples.html</span> for the remaining standalone example apps under <span class=\"code-inline\">example/</span>.</li><li>Open the <span class=\"code-inline\">EmbeddedGUI_Widgets</span> demo page for custom widgets.</li></ul>"
             },
             focusedPagesHeading: {
                 "zh-CN": "选择一个聚焦页面",
                 "en": "Choose a focused page"
             },
             focusedPagesDescription: {
-                "zh-CN": "现在的入口直接对应主仓结构：<span class=\"code-inline\">HelloBasic</span>、<span class=\"code-inline\">example/</span> 下的独立示例；自定义控件已迁移到独立仓库 <span class=\"code-inline\">EmbeddedGUI_Widgets</span>。",
-                "en": "The main repository now maps directly to <span class=\"code-inline\">HelloBasic</span> and the standalone demos under <span class=\"code-inline\">example/</span>. Custom widgets have moved to the standalone <span class=\"code-inline\">EmbeddedGUI_Widgets</span> repository."
+                "zh-CN": "现在的入口直接对应主仓结构：<span class=\"code-inline\">HelloBasic</span>、<span class=\"code-inline\">example/</span> 下的独立示例；自定义控件直接跳转到 <span class=\"code-inline\">EmbeddedGUI_Widgets</span> 演示页面。",
+                "en": "The main repository now maps directly to <span class=\"code-inline\">HelloBasic</span> and the standalone demos under <span class=\"code-inline\">example/</span>. Custom widgets open the <span class=\"code-inline\">EmbeddedGUI_Widgets</span> demo page directly."
             },
             basicCardTitle: {
                 "zh-CN": "基础控件浏览",
@@ -329,24 +337,24 @@
                 "en": "Custom"
             },
             customCardTitle: {
-                "zh-CN": "扩展控件独立仓库",
-                "en": "Extension widgets repository"
+                "zh-CN": "扩展控件演示页面",
+                "en": "Extension widgets demo page"
             },
             customCardDescription: {
-                "zh-CN": "按分类浏览默认网页包中的精选自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。",
-                "en": "Custom widgets are now maintained in the standalone EmbeddedGUI_Widgets repository instead of the main SDK repository."
+                "zh-CN": "按分类浏览默认网页包中的精选自定义控件，直接查看实时预览和同目录 README，不用离开演示站点。",
+                "en": "Custom widgets open directly on the standalone EmbeddedGUI_Widgets demo page."
             },
             customChip: {
                 "zh-CN": "默认发布精选",
                 "en": "Default curated set"
             },
             openCustomCatalog: {
-                "zh-CN": "打开独立 Widgets 仓库",
-                "en": "Open widgets repository"
+                "zh-CN": "打开 Widgets 演示",
+                "en": "Open widgets demo"
             },
             openNumberBox: {
-                "zh-CN": "查看迁移说明",
-                "en": "View migration note"
+                "zh-CN": "查看控件页面",
+                "en": "View widgets page"
             },
             catalogWaiting: {
                 "zh-CN": "等待加载 demos.json",
@@ -373,12 +381,12 @@
                 "en": "{count} example demos"
             },
             customDemoCount: {
-                "zh-CN": "已迁移到独立仓库",
-                "en": "Maintained in standalone repo"
+                "zh-CN": "跳转到演示页面",
+                "en": "Opens demo page"
             },
             routeDetail: {
-                "zh-CN": "基础控件 {basic} / 其他例程 {examples} / 自定义控件见独立仓库",
-                "en": "{basic} basic / {examples} examples / widgets in standalone repo"
+                "zh-CN": "基础控件 {basic} / 其他例程 {examples} / 自定义控件跳转演示页面",
+                "en": "{basic} basic / {examples} examples / widgets demo page"
             },
             catalogUnavailable: {
                 "zh-CN": "示例清单不可用",

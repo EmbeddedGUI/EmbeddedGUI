@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title>EGUI PFB dirty rect AI logo</title>
+  <desc>Flat EGUI logo showing PFB tile updates, dirty rectangle rendering, AI guidance, and a custom geometric EGUI wordmark.</desc>
+
+  <defs>
+    <style>
+      .bg { fill: #0b1220; }
+      .panel { fill: #101827; stroke: #dbeafe; stroke-width: 7; }
+      .screen { fill: #020617; stroke: #334155; stroke-width: 4; }
+      .cell { fill: #1f2937; }
+      .pfb { fill: #22d3ee; }
+      .active { fill: #a3e635; }
+      .dirty { fill: none; stroke: #f59e0b; stroke-width: 6; }
+      .ai-line { fill: none; stroke: #8b5cf6; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+      .ai-node { fill: #0b1220; stroke: #8b5cf6; stroke-width: 7; }
+      .word { fill: #f8fafc; }
+      .accent { fill: #22d3ee; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="512" height="512" rx="56"/>
+
+  <!-- Compact AI decision graph. -->
+  <g class="ai-line">
+    <path d="M314 58 L338 82 L390 58 L424 106 L382 150 L326 136 L288 184"/>
+    <path d="M338 82 L326 136 L382 150"/>
+  </g>
+  <g class="ai-node">
+    <circle cx="314" cy="58" r="13"/>
+    <circle cx="338" cy="82" r="13"/>
+    <circle cx="390" cy="58" r="13"/>
+    <circle cx="424" cy="106" r="13"/>
+    <circle cx="382" cy="150" r="13"/>
+    <circle cx="326" cy="136" r="13"/>
+  </g>
+
+  <!-- Display matrix surface. -->
+  <rect class="panel" x="70" y="92" width="372" height="264" rx="28"/>
+  <rect class="screen" x="134" y="122" width="252" height="158" rx="8"/>
+
+  <g class="cell">
+    <rect x="154" y="142" width="24" height="24" rx="4"/><rect x="186" y="142" width="24" height="24" rx="4"/><rect x="218" y="142" width="24" height="24" rx="4"/><rect x="250" y="142" width="24" height="24" rx="4"/><rect x="282" y="142" width="24" height="24" rx="4"/><rect x="314" y="142" width="24" height="24" rx="4"/><rect x="346" y="142" width="24" height="24" rx="4"/>
+    <rect x="154" y="174" width="24" height="24" rx="4"/><rect x="186" y="174" width="24" height="24" rx="4"/><rect x="218" y="174" width="24" height="24" rx="4"/><rect x="250" y="174" width="24" height="24" rx="4"/><rect x="282" y="174" width="24" height="24" rx="4"/><rect x="314" y="174" width="24" height="24" rx="4"/><rect x="346" y="174" width="24" height="24" rx="4"/>
+    <rect x="154" y="206" width="24" height="24" rx="4"/><rect x="186" y="206" width="24" height="24" rx="4"/><rect x="218" y="206" width="24" height="24" rx="4"/><rect x="250" y="206" width="24" height="24" rx="4"/><rect x="282" y="206" width="24" height="24" rx="4"/><rect x="314" y="206" width="24" height="24" rx="4"/><rect x="346" y="206" width="24" height="24" rx="4"/>
+    <rect x="154" y="238" width="24" height="24" rx="4"/><rect x="186" y="238" width="24" height="24" rx="4"/><rect x="218" y="238" width="24" height="24" rx="4"/><rect x="250" y="238" width="24" height="24" rx="4"/><rect x="282" y="238" width="24" height="24" rx="4"/><rect x="314" y="238" width="24" height="24" rx="4"/><rect x="346" y="238" width="24" height="24" rx="4"/>
+  </g>
+
+  <g class="active">
+    <rect x="282" y="142" width="24" height="24" rx="4"/><rect x="314" y="142" width="24" height="24" rx="4"/>
+    <rect x="282" y="174" width="24" height="24" rx="4"/><rect x="314" y="174" width="24" height="24" rx="4"/>
+    <rect x="218" y="238" width="24" height="24" rx="4"/>
+  </g>
+  <g class="pfb">
+    <rect x="154" y="206" width="24" height="24" rx="4"/><rect x="186" y="206" width="24" height="24" rx="4"/>
+    <rect x="154" y="238" width="24" height="24" rx="4"/><rect x="186" y="238" width="24" height="24" rx="4"/>
+  </g>
+
+  <rect class="dirty" x="274" y="134" width="72" height="72" rx="7"/>
+  <rect class="dirty" x="212" y="232" width="38" height="38" rx="7"/>
+
+  <!-- PFB tile and update flow. -->
+  <g class="pfb">
+    <rect x="162" y="276" width="24" height="24" rx="4"/><rect x="194" y="276" width="24" height="24" rx="4"/>
+    <rect x="162" y="308" width="24" height="24" rx="4"/><rect x="194" y="308" width="24" height="24" rx="4"/>
+  </g>
+  <rect x="152" y="266" width="76" height="76" rx="12" fill="none" stroke="#22d3ee" stroke-width="7"/>
+  <!-- Flow is shown as packet tiles instead of arrowheads, matching PFB block movement. -->
+  <g class="pfb">
+    <rect x="236" y="296" width="9" height="9" rx="2"/>
+    <rect x="250" y="282" width="9" height="9" rx="2"/>
+    <rect x="258" y="266" width="9" height="9" rx="2"/>
+    <rect x="266" y="250" width="9" height="9" rx="2"/>
+    <rect x="274" y="234" width="9" height="9" rx="2"/>
+    <rect x="282" y="218" width="9" height="9" rx="2"/>
+  </g>
+  <g fill="#8b5cf6">
+    <rect x="342" y="146" width="7" height="7" rx="1.5"/>
+    <rect x="348" y="160" width="7" height="7" rx="1.5"/>
+    <rect x="350" y="176" width="7" height="7" rx="1.5"/>
+    <rect x="344" y="190" width="7" height="7" rx="1.5"/>
+  </g>
+
+  <!-- Custom geometric EGUI wordmark. Built from owned paths, no font dependency. -->
+  <g transform="translate(88 370)">
+    <rect x="0" y="0" width="336" height="78" rx="18" fill="#020617" stroke="#22d3ee" stroke-width="6"/>
+    <g transform="translate(34 16)">
+      <!-- E: 52x46 -->
+      <path class="word" d="M0 0H54V10H12V18H47V28H12V36H54V46H0Z"/>
+      <rect class="accent" x="0" y="0" width="8" height="46"/>
+
+      <!-- G: 60x46 -->
+      <path class="word" d="M72 0H132V10H84V36H120V29H102V20H132V46H72Z"/>
+      <rect class="accent" x="72" y="0" width="8" height="46"/>
+
+      <!-- U: 56x46 -->
+      <path class="word" d="M150 0H162V36H194V0H206V46H150Z"/>
+      <rect class="accent" x="150" y="36" width="56" height="10"/>
+
+      <!-- I: 48x46 -->
+      <path class="word" d="M224 0H272V10H224ZM224 36H272V46H224Z"/>
+      <rect class="accent" x="242" y="10" width="12" height="26"/>
+    </g>
+  </g>
+</svg>

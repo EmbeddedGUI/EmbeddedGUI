@@ -107,6 +107,17 @@ input {
     box-shadow: var(--shadow);
 }
 
+.readme-banner {
+    position: relative;
+    z-index: 1;
+    margin: -28px -28px 28px;
+    min-height: clamp(220px, 31vw, 420px);
+    background:
+        linear-gradient(90deg, rgba(5, 11, 21, 0.08), rgba(5, 11, 21, 0.0)),
+        url("assets/embeddedgui-ai-pfb-dirty-banner.png") center / cover no-repeat;
+    border-bottom: 1px solid rgba(95, 209, 255, 0.28);
+}
+
 .hero::after {
     content: "";
     position: absolute;
@@ -144,6 +155,48 @@ input {
     font-weight: 600;
     line-height: 0.98;
     letter-spacing: -0.045em;
+}
+
+.brand-banner {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 28px;
+    padding: 18px 22px;
+    width: fit-content;
+    max-width: 100%;
+    border: 1px solid rgba(95, 209, 255, 0.32);
+    border-radius: 26px;
+    background:
+        linear-gradient(135deg, rgba(95, 209, 255, 0.16), rgba(148, 184, 255, 0.06)),
+        rgba(8, 18, 34, 0.62);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+.site-logo {
+    flex: 0 0 auto;
+    display: block;
+    width: clamp(112px, 12vw, 160px);
+    height: auto;
+    border-radius: 24px;
+    box-shadow: 0 18px 46px rgba(95, 209, 255, 0.26);
+}
+
+.brand-banner-text {
+    min-width: 0;
+}
+
+.brand-banner-title {
+    color: var(--text);
+    font-size: clamp(1.45rem, 2.6vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.brand-banner-subtitle {
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: clamp(0.98rem, 1.35vw, 1.18rem);
 }
 
 .hero-copy p {
@@ -924,6 +977,22 @@ input {
     .surface-card {
         padding-left: 16px;
         padding-right: 16px;
+    }
+
+    .readme-banner {
+        margin-left: -16px;
+        margin-right: -16px;
+        min-height: 180px;
+    }
+
+    .brand-banner {
+        align-items: flex-start;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .site-logo {
+        width: 132px;
     }
 
     .sidebar-header,
