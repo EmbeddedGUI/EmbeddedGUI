@@ -354,6 +354,12 @@ static __attribute__((unused)) void egui_canvas_blend_color_buffer_alpha(egui_co
     }
 
     {
+#if EGUI_TARGET_TC32
+        for (uint32_t i = 0; i < count; i++)
+        {
+            dst[i] = egui_rgb565_mix_safe(dst[i], color.full, alpha);
+        }
+#else
         uint32_t fg_rb_g = (color.full | ((uint32_t)color.full << 16)) & 0x07E0F81FUL;
 
         for (uint32_t i = 0; i < count; i++)
@@ -363,6 +369,7 @@ static __attribute__((unused)) void egui_canvas_blend_color_buffer_alpha(egui_co
             uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)alpha >> 3) >> 5)) & 0x07E0F81FUL;
             dst[i] = (uint16_t)(result | (result >> 16));
         }
+#endif
     }
 #else
     for (uint32_t i = 0; i < count; i++)

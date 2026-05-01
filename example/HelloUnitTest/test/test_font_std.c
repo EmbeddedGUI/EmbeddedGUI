@@ -240,6 +240,35 @@ static void test_font_std_repeated_compressed_draw_in_rect_matches_raw(void)
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
 }
 
+static void test_font_std_raw_draw_alpha_blends_background(void)
+{
+    egui_color_t bg;
+    egui_color_t fg;
+    egui_color_t expected_full;
+    egui_color_t expected_half;
+    egui_region_t rect;
+
+    test_font_setup_canvas();
+    bg.full = 0x1234;
+    fg.full = 0xABCD;
+    for (int i = 0; i < TEST_FONT_CANVAS_W * TEST_FONT_CANVAS_H; i++)
+    {
+        test_font_pfb[i] = bg.full;
+    }
+
+    egui_region_init(&rect, 4, 5, 6, 4);
+    egui_canvas_draw_text_in_rect(&test_font_canvas, (const egui_font_t *)&test_font_raw, "B", &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, fg, 128);
+    expected_full = egui_rgb_mix(bg, fg, 128);
+    expected_half = egui_rgb_mix(bg, fg, egui_alpha_change_table_4[15] * 128 / EGUI_ALPHA_100);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_full.full, test_font_pfb[5 * TEST_FONT_CANVAS_W + 4]);
+    EGUI_TEST_ASSERT_EQUAL_INT(bg.full, test_font_pfb[5 * TEST_FONT_CANVAS_W + 5]);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_half.full, test_font_pfb[5 * TEST_FONT_CANVAS_W + 6]);
+    EGUI_TEST_ASSERT_EQUAL_INT(bg.full, test_font_pfb[6 * TEST_FONT_CANVAS_W + 4]);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_half.full, test_font_pfb[6 * TEST_FONT_CANVAS_W + 5]);
+    EGUI_TEST_ASSERT_EQUAL_INT(bg.full, test_font_pfb[6 * TEST_FONT_CANVAS_W + 6]);
+}
+
 static void test_font_std_fast_4_draws_fallback_box_for_unsupported_char(void)
 {
     int bytes;
@@ -259,6 +288,7 @@ void test_font_std_run(void)
     EGUI_TEST_RUN(test_font_std_compressed_size_matches_raw);
     EGUI_TEST_RUN(test_font_std_offscreen_compressed_glyph_skips_decode);
     EGUI_TEST_RUN(test_font_std_repeated_compressed_draw_in_rect_matches_raw);
+    EGUI_TEST_RUN(test_font_std_raw_draw_alpha_blends_background);
     EGUI_TEST_RUN(test_font_std_fast_4_draws_fallback_box_for_unsupported_char);
     EGUI_TEST_SUITE_END();
 }
