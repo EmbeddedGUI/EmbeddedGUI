@@ -48,6 +48,7 @@ static void qemu_assert_single_display_core(egui_core_t *core_ctx)
 #define SYST_CSR_ENABLE    (1 << 0)
 #define SYST_CSR_TICKINT   (1 << 1)
 #define SYST_CSR_CLKSOURCE (1 << 2)
+#define SYST_CSR_COUNTFLAG (1 << 16)
 
 /* Assume QEMU default CPU clock ~25MHz for mps2-an385 */
 #define SYSTICK_FREQ_HZ 25000000
@@ -86,6 +87,7 @@ void SysTick_Handler(void)
 #else
     g_tick_ms++;
 #endif
+    (void)SYST_CSR;
     spi_sim_poll();
 }
 
@@ -103,7 +105,7 @@ void qemu_systick_init(void)
  */
 uint32_t qemu_get_tick_us(void)
 {
-    uint32_t ms1, ms2, cvr;
+    uint32_t ms1, ms2, cvr, csr;
 #if SYSTICK_PERIOD_US < 1000
     uint32_t sub1, sub2;
     do
@@ -111,22 +113,38 @@ uint32_t qemu_get_tick_us(void)
         ms1 = g_tick_ms;
         sub1 = g_tick_sub;
         cvr = SYST_CVR;
+        csr = SYST_CSR;
         ms2 = g_tick_ms;
         sub2 = g_tick_sub;
     } while (ms1 != ms2 || sub1 != sub2);
     uint32_t elapsed_ticks = (SYSTICK_RELOAD_VAL + 1) - cvr;
     uint32_t us_fraction = elapsed_ticks / (SYSTICK_FREQ_HZ / 1000000);
-    return ms1 * 1000 + sub1 * SYSTICK_PERIOD_US + us_fraction;
+    uint32_t time_us = ms1 * 1000 + sub1 * SYSTICK_PERIOD_US + us_fraction;
+    // COUNTFLAG covers the narrow window after reload but before SysTick_Handler updates the software tick.
+    // Only apply it when the sampled down-counter is already in the reloaded half of the period.
+    if ((csr & SYST_CSR_COUNTFLAG) != 0U && cvr > (SYSTICK_RELOAD_VAL / 2U))
+    {
+        time_us += SYSTICK_PERIOD_US;
+    }
+    return time_us;
 #else
     do
     {
         ms1 = g_tick_ms;
         cvr = SYST_CVR;
+        csr = SYST_CSR;
         ms2 = g_tick_ms;
     } while (ms1 != ms2);
     uint32_t elapsed_ticks = (SYSTICK_RELOAD_VAL + 1) - cvr;
     uint32_t us_fraction = elapsed_ticks / (SYSTICK_FREQ_HZ / 1000000);
-    return ms1 * 1000 + us_fraction;
+    uint32_t time_us = ms1 * 1000 + us_fraction;
+    // COUNTFLAG covers the narrow window after reload but before SysTick_Handler updates the software tick.
+    // Only apply it when the sampled down-counter is already in the reloaded half of the period.
+    if ((csr & SYST_CSR_COUNTFLAG) != 0U && cvr > (SYSTICK_RELOAD_VAL / 2U))
+    {
+        time_us += SYSTICK_PERIOD_US;
+    }
+    return time_us;
 #endif
 }
 
