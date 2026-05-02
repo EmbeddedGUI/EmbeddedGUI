@@ -30,13 +30,13 @@ int egui_font_get_utf8_code(const char *s, uint32_t *output_utf8_code)
         *output_utf8_code = *us;
         break;
     case 2:
-        *output_utf8_code = ((uint32_t)us[0] << 8) | (uint32_t)us[1];
+        *output_utf8_code = (*us << 8) | (*(us + 1));
         break;
     case 3:
-        *output_utf8_code = ((uint32_t)us[0] << 16) | ((uint32_t)us[1] << 8) | (uint32_t)us[2];
+        *output_utf8_code = (*us << 16) | ((*(us + 1)) << 8) | *(us + 2);
         break;
     case 4:
-        *output_utf8_code = ((uint32_t)us[0] << 24) | ((uint32_t)us[1] << 16) | ((uint32_t)us[2] << 8) | (uint32_t)us[3];
+        *output_utf8_code = (*us << 24) | ((*(us + 1)) << 16) | (*(us + 2) << 8) | *(us + 3);
         break;
     default:
         EGUI_ASSERT(false);

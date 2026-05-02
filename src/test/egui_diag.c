@@ -60,8 +60,46 @@
         }                                                                                                                                                      \
     } while (0)
 
+#if EGUI_CONFIG_COLOR_DEPTH == 16
+static uint16_t egui_diag_rgb565_mix_fast(uint16_t bg, uint16_t fg, egui_alpha_t alpha)
+{
+    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+    uint32_t fg_rb_g = (fg | ((uint32_t)fg << 16)) & 0x07E0F81FUL;
+    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)alpha >> 3) >> 5)) & 0x07E0F81FUL;
+
+    return (uint16_t)(result | (result >> 16));
+}
+
+static int32_t egui_diag_rgb565_mix_div32(int32_t value)
+{
+    if (value >= 0)
+    {
+        return value / 32;
+    }
+
+    return -(((-value) + 31) / 32);
+}
+
+static uint16_t egui_diag_rgb565_mix_safe(uint16_t bg, uint16_t fg, egui_alpha_t alpha)
+{
+    int32_t alpha5 = (int32_t)((uint32_t)alpha >> 3);
+    int32_t bg_r = (int32_t)((bg >> 11) & 0x1F);
+    int32_t bg_g = (int32_t)((bg >> 5) & 0x3F);
+    int32_t bg_b = (int32_t)(bg & 0x1F);
+    int32_t fg_r = (int32_t)((fg >> 11) & 0x1F);
+    int32_t fg_g = (int32_t)((fg >> 5) & 0x3F);
+    int32_t fg_b = (int32_t)(fg & 0x1F);
+    uint16_t r = (uint16_t)(bg_r + egui_diag_rgb565_mix_div32((fg_r - bg_r) * alpha5));
+    uint16_t g = (uint16_t)(bg_g + egui_diag_rgb565_mix_div32((fg_g - bg_g) * alpha5));
+    uint16_t b = (uint16_t)(bg_b + egui_diag_rgb565_mix_div32((fg_b - bg_b) * alpha5));
+
+    return (uint16_t)((r << 11) | (g << 5) | b);
+}
+#endif
+
 /* ------------------------------------------------------------------ *
  * Probe 1: platform basics (sizes, signedness, endianness)
+ *
  * ------------------------------------------------------------------ */
 int egui_diag_probe_platform(void)
 {
@@ -223,11 +261,10 @@ int egui_diag_probe_alpha_mix(void)
 /* ------------------------------------------------------------------ *
  * Probe 6: rgb565 blend.
  *
- * IMPORTANT: egui_rgb565_mix_safe / egui_rgb565_mix_fast do NOT short-circuit
- * at alpha == 255; the early-out lives only in the public egui_rgb_mix() and
- * the font path's blend_pixel_ctx wrappers. So at alpha=255 these helpers
- * compute "31/32 of the way" toward fg, never quite reaching fg. We assert
- * against that very behaviour so a regression is detectable.
+ * IMPORTANT: egui_diag_rgb565_mix_safe / egui_diag_rgb565_mix_fast do NOT short-circuit
+ * at alpha == 255; the early-out lives only in the public
+ * egui_rgb_mix() and the font path's blend_pixel_ctx wrappers. So at alpha=255 these helpers compute "31/32 of the way" toward fg, never quite reaching fg. We
+ * assert against that very behaviour so a regression is detectable.
  * ------------------------------------------------------------------ */
 int egui_diag_probe_rgb565_blend(void)
 {
@@ -237,16 +274,16 @@ int egui_diag_probe_rgb565_blend(void)
 #if EGUI_CONFIG_COLOR_DEPTH == 16
     /* Cases that are well-defined for both safe and fast paths. */
     {
-        DIAG_CHECK_U("WoB128_safe", 0x7BEFu, egui_rgb565_mix_safe(0x0000u, 0xFFFFu, 128));
-        DIAG_CHECK_U("WoB128_fast", 0x7BEFu, egui_rgb565_mix_fast(0x0000u, 0xFFFFu, 128));
+        DIAG_CHECK_U("WoB128_safe", 0x7BEFu, egui_diag_rgb565_mix_safe(0x0000u, 0xFFFFu, 128));
+        DIAG_CHECK_U("WoB128_fast", 0x7BEFu, egui_diag_rgb565_mix_fast(0x0000u, 0xFFFFu, 128));
     }
     {
-        DIAG_CHECK_U("BoR128_safe", 0x780Fu, egui_rgb565_mix_safe(0xF800u, 0x001Fu, 128));
-        DIAG_CHECK_U("BoR128_fast", 0x780Fu, egui_rgb565_mix_fast(0xF800u, 0x001Fu, 128));
+        DIAG_CHECK_U("BoR128_safe", 0x780Fu, egui_diag_rgb565_mix_safe(0xF800u, 0x001Fu, 128));
+        DIAG_CHECK_U("BoR128_fast", 0x780Fu, egui_diag_rgb565_mix_fast(0xF800u, 0x001Fu, 128));
     }
     {
-        DIAG_CHECK_U("rnd85_safe", 0x3AB1u, egui_rgb565_mix_safe(0x1234u, 0xABCDu, 85));
-        DIAG_LOG("rnd85_fast=%x", (unsigned)egui_rgb565_mix_fast(0x1234u, 0xABCDu, 85));
+        DIAG_CHECK_U("rnd85_safe", 0x3AB1u, egui_diag_rgb565_mix_safe(0x1234u, 0xABCDu, 85));
+        DIAG_LOG("rnd85_fast=%x", (unsigned)egui_diag_rgb565_mix_fast(0x1234u, 0xABCDu, 85));
     }
 
     /* Public API early-outs at alpha<4 / alpha>251 -> direct pass-through. */
@@ -263,8 +300,8 @@ int egui_diag_probe_rgb565_blend(void)
     /* The safe/fast helpers themselves at alpha=255 - golden value below is
      * what the algorithm SHOULD produce on every ISA when there is no early-out. */
     {
-        uint16_t safe = egui_rgb565_mix_safe(0x1234u, 0xABCDu, 255);
-        uint16_t fast = egui_rgb565_mix_fast(0x1234u, 0xABCDu, 255);
+        uint16_t safe = egui_diag_rgb565_mix_safe(0x1234u, 0xABCDu, 255);
+        uint16_t fast = egui_diag_rgb565_mix_fast(0x1234u, 0xABCDu, 255);
         DIAG_CHECK_U("safe_a255", 0xA3ADu, safe);
         DIAG_LOG("fast_a255=%x", (unsigned)fast);
     }
@@ -275,7 +312,7 @@ int egui_diag_probe_rgb565_blend(void)
         uint16_t prev = 0;
         for (int i = 0; i < 16; i++)
         {
-            uint16_t v = egui_rgb565_mix_safe(0x0000u, 0xF800u, egui_alpha_change_table_4[i]);
+            uint16_t v = egui_diag_rgb565_mix_safe(0x0000u, 0xF800u, egui_alpha_change_table_4[i]);
             DIAG_LOG("sw[%2d] a=%3u v=%04x", i, (unsigned)egui_alpha_change_table_4[i], (unsigned)v);
             if (v < prev)
             {
@@ -363,7 +400,7 @@ int egui_diag_probe_glyph_4bpp(void)
     DIAG_LOG("dst=%04x %04x %04x %04x", (unsigned)dst[0], (unsigned)dst[1], (unsigned)dst[2], (unsigned)dst[3]);
     DIAG_CHECK_U("d0", 0xF800u, dst[0]);
     {
-        uint16_t expected = egui_rgb565_mix_safe(0x0000u, 0xF800u, egui_alpha_change_table_4[0x08]);
+        uint16_t expected = egui_diag_rgb565_mix_safe(0x0000u, 0xF800u, egui_alpha_change_table_4[0x08]);
         DIAG_CHECK_U("d1", expected, dst[1]);
     }
     DIAG_CHECK_U("d2", 0xF800u, dst[2]);
@@ -694,8 +731,7 @@ int egui_diag_probe_real_glyph_row(void)
             sel_value = (uint8_t)((sel_data >> bit_pos) & 0x0F);
             if (sel_value)
             {
-                /* Same code path as egui_canvas_draw_point's alpha<255 branch:
-                 * goes through egui_rgb_mix_ptr -> egui_rgb565_mix_inner. */
+                /* Same public code path as egui_canvas_draw_point's alpha<255 branch. */
                 egui_color_t b;
                 b.full = pfb[x_];
                 pfb[x_] = egui_rgb_mix(b, fg, egui_alpha_change_table_4[sel_value]).full;

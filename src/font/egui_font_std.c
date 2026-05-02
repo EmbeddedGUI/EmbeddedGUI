@@ -1304,7 +1304,7 @@ __EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel(egui_color_int_t *dst, egu
 typedef struct
 {
     egui_color_t color;
-#if (EGUI_CONFIG_COLOR_DEPTH == 16) && !EGUI_TARGET_TC32
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
     uint32_t color_rb_g;
 #endif
 } egui_font_std_blend_ctx_t;
@@ -1312,7 +1312,7 @@ typedef struct
 __EGUI_STATIC_INLINE__ void egui_font_std_blend_ctx_init(egui_font_std_blend_ctx_t *ctx, egui_color_t color)
 {
     ctx->color = color;
-#if (EGUI_CONFIG_COLOR_DEPTH == 16) && !EGUI_TARGET_TC32
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
     {
         uint16_t fg = color.full;
         ctx->color_rb_g = (fg | ((uint32_t)fg << 16)) & 0x07E0F81FUL;
@@ -1328,20 +1328,6 @@ __EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel_ctx(egui_color_int_t *dst,
     }
 
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
-#if EGUI_TARGET_TC32
-    if (alpha > 251)
-    {
-        *dst = ctx->color.full;
-        return;
-    }
-
-    if (alpha < 4)
-    {
-        return;
-    }
-
-    *dst = egui_rgb565_mix_safe((uint16_t)*dst, ctx->color.full, alpha);
-#else
     if (alpha > 251)
     {
         *dst = ctx->color.full;
@@ -1359,7 +1345,6 @@ __EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel_ctx(egui_color_int_t *dst,
         uint32_t result = (bg_rb_g + ((ctx->color_rb_g - bg_rb_g) * ((uint32_t)alpha >> 3) >> 5)) & 0x07E0F81FUL;
         *dst = (uint16_t)(result | (result >> 16));
     }
-#endif
 #else
     egui_font_std_blend_pixel(dst, ctx->color, alpha);
 #endif
@@ -1368,25 +1353,10 @@ __EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel_ctx(egui_color_int_t *dst,
 __EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel_ctx_partial(egui_color_int_t *dst, const egui_font_std_blend_ctx_t *ctx, egui_alpha_t alpha)
 {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
-#if EGUI_TARGET_TC32
-    if (alpha > 251)
-    {
-        *dst = ctx->color.full;
-        return;
-    }
-
-    if (alpha < 4)
-    {
-        return;
-    }
-
-    *dst = egui_rgb565_mix_safe((uint16_t)*dst, ctx->color.full, alpha);
-#else
     uint16_t bg = *dst;
     uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
     uint32_t result = (bg_rb_g + ((ctx->color_rb_g - bg_rb_g) * ((uint32_t)alpha >> 3) >> 5)) & 0x07E0F81FUL;
     *dst = (uint16_t)(result | (result >> 16));
-#endif
 #else
     egui_font_std_blend_pixel(dst, ctx->color, alpha);
 #endif
