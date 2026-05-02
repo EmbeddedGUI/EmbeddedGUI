@@ -171,7 +171,7 @@ void egui_canvas_draw_point(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egu
 #else
         if (alpha == EGUI_ALPHA_100)
         {
-            *back_color = color;
+            back_color->full = color.full;
         }
         else
         {

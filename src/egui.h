@@ -178,6 +178,7 @@
 
 #include "utils/egui_utils.h"
 
+#include "test/egui_diag.h"
 #include "test/egui_test.h"
 
 #if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER

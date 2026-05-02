@@ -52,6 +52,11 @@ static void egui_view_log_dirty_source(const char *kind, egui_view_t *self, cons
 
 int egui_view_is_visible(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+
     if ((!self->is_visible) || (self->is_gone))
     {
         return 0;
@@ -106,6 +111,11 @@ void egui_view_invalidate_full(egui_view_t *self)
 
 static void egui_view_invalidate_visual_region(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
     if (self->is_dirty_passthrough)
     {
@@ -121,6 +131,11 @@ static void egui_view_invalidate_visual_region(egui_view_t *self)
 void egui_view_invalidate(egui_view_t *self)
 {
     egui_core_t *core;
+
+    if (self == NULL || self->api == NULL || self->api->request_layout == NULL)
+    {
+        return;
+    }
 
     if (egui_view_is_visible(self))
     {
@@ -410,7 +425,7 @@ void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_r
 {
     egui_core_t *core;
 
-    if (dirty_region == NULL || !egui_view_is_visible(self))
+    if (self == NULL || dirty_region == NULL || !egui_view_is_visible(self))
     {
         return;
     }
@@ -457,6 +472,11 @@ void egui_view_invalidate_sub_region(egui_view_t *self, const egui_sub_region_ta
 
 void egui_view_set_background(egui_view_t *self, egui_background_t *background)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
     egui_background_t *old_background = self->background;
 #endif
@@ -481,19 +501,39 @@ void egui_view_set_background(egui_view_t *self, egui_background_t *background)
 
 void egui_view_draw_background(egui_view_t *self)
 {
-    if (self->background)
+    egui_canvas_t *canvas;
+
+    if (self == NULL || self->background == NULL || self->background->api == NULL || self->background->api->draw == NULL)
     {
-        self->background->api->draw(self->background, egui_view_get_canvas(self), self);
+        return;
     }
+
+    canvas = egui_view_get_canvas(self);
+    if (canvas == NULL)
+    {
+        return;
+    }
+
+    self->background->api->draw(self->background, canvas, self);
 }
 
 void egui_view_set_parent(egui_view_t *self, egui_view_group_t *parent)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->parent = parent;
 }
 
 void egui_view_set_alpha(egui_view_t *self, egui_alpha_t alpha)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     if (alpha != self->alpha)
     {
         self->alpha = alpha;
@@ -505,6 +545,11 @@ void egui_view_set_alpha(egui_view_t *self, egui_alpha_t alpha)
 // TODO: need get raw pos static.
 void egui_view_get_raw_pos(egui_view_t *self, egui_location_t *location)
 {
+    if (self == NULL || location == NULL)
+    {
+        return;
+    }
+
     location->x += self->region.location.x;
     location->y += self->region.location.y;
 
@@ -527,7 +572,14 @@ void egui_view_get_raw_pos(egui_view_t *self, egui_location_t *location)
 
 static void egui_view_clip_to_visible_ancestors(egui_view_t *self, egui_region_t *clip)
 {
-    egui_view_t *p_clip = (egui_view_t *)self->parent;
+    egui_view_t *p_clip;
+
+    if (self == NULL || clip == NULL)
+    {
+        return;
+    }
+
+    p_clip = (egui_view_t *)self->parent;
 
     while (p_clip != NULL && !egui_region_is_empty(clip))
     {
@@ -559,7 +611,7 @@ static void egui_view_invalidate_visible_self_region(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
 static int egui_view_is_dirty_passthrough_group(egui_view_t *self)
 {
-    return self != NULL && self->is_dirty_passthrough && self->api->calculate_layout == egui_view_group_calculate_layout;
+    return self != NULL && self->api != NULL && self->is_dirty_passthrough && self->api->calculate_layout == egui_view_group_calculate_layout;
 }
 #endif
 
@@ -598,6 +650,11 @@ void egui_view_invalidate_visible_tree(egui_view_t *self)
 
 void egui_view_layout(egui_view_t *self, egui_region_t *region)
 {
+    if (self == NULL || region == NULL)
+    {
+        return;
+    }
+
     /* The view's old region_screen may extend outside the visible viewport
      * (e.g. a scrolled container with negative top). Clip it against every
      * ancestor's region_screen before marking dirty so the dirty area stays
@@ -624,6 +681,12 @@ void egui_view_layout(egui_view_t *self, egui_region_t *region)
 void egui_view_scroll_to(egui_view_t *self, egui_dim_t x, egui_dim_t y)
 {
     egui_region_t region;
+
+    if (self == NULL)
+    {
+        return;
+    }
+
     egui_region_copy(&region, &self->region);
 
     region.location.x = x;
@@ -635,6 +698,12 @@ void egui_view_scroll_to(egui_view_t *self, egui_dim_t x, egui_dim_t y)
 void egui_view_scroll_by(egui_view_t *self, egui_dim_t x, egui_dim_t y)
 {
     egui_region_t region;
+
+    if (self == NULL)
+    {
+        return;
+    }
+
     egui_region_copy(&region, &self->region);
 
     region.location.x += x;
@@ -645,6 +714,11 @@ void egui_view_scroll_by(egui_view_t *self, egui_dim_t x, egui_dim_t y)
 
 void egui_view_get_work_region(egui_view_t *self, egui_region_t *region)
 {
+    if (self == NULL || region == NULL)
+    {
+        return;
+    }
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
     region->location.x = self->padding.left;
     region->location.y = self->padding.top;
@@ -660,6 +734,11 @@ void egui_view_get_work_region(egui_view_t *self, egui_region_t *region)
 
 void egui_view_copy_api(egui_view_t *self, egui_view_api_t *api)
 {
+    if (self == NULL || api == NULL || self->api == NULL)
+    {
+        return;
+    }
+
     *api = *self->api;
     self->api = api;
 }
@@ -667,6 +746,11 @@ void egui_view_copy_api(egui_view_t *self, egui_view_api_t *api)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 void egui_view_override_api_on_touch(egui_view_t *self, egui_view_api_t *api, egui_view_on_touch_listener_t listener)
 {
+    if (self == NULL || api == NULL || self->api == NULL)
+    {
+        return;
+    }
+
     egui_view_copy_api(self, api);
     api->on_touch = listener;
 }
@@ -674,18 +758,29 @@ void egui_view_override_api_on_touch(egui_view_t *self, egui_view_api_t *api, eg
 
 void egui_view_set_on_click_listener(egui_view_t *self, egui_view_on_click_listener_t listener)
 {
-    EGUI_UNUSED(listener);
-    EGUI_UNUSED(self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->on_click_listener = listener;
     self->is_clickable = true;
     egui_view_invalidate(self);
+#else
+    EGUI_UNUSED(listener);
+    EGUI_UNUSED(self);
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 }
 
 egui_view_on_click_listener_t egui_view_get_on_click_listener(egui_view_t *self)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    if (self == NULL)
+    {
+        return NULL;
+    }
+
     return self->on_click_listener;
 #else
     EGUI_UNUSED(self);
@@ -695,6 +790,11 @@ egui_view_on_click_listener_t egui_view_get_on_click_listener(egui_view_t *self)
 
 void egui_view_set_enable(egui_view_t *self, int is_enable)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->is_enable = is_enable;
 
     egui_view_invalidate(self);
@@ -702,21 +802,46 @@ void egui_view_set_enable(egui_view_t *self, int is_enable)
 
 int egui_view_get_enable(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+
     return self->is_enable;
 }
 
 void egui_view_set_clickable(egui_view_t *self, int is_clickable)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->is_clickable = is_clickable;
 }
 
 int egui_view_get_clickable(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+
     return self->is_clickable;
 }
 
 void egui_view_set_position(egui_view_t *self, egui_dim_t x, egui_dim_t y)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
+    if (self->region.location.x == x && self->region.location.y == y)
+    {
+        return;
+    }
+
     self->region.location.x = x;
     self->region.location.y = y;
 
@@ -725,6 +850,16 @@ void egui_view_set_position(egui_view_t *self, egui_dim_t x, egui_dim_t y)
 
 void egui_view_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
+    if (self->region.size.width == width && self->region.size.height == height)
+    {
+        return;
+    }
+
     self->region.size.width = width;
     self->region.size.height = height;
 
@@ -733,6 +868,11 @@ void egui_view_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height)
 
 void egui_view_set_pressed(egui_view_t *self, int is_pressed)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     if (self->is_pressed == is_pressed)
     {
         return;
@@ -745,6 +885,11 @@ void egui_view_set_pressed(egui_view_t *self, int is_pressed)
 
 int egui_view_set_pressed_with_region(egui_view_t *self, int is_pressed, const egui_region_t *dirty_region)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+
     if (self->is_pressed == is_pressed)
     {
         return 0;
@@ -766,11 +911,21 @@ int egui_view_set_pressed_with_region(egui_view_t *self, int is_pressed, const e
 
 int egui_view_get_pressed(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+
     return self->is_pressed;
 }
 
 void egui_view_set_visible(egui_view_t *self, int is_visible)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     if (is_visible == self->is_visible)
     {
         return;
@@ -786,12 +941,22 @@ void egui_view_set_visible(egui_view_t *self, int is_visible)
 
 int egui_view_get_visible(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+
     return self->is_visible;
 }
 
 void egui_view_set_dirty_passthrough(egui_view_t *self, int on)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->is_dirty_passthrough = on ? 1 : 0;
 #else
     EGUI_UNUSED(self);
@@ -802,6 +967,11 @@ void egui_view_set_dirty_passthrough(egui_view_t *self, int on)
 int egui_view_get_dirty_passthrough(egui_view_t *self)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
+    if (self == NULL)
+    {
+        return 0;
+    }
+
     return self->is_dirty_passthrough;
 #else
     EGUI_UNUSED(self);
@@ -811,6 +981,11 @@ int egui_view_get_dirty_passthrough(egui_view_t *self)
 
 void egui_view_set_gone(egui_view_t *self, int is_gone)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     if (is_gone == self->is_gone)
     {
         return;
@@ -827,6 +1002,11 @@ void egui_view_set_gone(egui_view_t *self, int is_gone)
 
 int egui_view_get_gone(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+
     return self->is_gone;
 }
 
@@ -834,6 +1014,11 @@ void egui_view_set_padding(egui_view_t *self, egui_dim_margin_padding_t left, eg
                            egui_dim_margin_padding_t bottom)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->padding.left = left;
     self->padding.right = right;
     self->padding.top = top;
@@ -858,6 +1043,11 @@ void egui_view_set_margin(egui_view_t *self, egui_dim_margin_padding_t left, egu
                           egui_dim_margin_padding_t bottom)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->margin.left = left;
     self->margin.right = right;
     self->margin.top = top;
@@ -881,6 +1071,11 @@ void egui_view_set_margin_all(egui_view_t *self, egui_dim_margin_padding_t margi
 void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    if (self == NULL)
+    {
+        return;
+    }
+
     if (self->shadow == shadow)
     {
         return;
@@ -897,6 +1092,11 @@ void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow)
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
 void egui_view_set_view_name(egui_view_t *self, const char *name)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->name = name;
 }
 #endif
@@ -916,20 +1116,32 @@ int egui_view_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event
 {
     // EGUI_LOG_DBG("egui_view_dispatch_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
 
+    if (self == NULL || event == NULL || self->api == NULL)
+    {
+        return 0;
+    }
+
     if (self->is_enable && self->api->on_touch != NULL && self->api->on_touch(self, event))
     {
         return 1;
     }
 
-    return self->api->on_touch_event(self, event);
+    return (self->api->on_touch_event != NULL) ? self->api->on_touch_event(self, event) : 0;
 }
 
 int egui_view_perform_click(egui_view_t *self)
 {
     int is_handled = 0;
-    egui_view_on_click_listener_t listener = self->on_click_listener;
+    egui_view_on_click_listener_t listener;
 
-    if (self->api->perform_click != NULL)
+    if (self == NULL)
+    {
+        return 0;
+    }
+
+    listener = self->on_click_listener;
+
+    if (self->api != NULL && self->api->perform_click != NULL)
     {
         is_handled = self->api->perform_click(self);
     }
@@ -946,7 +1158,14 @@ int egui_view_perform_click(egui_view_t *self)
 int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     // EGUI_LOG_DBG("egui_view_on_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
-    int is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
+    int is_inside;
+
+    if (self == NULL || event == NULL)
+    {
+        return 0;
+    }
+
+    is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
 
     if (self->is_enable == false)
     {
@@ -1040,7 +1259,10 @@ void egui_view_dispatch_attach_to_window(egui_view_t *self)
     }
 
     self->is_attached_to_window = 1;
-    self->api->on_attach_to_window(self);
+    if (self->api != NULL && self->api->on_attach_to_window != NULL)
+    {
+        self->api->on_attach_to_window(self);
+    }
 }
 
 void egui_view_dispatch_detach_from_window(egui_view_t *self)
@@ -1057,7 +1279,10 @@ void egui_view_dispatch_detach_from_window(egui_view_t *self)
     }
 #endif
 
-    self->api->on_detach_from_window(self);
+    if (self->api != NULL && self->api->on_detach_from_window != NULL)
+    {
+        self->api->on_detach_from_window(self);
+    }
     self->is_attached_to_window = 0;
 }
 
@@ -1082,7 +1307,14 @@ void egui_view_on_detach_from_window(egui_view_t *self)
 void egui_view_draw(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
-    egui_alpha_t alpha = egui_canvas_get_alpha(canvas);
+    egui_alpha_t alpha;
+
+    if (self == NULL || canvas == NULL || self->api == NULL)
+    {
+        return;
+    }
+
+    alpha = egui_canvas_get_alpha(canvas);
 
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     egui_activity_t *activity = egui_view_get_activity(self);
@@ -1136,7 +1368,10 @@ void egui_view_draw(egui_view_t *self)
         // draw background
         egui_view_draw_background(self);
         // call on_draw
-        self->api->on_draw(self);
+        if (self->api->on_draw != NULL)
+        {
+            self->api->on_draw(self);
+        }
     }
 
     // restore canvas alpha
@@ -1145,6 +1380,11 @@ void egui_view_draw(egui_view_t *self)
 
 void egui_view_request_layout(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->is_request_layout = true;
 }
 
@@ -1157,8 +1397,16 @@ void egui_view_compute_scroll(egui_view_t *self)
 /* Recompute self->region_screen from parent layout without emitting dirty. */
 static void egui_view_recompute_region_screen_silent(egui_view_t *self)
 {
-    egui_region_t *p_raw_region = &self->region_screen;
-    egui_view_t *p_parent = (egui_view_t *)self->parent;
+    egui_region_t *p_raw_region;
+    egui_view_t *p_parent;
+
+    if (self == NULL)
+    {
+        return;
+    }
+
+    p_raw_region = &self->region_screen;
+    p_parent = (egui_view_t *)self->parent;
 
     if (p_parent)
     {
@@ -1182,10 +1430,15 @@ static void egui_view_recompute_region_screen_silent(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
 static void egui_view_recompute_subtree_silent(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     egui_view_recompute_region_screen_silent(self);
     self->is_request_layout = false;
 
-    if (self->api->calculate_layout == egui_view_group_calculate_layout)
+    if (self->api != NULL && self->api->calculate_layout == egui_view_group_calculate_layout)
     {
         egui_view_group_t *group = (egui_view_group_t *)self;
         egui_dnode_t *p_head;
@@ -1203,6 +1456,11 @@ static void egui_view_recompute_subtree_silent(egui_view_t *self)
 
 static void egui_view_recompute_children_silent(egui_view_t *self)
 {
+    if (self == NULL || self->api == NULL)
+    {
+        return;
+    }
+
     if (self->api->calculate_layout == egui_view_group_calculate_layout)
     {
         egui_view_group_t *group = (egui_view_group_t *)self;
@@ -1221,15 +1479,24 @@ static void egui_view_recompute_children_silent(egui_view_t *self)
 
 static void egui_view_request_children_layout(egui_view_t *self)
 {
-    egui_view_group_t *group = (egui_view_group_t *)self;
+    egui_view_group_t *group;
     egui_dnode_t *p_head;
 
+    if (self == NULL || self->api == NULL || self->api->calculate_layout != egui_view_group_calculate_layout)
+    {
+        return;
+    }
+
+    group = (egui_view_group_t *)self;
     if (!egui_dlist_is_empty(&group->childs))
     {
         EGUI_DLIST_FOR_EACH_NODE(&group->childs, p_head)
         {
             egui_view_t *child = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
-            child->api->request_layout(child);
+            if (child != NULL && child->api != NULL && child->api->request_layout != NULL)
+            {
+                child->api->request_layout(child);
+            }
         }
     }
 }
@@ -1250,7 +1517,7 @@ static void egui_view_emit_swept_region(egui_view_t *self, const egui_region_t *
     egui_dim_t x1;
     egui_dim_t y1;
 
-    if (self->is_gone || !self->is_visible || clip == NULL)
+    if (self == NULL || old_rs == NULL || new_rs == NULL || clip == NULL || self->is_gone || !self->is_visible)
     {
         return;
     }
@@ -1288,9 +1555,15 @@ static void egui_view_emit_swept_region(egui_view_t *self, const egui_region_t *
 
 static void egui_view_get_dirty_passthrough_self_clip(egui_view_t *self, egui_region_t *clip)
 {
-    egui_view_t *parent = (egui_view_t *)self->parent;
+    egui_view_t *parent;
     egui_core_t *core;
 
+    if (self == NULL || clip == NULL)
+    {
+        return;
+    }
+
+    parent = (egui_view_t *)self->parent;
     if (parent != NULL)
     {
         egui_region_copy(clip, &parent->region_screen);
@@ -1317,7 +1590,7 @@ static void egui_view_emit_swept_for_view(egui_view_t *self, const egui_region_t
     egui_region_t new_rs;
     egui_region_t local_clip;
 
-    if (self->is_gone || !self->is_visible || clip == NULL)
+    if (self == NULL || clip == NULL || self->is_gone || !self->is_visible)
     {
         return;
     }
@@ -1330,7 +1603,7 @@ static void egui_view_emit_swept_for_view(egui_view_t *self, const egui_region_t
     self->is_request_layout = false;
     egui_region_copy(&new_rs, &self->region_screen);
 
-    if (self->is_dirty_passthrough && self->api->calculate_layout == egui_view_group_calculate_layout)
+    if (self->api != NULL && self->is_dirty_passthrough && self->api->calculate_layout == egui_view_group_calculate_layout)
     {
         egui_view_group_t *group = (egui_view_group_t *)self;
         egui_dnode_t *p_head;
@@ -1359,10 +1632,16 @@ static void egui_view_emit_swept_for_view(egui_view_t *self, const egui_region_t
 
 static void egui_view_emit_swept_per_child(egui_view_t *self, egui_dim_t dx, egui_dim_t dy)
 {
-    egui_view_group_t *group = (egui_view_group_t *)self;
+    egui_view_group_t *group;
     egui_dnode_t *p_head;
     egui_region_t clip;
 
+    if (self == NULL || self->api == NULL || self->api->calculate_layout != egui_view_group_calculate_layout)
+    {
+        return;
+    }
+
+    group = (egui_view_group_t *)self;
     egui_region_copy(&clip, &self->region_screen);
     egui_view_clip_to_visible_ancestors(self, &clip);
 
@@ -1382,6 +1661,11 @@ static void egui_view_emit_swept_per_child(egui_view_t *self, egui_dim_t dx, egu
 
 void egui_view_calculate_layout(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     if (!self->is_request_layout)
     {
         return;
@@ -1460,22 +1744,37 @@ void egui_view_calculate_layout(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 int egui_view_dispatch_key_event(egui_view_t *self, egui_key_event_t *event)
 {
+    if (self == NULL || event == NULL || self->api == NULL)
+    {
+        return 0;
+    }
+
     if (self->is_enable && self->api->on_key != NULL && self->api->on_key(self, event))
     {
         return 1;
     }
 
-    return self->api->on_key_event(self, event);
+    return (self->api->on_key_event != NULL) ? self->api->on_key_event(self, event) : 0;
 }
 
 void egui_view_override_api_on_key(egui_view_t *self, egui_view_api_t *api, egui_view_on_key_listener_t listener)
 {
+    if (self == NULL || api == NULL || self->api == NULL)
+    {
+        return;
+    }
+
     egui_view_copy_api(self, api);
     api->on_key = listener;
 }
 
 int egui_view_on_key_event(egui_view_t *self, egui_key_event_t *event)
 {
+    if (self == NULL || event == NULL)
+    {
+        return 0;
+    }
+
     if (self->is_enable == false)
     {
         return 0;
@@ -1505,17 +1804,32 @@ int egui_view_on_key_event(egui_view_t *self, egui_key_event_t *event)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 void egui_view_set_focusable(egui_view_t *self, int is_focusable)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     self->is_focusable = is_focusable;
 }
 
 void egui_view_override_api_on_focus_changed(egui_view_t *self, egui_view_api_t *api, egui_view_on_focus_change_listener_t listener)
 {
+    if (self == NULL || api == NULL || self->api == NULL)
+    {
+        return;
+    }
+
     egui_view_copy_api(self, api);
     api->on_focus_changed = listener;
 }
 
 int egui_view_get_focusable(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+
     return self->is_focusable;
 }
 
@@ -1538,6 +1852,11 @@ void egui_view_request_focus(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
 void egui_view_set_layer(egui_view_t *self, uint8_t layer)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     if (self->layer == layer)
     {
         return;
@@ -1555,6 +1874,11 @@ void egui_view_set_layer(egui_view_t *self, uint8_t layer)
 
 uint8_t egui_view_get_layer(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return EGUI_VIEW_LAYER_DEFAULT;
+    }
+
     return self->layer;
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_LAYER

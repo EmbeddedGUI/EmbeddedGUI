@@ -12,6 +12,61 @@
 
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t);
 
+static int egui_view_group_is_group_dispatch_view(egui_view_t *view)
+{
+    return view != NULL && view->api != NULL && view->api->dispatch_touch_event == egui_view_group_dispatch_touch_event;
+}
+
+static int egui_view_group_dispatch_child_touch_event(egui_view_t *child, egui_motion_event_t *event)
+{
+    if (child == NULL || event == NULL || child->api == NULL || child->api->dispatch_touch_event == NULL)
+    {
+        return 0;
+    }
+
+    return child->api->dispatch_touch_event(child, event);
+}
+
+static void egui_view_group_request_child_layout(egui_view_t *child)
+{
+    if (child == NULL || child->api == NULL || child->api->request_layout == NULL)
+    {
+        return;
+    }
+
+    child->api->request_layout(child);
+}
+
+static void egui_view_group_compute_child_scroll(egui_view_t *child)
+{
+    if (child == NULL || child->api == NULL || child->api->compute_scroll == NULL)
+    {
+        return;
+    }
+
+    child->api->compute_scroll(child);
+}
+
+static void egui_view_group_calculate_child_layout(egui_view_t *child)
+{
+    if (child == NULL || child->api == NULL || child->api->calculate_layout == NULL)
+    {
+        return;
+    }
+
+    child->api->calculate_layout(child);
+}
+
+static void egui_view_group_draw_child(egui_view_t *child)
+{
+    if (child == NULL || child->api == NULL || child->api->draw == NULL)
+    {
+        return;
+    }
+
+    child->api->draw(child);
+}
+
 #if EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL
 #define EGUI_VIEW_GROUP_COMPUTE_SCROLL_HANDLER egui_view_group_compute_scroll
 #else
@@ -267,7 +322,7 @@ egui_view_t *egui_view_group_get_first_child(egui_view_t *self)
 
 void egui_view_group_set_disallow_process_touch_event(egui_view_t *self, int disallow)
 {
-    if (self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
+    if (self != NULL && self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
     {
         EGUI_CAST_TO(egui_view_root_group_t, self)->is_disallow_process_touch_event = disallow;
     }
@@ -443,7 +498,7 @@ void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_hor
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static int egui_view_group_is_process_touch_event_disallowed(egui_view_t *self)
 {
-    if (self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
+    if (self != NULL && self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
     {
         return EGUI_CAST_TO(egui_view_root_group_t, self)->is_disallow_process_touch_event;
     }
@@ -470,6 +525,12 @@ void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, i
 int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)
 {
     egui_motion_event_t transformed_event;
+
+    if (event == NULL)
+    {
+        return 0;
+    }
+
     egui_api_memcpy(&transformed_event, event, (int)sizeof(egui_motion_event_t));
 
     // change to cancel event if is_canceled is true.
@@ -481,7 +542,7 @@ int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_c
     if (child != NULL)
     {
         // dispatch the touch event to the child
-        return child->api->dispatch_touch_event(child, &transformed_event);
+        return egui_view_group_dispatch_child_touch_event(child, &transformed_event);
     }
 
     // call super dispatch_touch_event
@@ -510,15 +571,18 @@ static int egui_view_dispatch_touch_event_followup(egui_view_t *self, egui_motio
 
 static int egui_view_group_dispatch_touch_event_capture_internal(egui_view_t *self, egui_motion_event_t *event, uint8_t depth)
 {
-    EGUI_LOCAL_INIT(egui_view_group_t);
-    egui_core_t *core = egui_view_get_core(self);
-    egui_view_group_touch_state_t *touch_state = egui_view_group_touch_state_get(core);
+    egui_core_t *core;
+    egui_view_group_touch_state_t *touch_state;
     int is_intercepted = 0;
 
-    if (!self->is_visible || self->is_gone)
+    if (self == NULL || event == NULL || !self->is_visible || self->is_gone)
     {
         return 0;
     }
+
+    EGUI_LOCAL_INIT(egui_view_group_t);
+    core = egui_view_get_core(self);
+    touch_state = egui_view_group_touch_state_get(core);
 
     if (egui_view_group_is_process_touch_event_disallowed(self))
     {
@@ -532,7 +596,10 @@ static int egui_view_group_dispatch_touch_event_capture_internal(egui_view_t *se
 
     if (!touch_state->is_disallow_intercept)
     {
-        is_intercepted = self->api->on_intercept_touch_event(self, event);
+        if (self->api != NULL && self->api->on_intercept_touch_event != NULL)
+        {
+            is_intercepted = self->api->on_intercept_touch_event(self, event);
+        }
     }
 
     if (!is_intercepted && !egui_dlist_is_empty(&local->childs))
@@ -576,13 +643,15 @@ static int egui_view_group_dispatch_touch_event_followup_internal(egui_view_t *s
     egui_view_group_touch_state_t *touch_state = egui_view_group_touch_state_get(core);
     int is_handled = 0;
     int is_intercepted = 0;
-    int is_canceled = event->type == EGUI_MOTION_EVENT_ACTION_CANCEL;
+    int is_canceled;
     egui_view_t *captured_child = NULL;
 
-    if (touch_state == NULL || egui_view_group_is_process_touch_event_disallowed(self))
+    if (self == NULL || event == NULL || touch_state == NULL || egui_view_group_is_process_touch_event_disallowed(self))
     {
         return 0;
     }
+
+    is_canceled = event->type == EGUI_MOTION_EVENT_ACTION_CANCEL;
 
     if (depth >= touch_state->path_len || touch_state->path[depth] != self)
     {
@@ -591,7 +660,10 @@ static int egui_view_group_dispatch_touch_event_followup_internal(egui_view_t *s
 
     if (!is_canceled && !touch_state->is_disallow_intercept)
     {
-        is_intercepted = self->api->on_intercept_touch_event(self, event);
+        if (self->api != NULL && self->api->on_intercept_touch_event != NULL)
+        {
+            is_intercepted = self->api->on_intercept_touch_event(self, event);
+        }
     }
 
     if (depth + 1 < touch_state->path_len)
@@ -625,12 +697,17 @@ static int egui_view_dispatch_touch_event_capture(egui_view_t *self, egui_motion
 {
     egui_core_t *core = egui_view_get_core(self);
 
-    if (self->api->dispatch_touch_event == egui_view_group_dispatch_touch_event)
+    if (self == NULL || event == NULL)
+    {
+        return 0;
+    }
+
+    if (egui_view_group_is_group_dispatch_view(self))
     {
         return egui_view_group_dispatch_touch_event_capture_internal(self, event, depth);
     }
 
-    int is_handled = self->api->dispatch_touch_event(self, event);
+    int is_handled = egui_view_group_dispatch_child_touch_event(self, event);
     if (is_handled)
     {
         egui_view_group_touch_state_set_path_entry(core, depth, self);
@@ -640,12 +717,17 @@ static int egui_view_dispatch_touch_event_capture(egui_view_t *self, egui_motion
 
 static int egui_view_dispatch_touch_event_followup(egui_view_t *self, egui_motion_event_t *event, uint8_t depth)
 {
-    if (self->api->dispatch_touch_event == egui_view_group_dispatch_touch_event)
+    if (self == NULL || event == NULL)
+    {
+        return 0;
+    }
+
+    if (egui_view_group_is_group_dispatch_view(self))
     {
         return egui_view_group_dispatch_touch_event_followup_internal(self, event, depth);
     }
 
-    return self->api->dispatch_touch_event(self, event);
+    return egui_view_group_dispatch_child_touch_event(self, event);
 }
 
 int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event)
@@ -653,6 +735,11 @@ int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t 
     egui_core_t *core = egui_view_get_core(self);
     egui_view_group_touch_state_t *touch_state = egui_view_group_touch_state_get(core);
     int is_handled = 0;
+
+    if (self == NULL || event == NULL)
+    {
+        return 0;
+    }
 
     if (touch_state == NULL)
     {
@@ -693,13 +780,15 @@ int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t 
 #else
 static int egui_view_group_dispatch_touch_event_capture_simple(egui_view_t *self, egui_motion_event_t *event)
 {
-    EGUI_LOCAL_INIT(egui_view_group_t);
-    egui_core_t *core = egui_view_get_core(self);
+    egui_core_t *core;
 
-    if (!self->is_visible || self->is_gone || egui_view_group_is_process_touch_event_disallowed(self))
+    if (self == NULL || event == NULL || !self->is_visible || self->is_gone || egui_view_group_is_process_touch_event_disallowed(self))
     {
         return 0;
     }
+
+    EGUI_LOCAL_INIT(egui_view_group_t);
+    core = egui_view_get_core(self);
 
     if (!egui_dlist_is_empty(&local->childs))
     {
@@ -721,14 +810,14 @@ static int egui_view_group_dispatch_touch_event_capture_simple(egui_view_t *self
             }
 
             egui_view_group_sync_child_core(self, tmp);
-            if (tmp->api->dispatch_touch_event == egui_view_group_dispatch_touch_event)
+            if (egui_view_group_is_group_dispatch_view(tmp))
             {
                 if (egui_view_group_dispatch_touch_event_capture_simple(tmp, event))
                 {
                     return 1;
                 }
             }
-            else if (tmp->api->dispatch_touch_event(tmp, event))
+            else if (egui_view_group_dispatch_child_touch_event(tmp, event))
             {
                 egui_view_group_touch_state_set_capture(core, tmp);
                 return 1;
@@ -751,7 +840,14 @@ int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t 
     egui_view_group_touch_state_t *touch_state = egui_view_group_touch_state_get(core);
     egui_view_t *captured_view;
     int is_handled = 0;
-    int is_canceled = event->type == EGUI_MOTION_EVENT_ACTION_CANCEL;
+    int is_canceled;
+
+    if (self == NULL || event == NULL)
+    {
+        return 0;
+    }
+
+    is_canceled = event->type == EGUI_MOTION_EVENT_ACTION_CANCEL;
 
     if (touch_state == NULL)
     {
@@ -803,8 +899,15 @@ int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event
     return egui_view_on_touch_event(self, event);
 #else
     // EGUI_LOG_DBG("egui_view_group_on_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
+    int is_inside;
+
+    if (self == NULL || event == NULL)
+    {
+        return 0;
+    }
+
     EGUI_LOCAL_INIT(egui_view_group_t);
-    int is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
+    is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
     if (self->is_clickable)
     {
         switch (event->type)
@@ -890,6 +993,11 @@ int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event
 
 void egui_view_group_on_attach_to_window(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
@@ -907,6 +1015,11 @@ void egui_view_group_on_attach_to_window(egui_view_t *self)
 
 void egui_view_group_on_detach_from_window(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
@@ -924,11 +1037,25 @@ void egui_view_group_on_detach_from_window(egui_view_t *self)
 
 void egui_view_group_draw(egui_view_t *self)
 {
-    egui_canvas_t *canvas = egui_view_get_canvas(self);
+    egui_canvas_t *canvas;
+    egui_alpha_t alpha;
+
+    if (self == NULL)
+    {
+        return;
+    }
+
+    canvas = egui_view_get_canvas(self);
+    if (canvas == NULL)
+    {
+        egui_view_draw(self);
+        return;
+    }
+
     EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
-    egui_alpha_t alpha = egui_canvas_get_alpha(canvas);
+    alpha = egui_canvas_get_alpha(canvas);
 
     // call super draw self.
     egui_view_draw(self);
@@ -971,7 +1098,7 @@ void egui_view_group_draw(egui_view_t *self)
             // set canvase alpha
             egui_canvas_mix_alpha(canvas, self->alpha);
             egui_view_group_sync_child_core(self, tmp);
-            tmp->api->draw(tmp);
+            egui_view_group_draw_child(tmp);
         }
     }
 
@@ -981,6 +1108,11 @@ void egui_view_group_draw(egui_view_t *self)
 
 void egui_view_group_request_layout(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
@@ -995,13 +1127,18 @@ void egui_view_group_request_layout(egui_view_t *self)
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
             egui_view_group_sync_child_core(self, tmp);
-            tmp->api->request_layout(tmp);
+            egui_view_group_request_child_layout(tmp);
         }
     }
 }
 
 void egui_view_group_compute_scroll(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
@@ -1016,13 +1153,18 @@ void egui_view_group_compute_scroll(egui_view_t *self)
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
             egui_view_group_sync_child_core(self, tmp);
-            tmp->api->compute_scroll(tmp);
+            egui_view_group_compute_child_scroll(tmp);
         }
     }
 }
 
 void egui_view_group_calculate_layout(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return;
+    }
+
     EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
@@ -1037,7 +1179,7 @@ void egui_view_group_calculate_layout(egui_view_t *self)
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
             egui_view_group_sync_child_core(self, tmp);
-            tmp->api->calculate_layout(tmp);
+            egui_view_group_calculate_child_layout(tmp);
         }
     }
 }
@@ -1045,6 +1187,11 @@ void egui_view_group_calculate_layout(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 int egui_view_group_dispatch_key_event(egui_view_t *self, egui_key_event_t *event)
 {
+    if (self == NULL || event == NULL)
+    {
+        return 0;
+    }
+
     EGUI_LOCAL_INIT(egui_view_group_t);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
@@ -1061,7 +1208,7 @@ int egui_view_group_dispatch_key_event(egui_view_t *self, egui_key_event_t *even
             if (tmp->is_focused)
             {
                 egui_view_group_sync_child_core(self, tmp);
-                if (tmp->api->dispatch_key_event(tmp, event))
+                if (tmp->api != NULL && tmp->api->dispatch_key_event != NULL && tmp->api->dispatch_key_event(tmp, event))
                 {
                     return 1;
                 }

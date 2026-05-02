@@ -191,7 +191,7 @@ static __attribute__((unused)) void egui_canvas_draw_point_limit_skip_mask(egui_
 #else
         if (alpha == EGUI_ALPHA_100)
         {
-            *back_color = color;
+            back_color->full = color.full;
         }
         else
         {
@@ -232,7 +232,7 @@ static __attribute__((unused)) void egui_canvas_draw_point_limit(egui_canvas_t *
 #else
         if (alpha == EGUI_ALPHA_100)
         {
-            *back_color = color;
+            back_color->full = color.full;
         }
         else
         {
@@ -245,7 +245,7 @@ static __attribute__((unused)) void egui_canvas_draw_point_limit(egui_canvas_t *
 // In pfb coordinates
 __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_raw(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color)
 {
-    *(egui_color_t *)&self->pfb[y * self->pfb_region.size.width + x] = color;
+    self->pfb[y * self->pfb_region.size.width + x] = color.full;
 }
 
 // In pfb coordinates
