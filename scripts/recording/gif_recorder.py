@@ -27,6 +27,7 @@ DEFAULT_SNAPSHOT_MAX_WAIT_MS = 1500
 DEFAULT_SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance"]
 SUB_APP_ROOTS = {
     "HelloBasic": "example/HelloBasic",
+    "HelloGame": "example/HelloGame",
     "HelloVirtual": "example/HelloVirtual",
 }
 
@@ -426,6 +427,7 @@ def main():
 Examples:
   %(prog)s --app HelloSimple              Record single app
   %(prog)s --app HelloVirtual             Record all HelloVirtual sub-apps
+  %(prog)s --app HelloGame --app-sub snake Record HelloGame sub-app
   %(prog)s --app HelloBasic --app-sub anim  Record HelloBasic sub-app
   %(prog)s --app HelloVirtual --app-sub virtual_stage_basic  Record HelloVirtual sub-app
   %(prog)s --app HelloVirtual --app-sub virtual_stage_basic --bits64  Record HelloVirtual sub-app in 64-bit
@@ -435,9 +437,9 @@ Examples:
         """
     )
     parser.add_argument('--app', type=str,
-                        help='Specific app to record. For HelloBasic/HelloVirtual without --app-sub, records all sub-apps.')
+                        help='Specific app to record. For HelloBasic/HelloGame/HelloVirtual without --app-sub, records all sub-apps.')
     parser.add_argument('--app-sub', type=str,
-                        help='Single sub-app for HelloBasic/HelloVirtual. If omitted, all sub-apps are recorded.')
+                        help='Single sub-app for HelloBasic/HelloGame/HelloVirtual. If omitted, all sub-apps are recorded.')
     parser.add_argument('--fps', type=int, default=DEFAULT_FPS, help=f'Recording FPS (default: {DEFAULT_FPS})')
     parser.add_argument('--duration', type=int, default=DEFAULT_DURATION,
                         help=f'Recording duration in seconds (default: {DEFAULT_DURATION})')

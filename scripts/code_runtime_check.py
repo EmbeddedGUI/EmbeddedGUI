@@ -100,6 +100,7 @@ SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance", "HelloPerformance
              "HelloDesigner", "HelloDesigner_temp"]
 SUB_APP_ROOTS = {
     "HelloBasic": "example/HelloBasic",
+    "HelloGame": "example/HelloGame",
     "HelloVirtual": "example/HelloVirtual",
     "HelloSizeAnalysis": "example/HelloSizeAnalysis",
 }
@@ -1570,9 +1571,9 @@ Examples:
         """
     )
     parser.add_argument('--app', type=str,
-                        help='Specific app to test. For HelloBasic/HelloVirtual/HelloSizeAnalysis without --app-sub, tests all sub-apps.')
+                        help='Specific app to test. For HelloBasic/HelloGame/HelloVirtual/HelloSizeAnalysis without --app-sub, tests all sub-apps.')
     parser.add_argument('--app-sub', type=str,
-                        help='Single sub-app for HelloBasic/HelloVirtual/HelloSizeAnalysis. If omitted, all sub-apps are tested.')
+                        help='Single sub-app for HelloBasic/HelloGame/HelloVirtual/HelloSizeAnalysis. If omitted, all sub-apps are tested.')
     parser.add_argument('--category', type=str, help=argparse.SUPPRESS)
     parser.add_argument('--bits64', action='store_true', help='Build for 64-bit')
     parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,

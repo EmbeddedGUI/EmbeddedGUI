@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD 99)
 
 # Application selection (same variables as Makefile)
 set(APP "HelloSimple" CACHE STRING "Application to build (e.g. HelloSimple, HelloBasic, HelloVirtual, HelloActivity, ...)")
-set(APP_SUB "" CACHE STRING "Sub-application for HelloBasic/HelloVirtual (e.g. button, virtual_stage_basic, slider, ...)")
+set(APP_SUB "" CACHE STRING "Sub-application for HelloBasic/HelloVirtual/HelloGame (e.g. button, virtual_stage_basic, snake, ...)")
 set(PORT "pc" CACHE STRING "Target port (pc, pc_test)")
 set(EGUI_USER_CFLAGS_STD "" CACHE STRING "Optional C language standard flag for compatibility checks")
 set(EGUI_USER_CFLAGS "" CACHE STRING "Additional compiler flags for compatibility checks")
@@ -52,7 +52,7 @@ include_directories(${CMAKE_SOURCE_DIR}/example/${APP})
 include_directories(${CMAKE_SOURCE_DIR}/third_party/file_image)
 
 # For apps with sub-apps, add sub-app include paths
-if((APP STREQUAL "HelloBasic" OR APP STREQUAL "HelloVirtual" OR APP STREQUAL "HelloSizeAnalysis") AND NOT APP_SUB STREQUAL "")
+if((APP STREQUAL "HelloBasic" OR APP STREQUAL "HelloVirtual" OR APP STREQUAL "HelloSizeAnalysis" OR APP STREQUAL "HelloGame") AND NOT APP_SUB STREQUAL "")
     include_directories(${CMAKE_SOURCE_DIR}/example/${APP}/${APP_SUB})
     if(EXISTS "${CMAKE_SOURCE_DIR}/example/${APP}/${APP_SUB}/resource")
         include_directories(${CMAKE_SOURCE_DIR}/example/${APP}/${APP_SUB}/resource)

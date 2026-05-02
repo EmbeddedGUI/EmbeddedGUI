@@ -24,6 +24,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = Path(SCRIPT_DIR).parent
 APP_SUB_ROOTS = {
     "HelloBasic": "example/HelloBasic",
+    "HelloGame": "example/HelloGame",
     "HelloVirtual": "example/HelloVirtual",
     "HelloSizeAnalysis": "example/HelloSizeAnalysis",
 }
@@ -33,6 +34,7 @@ MULTI_DISPLAY_APPS = ("HelloMultiDisplay", "HelloMultiDisplayHetero")
 TYPICAL_COMPILE_CASES = (
     ("HelloSimple", None),
     ("HelloBasic", "button"),
+    ("HelloGame", "snake"),
     ("HelloBasic", "image"),
     ("HelloBasic", "label"),
     ("HelloShowcase", None),
@@ -191,11 +193,7 @@ def resolve_case_parallel_jobs(requested_jobs, total_cases):
 
 
 def build_sub_app_sets():
-    return {
-        "HelloBasic": get_example_basic_list(),
-        "HelloVirtual": get_example_virtual_list(),
-        "HelloSizeAnalysis": get_example_size_analysis_list(),
-    }
+    return {app: get_example_sub_list(app) for app in APP_SUB_ROOTS}
 
 
 def expand_app_cases(app, port, sub_app_sets):
@@ -259,7 +257,7 @@ def compile_code(params, output_dir=None, objroot_dir=None, app_obj_suffix=None)
     """Compile code using per-app OBJDIR (no make clean needed).
 
     PC Makefile uses APP_OBJ_SUFFIX so each APP gets its own obj directory.
-    HelloBasic/HelloVirtual/HelloSizeAnalysis sub-apps use dedicated OBJDIRs per sub-app.
+    APP_SUB family apps use dedicated OBJDIRs per sub-app.
     """
     if build_system == 'cmake':
         return compile_code_cmake(params)
@@ -460,7 +458,7 @@ def parse_args():
     parser.add_argument("--full-check",
                         action="store_true",
                         default=False,
-                        help="Compile all tracked standard examples plus HelloBasic/HelloVirtual/HelloSizeAnalysis sub-apps.")
+                        help="Compile all tracked standard examples plus APP_SUB family sub-apps.")
 
     parser.add_argument("--scope",
                         choices=["standard", "multi-display", "typical", "basic", "virtual", "size-analysis"],
