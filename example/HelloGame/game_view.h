@@ -38,6 +38,7 @@ typedef struct hello_game_view
     uint8_t input_dir;
     uint8_t pending_dir;
     uint8_t state;
+    uint8_t paused;
     uint8_t board_w;
     uint8_t board_h;
     uint8_t cell_px;

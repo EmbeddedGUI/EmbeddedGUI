@@ -253,7 +253,7 @@ static void hello_game_draw_text_center(egui_canvas_t *canvas, const char *text,
 static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
 {
     char score_text[32];
-    const char *state_text = "RUN";
+    const char *state_text = local->paused ? "PAUSE" : "RUN";
     egui_region_t state_region;
     egui_region_t level_region;
     egui_region_t title_active_region;
@@ -1455,6 +1455,11 @@ static void hello_game_sokoban_move(hello_game_view_t *local, uint8_t dir)
 
 static void hello_game_apply_direction(hello_game_view_t *local, uint8_t dir)
 {
+    if (local->paused)
+    {
+        return;
+    }
+
     if (dir > HG_DIR_LEFT)
     {
         return;
@@ -1527,6 +1532,11 @@ static void hello_game_apply_direction(hello_game_view_t *local, uint8_t dir)
 
 static void hello_game_step(hello_game_view_t *local)
 {
+    if (local->paused)
+    {
+        return;
+    }
+
     local->tick++;
     switch (local->descriptor->kind)
     {
@@ -1556,7 +1566,7 @@ static void hello_game_update_timer(egui_view_t *self)
 {
     hello_game_view_t *local = (hello_game_view_t *)self;
 
-    if (local->descriptor != NULL && local->descriptor->tick_ms > 0 && self->is_attached_to_window)
+    if (local->descriptor != NULL && local->descriptor->tick_ms > 0 && self->is_attached_to_window && !local->paused)
     {
         if (!egui_view_check_timer_start(self, &local->timer))
         {
@@ -1577,7 +1587,9 @@ static void hello_game_on_attach_to_window(egui_view_t *self)
 
 static void hello_game_on_detach_from_window(egui_view_t *self)
 {
-    hello_game_update_timer(self);
+    hello_game_view_t *local = (hello_game_view_t *)self;
+
+    egui_view_stop_timer(self, &local->timer);
     egui_view_on_detach_from_window(self);
 }
 
@@ -1585,6 +1597,11 @@ static void hello_game_click_cell(hello_game_view_t *local, int16_t local_x, int
 {
     int16_t col = (int16_t)((local_x - local->board_x) / local->cell_px);
     int16_t row = (int16_t)((local_y - local->board_y) / local->cell_px);
+
+    if (local->paused)
+    {
+        return;
+    }
 
     if (col < 0 || row < 0 || col >= local->board_w || row >= local->board_h)
     {
@@ -1609,6 +1626,11 @@ static void hello_game_set_paddle_from_touch(hello_game_view_t *local, int16_t l
     egui_region_t arena;
     uint8_t old_x = local->aux0;
     int16_t next_x;
+
+    if (local->paused)
+    {
+        return;
+    }
 
     hello_game_get_arena(local, &arena);
     next_x = (int16_t)(local_x - local->aux1 / 2);
@@ -1646,6 +1668,9 @@ static int hello_game_on_touch_event(egui_view_t *self, egui_motion_event_t *eve
     switch (event->type)
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        egui_view_request_focus(self);
+#endif
         local->dragging = 1;
         local->down_x = local_x;
         local->down_y = local_y;
@@ -1691,6 +1716,83 @@ static int hello_game_on_touch_event(egui_view_t *self, egui_motion_event_t *eve
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static void hello_game_toggle_pause(hello_game_view_t *local)
+{
+    if (local->state != HG_STATE_RUNNING)
+    {
+        return;
+    }
+
+    local->paused = (uint8_t)!local->paused;
+    hello_game_invalidate_hud(local);
+    hello_game_update_timer(EGUI_VIEW_OF(local));
+}
+
+static int hello_game_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    hello_game_view_t *local = (hello_game_view_t *)self;
+
+    if (event == NULL)
+    {
+        return 0;
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+    {
+        switch (event->key_code)
+        {
+        case EGUI_KEY_CODE_UP:
+            hello_game_apply_direction(local, HG_DIR_UP);
+            return 1;
+        case EGUI_KEY_CODE_DOWN:
+            hello_game_apply_direction(local, HG_DIR_DOWN);
+            return 1;
+        case EGUI_KEY_CODE_LEFT:
+            hello_game_apply_direction(local, HG_DIR_LEFT);
+            return 1;
+        case EGUI_KEY_CODE_RIGHT:
+            hello_game_apply_direction(local, HG_DIR_RIGHT);
+            return 1;
+        case EGUI_KEY_CODE_SPACE:
+        case EGUI_KEY_CODE_P:
+        case EGUI_KEY_CODE_R:
+            return 1;
+        default:
+            return 0;
+        }
+    }
+
+    if (event->type != EGUI_KEY_EVENT_ACTION_UP)
+    {
+        return 0;
+    }
+
+    switch (event->key_code)
+    {
+    case EGUI_KEY_CODE_UP:
+        return 1;
+    case EGUI_KEY_CODE_DOWN:
+        return 1;
+    case EGUI_KEY_CODE_LEFT:
+        return 1;
+    case EGUI_KEY_CODE_RIGHT:
+        return 1;
+    case EGUI_KEY_CODE_SPACE:
+    case EGUI_KEY_CODE_P:
+        hello_game_toggle_pause(local);
+        return 1;
+    case EGUI_KEY_CODE_R:
+        hello_game_reset(local);
+        hello_game_update_timer(self);
+        egui_view_invalidate(self);
+        return 1;
+    default:
+        return 0;
+    }
+}
+#endif
+
 static void hello_game_clear_state(hello_game_view_t *local)
 {
     memset(local->board, 0, sizeof(local->board));
@@ -1703,6 +1805,7 @@ static void hello_game_clear_state(hello_game_view_t *local)
     local->input_dir = HG_DIR_NONE;
     local->pending_dir = HG_DIR_NONE;
     local->state = HG_STATE_RUNNING;
+    local->paused = 0;
     local->vx = 0;
     local->vy = 0;
     local->ax = 0;
@@ -1805,10 +1908,17 @@ void hello_game_view_init(hello_game_view_t *local, egui_core_t *core, const hel
     egui_view_copy_api(view, &local->api);
     local->api.on_draw = hello_game_on_draw;
     local->api.on_touch_event = hello_game_on_touch_event;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    local->api.on_key_event = hello_game_on_key_event;
+#endif
     local->api.on_attach_to_window = hello_game_on_attach_to_window;
     local->api.on_detach_from_window = hello_game_on_detach_from_window;
     local->descriptor = descriptor;
     egui_view_set_size(view, EGUI_CONFIG_SCREEN_WIDTH, EGUI_CONFIG_SCREEN_HEIGHT);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    egui_view_set_focusable(view, true);
+    egui_view_request_focus(view);
+#endif
     egui_timer_init_timer(&local->timer, local, hello_game_timer_callback);
     hello_game_reset(local);
     egui_view_invalidate(view);
