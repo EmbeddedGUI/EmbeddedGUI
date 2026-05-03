@@ -395,7 +395,7 @@ static void hello_game_draw_link_cell(hello_game_view_t *local, egui_canvas_t *c
                                local->cell_px, local->cell_px);
         hello_game_draw_text_center(canvas, label, &text_region, EGUI_COLOR_BLACK);
     }
-    if ((local->aux0 && local->x[0] == col && local->y[0] == row) || (local->aux1 == col && local->aux2 == row))
+    if ((local->aux0 && local->x[0] == col && local->y[0] == row) || (local->aux3 && local->aux1 == col && local->aux2 == row))
     {
         egui_canvas_draw_rectangle(canvas, (egui_dim_t)(local->board_x + col * local->cell_px), (egui_dim_t)(local->board_y + row * local->cell_px),
                                    local->cell_px, local->cell_px, 2, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -1107,6 +1107,7 @@ static void hello_game_link_init(hello_game_view_t *local)
     }
     local->aux1 = 0;
     local->aux2 = 0;
+    local->aux3 = 0;
 }
 
 static uint8_t hello_game_2048_slide_line(uint8_t line[4], uint16_t *score)
@@ -1566,6 +1567,7 @@ static void hello_game_apply_direction(hello_game_view_t *local, uint8_t dir)
         break;
     case HELLO_GAME_KIND_LINK_MATCH:
         hello_game_mark_cell_dirty(local, local->aux1, local->aux2);
+        local->aux3 = 1;
         if (dir == HG_DIR_LEFT && local->aux1 > 0)
         {
             local->aux1--;
@@ -1715,6 +1717,7 @@ static void hello_game_click_cell(hello_game_view_t *local, int16_t local_x, int
 {
     int16_t col = (int16_t)((local_x - local->board_x) / local->cell_px);
     int16_t row = (int16_t)((local_y - local->board_y) / local->cell_px);
+    uint8_t cursor_was_visible = 0;
 
     if (local->paused)
     {
@@ -1729,13 +1732,55 @@ static void hello_game_click_cell(hello_game_view_t *local, int16_t local_x, int
     switch (local->descriptor->kind)
     {
     case HELLO_GAME_KIND_LINK_MATCH:
+        cursor_was_visible = local->aux3;
+        if (cursor_was_visible)
+        {
+            hello_game_mark_cell_dirty(local, local->aux1, local->aux2);
+            local->aux3 = 0;
+        }
         hello_game_link_select(local, (uint8_t)col, (uint8_t)row);
+        if (cursor_was_visible && local->board[row][col] == 0)
+        {
+            hello_game_flush_dirty_cells(local);
+        }
         break;
     case HELLO_GAME_KIND_MINESWEEPER:
         hello_game_mines_reveal(local, (uint8_t)col, (uint8_t)row);
         break;
     default:
         break;
+    }
+}
+
+static uint8_t hello_game_activate_cursor(hello_game_view_t *local)
+{
+    if (local == NULL || local->paused)
+    {
+        return 0;
+    }
+
+    switch (local->descriptor->kind)
+    {
+    case HELLO_GAME_KIND_LINK_MATCH:
+        if (!local->aux3)
+        {
+            local->aux3 = 1;
+            hello_game_mark_cell_dirty(local, local->aux1, local->aux2);
+        }
+        if (local->board[local->aux2][local->aux1] != 0)
+        {
+            hello_game_link_select(local, local->aux1, local->aux2);
+        }
+        else
+        {
+            hello_game_flush_dirty_cells(local);
+        }
+        return 1;
+    case HELLO_GAME_KIND_MINESWEEPER:
+        hello_game_mines_reveal(local, local->aux1, local->aux2);
+        return 1;
+    default:
+        return 0;
     }
 }
 
@@ -1888,6 +1933,7 @@ static int hello_game_on_key_event(egui_view_t *self, egui_key_event_t *event)
             hello_game_apply_direction(local, HG_DIR_RIGHT);
             return 1;
         case EGUI_KEY_CODE_SPACE:
+        case EGUI_KEY_CODE_ENTER:
         case EGUI_KEY_CODE_P:
         case EGUI_KEY_CODE_R:
             return 1;
@@ -1919,7 +1965,15 @@ static int hello_game_on_key_event(egui_view_t *self, egui_key_event_t *event)
             local->hold_dir = HG_DIR_NONE;
         }
         return 1;
+    case EGUI_KEY_CODE_ENTER:
+        return hello_game_activate_cursor(local);
     case EGUI_KEY_CODE_SPACE:
+        if (hello_game_activate_cursor(local))
+        {
+            return 1;
+        }
+        hello_game_toggle_pause(local);
+        return 1;
     case EGUI_KEY_CODE_P:
         hello_game_toggle_pause(local);
         return 1;
