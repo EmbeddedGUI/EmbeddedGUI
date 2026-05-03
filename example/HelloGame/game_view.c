@@ -107,6 +107,11 @@ static void hello_game_get_board_region(hello_game_view_t *local, egui_region_t 
                            (egui_dim_t)(local->board_h * local->cell_px));
 }
 
+static uint8_t hello_game_can_pause(hello_game_view_t *local)
+{
+    return (uint8_t)(local != NULL && local->descriptor != NULL && local->descriptor->tick_ms > 0);
+}
+
 static void hello_game_get_pause_region(egui_region_t *region)
 {
     hello_game_region_init(region, EGUI_CONFIG_SCREEN_WIDTH - 60, 8, 52, 22);
@@ -138,6 +143,30 @@ static uint8_t hello_game_region_contains_point(const egui_region_t *region, int
 static uint8_t hello_game_is_tap_in_region(const egui_region_t *region, int16_t down_x, int16_t down_y, int16_t up_x, int16_t up_y)
 {
     return (uint8_t)(hello_game_region_contains_point(region, down_x, down_y) && hello_game_region_contains_point(region, up_x, up_y));
+}
+
+static void hello_game_format_metric(hello_game_view_t *local, char *text, size_t text_size)
+{
+    if (text == NULL || text_size == 0)
+    {
+        return;
+    }
+
+    switch (local->descriptor->kind)
+    {
+    case HELLO_GAME_KIND_LINK_MATCH:
+        snprintf(text, text_size, "Pair %u/32", local->score);
+        break;
+    case HELLO_GAME_KIND_MINESWEEPER:
+        snprintf(text, text_size, "Safe %u/88", local->score);
+        break;
+    case HELLO_GAME_KIND_SOKOBAN:
+        snprintf(text, text_size, "Moves %u", local->score);
+        break;
+    default:
+        snprintf(text, text_size, "Score %u", local->score);
+        break;
+    }
 }
 
 static void hello_game_invalidate_board(hello_game_view_t *local)
@@ -285,8 +314,9 @@ static void hello_game_draw_text_center(egui_canvas_t *canvas, const char *text,
 
 static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
 {
-    char score_text[32];
+    char hud_text[32];
     const char *state_text = local->paused ? "PAUSE" : "RUN";
+    uint8_t show_state = hello_game_can_pause(local);
     egui_region_t state_region;
     egui_region_t reset_region;
     egui_region_t level_region;
@@ -295,10 +325,12 @@ static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
     if (local->state == HG_STATE_WIN)
     {
         state_text = "WIN";
+        show_state = 1;
     }
     else if (local->state == HG_STATE_OVER)
     {
         state_text = "OVER";
+        show_state = 1;
     }
 
     hello_game_region_init(&title_active_region, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, HG_HUD_HEIGHT);
@@ -308,21 +340,24 @@ static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
     }
 
     hello_game_draw_text(canvas, local->descriptor->title, 8, 8, EGUI_COLOR_WHITE);
-    snprintf(score_text, sizeof(score_text), "Score %u", local->score);
-    hello_game_draw_text(canvas, score_text, 8, 30, EGUI_COLOR_MAKE(190, 210, 230));
-    snprintf(score_text, sizeof(score_text), "L%u", local->descriptor->level);
+    hello_game_format_metric(local, hud_text, sizeof(hud_text));
+    hello_game_draw_text(canvas, hud_text, 8, 30, EGUI_COLOR_MAKE(190, 210, 230));
+    snprintf(hud_text, sizeof(hud_text), "L%u", local->descriptor->level);
     hello_game_get_level_region(&level_region);
-    hello_game_draw_text_center(canvas, score_text, &level_region, EGUI_COLOR_MAKE(190, 210, 230));
+    hello_game_draw_text_center(canvas, hud_text, &level_region, EGUI_COLOR_MAKE(190, 210, 230));
 
     hello_game_get_reset_region(&reset_region);
     egui_canvas_draw_round_rectangle_fill(canvas, reset_region.location.x, reset_region.location.y, reset_region.size.width, reset_region.size.height, 5,
                                           EGUI_COLOR_MAKE(62, 72, 88), EGUI_ALPHA_100);
     hello_game_draw_text_center(canvas, "RST", &reset_region, EGUI_COLOR_WHITE);
 
-    hello_game_get_pause_region(&state_region);
-    egui_canvas_draw_round_rectangle_fill(canvas, state_region.location.x, state_region.location.y, state_region.size.width, state_region.size.height, 5,
-                                          local->state == HG_STATE_RUNNING ? EGUI_COLOR_MAKE(42, 90, 120) : EGUI_COLOR_MAKE(150, 70, 80), EGUI_ALPHA_100);
-    hello_game_draw_text_center(canvas, state_text, &state_region, EGUI_COLOR_WHITE);
+    if (show_state)
+    {
+        hello_game_get_pause_region(&state_region);
+        egui_canvas_draw_round_rectangle_fill(canvas, state_region.location.x, state_region.location.y, state_region.size.width, state_region.size.height, 5,
+                                              local->state == HG_STATE_RUNNING ? EGUI_COLOR_MAKE(42, 90, 120) : EGUI_COLOR_MAKE(150, 70, 80), EGUI_ALPHA_100);
+        hello_game_draw_text_center(canvas, state_text, &state_region, EGUI_COLOR_WHITE);
+    }
 }
 
 static uint8_t hello_game_draw_base_cell(hello_game_view_t *local, egui_canvas_t *canvas, uint8_t col, uint8_t row, egui_color_t color)
@@ -1024,7 +1059,7 @@ static void hello_game_link_select(hello_game_view_t *local, uint8_t col, uint8_
     {
         local->board[local->y[0]][local->x[0]] = 0;
         local->board[row][col] = 0;
-        local->score = (uint16_t)(local->score + 10U);
+        local->score++;
         local->aux0 = 0;
         hello_game_invalidate_hud(local);
     }
@@ -1036,7 +1071,7 @@ static void hello_game_link_select(hello_game_view_t *local, uint8_t col, uint8_
         hello_game_mark_cell_dirty(local, col, row);
     }
 
-    if (local->score >= 320U)
+    if (local->score >= 32U)
     {
         local->state = HG_STATE_WIN;
         hello_game_invalidate_hud(local);
@@ -1635,7 +1670,7 @@ static void hello_game_on_detach_from_window(egui_view_t *self)
 
 static void hello_game_toggle_pause(hello_game_view_t *local)
 {
-    if (local == NULL || local->state != HG_STATE_RUNNING)
+    if (!hello_game_can_pause(local) || local->state != HG_STATE_RUNNING)
     {
         return;
     }
@@ -1755,7 +1790,7 @@ static int hello_game_on_touch_event(egui_view_t *self, egui_motion_event_t *eve
             egui_region_t reset_region;
             local->dragging = 0;
             hello_game_get_pause_region(&pause_region);
-            if (hello_game_is_tap_in_region(&pause_region, local->down_x, local->down_y, local_x, local_y))
+            if (hello_game_can_pause(local) && hello_game_is_tap_in_region(&pause_region, local->down_x, local->down_y, local_x, local_y))
             {
                 hello_game_toggle_pause(local);
                 return 1;
