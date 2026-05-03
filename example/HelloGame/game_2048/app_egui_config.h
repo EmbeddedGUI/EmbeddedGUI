@@ -17,6 +17,10 @@
 #define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS 1
 #endif
 
+#define EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH 0
+
+#define EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR 0
+
 #ifdef __cplusplus
 extern "C" {
 #endif
