@@ -14,6 +14,7 @@
 #define HG_DIR_DOWN        2
 #define HG_DIR_LEFT        3
 #define HG_DIR_NONE        4
+#define HG_PADDLE_STEP     12
 #define HG_SNAKE_EMPTY     0
 #define HG_SNAKE_BODY      1
 #define HG_SNAKE_FOOD      2
@@ -877,11 +878,21 @@ static void hello_game_physics_move_paddle(hello_game_view_t *local, int16_t del
     }
 }
 
+static uint8_t hello_game_is_physics_kind(hello_game_view_t *local)
+{
+    return (uint8_t)(local != NULL && local->descriptor != NULL &&
+                     (local->descriptor->kind == HELLO_GAME_KIND_BOUNCY_BALL || local->descriptor->kind == HELLO_GAME_KIND_BRICK_BREAKER));
+}
+
 static void hello_game_physics_tick(hello_game_view_t *local)
 {
     egui_region_t arena;
     int16_t old_x = local->x[0];
     int16_t old_y = local->y[0];
+    int16_t old_bottom;
+    int16_t new_bottom;
+    int16_t ball_left;
+    int16_t ball_right;
     egui_dim_t paddle_y;
     uint8_t score_changed = 0;
 
@@ -917,10 +928,14 @@ static void hello_game_physics_tick(hello_game_view_t *local)
     }
 
     paddle_y = (egui_dim_t)(arena.location.y + arena.size.height - 18);
-    if (local->y[0] + local->aux2 >= paddle_y && local->y[0] + local->aux2 <= paddle_y + 10 && local->x[0] >= local->aux0 &&
-        local->x[0] <= local->aux0 + local->aux1)
+    old_bottom = (int16_t)(old_y + local->aux2);
+    new_bottom = (int16_t)(local->y[0] + local->aux2);
+    ball_left = (int16_t)(local->x[0] - local->aux2);
+    ball_right = (int16_t)(local->x[0] + local->aux2);
+    if (local->vy > 0 && old_bottom <= paddle_y && new_bottom >= paddle_y && ball_right >= local->aux0 && ball_left <= local->aux0 + local->aux1)
     {
         int16_t offset = local->x[0] - (int16_t)(local->aux0 + local->aux1 / 2);
+        local->y[0] = (int16_t)(paddle_y - local->aux2);
         local->vy = (int16_t)-(EGUI_ABS(local->vy) + 1);
         local->vx = (int16_t)(offset / 9);
         if (local->vx == 0)
@@ -1620,6 +1635,10 @@ static void hello_game_step(hello_game_view_t *local)
         break;
     case HELLO_GAME_KIND_BOUNCY_BALL:
     case HELLO_GAME_KIND_BRICK_BREAKER:
+        if (local->state == HG_STATE_RUNNING && (local->hold_dir == HG_DIR_LEFT || local->hold_dir == HG_DIR_RIGHT))
+        {
+            hello_game_physics_move_paddle(local, local->hold_dir == HG_DIR_LEFT ? -HG_PADDLE_STEP : HG_PADDLE_STEP);
+        }
         hello_game_physics_tick(local);
         break;
     case HELLO_GAME_KIND_TETRIS:
@@ -1844,7 +1863,7 @@ static int hello_game_on_key_event(egui_view_t *self, egui_key_event_t *event)
         return 0;
     }
 
-    if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+    if (event->type == EGUI_KEY_EVENT_ACTION_DOWN || event->type == EGUI_KEY_EVENT_ACTION_LONG_PRESS || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
     {
         switch (event->key_code)
         {
@@ -1855,9 +1874,17 @@ static int hello_game_on_key_event(egui_view_t *self, egui_key_event_t *event)
             hello_game_apply_direction(local, HG_DIR_DOWN);
             return 1;
         case EGUI_KEY_CODE_LEFT:
+            if (hello_game_is_physics_kind(local))
+            {
+                local->hold_dir = HG_DIR_LEFT;
+            }
             hello_game_apply_direction(local, HG_DIR_LEFT);
             return 1;
         case EGUI_KEY_CODE_RIGHT:
+            if (hello_game_is_physics_kind(local))
+            {
+                local->hold_dir = HG_DIR_RIGHT;
+            }
             hello_game_apply_direction(local, HG_DIR_RIGHT);
             return 1;
         case EGUI_KEY_CODE_SPACE:
@@ -1881,8 +1908,16 @@ static int hello_game_on_key_event(egui_view_t *self, egui_key_event_t *event)
     case EGUI_KEY_CODE_DOWN:
         return 1;
     case EGUI_KEY_CODE_LEFT:
+        if (local->hold_dir == HG_DIR_LEFT)
+        {
+            local->hold_dir = HG_DIR_NONE;
+        }
         return 1;
     case EGUI_KEY_CODE_RIGHT:
+        if (local->hold_dir == HG_DIR_RIGHT)
+        {
+            local->hold_dir = HG_DIR_NONE;
+        }
         return 1;
     case EGUI_KEY_CODE_SPACE:
     case EGUI_KEY_CODE_P:
@@ -1919,6 +1954,7 @@ static void hello_game_clear_state(hello_game_view_t *local)
     local->aux1 = 0;
     local->aux2 = 0;
     local->aux3 = 0;
+    local->hold_dir = HG_DIR_NONE;
     local->dragging = 0;
 }
 

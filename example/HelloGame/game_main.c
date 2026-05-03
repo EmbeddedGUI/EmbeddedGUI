@@ -39,20 +39,20 @@ void test_init_ui(egui_core_t *core)
 }
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-static void hello_game_record_key_dispatch(egui_core_t *core, uintptr_t user_data)
+static void hello_game_record_key_event_dispatch(egui_core_t *core, uintptr_t user_data)
 {
-    uint8_t key_code = (uint8_t)user_data;
+    uint8_t key_type = (uint8_t)(user_data & 0xFFU);
+    uint8_t key_code = (uint8_t)((user_data >> 8) & 0xFFU);
 
     if (core == NULL)
     {
         return;
     }
 
-    egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_DOWN, key_code, 0, 0);
-    egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_UP, key_code, 0, 0);
+    egui_input_add_key(core, key_type, key_code, 0, 0);
 }
 
-static void hello_game_record_key(hello_game_view_t *view, uint8_t key_code)
+static void hello_game_record_key_event(hello_game_view_t *view, uint8_t key_type, uint8_t key_code)
 {
     egui_core_t *core;
 
@@ -68,11 +68,22 @@ static void hello_game_record_key(hello_game_view_t *view, uint8_t key_code)
     }
 
 #if EGUI_PORT == EGUI_PORT_TYPE_PC
-    egui_port_post_core_task_sync(core, hello_game_record_key_dispatch, (uintptr_t)key_code, 200);
+    egui_port_post_core_task_sync(core, hello_game_record_key_event_dispatch, (uintptr_t)key_type | ((uintptr_t)key_code << 8), 200);
 #else
-    egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_DOWN, key_code, 0, 0);
-    egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_UP, key_code, 0, 0);
+    egui_input_add_key(core, key_type, key_code, 0, 0);
 #endif
+}
+
+static void hello_game_record_key(hello_game_view_t *view, uint8_t key_code)
+{
+    hello_game_record_key_event(view, EGUI_KEY_EVENT_ACTION_DOWN, key_code);
+    hello_game_record_key_event(view, EGUI_KEY_EVENT_ACTION_UP, key_code);
+}
+
+static uint8_t hello_game_record_is_physics(hello_game_view_t *view)
+{
+    return (uint8_t)(view != NULL && view->descriptor != NULL &&
+                     (view->descriptor->kind == HELLO_GAME_KIND_BOUNCY_BALL || view->descriptor->kind == HELLO_GAME_KIND_BRICK_BREAKER));
 }
 #endif
 
@@ -111,7 +122,14 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         if (first_call)
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-            hello_game_record_key(view, EGUI_KEY_CODE_RIGHT);
+            if (hello_game_record_is_physics(view))
+            {
+                hello_game_record_key_event(view, EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_RIGHT);
+            }
+            else
+            {
+                hello_game_record_key(view, EGUI_KEY_CODE_RIGHT);
+            }
 #else
             hello_game_view_record_step(view, 0);
 #endif
@@ -122,7 +140,16 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 5:
         if (first_call)
         {
-            hello_game_view_record_step(view, 0);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+            if (hello_game_record_is_physics(view))
+            {
+                hello_game_record_key_event(view, EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_RIGHT);
+            }
+            else
+#endif
+            {
+                hello_game_view_record_step(view, 0);
+            }
             recording_request_snapshot();
         }
         EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);

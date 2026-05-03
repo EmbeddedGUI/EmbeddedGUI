@@ -58,6 +58,7 @@ typedef struct hello_game_view
     uint8_t aux1;
     uint8_t aux2;
     uint8_t aux3;
+    uint8_t hold_dir;
     uint8_t dragging;
     int16_t down_x;
     int16_t down_y;
