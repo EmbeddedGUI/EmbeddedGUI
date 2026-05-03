@@ -3,31 +3,33 @@
 #include <stdio.h>
 #include <string.h>
 
-#define HG_MAX_BOARD       16
-#define HG_MAX_OBJECTS     32
-#define HG_HUD_HEIGHT      68
-#define HG_STATE_RUNNING   0
-#define HG_STATE_WIN       1
-#define HG_STATE_OVER      2
-#define HG_DIR_UP          0
-#define HG_DIR_RIGHT       1
-#define HG_DIR_DOWN        2
-#define HG_DIR_LEFT        3
-#define HG_DIR_NONE        4
-#define HG_PADDLE_STEP     12
-#define HG_BOUNCY_IMPULSE  14
-#define HG_SNAKE_EMPTY     0
-#define HG_SNAKE_BODY      1
-#define HG_SNAKE_FOOD      2
-#define HG_SNAKE_WALL      3
-#define HG_MINE_VALUE_MASK 0x0F
-#define HG_MINE_FLAG       0x20
-#define HG_MINE_REVEALED   0x40
-#define HG_MINE_BOMB       0x80
-#define HG_SOKO_WALL       0x01
-#define HG_SOKO_TARGET     0x02
-#define HG_SOKO_BOX        0x04
-#define HG_SOKO_PLAYER     0x08
+#define HG_MAX_BOARD                16
+#define HG_MAX_OBJECTS              32
+#define HG_HUD_HEIGHT               68
+#define HG_STATE_RUNNING            0
+#define HG_STATE_WIN                1
+#define HG_STATE_OVER               2
+#define HG_DIR_UP                   0
+#define HG_DIR_RIGHT                1
+#define HG_DIR_DOWN                 2
+#define HG_DIR_LEFT                 3
+#define HG_DIR_NONE                 4
+#define HG_PADDLE_STEP              12
+#define HG_BOUNCY_IMPULSE           14
+#define HG_TETRIS_PREVIEW_CELL      7
+#define HG_TETRIS_CLEAR_FLASH_TICKS 4
+#define HG_SNAKE_EMPTY              0
+#define HG_SNAKE_BODY               1
+#define HG_SNAKE_FOOD               2
+#define HG_SNAKE_WALL               3
+#define HG_MINE_VALUE_MASK          0x0F
+#define HG_MINE_FLAG                0x20
+#define HG_MINE_REVEALED            0x40
+#define HG_MINE_BOMB                0x80
+#define HG_SOKO_WALL                0x01
+#define HG_SOKO_TARGET              0x02
+#define HG_SOKO_BOX                 0x04
+#define HG_SOKO_PLAYER              0x08
 
 static void hello_game_reset(hello_game_view_t *local);
 
@@ -208,6 +210,19 @@ static void hello_game_mark_changed_cells(hello_game_view_t *local)
     }
 }
 
+static void hello_game_mark_row_dirty(hello_game_view_t *local, uint8_t row)
+{
+    if (row >= local->board_h)
+    {
+        return;
+    }
+
+    for (uint8_t col = 0; col < local->board_w; col++)
+    {
+        local->dirty[row][col] = 1;
+    }
+}
+
 static void hello_game_flush_dirty_cells(hello_game_view_t *local)
 {
     uint8_t dirty_count = 0;
@@ -282,6 +297,9 @@ static void hello_game_flush_dirty_cells(hello_game_view_t *local)
 
 static void hello_game_setup_board(hello_game_view_t *local, uint8_t board_w, uint8_t board_h, uint8_t preferred_cell)
 {
+    board_w = EGUI_MIN(board_w, HG_MAX_BOARD);
+    board_h = EGUI_MIN(board_h, HG_MAX_BOARD);
+
     uint8_t cell_from_width = (uint8_t)((EGUI_CONFIG_SCREEN_WIDTH - 24) / board_w);
     uint8_t cell_from_height = (uint8_t)((EGUI_CONFIG_SCREEN_HEIGHT - HG_HUD_HEIGHT - 12) / board_h);
     uint8_t cell_px = preferred_cell;
@@ -513,6 +531,23 @@ static void hello_game_draw_sokoban_cell(hello_game_view_t *local, egui_canvas_t
     }
 }
 
+static uint8_t hello_game_tetris_row_pending_clear(hello_game_view_t *local, uint8_t row)
+{
+    if (local->descriptor->kind != HELLO_GAME_KIND_TETRIS || local->aux3 == 0)
+    {
+        return 0;
+    }
+
+    for (uint8_t i = 0; i < local->count; i++)
+    {
+        if (local->y[i + 1] == row)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void hello_game_draw_grid_cell(hello_game_view_t *local, egui_canvas_t *canvas, uint8_t col, uint8_t row)
 {
     uint8_t value = local->board[row][col];
@@ -544,7 +579,14 @@ static void hello_game_draw_grid_cell(hello_game_view_t *local, egui_canvas_t *c
         hello_game_draw_2048_cell(local, canvas, col, row, value);
         break;
     case HELLO_GAME_KIND_TETRIS:
-        hello_game_draw_base_cell(local, canvas, col, row, value == 0 ? EGUI_COLOR_MAKE(20, 26, 34) : hello_game_palette(value - 1));
+        if (hello_game_tetris_row_pending_clear(local, row) && (local->aux3 & 1U) != 0)
+        {
+            hello_game_draw_base_cell(local, canvas, col, row, EGUI_COLOR_MAKE(235, 245, 255));
+        }
+        else
+        {
+            hello_game_draw_base_cell(local, canvas, col, row, value == 0 ? EGUI_COLOR_MAKE(20, 26, 34) : hello_game_palette(value - 1));
+        }
         break;
     case HELLO_GAME_KIND_MINESWEEPER:
         hello_game_draw_mine_cell(local, canvas, col, row, value);
@@ -597,6 +639,11 @@ static const int8_t tetris_shapes[7][4][4][2] = {
         {{{0, 0}, {1, 0}, {1, 1}, {2, 1}}, {{2, 0}, {1, 1}, {2, 1}, {1, 2}}, {{0, 1}, {1, 1}, {1, 2}, {2, 2}}, {{1, 0}, {0, 1}, {1, 1}, {0, 2}}},
 };
 
+static void hello_game_get_tetris_preview_region(egui_region_t *region)
+{
+    hello_game_region_init(region, EGUI_CONFIG_SCREEN_WIDTH - 58, HG_HUD_HEIGHT + 8, 50, 54);
+}
+
 static void hello_game_tetris_mark_piece(hello_game_view_t *local, uint8_t piece, uint8_t rotation, int16_t px, int16_t py)
 {
     for (uint8_t i = 0; i < 4; i++)
@@ -607,10 +654,23 @@ static void hello_game_tetris_mark_piece(hello_game_view_t *local, uint8_t piece
     }
 }
 
+static void hello_game_invalidate_tetris_preview(hello_game_view_t *local)
+{
+    egui_region_t region;
+
+    hello_game_get_tetris_preview_region(&region);
+    hello_game_invalidate_rect(local, region.location.x, region.location.y, region.size.width, region.size.height);
+}
+
 static void hello_game_draw_tetris_piece(hello_game_view_t *local, egui_canvas_t *canvas)
 {
     uint8_t piece = local->aux0;
     uint8_t rotation = local->aux1;
+
+    if (local->aux3 != 0)
+    {
+        return;
+    }
 
     for (uint8_t i = 0; i < 4; i++)
     {
@@ -628,6 +688,38 @@ static void hello_game_draw_tetris_piece(hello_game_view_t *local, egui_canvas_t
                                                 EGUI_ALPHA_100);
             }
         }
+    }
+}
+
+static void hello_game_draw_tetris_preview(hello_game_view_t *local, egui_canvas_t *canvas)
+{
+    egui_region_t preview_region;
+    egui_region_t screen_region;
+    egui_dim_t origin_x;
+    egui_dim_t origin_y;
+    uint8_t piece = local->aux2;
+
+    hello_game_get_tetris_preview_region(&preview_region);
+    hello_game_local_region_to_screen(local, &preview_region, &screen_region);
+    if (!egui_canvas_is_region_active(canvas, &screen_region))
+    {
+        return;
+    }
+
+    egui_canvas_draw_rectangle_fill(canvas, preview_region.location.x, preview_region.location.y, preview_region.size.width, preview_region.size.height,
+                                    EGUI_COLOR_MAKE(15, 20, 28), EGUI_ALPHA_100);
+    egui_canvas_draw_rectangle(canvas, preview_region.location.x, preview_region.location.y, preview_region.size.width, preview_region.size.height, 1,
+                               EGUI_COLOR_MAKE(70, 84, 104), EGUI_ALPHA_100);
+    hello_game_draw_text(canvas, "Next", preview_region.location.x + 8, preview_region.location.y + 6, EGUI_COLOR_MAKE(190, 210, 230));
+
+    origin_x = (egui_dim_t)(preview_region.location.x + 11);
+    origin_y = (egui_dim_t)(preview_region.location.y + 24);
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        egui_dim_t rect_x = (egui_dim_t)(origin_x + tetris_shapes[piece][0][i][0] * HG_TETRIS_PREVIEW_CELL);
+        egui_dim_t rect_y = (egui_dim_t)(origin_y + tetris_shapes[piece][0][i][1] * HG_TETRIS_PREVIEW_CELL);
+        egui_canvas_draw_rectangle_fill(canvas, rect_x, rect_y, HG_TETRIS_PREVIEW_CELL - 1, HG_TETRIS_PREVIEW_CELL - 1, hello_game_palette(piece),
+                                        EGUI_ALPHA_100);
     }
 }
 
@@ -690,6 +782,7 @@ static void hello_game_on_draw(egui_view_t *self)
         hello_game_draw_grid(local, canvas);
         if (local->descriptor->kind == HELLO_GAME_KIND_TETRIS)
         {
+            hello_game_draw_tetris_preview(local, canvas);
             hello_game_draw_tetris_piece(local, canvas);
         }
     }
@@ -1268,12 +1361,19 @@ static uint8_t hello_game_tetris_collision(hello_game_view_t *local, uint8_t pie
     return 0;
 }
 
+static uint8_t hello_game_tetris_next_piece(hello_game_view_t *local)
+{
+    return (uint8_t)((local->aux2 + local->tick + local->score + 3U) % 7U);
+}
+
 static void hello_game_tetris_spawn(hello_game_view_t *local)
 {
-    local->aux0 = (uint8_t)((local->aux0 + 1U) % 7U);
+    local->aux0 = local->aux2;
+    local->aux2 = hello_game_tetris_next_piece(local);
     local->aux1 = 0;
     local->x[0] = 3;
     local->y[0] = 0;
+    hello_game_invalidate_tetris_preview(local);
     if (hello_game_tetris_collision(local, local->aux0, local->aux1, local->x[0], local->y[0]))
     {
         local->state = HG_STATE_OVER;
@@ -1294,8 +1394,9 @@ static void hello_game_tetris_lock(hello_game_view_t *local)
     }
 }
 
-static void hello_game_tetris_clear_lines(hello_game_view_t *local)
+static uint8_t hello_game_tetris_find_full_lines(hello_game_view_t *local)
 {
+    local->count = 0;
     for (int16_t row = (int16_t)local->board_h - 1; row >= 0; row--)
     {
         uint8_t full = 1;
@@ -1309,22 +1410,83 @@ static void hello_game_tetris_clear_lines(hello_game_view_t *local)
         }
         if (full)
         {
-            for (int16_t move_row = row; move_row > 0; move_row--)
+            local->y[local->count + 1U] = row;
+            local->count++;
+        }
+    }
+    return local->count;
+}
+
+static void hello_game_tetris_begin_clear_animation(hello_game_view_t *local)
+{
+    local->aux3 = HG_TETRIS_CLEAR_FLASH_TICKS;
+    for (uint8_t i = 0; i < local->count; i++)
+    {
+        hello_game_mark_row_dirty(local, local->y[i + 1U]);
+    }
+}
+
+static uint8_t hello_game_tetris_row_marked(hello_game_view_t *local, uint8_t row)
+{
+    for (uint8_t i = 0; i < local->count; i++)
+    {
+        if (local->y[i + 1U] == row)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void hello_game_tetris_finish_clear_lines(hello_game_view_t *local)
+{
+    int16_t write_row = (int16_t)local->board_h - 1;
+
+    hello_game_snapshot_board(local);
+    for (int16_t read_row = (int16_t)local->board_h - 1; read_row >= 0; read_row--)
+    {
+        if (!hello_game_tetris_row_marked(local, (uint8_t)read_row))
+        {
+            if (write_row != read_row)
             {
                 for (uint8_t col = 0; col < local->board_w; col++)
                 {
-                    local->board[move_row][col] = local->board[move_row - 1][col];
+                    local->board[write_row][col] = local->board[read_row][col];
                 }
             }
-            for (uint8_t col = 0; col < local->board_w; col++)
-            {
-                local->board[0][col] = 0;
-            }
-            local->score = (uint16_t)(local->score + 100U);
-            row++;
-            hello_game_invalidate_hud(local);
+            write_row--;
         }
     }
+    while (write_row >= 0)
+    {
+        for (uint8_t col = 0; col < local->board_w; col++)
+        {
+            local->board[write_row][col] = 0;
+        }
+        write_row--;
+    }
+
+    local->score = (uint16_t)(local->score + 100U * local->count);
+    local->count = 0;
+    local->aux3 = 0;
+    hello_game_invalidate_hud(local);
+    hello_game_mark_changed_cells(local);
+    hello_game_flush_dirty_cells(local);
+    hello_game_tetris_spawn(local);
+    hello_game_tetris_mark_piece(local, local->aux0, local->aux1, local->x[0], local->y[0]);
+    hello_game_flush_dirty_cells(local);
+}
+
+static uint8_t hello_game_tetris_after_lock(hello_game_view_t *local)
+{
+    if (hello_game_tetris_find_full_lines(local) != 0)
+    {
+        hello_game_tetris_begin_clear_animation(local);
+        return 1;
+    }
+
+    hello_game_tetris_spawn(local);
+    return 0;
 }
 
 static void hello_game_tetris_tick(hello_game_view_t *local)
@@ -1338,6 +1500,23 @@ static void hello_game_tetris_tick(hello_game_view_t *local)
     {
         return;
     }
+    if (local->aux3 != 0)
+    {
+        local->aux3--;
+        for (uint8_t i = 0; i < local->count; i++)
+        {
+            hello_game_mark_row_dirty(local, local->y[i + 1U]);
+        }
+        if (local->aux3 == 0)
+        {
+            hello_game_tetris_finish_clear_lines(local);
+        }
+        else
+        {
+            hello_game_flush_dirty_cells(local);
+        }
+        return;
+    }
 
     hello_game_snapshot_board(local);
     hello_game_tetris_mark_piece(local, old_piece, old_rotation, old_x, old_y);
@@ -1348,8 +1527,12 @@ static void hello_game_tetris_tick(hello_game_view_t *local)
     else
     {
         hello_game_tetris_lock(local);
-        hello_game_tetris_clear_lines(local);
-        hello_game_tetris_spawn(local);
+        if (hello_game_tetris_after_lock(local) != 0)
+        {
+            hello_game_mark_changed_cells(local);
+            hello_game_flush_dirty_cells(local);
+            return;
+        }
     }
     hello_game_tetris_mark_piece(local, local->aux0, local->aux1, local->x[0], local->y[0]);
     hello_game_mark_changed_cells(local);
@@ -1366,6 +1549,10 @@ static void hello_game_tetris_input(hello_game_view_t *local, uint8_t dir)
     int16_t new_y = local->y[0];
 
     if (local->state != HG_STATE_RUNNING)
+    {
+        return;
+    }
+    if (local->aux3 != 0)
     {
         return;
     }
@@ -1400,8 +1587,11 @@ static void hello_game_tetris_input(hello_game_view_t *local, uint8_t dir)
 
 static void hello_game_tetris_init(hello_game_view_t *local)
 {
-    hello_game_setup_board(local, 10, 18, 13);
-    local->aux0 = 6;
+    hello_game_setup_board(local, 10, 16, 13);
+    local->board_x = 14;
+    local->aux2 = 0;
+    local->count = 0;
+    local->aux3 = 0;
     hello_game_tetris_spawn(local);
 }
 
@@ -2132,7 +2322,10 @@ void hello_game_view_record_step(hello_game_view_t *local, uint8_t step)
         break;
     case HELLO_GAME_KIND_TETRIS:
         hello_game_apply_direction(local, dirs[step % (uint8_t)EGUI_ARRAY_SIZE(dirs)]);
-        hello_game_step(local);
+        for (uint8_t i = 0; i < 18; i++)
+        {
+            hello_game_step(local);
+        }
         break;
     case HELLO_GAME_KIND_BOUNCY_BALL:
     case HELLO_GAME_KIND_BRICK_BREAKER:
