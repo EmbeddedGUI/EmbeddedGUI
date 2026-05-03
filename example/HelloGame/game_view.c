@@ -44,6 +44,22 @@ static void hello_game_region_init(egui_region_t *region, egui_dim_t x, egui_dim
     egui_region_init(region, x, y, width, height);
 }
 
+static void hello_game_local_region_to_screen(hello_game_view_t *local, const egui_region_t *local_region, egui_region_t *screen_region)
+{
+    egui_view_t *view = EGUI_VIEW_OF(local);
+
+    hello_game_region_init(screen_region, (egui_dim_t)(view->region_screen.location.x + local_region->location.x),
+                           (egui_dim_t)(view->region_screen.location.y + local_region->location.y), local_region->size.width, local_region->size.height);
+}
+
+static uint8_t hello_game_is_local_region_active(hello_game_view_t *local, egui_canvas_t *canvas, const egui_region_t *local_region)
+{
+    egui_region_t screen_region;
+
+    hello_game_local_region_to_screen(local, local_region, &screen_region);
+    return (uint8_t)egui_canvas_is_region_active(canvas, &screen_region);
+}
+
 static void hello_game_invalidate_rect(hello_game_view_t *local, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     egui_region_t region;
@@ -109,17 +125,6 @@ static void hello_game_mark_cell_dirty(hello_game_view_t *local, int16_t x, int1
     local->dirty[y][x] = 1;
 }
 
-static void hello_game_mark_all_cells_dirty(hello_game_view_t *local)
-{
-    for (uint8_t row = 0; row < local->board_h; row++)
-    {
-        for (uint8_t col = 0; col < local->board_w; col++)
-        {
-            local->dirty[row][col] = 1;
-        }
-    }
-}
-
 static void hello_game_snapshot_board(hello_game_view_t *local)
 {
     memcpy(local->prev_board, local->board, sizeof(local->prev_board));
@@ -142,14 +147,26 @@ static void hello_game_mark_changed_cells(hello_game_view_t *local)
 static void hello_game_flush_dirty_cells(hello_game_view_t *local)
 {
     uint8_t dirty_count = 0;
+    uint8_t span_count = 0;
 
     for (uint8_t row = 0; row < local->board_h; row++)
     {
+        uint8_t in_span = 0;
+
         for (uint8_t col = 0; col < local->board_w; col++)
         {
             if (local->dirty[row][col])
             {
                 dirty_count++;
+                if (!in_span)
+                {
+                    span_count++;
+                    in_span = 1;
+                }
+            }
+            else
+            {
+                in_span = 0;
             }
         }
     }
@@ -159,7 +176,7 @@ static void hello_game_flush_dirty_cells(hello_game_view_t *local)
         return;
     }
 
-    if (dirty_count > 12)
+    if (span_count > 12)
     {
         hello_game_invalidate_board(local);
     }
@@ -167,13 +184,30 @@ static void hello_game_flush_dirty_cells(hello_game_view_t *local)
     {
         for (uint8_t row = 0; row < local->board_h; row++)
         {
-            for (uint8_t col = 0; col < local->board_w; col++)
+            uint8_t col = 0;
+
+            while (col < local->board_w)
             {
-                if (local->dirty[row][col])
+                uint8_t start_col;
+
+                while (col < local->board_w && !local->dirty[row][col])
                 {
-                    hello_game_invalidate_rect(local, (egui_dim_t)(local->board_x + col * local->cell_px), (egui_dim_t)(local->board_y + row * local->cell_px),
-                                               local->cell_px, local->cell_px);
+                    col++;
                 }
+                if (col >= local->board_w)
+                {
+                    break;
+                }
+
+                start_col = col;
+                while (col < local->board_w && local->dirty[row][col])
+                {
+                    col++;
+                }
+
+                hello_game_invalidate_rect(local, (egui_dim_t)(local->board_x + start_col * local->cell_px),
+                                           (egui_dim_t)(local->board_y + row * local->cell_px), (egui_dim_t)((col - start_col) * local->cell_px),
+                                           local->cell_px);
             }
         }
     }
@@ -234,7 +268,7 @@ static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
     }
 
     hello_game_region_init(&title_active_region, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, HG_HUD_HEIGHT);
-    if (!egui_canvas_is_region_active(canvas, &title_active_region))
+    if (!hello_game_is_local_region_active(local, canvas, &title_active_region))
     {
         return;
     }
@@ -251,21 +285,21 @@ static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
     hello_game_draw_text_center(canvas, state_text, &state_region, EGUI_COLOR_WHITE);
 }
 
-static void hello_game_draw_base_cell(hello_game_view_t *local, egui_canvas_t *canvas, uint8_t col, uint8_t row, egui_color_t color)
+static uint8_t hello_game_draw_base_cell(hello_game_view_t *local, egui_canvas_t *canvas, uint8_t col, uint8_t row, egui_color_t color)
 {
     egui_dim_t cell_px = local->cell_px;
     egui_dim_t x = (egui_dim_t)(local->board_x + col * cell_px);
     egui_dim_t y = (egui_dim_t)(local->board_y + row * cell_px);
-    egui_region_t screen_region;
+    egui_region_t local_region;
 
-    hello_game_region_init(&screen_region, x + EGUI_VIEW_OF(local)->region_screen.location.x, y + EGUI_VIEW_OF(local)->region_screen.location.y, cell_px,
-                           cell_px);
-    if (!egui_canvas_is_region_active(canvas, &screen_region))
+    hello_game_region_init(&local_region, x, y, cell_px, cell_px);
+    if (!hello_game_is_local_region_active(local, canvas, &local_region))
     {
-        return;
+        return 0;
     }
 
     egui_canvas_draw_rectangle_fill(canvas, x + 1, y + 1, cell_px - 2, cell_px - 2, color, EGUI_ALPHA_100);
+    return 1;
 }
 
 static void hello_game_draw_link_cell(hello_game_view_t *local, egui_canvas_t *canvas, uint8_t col, uint8_t row, uint8_t value)
@@ -274,7 +308,10 @@ static void hello_game_draw_link_cell(hello_game_view_t *local, egui_canvas_t *c
     egui_region_t text_region;
     egui_color_t color = value == 0 ? EGUI_COLOR_MAKE(26, 31, 40) : hello_game_palette(value - 1);
 
-    hello_game_draw_base_cell(local, canvas, col, row, color);
+    if (!hello_game_draw_base_cell(local, canvas, col, row, color))
+    {
+        return;
+    }
     if (value != 0)
     {
         snprintf(label, sizeof(label), "%u", value);
@@ -306,7 +343,10 @@ static void hello_game_draw_2048_cell(hello_game_view_t *local, egui_canvas_t *c
         number = (uint16_t)(1U << value);
     }
 
-    hello_game_draw_base_cell(local, canvas, col, row, color);
+    if (!hello_game_draw_base_cell(local, canvas, col, row, color))
+    {
+        return;
+    }
     if (value != 0)
     {
         snprintf(label, sizeof(label), "%u", number);
@@ -332,7 +372,10 @@ static void hello_game_draw_mine_cell(hello_game_view_t *local, egui_canvas_t *c
         color = EGUI_COLOR_MAKE(220, 70, 80);
     }
 
-    hello_game_draw_base_cell(local, canvas, col, row, color);
+    if (!hello_game_draw_base_cell(local, canvas, col, row, color))
+    {
+        return;
+    }
     hello_game_region_init(&text_region, (egui_dim_t)(local->board_x + col * local->cell_px), (egui_dim_t)(local->board_y + row * local->cell_px),
                            local->cell_px, local->cell_px);
 
@@ -369,7 +412,10 @@ static void hello_game_draw_sokoban_cell(hello_game_view_t *local, egui_canvas_t
         return;
     }
 
-    hello_game_draw_base_cell(local, canvas, col, row, EGUI_COLOR_MAKE(28, 34, 44));
+    if (!hello_game_draw_base_cell(local, canvas, col, row, EGUI_COLOR_MAKE(28, 34, 44)))
+    {
+        return;
+    }
     if ((value & HG_SOKO_TARGET) != 0)
     {
         egui_canvas_draw_circle_fill(canvas, x + cell_px / 2, y + cell_px / 2, cell_px / 5, EGUI_COLOR_MAKE(80, 180, 120), EGUI_ALPHA_100);
@@ -442,8 +488,7 @@ static void hello_game_draw_grid(hello_game_view_t *local, egui_canvas_t *canvas
     egui_region_t screen_region;
 
     hello_game_get_board_region(local, &board_region);
-    hello_game_region_init(&screen_region, board_region.location.x + EGUI_VIEW_OF(local)->region_screen.location.x,
-                           board_region.location.y + EGUI_VIEW_OF(local)->region_screen.location.y, board_region.size.width, board_region.size.height);
+    hello_game_local_region_to_screen(local, &board_region, &screen_region);
     if (!egui_canvas_is_region_active(canvas, &screen_region))
     {
         return;
@@ -493,9 +538,9 @@ static void hello_game_draw_tetris_piece(hello_game_view_t *local, egui_canvas_t
         {
             egui_dim_t rect_x = (egui_dim_t)(local->board_x + cell_x * local->cell_px);
             egui_dim_t rect_y = (egui_dim_t)(local->board_y + cell_y * local->cell_px);
-            egui_region_t screen_region;
-            hello_game_region_init(&screen_region, rect_x, rect_y, local->cell_px, local->cell_px);
-            if (egui_canvas_is_region_active(canvas, &screen_region))
+            egui_region_t local_region;
+            hello_game_region_init(&local_region, rect_x, rect_y, local->cell_px, local->cell_px);
+            if (hello_game_is_local_region_active(local, canvas, &local_region))
             {
                 egui_canvas_draw_rectangle_fill(canvas, rect_x + 1, rect_y + 1, local->cell_px - 2, local->cell_px - 2, hello_game_palette(piece),
                                                 EGUI_ALPHA_100);
@@ -519,7 +564,7 @@ static void hello_game_draw_physics(hello_game_view_t *local, egui_canvas_t *can
     egui_dim_t radius = local->aux2;
 
     hello_game_get_arena(local, &arena);
-    hello_game_region_init(&screen_arena, arena.location.x, arena.location.y, arena.size.width, arena.size.height);
+    hello_game_local_region_to_screen(local, &arena, &screen_arena);
     if (!egui_canvas_is_region_active(canvas, &screen_arena))
     {
         return;
@@ -752,7 +797,8 @@ static void hello_game_physics_move_paddle(hello_game_view_t *local, int16_t del
     if (old_x != local->aux0)
     {
         egui_dim_t paddle_y = (egui_dim_t)(arena.location.y + arena.size.height - 18);
-        hello_game_invalidate_rect(local, old_x, paddle_y - 2, local->aux1 + (egui_dim_t)EGUI_ABS((int16_t)local->aux0 - (int16_t)old_x), 14);
+        hello_game_invalidate_rect(local, EGUI_MIN(old_x, local->aux0), paddle_y - 2, local->aux1 + (egui_dim_t)EGUI_ABS((int16_t)local->aux0 - (int16_t)old_x),
+                                   14);
     }
 }
 
@@ -1703,7 +1749,7 @@ static void hello_game_reset(hello_game_view_t *local)
         break;
     }
     hello_game_snapshot_board(local);
-    hello_game_mark_all_cells_dirty(local);
+    memset(local->dirty, 0, sizeof(local->dirty));
 }
 
 void hello_game_view_record_step(hello_game_view_t *local, uint8_t step)
