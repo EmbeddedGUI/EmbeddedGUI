@@ -25,6 +25,16 @@ static void hello_game_record_click(egui_sim_action_t *p_action, int x, int y, i
     p_action->interval_ms = interval_ms;
     p_action->display_id = 0;
 }
+
+static uint8_t hello_game_record_is_brick_breaker(hello_game_view_t *view)
+{
+    return (uint8_t)(view != NULL && view->descriptor != NULL && view->descriptor->kind == HELLO_GAME_KIND_BRICK_BREAKER);
+}
+
+static uint8_t hello_game_record_is_bouncy_ball(hello_game_view_t *view)
+{
+    return (uint8_t)(view != NULL && view->descriptor != NULL && view->descriptor->kind == HELLO_GAME_KIND_BOUNCY_BALL);
+}
 #endif
 
 hello_game_view_t *hello_game_get_view(void)
@@ -80,11 +90,6 @@ static void hello_game_record_key(hello_game_view_t *view, uint8_t key_code)
     hello_game_record_key_event(view, EGUI_KEY_EVENT_ACTION_UP, key_code);
 }
 
-static uint8_t hello_game_record_is_physics(hello_game_view_t *view)
-{
-    return (uint8_t)(view != NULL && view->descriptor != NULL &&
-                     (view->descriptor->kind == HELLO_GAME_KIND_BOUNCY_BALL || view->descriptor->kind == HELLO_GAME_KIND_BRICK_BREAKER));
-}
 #endif
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
@@ -122,7 +127,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         if (first_call)
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-            if (hello_game_record_is_physics(view))
+            if (hello_game_record_is_brick_breaker(view))
             {
                 hello_game_record_key_event(view, EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_RIGHT);
             }
@@ -141,7 +146,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         if (first_call)
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-            if (hello_game_record_is_physics(view))
+            if (hello_game_record_is_brick_breaker(view))
             {
                 hello_game_record_key_event(view, EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_RIGHT);
             }
@@ -149,6 +154,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 #endif
             {
                 hello_game_view_record_step(view, 0);
+                if (hello_game_record_is_bouncy_ball(view))
+                {
+                    hello_game_view_record_step(view, 1);
+                    hello_game_view_record_step(view, 2);
+                }
             }
             recording_request_snapshot();
         }

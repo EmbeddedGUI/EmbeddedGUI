@@ -15,6 +15,7 @@
 #define HG_DIR_LEFT        3
 #define HG_DIR_NONE        4
 #define HG_PADDLE_STEP     12
+#define HG_BOUNCY_IMPULSE  14
 #define HG_SNAKE_EMPTY     0
 #define HG_SNAKE_BODY      1
 #define HG_SNAKE_FOOD      2
@@ -806,16 +807,19 @@ static void hello_game_physics_init(hello_game_view_t *local, uint8_t brick_brea
     hello_game_setup_board(local, 10, 4, 20);
     local->board_x = 20;
     local->board_y = 92;
-    for (uint8_t row = 0; row < local->board_h; row++)
+    if (brick_breaker)
     {
-        for (uint8_t col = 0; col < local->board_w; col++)
+        for (uint8_t row = 0; row < local->board_h; row++)
         {
-            local->board[row][col] = (uint8_t)(1 + (row + col) % 6);
+            for (uint8_t col = 0; col < local->board_w; col++)
+            {
+                local->board[row][col] = (uint8_t)(1 + (row + col) % 6);
+            }
         }
     }
-    local->x[0] = 70;
+    local->x[0] = brick_breaker ? 70 : (int16_t)(EGUI_CONFIG_SCREEN_WIDTH / 2 - 10);
     local->y[0] = 214;
-    local->vx = brick_breaker ? 4 : 3;
+    local->vx = brick_breaker ? 4 : 2;
     local->vy = brick_breaker ? -5 : -3;
     local->ay = brick_breaker ? 0 : 1;
     local->aux0 = (uint8_t)((EGUI_CONFIG_SCREEN_WIDTH - 58) / 2);
@@ -935,8 +939,13 @@ static void hello_game_physics_tick(hello_game_view_t *local)
     if (local->vy > 0 && old_bottom <= paddle_y && new_bottom >= paddle_y && ball_right >= local->aux0 && ball_left <= local->aux0 + local->aux1)
     {
         int16_t offset = local->x[0] - (int16_t)(local->aux0 + local->aux1 / 2);
+        int16_t bounce_speed = (int16_t)(EGUI_ABS(local->vy) + 1);
         local->y[0] = (int16_t)(paddle_y - local->aux2);
-        local->vy = (int16_t)-(EGUI_ABS(local->vy) + 1);
+        if (local->descriptor->kind == HELLO_GAME_KIND_BOUNCY_BALL && bounce_speed < HG_BOUNCY_IMPULSE)
+        {
+            bounce_speed = HG_BOUNCY_IMPULSE;
+        }
+        local->vy = (int16_t)-bounce_speed;
         local->vx = (int16_t)(offset / 9);
         if (local->vx == 0)
         {
@@ -951,30 +960,33 @@ static void hello_game_physics_tick(hello_game_view_t *local)
         hello_game_invalidate_hud(local);
     }
 
-    for (uint8_t row = 0; row < local->board_h; row++)
+    if (local->descriptor->kind == HELLO_GAME_KIND_BRICK_BREAKER)
     {
-        for (uint8_t col = 0; col < local->board_w; col++)
+        for (uint8_t row = 0; row < local->board_h; row++)
         {
-            if (local->board[row][col] != 0)
+            for (uint8_t col = 0; col < local->board_w; col++)
             {
-                egui_dim_t brick_x = (egui_dim_t)(local->board_x + col * local->cell_px);
-                egui_dim_t brick_y = (egui_dim_t)(local->board_y + row * local->cell_px);
-                if (hello_game_rect_contains_point(brick_x, brick_y, local->cell_px, local->cell_px, local->x[0], local->y[0]))
+                if (local->board[row][col] != 0)
                 {
-                    local->board[row][col] = 0;
-                    local->vy = (int16_t)-local->vy;
-                    local->score = (uint16_t)(local->score + 5U);
-                    score_changed = 1;
-                    row = local->board_h;
-                    break;
+                    egui_dim_t brick_x = (egui_dim_t)(local->board_x + col * local->cell_px);
+                    egui_dim_t brick_y = (egui_dim_t)(local->board_y + row * local->cell_px);
+                    if (hello_game_rect_contains_point(brick_x, brick_y, local->cell_px, local->cell_px, local->x[0], local->y[0]))
+                    {
+                        local->board[row][col] = 0;
+                        local->vy = (int16_t)-local->vy;
+                        local->score = (uint16_t)(local->score + 5U);
+                        score_changed = 1;
+                        row = local->board_h;
+                        break;
+                    }
                 }
             }
         }
-    }
-    if (!hello_game_physics_any_brick(local))
-    {
-        local->state = HG_STATE_WIN;
-        hello_game_invalidate_hud(local);
+        if (!hello_game_physics_any_brick(local))
+        {
+            local->state = HG_STATE_WIN;
+            hello_game_invalidate_hud(local);
+        }
     }
     if (score_changed)
     {
