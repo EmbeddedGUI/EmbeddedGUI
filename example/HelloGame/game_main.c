@@ -1,11 +1,31 @@
 #include "game_app.h"
 #include "uicode_disp0.h"
 
+#define HG_RECORD_RESET_X         (EGUI_CONFIG_SCREEN_WIDTH - 82)
+#define HG_RECORD_BUTTON_Y        19
+#define HG_RECORD_PAUSE_X         (EGUI_CONFIG_SCREEN_WIDTH - 34)
+#define HG_RECORD_CLICK_DELAY_MS  80
+#define HG_RECORD_ACTION_DELAY_MS 220
+
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_PORT == EGUI_PORT_TYPE_PC
 #include "sdl_port.h"
 #endif
 
 static hello_game_view_t game_view;
+
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
+static void hello_game_record_click(egui_sim_action_t *p_action, int x, int y, int interval_ms)
+{
+    p_action->type = EGUI_SIM_ACTION_CLICK;
+    p_action->x1 = x;
+    p_action->y1 = y;
+    p_action->x2 = 0;
+    p_action->y2 = 0;
+    p_action->steps = 0;
+    p_action->interval_ms = interval_ms;
+    p_action->display_id = 0;
+}
+#endif
 
 hello_game_view_t *hello_game_get_view(void)
 {
@@ -68,13 +88,26 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
+        hello_game_record_click(p_action, HG_RECORD_PAUSE_X, HG_RECORD_BUTTON_Y, HG_RECORD_CLICK_DELAY_MS);
+        return true;
+    case 1:
         if (first_call)
         {
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 250);
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
         return true;
-    case 1:
+    case 2:
+        hello_game_record_click(p_action, HG_RECORD_PAUSE_X, HG_RECORD_BUTTON_Y, HG_RECORD_CLICK_DELAY_MS);
+        return true;
+    case 3:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
+        return true;
+    case 4:
         if (first_call)
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -84,17 +117,17 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 #endif
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 300);
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
         return true;
-    case 2:
+    case 5:
         if (first_call)
         {
             hello_game_view_record_step(view, 0);
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 300);
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
         return true;
-    case 3:
+    case 6:
         if (first_call)
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -104,9 +137,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 #endif
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 300);
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
         return true;
-    case 4:
+    case 7:
         if (first_call)
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -116,9 +149,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 #endif
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 300);
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
         return true;
-    case 5:
+    case 8:
         if (first_call)
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -129,17 +162,48 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 #endif
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 300);
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
         return true;
-    case 6:
+    case 9:
+        hello_game_record_click(p_action, HG_RECORD_PAUSE_X, HG_RECORD_BUTTON_Y, HG_RECORD_CLICK_DELAY_MS);
+        return true;
+    case 10:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
+        return true;
+    case 11:
         if (first_call)
         {
             hello_game_view_record_step(view, 1);
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 300);
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
         return true;
-    case 7:
+    case 12:
+        hello_game_record_click(p_action, HG_RECORD_PAUSE_X, HG_RECORD_BUTTON_Y, HG_RECORD_CLICK_DELAY_MS);
+        return true;
+    case 13:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
+        return true;
+    case 14:
+        if (first_call)
+        {
+            hello_game_view_record_step(view, 2);
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, HG_RECORD_ACTION_DELAY_MS);
+        return true;
+    case 15:
+        hello_game_record_click(p_action, HG_RECORD_RESET_X, HG_RECORD_BUTTON_Y, HG_RECORD_ACTION_DELAY_MS);
+        return true;
+    case 16:
         if (first_call)
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY

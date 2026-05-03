@@ -107,6 +107,39 @@ static void hello_game_get_board_region(hello_game_view_t *local, egui_region_t 
                            (egui_dim_t)(local->board_h * local->cell_px));
 }
 
+static void hello_game_get_pause_region(egui_region_t *region)
+{
+    hello_game_region_init(region, EGUI_CONFIG_SCREEN_WIDTH - 60, 8, 52, 22);
+}
+
+static void hello_game_get_reset_region(egui_region_t *region)
+{
+    hello_game_region_init(region, EGUI_CONFIG_SCREEN_WIDTH - 100, 8, 36, 22);
+}
+
+static void hello_game_get_level_region(egui_region_t *region)
+{
+    hello_game_region_init(region, EGUI_CONFIG_SCREEN_WIDTH - 130, 8, 28, 20);
+}
+
+static void hello_game_invalidate_pause_region(hello_game_view_t *local)
+{
+    egui_region_t region;
+
+    hello_game_get_pause_region(&region);
+    hello_game_invalidate_rect(local, region.location.x, region.location.y, region.size.width, region.size.height);
+}
+
+static uint8_t hello_game_region_contains_point(const egui_region_t *region, int16_t x, int16_t y)
+{
+    return (uint8_t)egui_region_pt_in_rect(region, x, y);
+}
+
+static uint8_t hello_game_is_tap_in_region(const egui_region_t *region, int16_t down_x, int16_t down_y, int16_t up_x, int16_t up_y)
+{
+    return (uint8_t)(hello_game_region_contains_point(region, down_x, down_y) && hello_game_region_contains_point(region, up_x, up_y));
+}
+
 static void hello_game_invalidate_board(hello_game_view_t *local)
 {
     egui_region_t region;
@@ -255,6 +288,7 @@ static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
     char score_text[32];
     const char *state_text = local->paused ? "PAUSE" : "RUN";
     egui_region_t state_region;
+    egui_region_t reset_region;
     egui_region_t level_region;
     egui_region_t title_active_region;
 
@@ -277,9 +311,15 @@ static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
     snprintf(score_text, sizeof(score_text), "Score %u", local->score);
     hello_game_draw_text(canvas, score_text, 8, 30, EGUI_COLOR_MAKE(190, 210, 230));
     snprintf(score_text, sizeof(score_text), "L%u", local->descriptor->level);
-    hello_game_region_init(&level_region, EGUI_CONFIG_SCREEN_WIDTH - 84, 8, 32, 20);
+    hello_game_get_level_region(&level_region);
     hello_game_draw_text_center(canvas, score_text, &level_region, EGUI_COLOR_MAKE(190, 210, 230));
-    hello_game_region_init(&state_region, EGUI_CONFIG_SCREEN_WIDTH - 52, 8, 44, 22);
+
+    hello_game_get_reset_region(&reset_region);
+    egui_canvas_draw_round_rectangle_fill(canvas, reset_region.location.x, reset_region.location.y, reset_region.size.width, reset_region.size.height, 5,
+                                          EGUI_COLOR_MAKE(62, 72, 88), EGUI_ALPHA_100);
+    hello_game_draw_text_center(canvas, "RST", &reset_region, EGUI_COLOR_WHITE);
+
+    hello_game_get_pause_region(&state_region);
     egui_canvas_draw_round_rectangle_fill(canvas, state_region.location.x, state_region.location.y, state_region.size.width, state_region.size.height, 5,
                                           local->state == HG_STATE_RUNNING ? EGUI_COLOR_MAKE(42, 90, 120) : EGUI_COLOR_MAKE(150, 70, 80), EGUI_ALPHA_100);
     hello_game_draw_text_center(canvas, state_text, &state_region, EGUI_COLOR_WHITE);
@@ -1593,6 +1633,30 @@ static void hello_game_on_detach_from_window(egui_view_t *self)
     egui_view_on_detach_from_window(self);
 }
 
+static void hello_game_toggle_pause(hello_game_view_t *local)
+{
+    if (local == NULL || local->state != HG_STATE_RUNNING)
+    {
+        return;
+    }
+
+    local->paused = (uint8_t)!local->paused;
+    hello_game_invalidate_pause_region(local);
+    hello_game_update_timer(EGUI_VIEW_OF(local));
+}
+
+static void hello_game_restart(hello_game_view_t *local)
+{
+    if (local == NULL)
+    {
+        return;
+    }
+
+    hello_game_reset(local);
+    hello_game_update_timer(EGUI_VIEW_OF(local));
+    egui_view_invalidate(EGUI_VIEW_OF(local));
+}
+
 static void hello_game_click_cell(hello_game_view_t *local, int16_t local_x, int16_t local_y)
 {
     int16_t col = (int16_t)((local_x - local->board_x) / local->cell_px);
@@ -1676,7 +1740,8 @@ static int hello_game_on_touch_event(egui_view_t *self, egui_motion_event_t *eve
         local->down_y = local_y;
         return 1;
     case EGUI_MOTION_EVENT_ACTION_MOVE:
-        if (local->dragging && (local->descriptor->kind == HELLO_GAME_KIND_BOUNCY_BALL || local->descriptor->kind == HELLO_GAME_KIND_BRICK_BREAKER))
+        if (local->dragging && local->down_y >= HG_HUD_HEIGHT &&
+            (local->descriptor->kind == HELLO_GAME_KIND_BOUNCY_BALL || local->descriptor->kind == HELLO_GAME_KIND_BRICK_BREAKER))
         {
             hello_game_set_paddle_from_touch(local, local_x);
         }
@@ -1686,7 +1751,25 @@ static int hello_game_on_touch_event(egui_view_t *self, egui_motion_event_t *eve
         {
             int16_t dx = (int16_t)(local_x - local->down_x);
             int16_t dy = (int16_t)(local_y - local->down_y);
+            egui_region_t pause_region;
+            egui_region_t reset_region;
             local->dragging = 0;
+            hello_game_get_pause_region(&pause_region);
+            if (hello_game_is_tap_in_region(&pause_region, local->down_x, local->down_y, local_x, local_y))
+            {
+                hello_game_toggle_pause(local);
+                return 1;
+            }
+            hello_game_get_reset_region(&reset_region);
+            if (hello_game_is_tap_in_region(&reset_region, local->down_x, local->down_y, local_x, local_y))
+            {
+                hello_game_restart(local);
+                return 1;
+            }
+            if (local->down_y < HG_HUD_HEIGHT)
+            {
+                return 1;
+            }
             if (EGUI_ABS(dx) > 16 || EGUI_ABS(dy) > 16)
             {
                 if (EGUI_ABS(dx) > EGUI_ABS(dy))
@@ -1717,18 +1800,6 @@ static int hello_game_on_touch_event(egui_view_t *self, egui_motion_event_t *eve
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-static void hello_game_toggle_pause(hello_game_view_t *local)
-{
-    if (local->state != HG_STATE_RUNNING)
-    {
-        return;
-    }
-
-    local->paused = (uint8_t)!local->paused;
-    hello_game_invalidate_hud(local);
-    hello_game_update_timer(EGUI_VIEW_OF(local));
-}
-
 static int hello_game_on_key_event(egui_view_t *self, egui_key_event_t *event)
 {
     hello_game_view_t *local = (hello_game_view_t *)self;
@@ -1783,9 +1854,7 @@ static int hello_game_on_key_event(egui_view_t *self, egui_key_event_t *event)
         hello_game_toggle_pause(local);
         return 1;
     case EGUI_KEY_CODE_R:
-        hello_game_reset(local);
-        hello_game_update_timer(self);
-        egui_view_invalidate(self);
+        hello_game_restart(local);
         return 1;
     default:
         return 0;
