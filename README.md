@@ -353,7 +353,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (`uicode_disp0.c` / `uico
 
 ---
 
-## 📚 示例应用（22 个）
+## 📚 示例应用（23 个）
 
 | 示例 | 说明 |
 |------|------|
@@ -364,6 +364,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (`uicode_disp0.c` / `uico
 | `HelloVirtual` | **19 个 Virtual 控件示例** |
 | `HelloCanvas` | 绘图图元展示 |
 | `HelloChart` | 图表控件演示 |
+| `HelloDirty` | 脏区刷新局部重绘演示 |
 | `HelloGradient` | 渐变填充效果 |
 | `HelloLayer` | Z 轴图层演示 |
 | `HelloMultiDisplay` | 双屏 Activity 与多 core 录制验证 |

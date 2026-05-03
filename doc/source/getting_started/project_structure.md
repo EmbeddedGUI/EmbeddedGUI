@@ -167,6 +167,7 @@ src/
 | `HelloAPP` | 基于 `egui_page_base_t` 的多页面应用示例 |
 | `HelloCanvas` | 画布绘图 API 演示 |
 | `HelloChart` | 图表控件演示 |
+| `HelloDirty` | 脏区刷新局部重绘演示 |
 | `HelloEasyPage` | 简易分页应用 |
 | `HelloGradient` | 渐变效果演示 |
 | `HelloLayer` | Layer 机制演示 |
