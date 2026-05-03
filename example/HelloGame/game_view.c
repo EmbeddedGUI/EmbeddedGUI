@@ -334,6 +334,11 @@ static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
         state_text = "OVER";
         show_state = 1;
     }
+    else if (!local->paused && local->descriptor->kind == HELLO_GAME_KIND_SNAKE && local->input_dir == HG_DIR_NONE)
+    {
+        state_text = "WAIT";
+        show_state = 1;
+    }
 
     hello_game_region_init(&title_active_region, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, HG_HUD_HEIGHT);
     if (!hello_game_is_local_region_active(local, canvas, &title_active_region))
@@ -722,19 +727,19 @@ static void hello_game_snake_init(hello_game_view_t *local)
     }
 
     local->x[0] = 5;
-    local->y[0] = 7;
+    local->y[0] = 2;
     local->x[1] = 4;
-    local->y[1] = 7;
+    local->y[1] = 2;
     local->x[2] = 3;
-    local->y[2] = 7;
+    local->y[2] = 2;
     local->count = 3;
-    local->input_dir = HG_DIR_RIGHT;
-    local->pending_dir = HG_DIR_RIGHT;
+    local->input_dir = HG_DIR_NONE;
+    local->pending_dir = HG_DIR_NONE;
     for (uint8_t i = 0; i < local->count; i++)
     {
         local->board[local->y[i]][local->x[i]] = HG_SNAKE_BODY;
     }
-    local->board[7][9] = HG_SNAKE_FOOD;
+    local->board[2][8] = HG_SNAKE_FOOD;
 }
 
 static uint8_t hello_game_is_opposite_dir(uint8_t a, uint8_t b)
@@ -755,9 +760,13 @@ static void hello_game_snake_tick(hello_game_view_t *local)
     {
         return;
     }
+    if (local->input_dir == HG_DIR_NONE)
+    {
+        return;
+    }
 
     hello_game_snapshot_board(local);
-    if (!hello_game_is_opposite_dir(local->input_dir, local->pending_dir))
+    if (local->pending_dir != HG_DIR_NONE && !hello_game_is_opposite_dir(local->input_dir, local->pending_dir))
     {
         local->input_dir = local->pending_dir;
     }
@@ -800,6 +809,30 @@ static void hello_game_snake_tick(hello_game_view_t *local)
 
     hello_game_mark_changed_cells(local);
     hello_game_flush_dirty_cells(local);
+}
+
+static uint8_t hello_game_snake_cell_blocked(hello_game_view_t *local, uint8_t dir)
+{
+    static const int8_t dx[] = {0, 1, 0, -1};
+    static const int8_t dy[] = {-1, 0, 1, 0};
+    int16_t next_x;
+    int16_t next_y;
+    uint8_t next_cell;
+
+    if (dir > HG_DIR_LEFT)
+    {
+        return 1;
+    }
+
+    next_x = local->x[0] + dx[dir];
+    next_y = local->y[0] + dy[dir];
+    if (next_x < 0 || next_y < 0 || next_x >= local->board_w || next_y >= local->board_h)
+    {
+        return 1;
+    }
+
+    next_cell = local->board[next_y][next_x];
+    return (uint8_t)(next_cell == HG_SNAKE_WALL || next_cell == HG_SNAKE_BODY);
 }
 
 static void hello_game_physics_init(hello_game_view_t *local, uint8_t brick_breaker)
@@ -1571,7 +1604,19 @@ static void hello_game_apply_direction(hello_game_view_t *local, uint8_t dir)
     switch (local->descriptor->kind)
     {
     case HELLO_GAME_KIND_SNAKE:
-        local->pending_dir = dir;
+        if (local->input_dir == HG_DIR_NONE)
+        {
+            if (!hello_game_snake_cell_blocked(local, dir))
+            {
+                local->input_dir = dir;
+                local->pending_dir = dir;
+                hello_game_invalidate_pause_region(local);
+            }
+        }
+        else
+        {
+            local->pending_dir = dir;
+        }
         break;
     case HELLO_GAME_KIND_BOUNCY_BALL:
     case HELLO_GAME_KIND_BRICK_BREAKER:
