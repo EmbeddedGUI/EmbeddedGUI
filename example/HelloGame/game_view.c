@@ -18,6 +18,11 @@
 #define HG_BOUNCY_IMPULSE           14
 #define HG_TETRIS_PREVIEW_CELL      7
 #define HG_TETRIS_CLEAR_FLASH_TICKS 4
+#define HG_HUD_LEFT_X               4
+#define HG_HUD_LEFT_WIDTH           (EGUI_CONFIG_SCREEN_WIDTH - 136)
+#define HG_HUD_TITLE_Y              6
+#define HG_HUD_METRIC_Y             28
+#define HG_HUD_TEXT_HEIGHT          22
 #define HG_SNAKE_EMPTY              0
 #define HG_SNAKE_BODY               1
 #define HG_SNAKE_FOOD               2
@@ -100,11 +105,6 @@ static void hello_game_invalidate_rect(hello_game_view_t *local, egui_dim_t x, e
     egui_view_invalidate_region(EGUI_VIEW_OF(local), &region);
 }
 
-static void hello_game_invalidate_hud(hello_game_view_t *local)
-{
-    hello_game_invalidate_rect(local, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, HG_HUD_HEIGHT);
-}
-
 static void hello_game_get_board_region(hello_game_view_t *local, egui_region_t *region)
 {
     hello_game_region_init(region, local->board_x, local->board_y, (egui_dim_t)(local->board_w * local->cell_px),
@@ -129,6 +129,24 @@ static void hello_game_get_reset_region(egui_region_t *region)
 static void hello_game_get_level_region(egui_region_t *region)
 {
     hello_game_region_init(region, EGUI_CONFIG_SCREEN_WIDTH - 130, 8, 28, 20);
+}
+
+static void hello_game_get_title_region(egui_region_t *region)
+{
+    hello_game_region_init(region, HG_HUD_LEFT_X, HG_HUD_TITLE_Y, HG_HUD_LEFT_WIDTH, HG_HUD_TEXT_HEIGHT);
+}
+
+static void hello_game_get_metric_region(egui_region_t *region)
+{
+    hello_game_region_init(region, HG_HUD_LEFT_X, HG_HUD_METRIC_Y, HG_HUD_LEFT_WIDTH, HG_HUD_TEXT_HEIGHT);
+}
+
+static void hello_game_invalidate_metric_region(hello_game_view_t *local)
+{
+    egui_region_t region;
+
+    hello_game_get_metric_region(&region);
+    hello_game_invalidate_rect(local, region.location.x, region.location.y, region.size.width, region.size.height);
 }
 
 static void hello_game_invalidate_pause_region(hello_game_view_t *local)
@@ -337,10 +355,11 @@ static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
     char hud_text[32];
     const char *state_text = local->paused ? "PAUSE" : "RUN";
     uint8_t show_state = hello_game_can_pause(local);
+    egui_region_t title_region;
+    egui_region_t metric_region;
     egui_region_t state_region;
     egui_region_t reset_region;
     egui_region_t level_region;
-    egui_region_t title_active_region;
 
     if (local->state == HG_STATE_WIN)
     {
@@ -358,30 +377,44 @@ static void hello_game_draw_hud(hello_game_view_t *local, egui_canvas_t *canvas)
         show_state = 1;
     }
 
-    hello_game_region_init(&title_active_region, 0, 0, EGUI_CONFIG_SCREEN_WIDTH, HG_HUD_HEIGHT);
-    if (!hello_game_is_local_region_active(local, canvas, &title_active_region))
+    hello_game_get_title_region(&title_region);
+    if (hello_game_is_local_region_active(local, canvas, &title_region))
     {
-        return;
+        hello_game_draw_text(canvas, local->descriptor->title, 8, 8, EGUI_COLOR_WHITE);
     }
 
-    hello_game_draw_text(canvas, local->descriptor->title, 8, 8, EGUI_COLOR_WHITE);
-    hello_game_format_metric(local, hud_text, sizeof(hud_text));
-    hello_game_draw_text(canvas, hud_text, 8, 30, EGUI_COLOR_MAKE(190, 210, 230));
-    snprintf(hud_text, sizeof(hud_text), "L%u", local->descriptor->level);
-    hello_game_get_level_region(&level_region);
-    hello_game_draw_text_center(canvas, hud_text, &level_region, EGUI_COLOR_MAKE(190, 210, 230));
+    hello_game_get_metric_region(&metric_region);
+    if (hello_game_is_local_region_active(local, canvas, &metric_region))
+    {
+        hello_game_format_metric(local, hud_text, sizeof(hud_text));
+        hello_game_draw_text(canvas, hud_text, 8, 30, EGUI_COLOR_MAKE(190, 210, 230));
+    }
 
     hello_game_get_reset_region(&reset_region);
-    egui_canvas_draw_round_rectangle_fill(canvas, reset_region.location.x, reset_region.location.y, reset_region.size.width, reset_region.size.height, 5,
-                                          EGUI_COLOR_MAKE(62, 72, 88), EGUI_ALPHA_100);
-    hello_game_draw_text_center(canvas, "RST", &reset_region, EGUI_COLOR_WHITE);
+    if (hello_game_is_local_region_active(local, canvas, &reset_region))
+    {
+        egui_canvas_draw_round_rectangle_fill(canvas, reset_region.location.x, reset_region.location.y, reset_region.size.width, reset_region.size.height, 5,
+                                              EGUI_COLOR_MAKE(62, 72, 88), EGUI_ALPHA_100);
+        hello_game_draw_text_center(canvas, "RST", &reset_region, EGUI_COLOR_WHITE);
+    }
+
+    hello_game_get_level_region(&level_region);
+    if (hello_game_is_local_region_active(local, canvas, &level_region))
+    {
+        snprintf(hud_text, sizeof(hud_text), "L%u", local->descriptor->level);
+        hello_game_draw_text_center(canvas, hud_text, &level_region, EGUI_COLOR_MAKE(190, 210, 230));
+    }
 
     if (show_state)
     {
         hello_game_get_pause_region(&state_region);
-        egui_canvas_draw_round_rectangle_fill(canvas, state_region.location.x, state_region.location.y, state_region.size.width, state_region.size.height, 5,
-                                              local->state == HG_STATE_RUNNING ? EGUI_COLOR_MAKE(42, 90, 120) : EGUI_COLOR_MAKE(150, 70, 80), EGUI_ALPHA_100);
-        hello_game_draw_text_center(canvas, state_text, &state_region, EGUI_COLOR_WHITE);
+        if (hello_game_is_local_region_active(local, canvas, &state_region))
+        {
+            egui_canvas_draw_round_rectangle_fill(canvas, state_region.location.x, state_region.location.y, state_region.size.width, state_region.size.height,
+                                                  5, local->state == HG_STATE_RUNNING ? EGUI_COLOR_MAKE(42, 90, 120) : EGUI_COLOR_MAKE(150, 70, 80),
+                                                  EGUI_ALPHA_100);
+            hello_game_draw_text_center(canvas, state_text, &state_region, EGUI_COLOR_WHITE);
+        }
     }
 }
 
@@ -872,7 +905,7 @@ static void hello_game_snake_tick(hello_game_view_t *local)
     if (next_cell == HG_SNAKE_WALL || next_cell == HG_SNAKE_BODY)
     {
         local->state = HG_STATE_OVER;
-        hello_game_invalidate_hud(local);
+        hello_game_invalidate_pause_region(local);
         return;
     }
 
@@ -884,7 +917,7 @@ static void hello_game_snake_tick(hello_game_view_t *local)
     {
         local->count++;
         local->score = (uint16_t)(local->score + 10U);
-        hello_game_invalidate_hud(local);
+        hello_game_invalidate_metric_region(local);
     }
 
     for (uint8_t i = local->count - 1; i > 0; i--)
@@ -1083,7 +1116,7 @@ static void hello_game_physics_tick(hello_game_view_t *local)
     else if (local->y[0] + local->aux2 >= arena.location.y + arena.size.height)
     {
         local->state = HG_STATE_OVER;
-        hello_game_invalidate_hud(local);
+        hello_game_invalidate_pause_region(local);
     }
 
     if (local->descriptor->kind == HELLO_GAME_KIND_BRICK_BREAKER)
@@ -1111,12 +1144,12 @@ static void hello_game_physics_tick(hello_game_view_t *local)
         if (!hello_game_physics_any_brick(local))
         {
             local->state = HG_STATE_WIN;
-            hello_game_invalidate_hud(local);
+            hello_game_invalidate_pause_region(local);
         }
     }
     if (score_changed)
     {
-        hello_game_invalidate_hud(local);
+        hello_game_invalidate_metric_region(local);
     }
     hello_game_mark_changed_cells(local);
     hello_game_flush_dirty_cells(local);
@@ -1214,7 +1247,7 @@ static void hello_game_link_select(hello_game_view_t *local, uint8_t col, uint8_
         local->board[row][col] = 0;
         local->score++;
         local->aux0 = 0;
-        hello_game_invalidate_hud(local);
+        hello_game_invalidate_metric_region(local);
     }
     else
     {
@@ -1227,7 +1260,7 @@ static void hello_game_link_select(hello_game_view_t *local, uint8_t col, uint8_
     if (local->score >= 32U)
     {
         local->state = HG_STATE_WIN;
-        hello_game_invalidate_hud(local);
+        hello_game_invalidate_pause_region(local);
     }
     hello_game_mark_changed_cells(local);
     hello_game_flush_dirty_cells(local);
@@ -1307,6 +1340,7 @@ static void hello_game_2048_spawn(hello_game_view_t *local)
 static void hello_game_2048_move(hello_game_view_t *local, uint8_t dir)
 {
     uint8_t changed = 0;
+    uint16_t old_score = local->score;
 
     hello_game_snapshot_board(local);
     for (uint8_t i = 0; i < 4; i++)
@@ -1329,7 +1363,10 @@ static void hello_game_2048_move(hello_game_view_t *local, uint8_t dir)
     if (changed)
     {
         hello_game_2048_spawn(local);
-        hello_game_invalidate_hud(local);
+        if (local->score != old_score)
+        {
+            hello_game_invalidate_metric_region(local);
+        }
     }
     hello_game_mark_changed_cells(local);
     hello_game_flush_dirty_cells(local);
@@ -1377,7 +1414,7 @@ static void hello_game_tetris_spawn(hello_game_view_t *local)
     if (hello_game_tetris_collision(local, local->aux0, local->aux1, local->x[0], local->y[0]))
     {
         local->state = HG_STATE_OVER;
-        hello_game_invalidate_hud(local);
+        hello_game_invalidate_pause_region(local);
     }
 }
 
@@ -1469,7 +1506,7 @@ static void hello_game_tetris_finish_clear_lines(hello_game_view_t *local)
     local->score = (uint16_t)(local->score + 100U * local->count);
     local->count = 0;
     local->aux3 = 0;
-    hello_game_invalidate_hud(local);
+    hello_game_invalidate_metric_region(local);
     hello_game_mark_changed_cells(local);
     hello_game_flush_dirty_cells(local);
     hello_game_tetris_spawn(local);
@@ -1654,7 +1691,7 @@ static void hello_game_mines_reveal(hello_game_view_t *local, uint8_t col, uint8
     if ((value & HG_MINE_BOMB) != 0)
     {
         local->state = HG_STATE_OVER;
-        hello_game_invalidate_hud(local);
+        hello_game_invalidate_pause_region(local);
     }
     else
     {
@@ -1677,8 +1714,9 @@ static void hello_game_mines_reveal(hello_game_view_t *local, uint8_t col, uint8
         if (local->score >= 88U)
         {
             local->state = HG_STATE_WIN;
+            hello_game_invalidate_pause_region(local);
         }
-        hello_game_invalidate_hud(local);
+        hello_game_invalidate_metric_region(local);
     }
     hello_game_mark_changed_cells(local);
     hello_game_flush_dirty_cells(local);
@@ -1773,8 +1811,9 @@ static void hello_game_sokoban_move(hello_game_view_t *local, uint8_t dir)
     if (hello_game_sokoban_is_win(local))
     {
         local->state = HG_STATE_WIN;
+        hello_game_invalidate_pause_region(local);
     }
-    hello_game_invalidate_hud(local);
+    hello_game_invalidate_metric_region(local);
     hello_game_mark_changed_cells(local);
     hello_game_flush_dirty_cells(local);
 }
