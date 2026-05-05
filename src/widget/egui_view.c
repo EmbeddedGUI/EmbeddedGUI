@@ -2082,14 +2082,28 @@ int egui_view_on_key_event(egui_view_t *self, egui_key_event_t *event)
     // If clickable, ENTER key triggers click
     if (self->is_clickable)
     {
-        if (event->type == EGUI_KEY_EVENT_ACTION_UP && event->key_code == EGUI_KEY_CODE_ENTER)
+        if (event->key_code == EGUI_KEY_CODE_ENTER || event->key_code == EGUI_KEY_CODE_SPACE)
         {
-            egui_view_perform_click(self);
-            return 1;
-        }
-        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN && event->key_code == EGUI_KEY_CODE_ENTER)
-        {
-            return 1; // consume the down event
+            if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+            {
+                egui_view_set_pressed(self, true);
+                return 1;
+            }
+            if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+            {
+                int should_click = self->is_pressed;
+
+                egui_view_set_pressed(self, false);
+                if (should_click)
+                {
+                    egui_view_perform_click(self);
+                }
+                return 1;
+            }
+            if (event->type == EGUI_KEY_EVENT_ACTION_LONG_PRESS || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
+            {
+                return 1;
+            }
         }
     }
 

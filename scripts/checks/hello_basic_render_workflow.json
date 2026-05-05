@@ -246,6 +246,14 @@
       "min_interaction_transitions": 2,
       "require_runtime_marker": true
     },
+    "progress_bar": {
+      "expected_actions": [
+        "wait"
+      ],
+      "min_case_count": 8,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
     "radio_button": {
       "expected_actions": [
         "click",

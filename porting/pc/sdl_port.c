@@ -1145,6 +1145,10 @@ void VT_sdl_refresh_task(void)
             target_display = sdl_get_display_for_window(event.key.windowID);
 #endif
             target_core = egui_port_get_core_by_display_id(target_display);
+            if (event.type == SDL_KEYDOWN && event.key.repeat)
+            {
+                key_type = EGUI_KEY_EVENT_ACTION_REPEAT;
+            }
             switch (event.key.keysym.sym)
             {
             // Navigation

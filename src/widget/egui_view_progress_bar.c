@@ -112,13 +112,27 @@ void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process)
     }
 }
 
-// static void egui_view_progress_bar_on_click(egui_view_t *self)
-// {
-//     egui_view_progress_bar_t *local = (egui_view_progress_bar_t *)self;
-//     EGUI_UNUSED(local);
+static int egui_view_progress_bar_step_process(egui_view_t *self, egui_view_progress_bar_t *local, int8_t delta)
+{
+    int16_t process = local->process;
 
-//     // egui_view_progress_bar_set_switch_on(self, !local->is_checked);
-// }
+    process = (int16_t)(process + delta);
+    if (process < 0)
+    {
+        process = 0;
+    }
+    if (process > 100)
+    {
+        process = 100;
+    }
+    if (process == local->process)
+    {
+        return 0;
+    }
+
+    egui_view_progress_bar_set_process(self, (uint8_t)process);
+    return 1;
+}
 
 /**
  * @brief Draw the track, filled progress span, and optional control knob.
@@ -181,6 +195,44 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int egui_view_progress_bar_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_progress_bar_t);
+
+    if (self->is_enable == false || event == NULL)
+    {
+        return 0;
+    }
+
+    if (event->key_code != EGUI_KEY_CODE_LEFT && event->key_code != EGUI_KEY_CODE_RIGHT)
+    {
+        return egui_view_on_key_event(self, event);
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+    {
+        egui_view_set_pressed(self, true);
+        egui_view_progress_bar_step_process(self, local, (event->key_code == EGUI_KEY_CODE_RIGHT) ? 1 : -1);
+        return 1;
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_LONG_PRESS || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
+    {
+        egui_view_progress_bar_step_process(self, local, (event->key_code == EGUI_KEY_CODE_RIGHT) ? 1 : -1);
+        return 1;
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+    {
+        egui_view_set_pressed(self, false);
+        return 1;
+    }
+
+    return 1;
+}
+#endif
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_progress_bar_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
         .on_touch_event = egui_view_on_touch_event,
@@ -194,7 +246,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_progress_bar_t) = {
         .on_detach_from_window = egui_view_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
-        .on_key_event = egui_view_on_key_event,
+        .on_key_event = egui_view_progress_bar_on_key_event,
 #endif
 };
 
@@ -218,7 +270,9 @@ void egui_view_progress_bar_init(egui_view_t *self, egui_core_t *core)
     local->progress_color = EGUI_THEME_PRIMARY;
     local->control_color = EGUI_THEME_THUMB;
     local->is_show_control = 0; // Default off for standard progress bar
-    // egui_view_set_on_click_listener(self, egui_view_progress_bar_on_click);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
+#endif
 
     egui_view_set_view_name(self, "egui_view_progress_bar");
 }

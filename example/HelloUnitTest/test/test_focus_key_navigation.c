@@ -20,6 +20,10 @@ static egui_view_t view_gone;
 static egui_view_group_t state_parent;
 static egui_view_t state_child;
 static egui_view_t click_view;
+static egui_view_t click_space_view;
+static egui_view_t click_blur_view;
+static egui_view_t click_blur_target_view;
+static egui_view_progress_bar_t progress_bar;
 static egui_view_textinput_t keyboard_textinput;
 static egui_view_keyboard_t keyboard_view;
 static int g_click_count;
@@ -314,10 +318,96 @@ static void test_enter_invokes_click_without_touch_path(void)
 
     egui_focus_manager_set_focus(core, &click_view);
     test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_ENTER);
+    EGUI_TEST_ASSERT_TRUE(click_view.is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_click_count);
     test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_ENTER);
 
     EGUI_TEST_ASSERT_EQUAL_INT(1, g_click_count);
+    EGUI_TEST_ASSERT_FALSE(click_view.is_pressed);
     EGUI_TEST_ASSERT_TRUE(click_view.is_focusable);
+}
+
+static void test_space_invokes_click_with_pressed_lifecycle(void)
+{
+    egui_core_t *core = test_focus_key_get_core();
+
+    egui_focus_manager_clear_focus(core);
+    egui_view_init(&click_space_view, core);
+    egui_view_set_focusable(&click_space_view, true);
+    egui_view_set_on_click_listener(&click_space_view, test_focus_key_click_cb);
+    g_click_count = 0;
+
+    egui_focus_manager_set_focus(core, &click_space_view);
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_SPACE);
+    EGUI_TEST_ASSERT_TRUE(click_space_view.is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_click_count);
+
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_REPEAT, EGUI_KEY_CODE_SPACE);
+    EGUI_TEST_ASSERT_TRUE(click_space_view.is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_click_count);
+
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_SPACE);
+    EGUI_TEST_ASSERT_FALSE(click_space_view.is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_click_count);
+
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_SPACE);
+    EGUI_TEST_ASSERT_FALSE(click_space_view.is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_click_count);
+}
+
+static void test_progress_bar_key_press_repeat_and_long_press(void)
+{
+    egui_core_t *core = test_focus_key_get_core();
+
+    egui_focus_manager_clear_focus(core);
+    egui_view_progress_bar_init(EGUI_VIEW_OF(&progress_bar), core);
+    egui_view_progress_bar_set_process(EGUI_VIEW_OF(&progress_bar), 50);
+    egui_focus_manager_set_focus(core, EGUI_VIEW_OF(&progress_bar));
+    EGUI_TEST_ASSERT_TRUE(egui_focus_manager_get_focused_view(core) == EGUI_VIEW_OF(&progress_bar));
+
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_RIGHT);
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&progress_bar)->is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(51, progress_bar.process);
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_REPEAT, EGUI_KEY_CODE_RIGHT);
+    EGUI_TEST_ASSERT_EQUAL_INT(52, progress_bar.process);
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_LONG_PRESS, EGUI_KEY_CODE_RIGHT);
+    EGUI_TEST_ASSERT_EQUAL_INT(53, progress_bar.process);
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_RIGHT);
+    EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&progress_bar)->is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(53, progress_bar.process);
+
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_LEFT);
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&progress_bar)->is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(52, progress_bar.process);
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_REPEAT, EGUI_KEY_CODE_LEFT);
+    EGUI_TEST_ASSERT_EQUAL_INT(51, progress_bar.process);
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_LEFT);
+    EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&progress_bar)->is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(51, progress_bar.process);
+}
+
+static void test_pressed_state_clears_on_focus_loss(void)
+{
+    egui_core_t *core = test_focus_key_get_core();
+
+    egui_focus_manager_clear_focus(core);
+    egui_view_init(&click_blur_view, core);
+    egui_view_init(&click_blur_target_view, core);
+    egui_view_set_focusable(&click_blur_view, true);
+    egui_view_set_focusable(&click_blur_target_view, true);
+    egui_view_set_on_click_listener(&click_blur_view, test_focus_key_click_cb);
+    g_click_count = 0;
+
+    egui_focus_manager_set_focus(core, &click_blur_view);
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_ENTER);
+    EGUI_TEST_ASSERT_TRUE(click_blur_view.is_pressed);
+
+    egui_focus_manager_set_focus(core, &click_blur_target_view);
+    EGUI_TEST_ASSERT_FALSE(click_blur_view.is_pressed);
+    EGUI_TEST_ASSERT_TRUE(egui_focus_manager_get_focused_view(core) == &click_blur_target_view);
+
+    test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_ENTER);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_click_count);
 }
 
 static void test_core_widget_key_handlers(void)
@@ -495,6 +585,9 @@ void test_focus_key_navigation_run(void)
     EGUI_TEST_RUN(test_focus_clears_when_focused_view_becomes_unavailable);
     EGUI_TEST_RUN(test_focus_clears_when_focused_descendant_parent_becomes_unavailable);
     EGUI_TEST_RUN(test_enter_invokes_click_without_touch_path);
+    EGUI_TEST_RUN(test_space_invokes_click_with_pressed_lifecycle);
+    EGUI_TEST_RUN(test_progress_bar_key_press_repeat_and_long_press);
+    EGUI_TEST_RUN(test_pressed_state_clears_on_focus_loss);
     EGUI_TEST_RUN(test_core_widget_key_handlers);
     EGUI_TEST_RUN(test_combobox_closed_direction_moves_focus);
     EGUI_TEST_RUN(test_keyboard_keys_support_focus_navigation_and_hide);
