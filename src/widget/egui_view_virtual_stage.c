@@ -688,6 +688,7 @@ static uint8_t egui_view_virtual_stage_slot_focus_keeps_alive(const egui_view_vi
 }
 #endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void egui_view_virtual_stage_clear_transient_focus_if_needed(egui_view_virtual_stage_slot_t *slot)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
@@ -704,6 +705,7 @@ static void egui_view_virtual_stage_clear_transient_focus_if_needed(egui_view_vi
     EGUI_UNUSED(slot);
 #endif
 }
+#endif
 
 static void egui_view_virtual_stage_cancel_slot_capture(egui_view_virtual_stage_t *local, egui_view_virtual_stage_slot_t *slot)
 {

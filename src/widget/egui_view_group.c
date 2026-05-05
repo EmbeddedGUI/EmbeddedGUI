@@ -12,6 +12,7 @@
 
 extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static int egui_view_group_is_group_dispatch_view(egui_view_t *view)
 {
     return view != NULL && view->api != NULL && view->api->dispatch_touch_event == egui_view_group_dispatch_touch_event;
@@ -26,6 +27,7 @@ static int egui_view_group_dispatch_child_touch_event(egui_view_t *child, egui_m
 
     return child->api->dispatch_touch_event(child, event);
 }
+#endif
 
 static void egui_view_group_request_child_layout(egui_view_t *child)
 {
