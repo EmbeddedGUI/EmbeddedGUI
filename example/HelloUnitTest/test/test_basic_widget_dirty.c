@@ -273,6 +273,28 @@ static void attach_pressed_background(egui_view_t *view)
     egui_view_set_background(view, (egui_background_t *)&s_pressed_background.base);
 }
 
+static void get_number_picker_zone_screen_region(int8_t zone, egui_region_t *region)
+{
+    egui_dim_t third_h = EGUI_VIEW_OF(&test_picker)->region.size.height / 3;
+    egui_dim_t x = EGUI_VIEW_OF(&test_picker)->region_screen.location.x;
+    egui_dim_t y = EGUI_VIEW_OF(&test_picker)->region_screen.location.y;
+    egui_dim_t width = EGUI_VIEW_OF(&test_picker)->region.size.width;
+    egui_dim_t height = EGUI_VIEW_OF(&test_picker)->region.size.height;
+
+    if (zone > 0)
+    {
+        egui_region_init(region, x, y, width, third_h);
+    }
+    else if (zone < 0)
+    {
+        egui_region_init(region, x, y + height - third_h, width, third_h);
+    }
+    else
+    {
+        egui_region_init(region, x, y + third_h, width, height - third_h * 2);
+    }
+}
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void send_slider_touch(uint8_t type, egui_dim_t x, egui_dim_t y)
 {
@@ -387,28 +409,6 @@ static void send_calendar_touch(uint8_t type, egui_dim_t x, egui_dim_t y)
     event.location.y = y;
 
     EGUI_VIEW_OF(&test_calendar)->api->on_touch_event(EGUI_VIEW_OF(&test_calendar), &event);
-}
-
-static void get_number_picker_zone_screen_region(int8_t zone, egui_region_t *region)
-{
-    egui_dim_t third_h = EGUI_VIEW_OF(&test_picker)->region.size.height / 3;
-    egui_dim_t x = EGUI_VIEW_OF(&test_picker)->region_screen.location.x;
-    egui_dim_t y = EGUI_VIEW_OF(&test_picker)->region_screen.location.y;
-    egui_dim_t width = EGUI_VIEW_OF(&test_picker)->region.size.width;
-    egui_dim_t height = EGUI_VIEW_OF(&test_picker)->region.size.height;
-
-    if (zone > 0)
-    {
-        egui_region_init(region, x, y, width, third_h);
-    }
-    else if (zone < 0)
-    {
-        egui_region_init(region, x, y + height - third_h, width, third_h);
-    }
-    else
-    {
-        egui_region_init(region, x, y + third_h, width, height - third_h * 2);
-    }
 }
 
 static void get_number_picker_zone_center(int8_t zone, egui_dim_t *x, egui_dim_t *y)

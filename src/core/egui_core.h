@@ -99,6 +99,8 @@ struct egui_core
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     egui_core_touch_state_t touch; // touch/input owned state
+#elif EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    egui_input_t input; // key-only queued input state
 #endif
 
     egui_core_system_state_t system; // refresh/timer/focus owned state

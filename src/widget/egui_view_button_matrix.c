@@ -675,6 +675,163 @@ static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static void egui_view_button_matrix_commit_index(egui_view_t *self, egui_view_button_matrix_t *local, uint8_t index)
+{
+    uint8_t old_selected = local->selected_index;
+    uint8_t dirty_indices[2];
+    uint8_t dirty_count = 0;
+
+    if (index == EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE || index >= local->btn_count)
+    {
+        return;
+    }
+
+    if (local->selection_enabled)
+    {
+        local->selected_index = index;
+    }
+
+    if (local->on_click)
+    {
+        local->on_click(self, index);
+    }
+
+    if (local->selection_enabled)
+    {
+        dirty_indices[dirty_count++] = old_selected;
+        dirty_indices[dirty_count++] = local->selected_index;
+        egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, dirty_count);
+    }
+}
+
+static uint8_t egui_view_button_matrix_get_keyboard_index(egui_view_button_matrix_t *local)
+{
+    if (local->selected_index != EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE && local->selected_index < local->btn_count)
+    {
+        return local->selected_index;
+    }
+    if (local->pressed_index != EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE && local->pressed_index < local->btn_count)
+    {
+        return local->pressed_index;
+    }
+    return 0;
+}
+
+static int egui_view_button_matrix_move_keyboard_index(egui_view_t *self, egui_view_button_matrix_t *local, uint8_t key_code)
+{
+    uint8_t old_index;
+    uint8_t new_index;
+    uint8_t row;
+    uint8_t dirty_indices[2];
+
+    if (local->btn_count == 0 || local->cols == 0)
+    {
+        return 0;
+    }
+
+    old_index = egui_view_button_matrix_get_keyboard_index(local);
+    new_index = old_index;
+    row = (uint8_t)(old_index / local->cols);
+
+    switch (key_code)
+    {
+    case EGUI_KEY_CODE_LEFT:
+        if (old_index == 0)
+        {
+            return 0;
+        }
+        new_index = (uint8_t)(old_index - 1u);
+        break;
+    case EGUI_KEY_CODE_RIGHT:
+        if (old_index + 1u >= local->btn_count)
+        {
+            return 0;
+        }
+        new_index = (uint8_t)(old_index + 1u);
+        break;
+    case EGUI_KEY_CODE_UP:
+        if (row > 0)
+        {
+            new_index = (uint8_t)(old_index - local->cols);
+        }
+        else
+        {
+            return 0;
+        }
+        break;
+    case EGUI_KEY_CODE_DOWN:
+        if (old_index + local->cols < local->btn_count)
+        {
+            new_index = (uint8_t)(old_index + local->cols);
+        }
+        else
+        {
+            return 0;
+        }
+        break;
+    default:
+        return 0;
+    }
+
+    if (new_index >= local->btn_count)
+    {
+        return 0;
+    }
+
+    local->pressed_index = new_index;
+    if (local->selection_enabled)
+    {
+        local->selected_index = new_index;
+    }
+
+    dirty_indices[0] = old_index;
+    dirty_indices[1] = new_index;
+    egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, EGUI_ARRAY_SIZE(dirty_indices));
+    return 1;
+}
+
+static int egui_view_button_matrix_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+
+    if (self->is_enable == false || event == NULL || (local->labels == NULL && local->icons == NULL) || local->btn_count == 0 || local->cols == 0)
+    {
+        return 0;
+    }
+
+    switch (event->key_code)
+    {
+    case EGUI_KEY_CODE_LEFT:
+    case EGUI_KEY_CODE_RIGHT:
+    case EGUI_KEY_CODE_UP:
+    case EGUI_KEY_CODE_DOWN:
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
+        {
+            return egui_view_button_matrix_move_keyboard_index(self, local, event->key_code);
+        }
+        return 1;
+    case EGUI_KEY_CODE_ENTER:
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+        {
+            egui_view_button_matrix_commit_index(self, local, egui_view_button_matrix_get_keyboard_index(local));
+            return 1;
+        }
+        return 1;
+    default:
+        return egui_view_on_key_event(self, event);
+    }
+}
+#endif
+
 /* Use default view hooks for everything except button-matrix drawing and touch hit testing. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_matrix_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
@@ -693,7 +850,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_button_matrix_t) = {
         .on_detach_from_window = egui_view_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
-        .on_key_event = egui_view_on_key_event,
+        .on_key_event = egui_view_button_matrix_on_key_event,
 #endif
 };
 
@@ -724,6 +881,9 @@ void egui_view_button_matrix_init(egui_view_t *self, egui_core_t *core)
     local->icon_font = NULL;
     local->icon_text_gap = 2;
     local->on_click = NULL;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
+#endif
 
     egui_view_set_view_name(self, "egui_view_button_matrix");
 }

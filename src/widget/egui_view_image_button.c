@@ -297,6 +297,10 @@ void egui_view_image_button_init(egui_view_t *self, egui_core_t *core)
     local->content_color = EGUI_THEME_TEXT_PRIMARY;
     local->content_alpha = EGUI_ALPHA_100;
     local->icon_text_gap = 2;
+    egui_view_set_clickable(self, 1);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
+#endif
     egui_view_set_view_name(self, "egui_view_image_button");
 }
 

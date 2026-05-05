@@ -641,6 +641,53 @@ void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int egui_view_scroll_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_scroll_t);
+    egui_view_t *container = (egui_view_t *)&local->container;
+    egui_dim_t step;
+    int can_scroll;
+
+    if (self->is_enable == false || event == NULL)
+    {
+        return 0;
+    }
+
+    if (event->key_code != EGUI_KEY_CODE_UP && event->key_code != EGUI_KEY_CODE_DOWN)
+    {
+        return egui_view_on_key_event(self, event);
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+    {
+        return 1;
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_UP || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
+    {
+        step = self->region.size.height / 4;
+        if (step <= 0)
+        {
+            step = 20;
+        }
+
+        can_scroll = (event->key_code == EGUI_KEY_CODE_DOWN)
+                             ? ((container->region.location.y + container->region.size.height) > self->region.size.height)
+                             : (container->region.location.y < 0);
+        if (!can_scroll)
+        {
+            return 0;
+        }
+
+        egui_view_scroll_start_container_scroll(self, (event->key_code == EGUI_KEY_CODE_DOWN) ? -step : step);
+        return 1;
+    }
+
+    return 1;
+}
+#endif
+
 /** API table for the vertical scroll view widget. */
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_scroll_t) = {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -665,7 +712,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_scroll_t) = {
         .on_detach_from_window = egui_view_group_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_group_dispatch_key_event,
-        .on_key_event = egui_view_on_key_event,
+        .on_key_event = egui_view_scroll_on_key_event,
 #endif
 };
 
@@ -701,6 +748,9 @@ void egui_view_scroll_init(egui_view_t *self, egui_core_t *core)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
     local->is_scrollbar_enabled = 0;
     local->is_scrollbar_dragging = 0;
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
 #endif
 
     egui_view_set_view_name(self, "egui_view_scroll");

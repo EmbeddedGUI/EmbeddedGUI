@@ -22,6 +22,10 @@ static egui_core_t *g_test_setup_touch_register_core;
 static egui_core_t *g_test_setup_uicode_init_core;
 static egui_display_rotation_t g_test_setup_driver_rotation;
 static uint8_t g_test_setup_driver_brightness;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+static int g_view_focus_frame_draw_count;
+static egui_region_t g_view_focus_frame_draw_region;
+#endif
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_view_bg_normal_param, EGUI_COLOR_BLUE, EGUI_ALPHA_100);
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_view_bg_pressed_param, EGUI_COLOR_RED, EGUI_ALPHA_100);
@@ -65,6 +69,18 @@ static int test_view_send_touch(uint8_t type, egui_dim_t x, egui_dim_t y)
     event.location.x = x;
     event.location.y = y;
     return test_view.api->dispatch_touch_event(&test_view, &event);
+}
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+static void test_view_focus_frame_draw_cb(egui_view_t *self, const egui_region_t *frame_region)
+{
+    EGUI_UNUSED(self);
+    g_view_focus_frame_draw_count++;
+    if (frame_region != NULL)
+    {
+        egui_region_copy(&g_view_focus_frame_draw_region, frame_region);
+    }
 }
 #endif
 
@@ -1135,6 +1151,233 @@ static void test_view_request_focus_uses_bound_core_when_active_is_null(void)
     egui_focus_manager_clear_focus(core);
 }
 
+static void test_view_focus_frame_region_expands_body(void)
+{
+    egui_core_t *core = test_view_get_core();
+    egui_region_t frame_region;
+    egui_region_t expected;
+    egui_dim_t margin = 0;
+    egui_dim_t stroke = 0;
+    egui_color_t color = EGUI_COLOR_BLACK;
+    egui_alpha_t alpha = 0;
+
+    egui_view_init(&test_view, core);
+    test_view.region_screen.location.x = 10;
+    test_view.region_screen.location.y = 20;
+    test_view.region_screen.size.width = 40;
+    test_view.region_screen.size.height = 24;
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_get_focus_frame_visible(&test_view));
+    egui_view_get_focus_frame_style(&test_view, &margin, &stroke, &color, &alpha);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, margin);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, stroke);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_THEME_FOCUS.full, color.full);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_100, alpha);
+
+    egui_view_get_focus_frame_region(&test_view, &frame_region);
+
+    egui_region_init(&expected, 6, 16, 48, 32);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &frame_region);
+}
+
+static void test_view_focus_frame_style_expands_custom_region(void)
+{
+    egui_core_t *core = test_view_get_core();
+    egui_region_t frame_region;
+    egui_region_t expected;
+    egui_dim_t margin = 0;
+    egui_dim_t stroke = 0;
+    egui_color_t color = EGUI_COLOR_BLACK;
+    egui_alpha_t alpha = 0;
+
+    egui_view_init(&test_view, core);
+    test_view.region_screen.location.x = 10;
+    test_view.region_screen.location.y = 20;
+    test_view.region_screen.size.width = 40;
+    test_view.region_screen.size.height = 24;
+
+    egui_view_set_focus_frame_style(&test_view, 4, 3, EGUI_COLOR_ORANGE, EGUI_ALPHA_80);
+    egui_view_get_focus_frame_style(&test_view, &margin, &stroke, &color, &alpha);
+    EGUI_TEST_ASSERT_EQUAL_INT(4, margin);
+    EGUI_TEST_ASSERT_EQUAL_INT(3, stroke);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_COLOR_ORANGE.full, color.full);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_80, alpha);
+
+    egui_view_get_focus_frame_region(&test_view, &frame_region);
+
+    egui_region_init(&expected, 3, 13, 54, 38);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &frame_region);
+}
+
+static void test_view_focus_frame_hidden_or_zero_stroke_has_empty_region(void)
+{
+    egui_core_t *core = test_view_get_core();
+    egui_region_t frame_region;
+
+    egui_view_init(&test_view, core);
+    test_view.region_screen.location.x = 10;
+    test_view.region_screen.location.y = 20;
+    test_view.region_screen.size.width = 40;
+    test_view.region_screen.size.height = 24;
+
+    egui_view_set_focus_frame_visible(&test_view, 0);
+    egui_view_get_focus_frame_region(&test_view, &frame_region);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&frame_region));
+    EGUI_TEST_ASSERT_FALSE(egui_view_get_focus_frame_visible(&test_view));
+
+    egui_view_set_focus_frame_visible(&test_view, 1);
+    egui_view_set_focus_frame_style(&test_view, 4, 0, EGUI_COLOR_ORANGE, EGUI_ALPHA_80);
+    egui_view_get_focus_frame_region(&test_view, &frame_region);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&frame_region));
+}
+
+static void test_view_focus_change_invalidates_body_and_frame(void)
+{
+    egui_core_t *core = test_view_get_core();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
+    egui_region_t expected_dirty;
+
+    egui_focus_manager_clear_focus(core);
+
+    egui_view_init(&test_view, core);
+    test_view.is_focusable = true;
+    test_view.region_screen.location.x = 10;
+    test_view.region_screen.location.y = 20;
+    test_view.region_screen.size.width = 40;
+    test_view.region_screen.size.height = 24;
+    test_view.region.location.x = 10;
+    test_view.region.location.y = 20;
+    test_view.region.size.width = 40;
+    test_view.region.size.height = 24;
+
+    egui_core_clear_region_dirty(core);
+    egui_focus_manager_set_focus(core, &test_view);
+
+    egui_region_init(&expected_dirty, 6, 16, 48, 32);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected_dirty, &arr[0]);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
+
+    egui_focus_manager_clear_focus(core);
+}
+
+static void test_view_focus_change_without_common_frame_invalidates_body_only(void)
+{
+    egui_core_t *core = test_view_get_core();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
+
+    egui_focus_manager_clear_focus(core);
+
+    egui_view_init(&test_view, core);
+    test_view.is_focusable = true;
+    test_view.region_screen.location.x = 10;
+    test_view.region_screen.location.y = 20;
+    test_view.region_screen.size.width = 40;
+    test_view.region_screen.size.height = 24;
+    test_view.region.location.x = 10;
+    test_view.region.location.y = 20;
+    test_view.region.size.width = 40;
+    test_view.region.size.height = 24;
+    egui_view_set_focus_frame_visible(&test_view, 0);
+
+    egui_core_clear_region_dirty(core);
+    egui_focus_manager_set_focus(core, &test_view);
+
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[0]));
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
+    EGUI_TEST_ASSERT_TRUE(test_view.is_request_layout);
+
+    egui_focus_manager_clear_focus(core);
+}
+
+static void test_view_focus_frame_draw_callback_can_override_default_frame(void)
+{
+    egui_core_t *core = test_view_get_core();
+    egui_view_api_t focus_frame_api;
+    egui_region_t canvas_region;
+    egui_region_t expected;
+
+    egui_view_init(&test_view, core);
+    test_view.is_focused = true;
+    test_view.region_screen.location.x = 10;
+    test_view.region_screen.location.y = 20;
+    test_view.region_screen.size.width = 40;
+    test_view.region_screen.size.height = 24;
+    test_view.region.location.x = 10;
+    test_view.region.location.y = 20;
+    test_view.region.size.width = 40;
+    test_view.region.size.height = 24;
+
+    g_view_focus_frame_draw_count = 0;
+    egui_region_init_empty(&g_view_focus_frame_draw_region);
+    egui_view_override_api_on_draw_focus_frame(&test_view, &focus_frame_api, test_view_focus_frame_draw_cb);
+
+    egui_region_init(&canvas_region, 0, 0, core->screen_width, core->screen_height);
+    egui_canvas_init(&core->canvas, core, core->pfb, &canvas_region);
+    test_view.api->draw(&test_view);
+
+    egui_region_init(&expected, 6, 16, 48, 32);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_view_focus_frame_draw_count);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &g_view_focus_frame_draw_region);
+}
+
+static void test_view_focus_frame_invalidation_clips_to_parent(void)
+{
+    egui_core_t *core = test_view_get_core();
+    egui_view_group_t parent;
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
+    egui_region_t expected_dirty;
+
+    egui_view_group_init(EGUI_VIEW_OF(&parent), core);
+    EGUI_VIEW_OF(&parent)->region_screen.location.x = 0;
+    EGUI_VIEW_OF(&parent)->region_screen.location.y = 0;
+    EGUI_VIEW_OF(&parent)->region_screen.size.width = 50;
+    EGUI_VIEW_OF(&parent)->region_screen.size.height = 50;
+
+    egui_view_init(&test_view, core);
+    egui_view_group_add_child(EGUI_VIEW_OF(&parent), &test_view);
+    test_view.region_screen.location.x = 2;
+    test_view.region_screen.location.y = 3;
+    test_view.region_screen.size.width = 20;
+    test_view.region_screen.size.height = 15;
+
+    egui_core_clear_region_dirty(core);
+    egui_view_invalidate_focus_region(&test_view);
+
+    egui_region_init(&expected_dirty, 0, 0, 26, 22);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected_dirty, &arr[0]);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
+
+    egui_view_group_remove_child(EGUI_VIEW_OF(&parent), &test_view);
+}
+
+static void test_view_hide_focused_view_invalidates_focus_frame_before_clear(void)
+{
+    egui_core_t *core = test_view_get_core();
+    egui_region_t *arr = egui_core_get_region_dirty_arr(core);
+    egui_region_t expected_dirty;
+
+    egui_focus_manager_clear_focus(core);
+    egui_view_init(&test_view, core);
+    test_view.is_focusable = true;
+    test_view.region_screen.location.x = 10;
+    test_view.region_screen.location.y = 20;
+    test_view.region_screen.size.width = 40;
+    test_view.region_screen.size.height = 24;
+
+    egui_focus_manager_set_focus(core, &test_view);
+    egui_core_clear_region_dirty(core);
+
+    egui_view_set_visible(&test_view, 0);
+
+    egui_region_init(&expected_dirty, 6, 16, 48, 32);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected_dirty, &arr[0]);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
+    EGUI_TEST_ASSERT_NULL(egui_focus_manager_get_focused_view(core));
+    EGUI_TEST_ASSERT_FALSE(test_view.is_focused);
+
+    test_view.is_visible = 1;
+}
+
 static void test_view_request_focus_without_bound_core_is_noop(void)
 {
     egui_core_t *core = test_view_get_core();
@@ -1227,6 +1470,14 @@ void test_view_run(void)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     EGUI_TEST_RUN(test_view_focus_helpers_bridge_core_focus_manager);
     EGUI_TEST_RUN(test_view_request_focus_uses_bound_core_when_active_is_null);
+    EGUI_TEST_RUN(test_view_focus_frame_region_expands_body);
+    EGUI_TEST_RUN(test_view_focus_frame_style_expands_custom_region);
+    EGUI_TEST_RUN(test_view_focus_frame_hidden_or_zero_stroke_has_empty_region);
+    EGUI_TEST_RUN(test_view_focus_change_invalidates_body_and_frame);
+    EGUI_TEST_RUN(test_view_focus_change_without_common_frame_invalidates_body_only);
+    EGUI_TEST_RUN(test_view_focus_frame_draw_callback_can_override_default_frame);
+    EGUI_TEST_RUN(test_view_focus_frame_invalidation_clips_to_parent);
+    EGUI_TEST_RUN(test_view_hide_focused_view_invalidates_focus_frame_before_clear);
     EGUI_TEST_RUN(test_view_request_focus_without_bound_core_is_noop);
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH

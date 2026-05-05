@@ -23,10 +23,14 @@
 #include "egui_key_event.h"
 #endif
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 /* Convenience macro: dereference the active input state stored inside the core. */
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 #define egui_input_info (core->touch.input)
+#elif EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+#define egui_input_info (core->input)
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 #define input_motion_pool              (egui_input_info.motion_pool)
 #define input_motion_pool_fifo_storage (egui_input_info.motion_pool_fifo_storage)
 #define input_motion_pool_data_storage (egui_input_info.motion_pool_data_storage)
@@ -366,9 +370,9 @@ void egui_input_key_init(egui_core_t *core)
 
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 
-#if !EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && !EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+#if !EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
-/** No-op stub used when both touch and key support are compiled out. */
+/** No-op stub used when touch support is compiled out. */
 int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_dim_t y)
 {
     EGUI_UNUSED(core);
@@ -378,37 +382,37 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
     return 0;
 }
 
-/** No-op stub used when both touch and key support are compiled out. */
+/** No-op stub used when touch support is compiled out. */
 egui_float_t egui_input_get_velocity_x(egui_core_t *core)
 {
     EGUI_UNUSED(core);
     return 0;
 }
 
-/** No-op stub used when both touch and key support are compiled out. */
+/** No-op stub used when touch support is compiled out. */
 egui_float_t egui_input_get_velocity_y(egui_core_t *core)
 {
     EGUI_UNUSED(core);
     return 0;
 }
 
-/** No-op stub used when both touch and key support are compiled out. */
+/** No-op stub used when touch support is compiled out. */
 int egui_input_check_idle(egui_core_t *core)
 {
     EGUI_UNUSED(core);
     return 1;
 }
 
-/** No-op stub used when both touch and key support are compiled out. */
+/** No-op stub used when touch support is compiled out. */
 void egui_input_polling_work(egui_core_t *core)
 {
     EGUI_UNUSED(core);
 }
 
-/** No-op stub used when both touch and key support are compiled out. */
+/** No-op stub used when touch support is compiled out. */
 void egui_input_init(egui_core_t *core)
 {
     EGUI_UNUSED(core);
 }
 
-#endif
+#endif // !EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH

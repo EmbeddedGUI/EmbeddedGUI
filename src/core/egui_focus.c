@@ -2,6 +2,7 @@
 
 #include "egui_focus.h"
 #include "egui_core.h"
+#include "egui_key_event.h"
 #include "widget/egui_view.h"
 #include "widget/egui_view_group.h"
 
@@ -30,24 +31,40 @@ static void egui_focus_set_view_focused(egui_view_t *view, int is_focused)
         view->api->on_focus_changed(view, is_focused);
     }
     egui_view_invalidate(view);
+    egui_view_invalidate_focus_region(view);
 }
 
 /** Replace the current focused view with a new one, clearing the old target first. */
 void egui_focus_manager_set_focus(egui_core_t *core, egui_view_t *view)
 {
+    if (core == NULL)
+    {
+        return;
+    }
+
+    if (view != NULL && !egui_focus_view_is_focusable(view))
+    {
+        view = NULL;
+    }
+
     if (core->system.focus_manager.focused_view == view)
     {
         return;
     }
 
-    // Clear the previously focused view before assigning the new target.
-    if (core->system.focus_manager.focused_view != NULL)
+    egui_view_t *old_view = core->system.focus_manager.focused_view;
+
+    // Publish the new target before callbacks so blur handlers can tell whether
+    // focus moved into a related subtree such as an on-screen keyboard.
+    core->system.focus_manager.focused_view = view;
+
+    // Clear the previously focused view before activating the new target.
+    if (old_view != NULL)
     {
-        egui_focus_set_view_focused(core->system.focus_manager.focused_view, 0);
+        egui_focus_set_view_focused(old_view, 0);
     }
 
     // Activate the new focus target, if one was requested.
-    core->system.focus_manager.focused_view = view;
     if (view != NULL)
     {
         egui_focus_set_view_focused(view, 1);
@@ -69,9 +86,27 @@ egui_view_t *egui_focus_manager_get_focused_view(egui_core_t *core)
 /**
  * Check if a view can receive focus.
  */
-static int egui_focus_view_is_focusable(egui_view_t *view)
+int egui_focus_view_is_focusable(egui_view_t *view)
 {
-    return view->is_focusable && view->is_enable && view->is_visible && !view->is_gone;
+    egui_view_t *current;
+
+    if (view == NULL || !view->is_focusable)
+    {
+        return 0;
+    }
+
+    current = view;
+    while (current != NULL)
+    {
+        if (!current->is_enable || !current->is_visible || current->is_gone)
+        {
+            return 0;
+        }
+
+        current = (egui_view_t *)current->parent;
+    }
+
+    return 1;
 }
 
 /**
@@ -95,7 +130,7 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
     {
         egui_view_t *current = stack[--stack_top];
 
-        if (!current->is_visible || current->is_gone)
+        if (!current->is_enable || !current->is_visible || current->is_gone)
         {
             continue;
         }
@@ -144,6 +179,114 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
 }
 
 #define FOCUS_MAX_FOCUSABLE_VIEWS 32
+
+static egui_dim_t egui_focus_region_center_x(const egui_region_t *region)
+{
+    return region->location.x + region->size.width / 2;
+}
+
+static egui_dim_t egui_focus_region_center_y(const egui_region_t *region)
+{
+    return region->location.y + region->size.height / 2;
+}
+
+static int egui_focus_key_is_direction(uint8_t key_code)
+{
+    return key_code == EGUI_KEY_CODE_UP || key_code == EGUI_KEY_CODE_DOWN || key_code == EGUI_KEY_CODE_LEFT || key_code == EGUI_KEY_CODE_RIGHT;
+}
+
+static int egui_focus_candidate_is_in_direction(uint8_t key_code, egui_dim_t current_x, egui_dim_t current_y, egui_dim_t candidate_x, egui_dim_t candidate_y)
+{
+    switch (key_code)
+    {
+    case EGUI_KEY_CODE_UP:
+        return candidate_y < current_y;
+    case EGUI_KEY_CODE_DOWN:
+        return candidate_y > current_y;
+    case EGUI_KEY_CODE_LEFT:
+        return candidate_x < current_x;
+    case EGUI_KEY_CODE_RIGHT:
+        return candidate_x > current_x;
+    default:
+        return 0;
+    }
+}
+
+static uint32_t egui_focus_get_spatial_score(uint8_t key_code, egui_dim_t current_x, egui_dim_t current_y, egui_dim_t candidate_x, egui_dim_t candidate_y)
+{
+    uint32_t primary;
+    uint32_t secondary;
+
+    if (key_code == EGUI_KEY_CODE_LEFT || key_code == EGUI_KEY_CODE_RIGHT)
+    {
+        primary = (uint32_t)EGUI_ABS(candidate_x - current_x);
+        secondary = (uint32_t)EGUI_ABS(candidate_y - current_y);
+    }
+    else
+    {
+        primary = (uint32_t)EGUI_ABS(candidate_y - current_y);
+        secondary = (uint32_t)EGUI_ABS(candidate_x - current_x);
+    }
+
+    return primary * 1024U + secondary;
+}
+
+static int egui_focus_ranges_overlap(egui_dim_t a_start, egui_dim_t a_end, egui_dim_t b_start, egui_dim_t b_end)
+{
+    return a_start < b_end && b_start < a_end;
+}
+
+static int egui_focus_candidate_is_in_beam(uint8_t key_code, const egui_region_t *current_region, const egui_region_t *candidate_region)
+{
+    if (key_code == EGUI_KEY_CODE_LEFT || key_code == EGUI_KEY_CODE_RIGHT)
+    {
+        egui_dim_t current_top = current_region->location.y;
+        egui_dim_t current_bottom = current_region->location.y + current_region->size.height;
+        egui_dim_t candidate_top = candidate_region->location.y;
+        egui_dim_t candidate_bottom = candidate_region->location.y + candidate_region->size.height;
+
+        return egui_focus_ranges_overlap(current_top, current_bottom, candidate_top, candidate_bottom);
+    }
+
+    if (key_code == EGUI_KEY_CODE_UP || key_code == EGUI_KEY_CODE_DOWN)
+    {
+        egui_dim_t current_left = current_region->location.x;
+        egui_dim_t current_right = current_region->location.x + current_region->size.width;
+        egui_dim_t candidate_left = candidate_region->location.x;
+        egui_dim_t candidate_right = candidate_region->location.x + candidate_region->size.width;
+
+        return egui_focus_ranges_overlap(current_left, current_right, candidate_left, candidate_right);
+    }
+
+    return 0;
+}
+
+static uint32_t egui_focus_axis_rank(egui_dim_t value)
+{
+    return (uint32_t)((int32_t)value + (int32_t)EGUI_DIM_MAX);
+}
+
+static uint32_t egui_focus_get_wrap_score(uint8_t key_code, const egui_region_t *screen_region, egui_dim_t current_x, egui_dim_t current_y)
+{
+    egui_dim_t candidate_x = egui_focus_region_center_x(screen_region);
+    egui_dim_t candidate_y = egui_focus_region_center_y(screen_region);
+    uint32_t secondary;
+    uint32_t edge;
+    uint32_t max_rank = (uint32_t)EGUI_DIM_MAX * 2U + 1U;
+
+    if (key_code == EGUI_KEY_CODE_LEFT || key_code == EGUI_KEY_CODE_RIGHT)
+    {
+        secondary = (uint32_t)EGUI_ABS(candidate_y - current_y);
+        edge = (key_code == EGUI_KEY_CODE_RIGHT) ? egui_focus_axis_rank(candidate_x) : (max_rank - egui_focus_axis_rank(candidate_x));
+    }
+    else
+    {
+        secondary = (uint32_t)EGUI_ABS(candidate_x - current_x);
+        edge = (key_code == EGUI_KEY_CODE_DOWN) ? egui_focus_axis_rank(candidate_y) : (max_rank - egui_focus_axis_rank(candidate_y));
+    }
+
+    return edge * 1024U + secondary;
+}
 
 /** Move focus to the next focusable view in traversal order, wrapping around at the end. */
 void egui_focus_manager_move_focus_next(egui_core_t *core)
@@ -215,6 +358,103 @@ void egui_focus_manager_move_focus_prev(egui_core_t *core)
         prev_idx = current_idx - 1;
     }
     egui_focus_manager_set_focus(core, focusable_list[prev_idx]);
+}
+
+int egui_focus_manager_move_focus_direction(egui_core_t *core, uint8_t key_code)
+{
+    egui_view_t *focusable_list[FOCUS_MAX_FOCUSABLE_VIEWS];
+    egui_view_group_t *root = egui_core_get_root_view(core);
+    egui_view_t *current;
+    egui_view_t *best = NULL;
+    egui_view_t *wrap_best = NULL;
+    int count;
+    egui_dim_t current_x = 0;
+    egui_dim_t current_y = 0;
+    uint32_t best_score = UINT32_MAX;
+    uint32_t wrap_score = UINT32_MAX;
+    int current_found = 0;
+    int best_is_in_beam = 0;
+
+    if (!egui_focus_key_is_direction(key_code))
+    {
+        return 0;
+    }
+
+    count = egui_focus_collect_focusable_views((egui_view_t *)root, focusable_list, FOCUS_MAX_FOCUSABLE_VIEWS);
+    if (count == 0)
+    {
+        return 0;
+    }
+
+    current = core->system.focus_manager.focused_view;
+    if (current != NULL && egui_focus_view_is_focusable(current))
+    {
+        for (int i = 0; i < count; i++)
+        {
+            if (focusable_list[i] == current)
+            {
+                current_found = 1;
+                break;
+            }
+        }
+    }
+
+    if (current == NULL || !current_found)
+    {
+        egui_focus_manager_set_focus(core, focusable_list[0]);
+        return 1;
+    }
+
+    current_x = egui_focus_region_center_x(&current->region_screen);
+    current_y = egui_focus_region_center_y(&current->region_screen);
+
+    for (int i = 0; i < count; i++)
+    {
+        egui_view_t *candidate = focusable_list[i];
+        egui_dim_t candidate_x;
+        egui_dim_t candidate_y;
+        uint32_t score;
+
+        if (candidate == current || egui_region_is_empty(&candidate->region_screen))
+        {
+            continue;
+        }
+
+        candidate_x = egui_focus_region_center_x(&candidate->region_screen);
+        candidate_y = egui_focus_region_center_y(&candidate->region_screen);
+        if (egui_focus_candidate_is_in_direction(key_code, current_x, current_y, candidate_x, candidate_y))
+        {
+            int candidate_is_in_beam = egui_focus_candidate_is_in_beam(key_code, &current->region_screen, &candidate->region_screen);
+
+            score = egui_focus_get_spatial_score(key_code, current_x, current_y, candidate_x, candidate_y);
+            if (best == NULL || (candidate_is_in_beam && !best_is_in_beam) || (candidate_is_in_beam == best_is_in_beam && score < best_score))
+            {
+                best_score = score;
+                best = candidate;
+                best_is_in_beam = candidate_is_in_beam;
+            }
+        }
+
+        score = egui_focus_get_wrap_score(key_code, &candidate->region_screen, current_x, current_y);
+        if (score < wrap_score)
+        {
+            wrap_score = score;
+            wrap_best = candidate;
+        }
+    }
+
+    if (best == NULL)
+    {
+        best = wrap_best;
+    }
+
+    if (best == NULL)
+    {
+        return 0;
+    }
+
+    egui_focus_manager_set_focus(core, best);
+    return 1;
 }
 
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS

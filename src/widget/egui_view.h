@@ -32,6 +32,8 @@ typedef int (*egui_view_on_key_listener_t)(egui_view_t *self, egui_key_event_t *
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 /** Focus-change listener for custom widgets. */
 typedef void (*egui_view_on_focus_change_listener_t)(egui_view_t *self, int is_focused);
+/** Custom focus-frame drawing hook. The canvas work region has already been clipped to the focus frame. */
+typedef void (*egui_view_on_draw_focus_frame_t)(egui_view_t *self, const egui_region_t *frame_region);
 #endif
 
 /** Virtual-method table used by every widget type. Custom widgets usually copy and override selected entries. */
@@ -50,6 +52,8 @@ struct egui_view_api
     void (*on_detach_from_window)(egui_view_t *self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     int (*on_touch)(egui_view_t *self, egui_motion_event_t *event);
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
     int (*perform_click)(egui_view_t *self);
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -59,6 +63,7 @@ struct egui_view_api
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     void (*on_focus_changed)(egui_view_t *self, int is_focused);
+    void (*on_draw_focus_frame)(egui_view_t *self, const egui_region_t *frame_region);
 #endif
 };
 
@@ -106,6 +111,7 @@ struct egui_view
     uint8_t is_focusable : 1;      // whether the view can receive focus
     uint8_t is_focused : 1;        // whether the view currently has focus
     uint8_t is_no_focus_clear : 1; // when touched, do not clear other views' focus (used by keyboard keys)
+    uint8_t is_focus_frame_visible : 1;
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
@@ -128,12 +134,19 @@ struct egui_view
 
     egui_background_t *background; // background
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
     egui_view_on_click_listener_t on_click_listener; // click listener is dense, keep it inline
-#endif                                               // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#endif                                               // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
     const egui_shadow_t *shadow; // shadow effect
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    egui_dim_t focus_frame_margin;
+    egui_dim_t focus_frame_stroke;
+    egui_color_t focus_frame_color;
+    egui_alpha_t focus_frame_alpha;
 #endif
 
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
@@ -170,6 +183,8 @@ egui_canvas_t *egui_view_get_canvas(egui_view_t *self);
 egui_view_t *egui_view_get_focused_view(egui_view_t *self);
 /** Clear focus on the owning core, if focus support is enabled. */
 void egui_view_clear_focus(egui_view_t *self);
+/** Return whether view is the same as ancestor or belongs to ancestor's subtree. */
+int egui_view_is_self_or_descendant_of(egui_view_t *view, egui_view_t *ancestor);
 /** Replace the active theme on the owning core. Passing NULL is ignored. */
 void egui_view_set_theme(egui_view_t *self, const egui_theme_t *theme);
 /** Return the activity that currently owns this view, or NULL when it is not inside one. */
@@ -237,8 +252,8 @@ void egui_view_scroll_by(egui_view_t *self, egui_dim_t x, egui_dim_t y);
 void egui_view_get_work_region(egui_view_t *self, egui_region_t *region);
 /** Copy the current API table so a custom widget can override selected callbacks. */
 void egui_view_copy_api(egui_view_t *self, egui_view_api_t *api);
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 /** Convenience helper for overriding only the touch callback in a copied API table. */
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 void egui_view_override_api_on_touch(egui_view_t *self, egui_view_api_t *api, egui_view_on_touch_listener_t listener);
 #endif
 
@@ -354,8 +369,22 @@ void egui_view_set_focusable(egui_view_t *self, int is_focusable);
 int egui_view_get_focusable(egui_view_t *self);
 /** Request focus for this view if it is visible, enabled, and focusable. */
 void egui_view_request_focus(egui_view_t *self);
+/** Enable or disable the common focus frame for this view. */
+void egui_view_set_focus_frame_visible(egui_view_t *self, int is_visible);
+/** Return whether the common focus frame is enabled for this view. */
+int egui_view_get_focus_frame_visible(egui_view_t *self);
+/** Set the common rectangular focus frame style used by this view. */
+void egui_view_set_focus_frame_style(egui_view_t *self, egui_dim_t margin, egui_dim_t stroke, egui_color_t color, egui_alpha_t alpha);
+/** Copy the common rectangular focus frame style used by this view. */
+void egui_view_get_focus_frame_style(egui_view_t *self, egui_dim_t *margin, egui_dim_t *stroke, egui_color_t *color, egui_alpha_t *alpha);
+/** Copy the screen-space rectangle used by the common focus frame. */
+void egui_view_get_focus_frame_region(egui_view_t *self, egui_region_t *region);
+/** Mark the common focus frame region dirty so focus changes erase/redraw cleanly. */
+void egui_view_invalidate_focus_region(egui_view_t *self);
 /** Convenience helper for overriding only the focus-change callback. */
 void egui_view_override_api_on_focus_changed(egui_view_t *self, egui_view_api_t *api, egui_view_on_focus_change_listener_t listener);
+/** Convenience helper for overriding only the focus-frame draw callback. */
+void egui_view_override_api_on_draw_focus_frame(egui_view_t *self, egui_view_api_t *api, egui_view_on_draw_focus_frame_t listener);
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER

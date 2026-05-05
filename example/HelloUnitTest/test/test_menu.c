@@ -162,6 +162,8 @@ static void test_menu_release_requires_same_hit_target(void)
 void test_menu_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(menu);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_menu_release_requires_same_hit_target);
+#endif
     EGUI_TEST_SUITE_END();
 }

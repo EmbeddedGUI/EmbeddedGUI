@@ -694,17 +694,19 @@ static int egui_view_segmented_control_on_key_event(egui_view_t *self, egui_key_
         if (next_index > 0)
         {
             next_index--;
+            egui_view_segmented_control_set_current_index(self, next_index);
+            return 1;
         }
-        egui_view_segmented_control_set_current_index(self, next_index);
-        return 1;
+        return 0;
     case EGUI_KEY_CODE_RIGHT:
     case EGUI_KEY_CODE_DOWN:
         if (next_index + 1 < count)
         {
             next_index++;
+            egui_view_segmented_control_set_current_index(self, next_index);
+            return 1;
         }
-        egui_view_segmented_control_set_current_index(self, next_index);
-        return 1;
+        return 0;
     case EGUI_KEY_CODE_HOME:
         egui_view_segmented_control_set_current_index(self, 0);
         return 1;

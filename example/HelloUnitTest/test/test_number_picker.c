@@ -136,6 +136,8 @@ static void test_number_picker_release_requires_same_zone(void)
 void test_number_picker_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(number_picker);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_number_picker_release_requires_same_zone);
+#endif
     EGUI_TEST_SUITE_END();
 }

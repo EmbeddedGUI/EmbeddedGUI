@@ -239,7 +239,7 @@ void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
     }
 }
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 /** Select this button when a completed click lands on it. */
 static int egui_view_radio_button_perform_click(egui_view_t *self)
 {
@@ -377,7 +377,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_radio_button_t) = {
         .on_attach_to_window = egui_view_on_attach_to_window,
         .on_draw = egui_view_radio_button_on_draw,
         .on_detach_from_window = egui_view_on_detach_from_window,
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .perform_click = egui_view_radio_button_perform_click,
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -410,6 +410,9 @@ void egui_view_radio_button_init(egui_view_t *self, egui_core_t *core)
     local->mark_icon = EGUI_ICON_MS_DONE;
     local->icon_font = NULL;
     self->is_clickable = true;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
+#endif
 
     egui_view_set_view_name(self, "egui_view_radio_button");
 }

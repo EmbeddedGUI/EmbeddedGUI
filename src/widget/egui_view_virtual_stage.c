@@ -665,12 +665,45 @@ static void egui_view_virtual_stage_clear_focus_if_needed(egui_view_t *view)
         egui_view_clear_focus(view);
     }
 }
+
+static uint8_t egui_view_virtual_stage_slot_focus_keeps_alive(const egui_view_virtual_stage_slot_t *slot)
+{
+    if (slot == NULL || slot->view == NULL || !slot->view->is_focused)
+    {
+        return 0;
+    }
+
+    return slot->view->api != NULL && slot->view->api->on_focus_changed != NULL;
+}
 #else
 static void egui_view_virtual_stage_clear_focus_if_needed(egui_view_t *view)
 {
     EGUI_UNUSED(view);
 }
+
+static uint8_t egui_view_virtual_stage_slot_focus_keeps_alive(const egui_view_virtual_stage_slot_t *slot)
+{
+    EGUI_UNUSED(slot);
+    return 0;
+}
 #endif
+
+static void egui_view_virtual_stage_clear_transient_focus_if_needed(egui_view_virtual_stage_slot_t *slot)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (slot == NULL || slot->view == NULL || !slot->view->is_focused)
+    {
+        return;
+    }
+
+    if (!egui_view_virtual_stage_slot_focus_keeps_alive(slot))
+    {
+        egui_view_virtual_stage_clear_focus_if_needed(slot->view);
+    }
+#else
+    EGUI_UNUSED(slot);
+#endif
+}
 
 static void egui_view_virtual_stage_cancel_slot_capture(egui_view_virtual_stage_t *local, egui_view_virtual_stage_slot_t *slot)
 {
@@ -936,12 +969,10 @@ static uint8_t egui_view_virtual_stage_slot_is_protected(const egui_view_virtual
         return 1;
     }
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    if (local->slots[slot_index].view != NULL && local->slots[slot_index].view->is_focused)
+    if (egui_view_virtual_stage_slot_focus_keeps_alive(&local->slots[slot_index]))
     {
         return 1;
     }
-#endif
 
     return 0;
 }
@@ -1176,12 +1207,10 @@ static uint8_t egui_view_virtual_stage_slot_should_keep_alive(egui_view_virtual_
     {
         return 1;
     }
-#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    if (slot->view != NULL && slot->view->is_focused)
+    if (egui_view_virtual_stage_slot_focus_keeps_alive(slot))
     {
         return 1;
     }
-#endif
     if (slot->view != NULL && local->adapter != NULL && local->adapter->should_keep_alive != NULL)
     {
         return local->adapter->should_keep_alive(local->adapter_context, slot->view, node->index, node->desc.stable_id, &node->desc) ? 1 : 0;
@@ -1584,6 +1613,7 @@ static int egui_view_virtual_stage_dispatch_touch_event(egui_view_t *self, egui_
         if (clear_capture || event->type == EGUI_MOTION_EVENT_ACTION_UP || event->type == EGUI_MOTION_EVENT_ACTION_CANCEL)
         {
             local->captured_slot = EGUI_VIEW_VIRTUAL_STAGE_INVALID_SLOT;
+            egui_view_virtual_stage_clear_transient_focus_if_needed(slot);
         }
 
         if (slot->bound_desc.stable_id == slot->stable_id && slot->stable_id != EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID)

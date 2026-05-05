@@ -46,7 +46,39 @@ static char result_str[64] = "";
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
 static uint8_t runtime_fail_reported;
-static uint8_t recording_cursor_verify_retry;
+
+static void dispatch_key(uint8_t key_code)
+{
+    egui_key_event_t key_event;
+
+    memset(&key_event, 0, sizeof(key_event));
+    key_event.type = EGUI_KEY_EVENT_ACTION_DOWN;
+    key_event.key_code = key_code;
+    egui_core_process_input_key(EGUI_VIEW_OF(&container)->core, &key_event);
+
+    key_event.type = EGUI_KEY_EVENT_ACTION_UP;
+    egui_core_process_input_key(EGUI_VIEW_OF(&container)->core, &key_event);
+}
+
+static uint8_t focused_is(egui_view_t *view)
+{
+    return egui_focus_manager_get_focused_view(EGUI_VIEW_OF(&container)->core) == view;
+}
+
+static uint8_t keyboard_focused_key_is(uint8_t index)
+{
+    if (index >= EGUI_KEYBOARD_TOTAL_KEYS)
+    {
+        return 0;
+    }
+
+    return focused_is(EGUI_VIEW_OF(&keyboard.keys[index]));
+}
+
+static uint8_t keyboard_is_hidden(void)
+{
+    return !EGUI_VIEW_OF(&keyboard)->is_visible && EGUI_VIEW_OF(&keyboard)->is_gone && keyboard.target == NULL;
+}
 #endif
 
 static void on_submit(egui_view_t *self, const char *text)
@@ -69,37 +101,66 @@ static void container_click_cb(egui_view_t *self)
     egui_view_clear_focus(self);
 }
 
-// Custom focus change listener that handles both cursor blinking and keyboard show/hide
+static void textinput_show_keyboard(egui_view_t *self)
+{
+    if (!EGUI_VIEW_OF(&keyboard)->is_visible || keyboard.target != self)
+    {
+        egui_view_keyboard_show(EGUI_VIEW_OF(&keyboard), self);
+    }
+}
+
+// Custom focus change listener that handles cursor blinking and keyboard hide
 static void textinput_focus_changed(egui_view_t *self, int is_focused)
 {
     egui_view_textinput_t *ti = (egui_view_textinput_t *)self;
+    egui_view_t *focused = egui_view_get_focused_view(self);
 
     if (is_focused)
     {
         // Start cursor blinking
         ti->cursor_visible = 1;
         egui_view_start_timer(self, &ti->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
-
-        // Show keyboard
-        egui_view_keyboard_show(EGUI_VIEW_OF(&keyboard), self);
     }
     else
     {
-        // Stop cursor blinking
-        ti->cursor_visible = 0;
-        egui_view_stop_timer(self, &ti->cursor_timer);
+        if (!egui_view_is_self_or_descendant_of(focused, EGUI_VIEW_OF(&keyboard)))
+        {
+            // Stop cursor blinking
+            ti->cursor_visible = 0;
+            egui_view_stop_timer(self, &ti->cursor_timer);
 
-        // Hide keyboard
-        egui_view_keyboard_hide(EGUI_VIEW_OF(&keyboard));
+            // Hide keyboard
+            egui_view_keyboard_hide(EGUI_VIEW_OF(&keyboard));
+        }
     }
     egui_view_invalidate(self);
 }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int textinput_key_cb(egui_view_t *self, egui_key_event_t *event)
+{
+    if (event == NULL)
+    {
+        return 0;
+    }
+
+    if (event->key_code == EGUI_KEY_CODE_ENTER)
+    {
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+        {
+            textinput_show_keyboard(self);
+        }
+        return 1;
+    }
+
+    return 0;
+}
+#endif
 
 void test_init_ui(egui_core_t *core)
 {
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
     runtime_fail_reported = 0;
-    recording_cursor_verify_retry = 0;
 #endif
 
     // Init container
@@ -179,6 +240,9 @@ void test_init_ui(egui_core_t *core)
     // Override textinput focus listener to handle keyboard show/hide
     static egui_view_api_t textinput_focus_api;
     egui_view_override_api_on_focus_changed(EGUI_VIEW_OF(&textinput_1), &textinput_focus_api, textinput_focus_changed);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    textinput_focus_api.on_key = textinput_key_cb;
+#endif
 
     // Layout root children
     egui_view_layout_user_root(EGUI_VIEW_OF(&container), EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);
@@ -205,53 +269,108 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 
     switch (action_index)
     {
-    case 0: // click textinput to focus and show keyboard
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &textinput_1, 400);
+    case 0: // enter focus system and select TextInput
+        if (first_call)
+        {
+            dispatch_key(EGUI_KEY_CODE_DOWN);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 400);
         return true;
-    case 1: // wait to show keyboard state
+    case 1: // selected TextInput should not show keyboard until Enter
+        if (first_call)
+        {
+            if (!focused_is(EGUI_VIEW_OF(&textinput_1)))
+            {
+                report_runtime_failure("direction key did not focus textinput");
+            }
+            if (!keyboard_is_hidden())
+            {
+                report_runtime_failure("textinput focus showed keyboard before enter");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 2: // wait for selected TextInput state
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 3: // press Enter to open keyboard
+        if (first_call)
+        {
+            dispatch_key(EGUI_KEY_CODE_ENTER);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 4: // wait to show keyboard state
         if (first_call)
         {
             if (keyboard.target != EGUI_VIEW_OF(&textinput_1))
             {
-                report_runtime_failure("keyboard did not target textinput after focus");
+                report_runtime_failure("keyboard did not target textinput after enter");
             }
             if (!EGUI_VIEW_OF(&keyboard)->is_visible)
             {
-                report_runtime_failure("keyboard did not become visible after focus");
+                report_runtime_failure("keyboard did not become visible after enter");
+            }
+            if (!keyboard_focused_key_is(0))
+            {
+                report_runtime_failure("keyboard did not focus first key after enter");
             }
             recording_request_snapshot();
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 2: // wait for cursor blink
-        EGUI_SIM_SET_WAIT(p_action, 520);
-        return true;
-    case 3: // verify cursor blink and snapshot
-        if (textinput_1.cursor_visible)
-        {
-            if (recording_cursor_verify_retry < 3U)
-            {
-                recording_cursor_verify_retry++;
-                recording_request_snapshot();
-                EGUI_SIM_SET_WAIT(p_action, 180);
-                return true;
-            }
-            report_runtime_failure("textinput cursor did not blink after focus");
-        }
-        recording_cursor_verify_retry = 0;
+    case 5: // move to 'h'
         if (first_call)
         {
-            recording_request_snapshot();
+            dispatch_key(EGUI_KEY_CODE_DOWN);
+            dispatch_key(EGUI_KEY_CODE_RIGHT);
+            dispatch_key(EGUI_KEY_CODE_RIGHT);
+            dispatch_key(EGUI_KEY_CODE_RIGHT);
+            dispatch_key(EGUI_KEY_CODE_RIGHT);
+            dispatch_key(EGUI_KEY_CODE_RIGHT);
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 4: // type 'h'
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &keyboard.keys[15], 220);
+    case 6: // type 'h'
+        if (first_call)
+        {
+            if (!keyboard_focused_key_is(15))
+            {
+                report_runtime_failure("keyboard focus did not reach h key");
+            }
+            dispatch_key(EGUI_KEY_CODE_ENTER);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 5: // type 'i'
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &keyboard.keys[7], 220);
+    case 7: // move to 'i'
+        if (first_call)
+        {
+            if (strcmp(egui_view_textinput_get_text(EGUI_VIEW_OF(&textinput_1)), "h") != 0)
+            {
+                report_runtime_failure("textinput did not receive h from keyboard focus");
+            }
+            dispatch_key(EGUI_KEY_CODE_UP);
+            dispatch_key(EGUI_KEY_CODE_RIGHT);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 6: // wait until text is committed
+    case 8: // type 'i'
+        if (first_call)
+        {
+            if (!keyboard_focused_key_is(7))
+            {
+                report_runtime_failure("keyboard focus did not reach i key");
+            }
+            dispatch_key(EGUI_KEY_CODE_ENTER);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 9: // wait until text is committed
         if (first_call)
         {
             if (strcmp(egui_view_textinput_get_text(EGUI_VIEW_OF(&textinput_1)), "hi") != 0)
@@ -262,15 +381,53 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 7: // click submit button
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &button_submit, 320);
+    case 10: // move to Done and submit
+        if (first_call)
+        {
+            dispatch_key(EGUI_KEY_CODE_DOWN);
+            dispatch_key(EGUI_KEY_CODE_DOWN);
+            dispatch_key(EGUI_KEY_CODE_DOWN);
+            if (!keyboard_focused_key_is(EGUI_KEYBOARD_KEY_IDX_ENTER))
+            {
+                report_runtime_failure("keyboard focus did not reach done key");
+            }
+            dispatch_key(EGUI_KEY_CODE_ENTER);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 320);
         return true;
-    case 8:
+    case 11:
         if (first_call)
         {
             if (strcmp(result_str, "Submitted: hi") != 0)
             {
-                report_runtime_failure("submit did not update result text");
+                report_runtime_failure("done key did not submit result text");
+            }
+            if (!keyboard_is_hidden())
+            {
+                report_runtime_failure("done key did not hide keyboard");
+            }
+            if (!focused_is(EGUI_VIEW_OF(&textinput_1)))
+            {
+                report_runtime_failure("done key did not restore textinput focus");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 12: // show again, then Escape hides it
+        if (first_call)
+        {
+            dispatch_key(EGUI_KEY_CODE_ENTER);
+            dispatch_key(EGUI_KEY_CODE_ESCAPE);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 13:
+        if (first_call)
+        {
+            if (!keyboard_is_hidden())
+            {
+                report_runtime_failure("escape key did not hide keyboard");
             }
             recording_request_snapshot();
         }

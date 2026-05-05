@@ -11,6 +11,13 @@
  * @brief Core-side keyboard dispatch that bridges focus navigation and root fallback delivery.
  */
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+static int egui_core_key_is_direction(uint8_t key_code)
+{
+    return key_code == EGUI_KEY_CODE_UP || key_code == EGUI_KEY_CODE_DOWN || key_code == EGUI_KEY_CODE_LEFT || key_code == EGUI_KEY_CODE_RIGHT;
+}
+#endif
+
 /** Dispatch one key event, giving focus navigation priority before falling back to normal view delivery. */
 void egui_core_process_input_key(egui_core_t *core, egui_key_event_t *key_event)
 {
@@ -36,7 +43,20 @@ void egui_core_process_input_key(egui_core_t *core, egui_key_event_t *key_event)
     egui_view_t *focused = egui_focus_manager_get_focused_view(core);
     if (focused != NULL)
     {
-        focused->api->dispatch_key_event(focused, key_event);
+        if (focused->api != NULL && focused->api->dispatch_key_event != NULL && focused->api->dispatch_key_event(focused, key_event))
+        {
+            return;
+        }
+
+        if (key_event->type == EGUI_KEY_EVENT_ACTION_UP && egui_core_key_is_direction(key_event->key_code))
+        {
+            egui_focus_manager_move_focus_direction(core, key_event->key_code);
+        }
+        return;
+    }
+
+    if (key_event->type == EGUI_KEY_EVENT_ACTION_UP && egui_core_key_is_direction(key_event->key_code) && egui_focus_manager_move_focus_direction(core, key_event->key_code))
+    {
         return;
     }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS

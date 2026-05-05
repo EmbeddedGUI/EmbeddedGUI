@@ -48,6 +48,18 @@ void egui_view_roller_set_current_index(egui_view_t *self, uint8_t index)
     }
 }
 
+static void egui_view_roller_select_index(egui_view_t *self, uint8_t index)
+{
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    uint8_t old_index = local->current_index;
+
+    egui_view_roller_set_current_index(self, index);
+    if (old_index != local->current_index && local->on_selected)
+    {
+        local->on_selected(self, local->current_index);
+    }
+}
+
 uint8_t egui_view_roller_get_current_index(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_roller_t);
@@ -204,6 +216,49 @@ int egui_view_roller_on_touch_event(egui_view_t *self, egui_motion_event_t *even
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int egui_view_roller_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+
+    if (self->is_enable == false || event == NULL || local->items == NULL || local->item_count == 0)
+    {
+        return 0;
+    }
+
+    if (event->key_code != EGUI_KEY_CODE_UP && event->key_code != EGUI_KEY_CODE_DOWN)
+    {
+        return egui_view_on_key_event(self, event);
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+    {
+        return 1;
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_UP || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
+    {
+        if (event->key_code == EGUI_KEY_CODE_UP)
+        {
+            if (local->current_index > 0)
+            {
+                egui_view_roller_select_index(self, (uint8_t)(local->current_index - 1u));
+                return 1;
+            }
+            return 0;
+        }
+        else if (local->current_index < local->item_count - 1u)
+        {
+            egui_view_roller_select_index(self, (uint8_t)(local->current_index + 1u));
+            return 1;
+        }
+        return 0;
+    }
+
+    return 1;
+}
+#endif
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_roller_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -221,7 +276,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_roller_t) = {
         .on_detach_from_window = egui_view_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
-        .on_key_event = egui_view_on_key_event,
+        .on_key_event = egui_view_roller_on_key_event,
 #endif
 };
 
@@ -246,6 +301,9 @@ void egui_view_roller_init(egui_view_t *self, egui_core_t *core)
     local->selected_text_color = EGUI_THEME_TEXT_PRIMARY;
     local->highlight_color = EGUI_THEME_TRACK_BG;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
+#endif
 
     egui_view_set_view_name(self, "egui_view_roller");
 }

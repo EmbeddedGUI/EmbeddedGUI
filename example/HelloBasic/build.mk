@@ -43,6 +43,7 @@ APP_SUB ?= button
 # APP_SUB ?= textinput
 # APP_SUB ?= textblock
 # APP_SUB ?= combobox
+# APP_SUB ?= focus_navigation
 # APP_SUB ?= autocomplete
 # APP_SUB ?= notification_badge
 # APP_SUB ?= activity_ring

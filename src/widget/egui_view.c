@@ -26,6 +26,15 @@
 
 static void egui_view_invalidate_visible_tree_internal(egui_view_t *self);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+#ifndef EGUI_VIEW_FOCUS_FRAME_MARGIN
+#define EGUI_VIEW_FOCUS_FRAME_MARGIN 2
+#endif
+#ifndef EGUI_VIEW_FOCUS_FRAME_STROKE
+#define EGUI_VIEW_FOCUS_FRAME_STROKE 2
+#endif
+#endif
+
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
 static void egui_view_log_dirty_source(const char *kind, egui_view_t *self, const egui_region_t *region)
 {
@@ -195,6 +204,57 @@ egui_view_t *egui_view_get_focused_view(egui_view_t *self)
     return NULL;
 #endif
 }
+
+int egui_view_is_self_or_descendant_of(egui_view_t *view, egui_view_t *ancestor)
+{
+    while (view != NULL)
+    {
+        if (view == ancestor)
+        {
+            return 1;
+        }
+
+        view = (egui_view_t *)view->parent;
+    }
+
+    return 0;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+static void egui_view_clear_focus_if_subtree_unfocusable(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+    egui_view_t *focused;
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    focused = egui_focus_manager_get_focused_view(core);
+    if (focused != NULL && egui_view_is_self_or_descendant_of(focused, self) && !egui_focus_view_is_focusable(focused))
+    {
+        egui_focus_manager_clear_focus(core);
+    }
+}
+
+static void egui_view_invalidate_focused_descendant_region(egui_view_t *self)
+{
+    egui_core_t *core = egui_view_get_core(self);
+    egui_view_t *focused;
+
+    if (core == NULL)
+    {
+        return;
+    }
+
+    focused = egui_focus_manager_get_focused_view(core);
+    if (focused != NULL && egui_view_is_self_or_descendant_of(focused, self))
+    {
+        egui_view_invalidate_focus_region(focused);
+    }
+}
+#endif
 
 void egui_view_clear_focus(egui_view_t *self)
 {
@@ -588,6 +648,68 @@ static void egui_view_clip_to_visible_ancestors(egui_view_t *self, egui_region_t
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+static egui_dim_t egui_view_get_focus_frame_expand(egui_view_t *self)
+{
+    if (self == NULL || !self->is_focus_frame_visible || self->focus_frame_stroke <= 0)
+    {
+        return 0;
+    }
+
+    return self->focus_frame_margin + self->focus_frame_stroke;
+}
+
+void egui_view_get_focus_frame_region(egui_view_t *self, egui_region_t *region)
+{
+    egui_dim_t expand;
+
+    if (region == NULL)
+    {
+        return;
+    }
+
+    expand = egui_view_get_focus_frame_expand(self);
+    if (self == NULL || expand <= 0 || egui_region_is_empty(&self->region_screen))
+    {
+        egui_region_init_empty(region);
+        return;
+    }
+
+    region->location.x = self->region_screen.location.x - expand;
+    region->location.y = self->region_screen.location.y - expand;
+    region->size.width = self->region_screen.size.width + (expand * 2);
+    region->size.height = self->region_screen.size.height + (expand * 2);
+}
+
+void egui_view_invalidate_focus_region(egui_view_t *self)
+{
+    egui_core_t *core;
+    egui_region_t dirty_clip;
+
+    if (self == NULL || !egui_view_is_visible(self) || self->is_gone)
+    {
+        return;
+    }
+
+    egui_view_get_focus_frame_region(self, &dirty_clip);
+    egui_view_clip_to_visible_ancestors(self, &dirty_clip);
+    if (egui_region_is_empty(&dirty_clip))
+    {
+        return;
+    }
+
+    core = egui_view_get_core(self);
+    if (core != NULL)
+    {
+        self->last_dirty_epoch = egui_core_get_dirty_epoch(core);
+    }
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+    egui_view_log_dirty_source("focus_frame", self, &dirty_clip);
+#endif
+    egui_view_update_region_dirty(self, &dirty_clip);
+}
+#endif
+
 static void egui_view_invalidate_visible_self_region(egui_view_t *self)
 {
     egui_region_t dirty_clip;
@@ -606,6 +728,12 @@ static void egui_view_invalidate_visible_self_region(egui_view_t *self)
 #endif
         egui_view_update_region_dirty(self, &dirty_clip);
     }
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (self->is_focused)
+    {
+        egui_view_invalidate_focus_region(self);
+    }
+#endif
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
@@ -758,7 +886,7 @@ void egui_view_override_api_on_touch(egui_view_t *self, egui_view_api_t *api, eg
 
 void egui_view_set_on_click_listener(egui_view_t *self, egui_view_on_click_listener_t listener)
 {
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
     if (self == NULL)
     {
         return;
@@ -770,12 +898,12 @@ void egui_view_set_on_click_listener(egui_view_t *self, egui_view_on_click_liste
 #else
     EGUI_UNUSED(listener);
     EGUI_UNUSED(self);
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 }
 
 egui_view_on_click_listener_t egui_view_get_on_click_listener(egui_view_t *self)
 {
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
     if (self == NULL)
     {
         return NULL;
@@ -796,6 +924,12 @@ void egui_view_set_enable(egui_view_t *self, int is_enable)
     }
 
     self->is_enable = is_enable;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (!is_enable)
+    {
+        egui_view_clear_focus_if_subtree_unfocusable(self);
+    }
+#endif
 
     egui_view_invalidate(self);
 }
@@ -926,14 +1060,32 @@ void egui_view_set_visible(egui_view_t *self, int is_visible)
         return;
     }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (!is_visible)
+    {
+        egui_view_invalidate_focused_descendant_region(self);
+    }
+#endif
     if (is_visible == self->is_visible)
     {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        if (!is_visible)
+        {
+            egui_view_clear_focus_if_subtree_unfocusable(self);
+        }
+#endif
         return;
     }
     // avoid self change to invisible.
     egui_view_invalidate_visual_region(self);
 
     self->is_visible = is_visible;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (!is_visible)
+    {
+        egui_view_clear_focus_if_subtree_unfocusable(self);
+    }
+#endif
 
     // avoid self change to invisible.
     egui_view_invalidate_visual_region(self);
@@ -986,8 +1138,20 @@ void egui_view_set_gone(egui_view_t *self, int is_gone)
         return;
     }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (is_gone)
+    {
+        egui_view_invalidate_focused_descendant_region(self);
+    }
+#endif
     if (is_gone == self->is_gone)
     {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        if (is_gone)
+        {
+            egui_view_clear_focus_if_subtree_unfocusable(self);
+        }
+#endif
         return;
     }
 
@@ -995,6 +1159,12 @@ void egui_view_set_gone(egui_view_t *self, int is_gone)
     egui_view_invalidate(self);
 
     self->is_gone = is_gone;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (is_gone)
+    {
+        egui_view_clear_focus_if_subtree_unfocusable(self);
+    }
+#endif
 
     // avoid self change to invisible.
     egui_view_invalidate(self);
@@ -1089,6 +1259,76 @@ void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow)
 #endif
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+void egui_view_set_focus_frame_visible(egui_view_t *self, int is_visible)
+{
+    if (self == NULL)
+    {
+        return;
+    }
+
+    if (self->is_focus_frame_visible == (is_visible ? 1 : 0))
+    {
+        return;
+    }
+
+    egui_view_invalidate_focus_region(self);
+    self->is_focus_frame_visible = is_visible ? 1 : 0;
+    egui_view_invalidate_focus_region(self);
+}
+
+int egui_view_get_focus_frame_visible(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+
+    return self->is_focus_frame_visible;
+}
+
+void egui_view_set_focus_frame_style(egui_view_t *self, egui_dim_t margin, egui_dim_t stroke, egui_color_t color, egui_alpha_t alpha)
+{
+    if (self == NULL)
+    {
+        return;
+    }
+
+    if (self->focus_frame_margin == margin && self->focus_frame_stroke == stroke && self->focus_frame_color.full == color.full &&
+        self->focus_frame_alpha == alpha)
+    {
+        return;
+    }
+
+    egui_view_invalidate_focus_region(self);
+    self->focus_frame_margin = margin;
+    self->focus_frame_stroke = stroke;
+    self->focus_frame_color = color;
+    self->focus_frame_alpha = alpha;
+    egui_view_invalidate_focus_region(self);
+}
+
+void egui_view_get_focus_frame_style(egui_view_t *self, egui_dim_t *margin, egui_dim_t *stroke, egui_color_t *color, egui_alpha_t *alpha)
+{
+    if (margin != NULL)
+    {
+        *margin = (self != NULL) ? self->focus_frame_margin : 0;
+    }
+    if (stroke != NULL)
+    {
+        *stroke = (self != NULL) ? self->focus_frame_stroke : 0;
+    }
+    if (color != NULL)
+    {
+        *color = (self != NULL) ? self->focus_frame_color : EGUI_THEME_FOCUS;
+    }
+    if (alpha != NULL)
+    {
+        *alpha = (self != NULL) ? self->focus_frame_alpha : EGUI_ALPHA_100;
+    }
+}
+#endif
+
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
 void egui_view_set_view_name(egui_view_t *self, const char *name)
 {
@@ -1100,6 +1340,40 @@ void egui_view_set_view_name(egui_view_t *self, const char *name)
     self->name = name;
 }
 #endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+int egui_view_perform_click(egui_view_t *self)
+{
+    int is_handled = 0;
+    egui_view_on_click_listener_t listener;
+
+    if (self == NULL)
+    {
+        return 0;
+    }
+
+    listener = self->on_click_listener;
+
+    if (self->api != NULL && self->api->perform_click != NULL)
+    {
+        is_handled = self->api->perform_click(self);
+    }
+
+    if (listener != NULL)
+    {
+        listener(self);
+        is_handled = 1;
+    }
+
+    return is_handled;
+}
+#else
+int egui_view_perform_click(egui_view_t *self)
+{
+    EGUI_UNUSED(self);
+    return 0;
+}
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 int egui_view_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
@@ -1127,32 +1401,6 @@ int egui_view_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event
     }
 
     return (self->api->on_touch_event != NULL) ? self->api->on_touch_event(self, event) : 0;
-}
-
-int egui_view_perform_click(egui_view_t *self)
-{
-    int is_handled = 0;
-    egui_view_on_click_listener_t listener;
-
-    if (self == NULL)
-    {
-        return 0;
-    }
-
-    listener = self->on_click_listener;
-
-    if (self->api != NULL && self->api->perform_click != NULL)
-    {
-        is_handled = self->api->perform_click(self);
-    }
-
-    if (listener != NULL)
-    {
-        listener(self);
-        is_handled = 1;
-    }
-
-    return is_handled;
 }
 
 int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
@@ -1304,6 +1552,39 @@ void egui_view_on_detach_from_window(egui_view_t *self)
     // EGUI_LOG_DBG("on_detach_from_window %d\n", self->id);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+static void egui_view_draw_focus_frame(egui_view_t *self)
+{
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
+    egui_region_t frame_region;
+
+    if (self == NULL || canvas == NULL || !self->is_focused)
+    {
+        return;
+    }
+
+    egui_view_get_focus_frame_region(self, &frame_region);
+    if (egui_region_is_empty(&frame_region))
+    {
+        return;
+    }
+
+    egui_canvas_calc_work_region(canvas, &frame_region);
+    if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
+    {
+        if (self->api != NULL && self->api->on_draw_focus_frame != NULL)
+        {
+            self->api->on_draw_focus_frame(self, &frame_region);
+        }
+        else
+        {
+            egui_canvas_draw_rectangle(canvas, 0, 0, frame_region.size.width, frame_region.size.height, self->focus_frame_stroke, self->focus_frame_color,
+                                       self->focus_frame_alpha);
+        }
+    }
+}
+#endif
+
 void egui_view_draw(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
@@ -1373,6 +1654,10 @@ void egui_view_draw(egui_view_t *self)
             self->api->on_draw(self);
         }
     }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    egui_view_draw_focus_frame(self);
+#endif
 
     // restore canvas alpha
     egui_canvas_set_alpha(canvas, alpha);
@@ -1739,6 +2024,12 @@ void egui_view_calculate_layout(egui_view_t *self)
         egui_view_update_region_dirty(self, &shadow_region);
     }
 #endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (self->is_focused)
+    {
+        egui_view_invalidate_focus_region(self);
+    }
+#endif
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -1785,9 +2076,7 @@ int egui_view_on_key_event(egui_view_t *self, egui_key_event_t *event)
     {
         if (event->type == EGUI_KEY_EVENT_ACTION_UP && event->key_code == EGUI_KEY_CODE_ENTER)
         {
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
             egui_view_perform_click(self);
-#endif
             return 1;
         }
         if (event->type == EGUI_KEY_EVENT_ACTION_DOWN && event->key_code == EGUI_KEY_CODE_ENTER)
@@ -1810,6 +2099,10 @@ void egui_view_set_focusable(egui_view_t *self, int is_focusable)
     }
 
     self->is_focusable = is_focusable;
+    if (!is_focusable)
+    {
+        egui_view_clear_focus_if_subtree_unfocusable(self);
+    }
 }
 
 void egui_view_override_api_on_focus_changed(egui_view_t *self, egui_view_api_t *api, egui_view_on_focus_change_listener_t listener)
@@ -1821,6 +2114,17 @@ void egui_view_override_api_on_focus_changed(egui_view_t *self, egui_view_api_t 
 
     egui_view_copy_api(self, api);
     api->on_focus_changed = listener;
+}
+
+void egui_view_override_api_on_draw_focus_frame(egui_view_t *self, egui_view_api_t *api, egui_view_on_draw_focus_frame_t listener)
+{
+    if (self == NULL || api == NULL || self->api == NULL)
+    {
+        return;
+    }
+
+    egui_view_copy_api(self, api);
+    api->on_draw_focus_frame = listener;
 }
 
 int egui_view_get_focusable(egui_view_t *self)
@@ -1842,7 +2146,7 @@ void egui_view_request_focus(egui_view_t *self)
         return;
     }
 
-    if (self->is_focusable && self->is_enable && self->is_visible && !self->is_gone)
+    if (egui_focus_view_is_focusable(self))
     {
         egui_focus_manager_set_focus(core, self);
     }
@@ -1896,6 +2200,8 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_t) = {
         .on_detach_from_window = egui_view_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
         .on_touch = NULL,
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .perform_click = NULL,
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -1905,6 +2211,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_t) = {
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
         .on_focus_changed = NULL,
+        .on_draw_focus_frame = NULL,
 #endif
 };
 
@@ -1957,14 +2264,19 @@ void egui_view_init(egui_view_t *self, egui_core_t *core)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
     self->shadow = NULL;
 #endif
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
     self->on_click_listener = NULL;
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     self->is_focusable = false;
     self->is_focused = false;
     self->is_no_focus_clear = 0;
+    self->is_focus_frame_visible = true;
+    self->focus_frame_margin = EGUI_VIEW_FOCUS_FRAME_MARGIN;
+    self->focus_frame_stroke = EGUI_VIEW_FOCUS_FRAME_STROKE;
+    self->focus_frame_color = EGUI_THEME_FOCUS;
+    self->focus_frame_alpha = EGUI_ALPHA_100;
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER

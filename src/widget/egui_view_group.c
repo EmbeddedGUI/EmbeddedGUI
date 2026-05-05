@@ -67,6 +67,47 @@ static void egui_view_group_draw_child(egui_view_t *child)
     child->api->draw(child);
 }
 
+static int egui_view_group_child_intersects_pfb(egui_view_t *child, egui_region_t *pfb_region)
+{
+    if (child == NULL || pfb_region == NULL || !child->is_visible || child->is_gone)
+    {
+        return 0;
+    }
+
+    if (egui_region_is_intersect(&child->region_screen, pfb_region))
+    {
+        return 1;
+    }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (child->is_focused)
+    {
+        egui_region_t focus_frame_region;
+
+        egui_view_get_focus_frame_region(child, &focus_frame_region);
+        if (egui_region_is_intersect(&focus_frame_region, pfb_region))
+        {
+            return 1;
+        }
+    }
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    if (child->shadow != NULL)
+    {
+        egui_region_t shadow_region;
+
+        egui_shadow_get_region(child->shadow, &child->region_screen, &shadow_region);
+        if (egui_region_is_intersect(&shadow_region, pfb_region))
+        {
+            return 1;
+        }
+    }
+#endif
+
+    return 0;
+}
+
 #if EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL
 #define EGUI_VIEW_GROUP_COMPUTE_SCROLL_HANDLER egui_view_group_compute_scroll
 #else
@@ -1072,27 +1113,10 @@ void egui_view_group_draw(egui_view_t *self)
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
             // Early culling: skip children that don't intersect the current PFB tile.
-            // When a child has a shadow, also check the shadow region since shadows
-            // can extend beyond the widget body bounds.
-            if (tmp->is_visible && !tmp->is_gone && !egui_region_is_intersect(&tmp->region_screen, egui_canvas_get_pfb_region(canvas)))
+            // Shadows and the common focus frame can extend beyond the widget body bounds.
+            if (!egui_view_group_child_intersects_pfb(tmp, egui_canvas_get_pfb_region(canvas)))
             {
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
-                if (tmp->shadow != NULL)
-                {
-                    egui_region_t shadow_region;
-                    egui_shadow_get_region(tmp->shadow, &tmp->region_screen, &shadow_region);
-                    if (!egui_region_is_intersect(&shadow_region, egui_canvas_get_pfb_region(canvas)))
-                    {
-                        continue;
-                    }
-                }
-                else
-                {
-                    continue;
-                }
-#else
                 continue;
-#endif
             }
 
             // set canvase alpha

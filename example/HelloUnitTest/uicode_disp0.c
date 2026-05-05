@@ -18,6 +18,7 @@
 #include "test/test_dlist.h"
 #include "test/test_fixmath.h"
 #include "test/test_font_std.h"
+#include "test/test_focus_key_navigation.h"
 #include "test/test_image_file.h"
 #include "test/test_grid_view.h"
 #include "test/test_image_svg.h"
@@ -122,6 +123,8 @@ void uicode_disp0_init(egui_core_t *core)
         test_app_timer_helpers_run();
     if (uicode_should_run_suite("font_std"))
         test_font_std_run();
+    if (uicode_should_run_suite("focus_key_navigation"))
+        test_focus_key_navigation_run();
     if (uicode_should_run_suite("image_file"))
         test_image_file_run();
     if (uicode_should_run_suite("deferred_image"))

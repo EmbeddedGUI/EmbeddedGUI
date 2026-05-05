@@ -349,6 +349,9 @@ void egui_view_button_init(egui_view_t *self, egui_core_t *core)
     local->icon_font = NULL;
     local->icon_text_gap = 6;
     egui_view_set_clickable(self, 1);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
+#endif
 
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {

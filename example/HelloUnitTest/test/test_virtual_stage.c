@@ -1900,19 +1900,25 @@ void test_virtual_stage_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(virtual_stage);
     EGUI_TEST_RUN(test_virtual_stage_render_only_node_keeps_zero_slots);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_virtual_stage_render_only_interactive_flag_does_not_consume_touch);
     EGUI_TEST_RUN(test_virtual_stage_touch_button_materializes_and_releases);
+#endif
     EGUI_TEST_RUN(test_virtual_stage_pin_and_unpin_respects_limit);
     EGUI_TEST_RUN(test_virtual_stage_double_pin_requires_matching_unpin);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_virtual_stage_textinput_save_and_restore_state);
     EGUI_TEST_RUN(test_virtual_stage_nested_list_drag_keeps_internal_touch_capture);
     EGUI_TEST_RUN(test_virtual_stage_adapter_keep_alive_retains_slot_until_cleared);
+#endif
     EGUI_TEST_RUN(test_virtual_stage_over_limit_keep_alive_slots_do_not_thrash_on_idle_layout);
     EGUI_TEST_RUN(test_virtual_stage_notify_data_changed_releases_removed_slot_and_rebinds_remaining_node);
     EGUI_TEST_RUN(test_virtual_stage_notify_data_changed_prunes_removed_pin_state);
     EGUI_TEST_RUN(test_virtual_stage_notify_data_changed_reuses_cache_capacity_without_heap_churn);
     EGUI_TEST_RUN(test_virtual_stage_reduce_live_slot_limit_trims_oldest_keepalive_slot);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_virtual_stage_reduce_live_slot_limit_to_zero_releases_captured_keepalive_after_up);
+#endif
     EGUI_TEST_RUN(test_virtual_stage_set_adapter_clears_old_slots_and_pin_state);
     EGUI_TEST_RUN(test_virtual_stage_notify_node_changed_rebinds_only_target_slot);
     EGUI_TEST_RUN(test_virtual_stage_notify_bounds_changed_updates_only_target_slot_region);
@@ -1923,6 +1929,7 @@ void test_virtual_stage_run(void)
     EGUI_TEST_RUN(test_virtual_stage_notify_node_changed_hidden_to_visible_invalidates_new_region_only);
     EGUI_TEST_RUN(test_virtual_stage_notify_node_changed_materializes_new_keepalive_node_from_idle);
     EGUI_TEST_RUN(test_virtual_stage_notify_node_changed_restores_pinned_node_after_unhide);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_virtual_stage_focus_slot_replaces_pinned_slot_and_restores_after_blur);
     EGUI_TEST_RUN(test_virtual_stage_same_type_eviction_prefers_button_slot_over_textinput_slot);
     EGUI_TEST_RUN(test_virtual_stage_overlap_hit_prefers_higher_z_order_node);
@@ -1932,11 +1939,14 @@ void test_virtual_stage_run(void)
     EGUI_TEST_RUN(test_virtual_stage_notify_data_changed_during_capture_cancels_pooled_view_before_rebind);
     EGUI_TEST_RUN(test_virtual_stage_custom_hit_test_followup_move_outside_cancels_click);
     EGUI_TEST_RUN(test_virtual_stage_custom_hit_test_followup_move_back_inside_restores_click);
+#endif
     EGUI_TEST_RUN(test_virtual_stage_notify_node_changed_recreates_view_when_type_changes);
     EGUI_TEST_RUN(test_virtual_stage_notify_node_changed_restores_keepalive_textinput_after_render_only_round_trip);
     EGUI_TEST_RUN(test_virtual_stage_timer_view_stops_on_detach_and_restarts_on_reattach);
     EGUI_TEST_RUN(test_virtual_stage_array_adapter_bridge_exposes_count_and_desc);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_virtual_stage_array_adapter_default_hit_test_falls_back_to_rect);
+#endif
     EGUI_TEST_RUN(test_virtual_stage_init_with_setup_applies_params_and_adapter);
     EGUI_TEST_RUN(test_virtual_stage_init_with_array_setup_applies_params_and_bridge_adapter);
     EGUI_TEST_RUN(test_virtual_stage_public_find_helpers_resolve_live_slot);

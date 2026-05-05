@@ -107,6 +107,8 @@ static void test_tab_bar_release_requires_same_tab(void)
 void test_tab_bar_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(tab_bar);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_tab_bar_release_requires_same_tab);
+#endif
     EGUI_TEST_SUITE_END();
 }

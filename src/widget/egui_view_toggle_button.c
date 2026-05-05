@@ -312,6 +312,17 @@ void egui_view_toggle_button_on_draw(egui_view_t *self)
     egui_view_toggle_button_draw_content(canvas, local, &region, text_color);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+/** Flip the stored on/off state when the normal click pipeline completes. */
+static int egui_view_toggle_button_perform_click(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+
+    egui_view_toggle_button_set_toggled(self, !local->is_toggled);
+    return 1;
+}
+#endif
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 /** Convert pointer press and release events into full-face pressed state plus toggle commits. */
 int egui_view_toggle_button_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
@@ -380,6 +391,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t) = {
         .on_attach_to_window = egui_view_on_attach_to_window,
         .on_draw = egui_view_toggle_button_on_draw,
         .on_detach_from_window = egui_view_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .perform_click = egui_view_toggle_button_perform_click,
+#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_on_key_event,
@@ -406,6 +420,10 @@ void egui_view_toggle_button_init(egui_view_t *self, egui_core_t *core)
     local->off_color = EGUI_THEME_TRACK_OFF;
     local->corner_radius = EGUI_THEME_RADIUS_MD;
     local->icon_text_gap = 6;
+    self->is_clickable = true;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
+#endif
 
     egui_view_set_view_name(self, "egui_view_toggle_button");
 }

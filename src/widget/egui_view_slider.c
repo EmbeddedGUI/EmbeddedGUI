@@ -425,6 +425,51 @@ int egui_view_slider_on_touch_event(egui_view_t *self, egui_motion_event_t *even
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int egui_view_slider_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_slider_t);
+
+    if (self->is_enable == false || event == NULL)
+    {
+        return 0;
+    }
+
+    if (event->key_code != EGUI_KEY_CODE_LEFT && event->key_code != EGUI_KEY_CODE_RIGHT)
+    {
+        return egui_view_on_key_event(self, event);
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+    {
+        return 1;
+    }
+
+    if (event->type == EGUI_KEY_EVENT_ACTION_UP || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
+    {
+        if (event->key_code == EGUI_KEY_CODE_LEFT)
+        {
+            if (local->value == 0u)
+            {
+                return 0;
+            }
+            egui_view_slider_set_value(self, (local->value > 0u) ? (uint8_t)(local->value - 1u) : 0u);
+        }
+        else
+        {
+            if (local->value >= egui_view_slider_get_max_value(local))
+            {
+                return 0;
+            }
+            egui_view_slider_set_value(self, (uint8_t)(local->value + 1u));
+        }
+        return 1;
+    }
+
+    return 1;
+}
+#endif
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_slider_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -442,7 +487,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_slider_t) = {
         .on_detach_from_window = egui_view_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
-        .on_key_event = egui_view_on_key_event,
+        .on_key_event = egui_view_slider_on_key_event,
 #endif
 };
 
@@ -465,6 +510,9 @@ void egui_view_slider_init(egui_view_t *self, egui_core_t *core)
     local->track_color = EGUI_THEME_TRACK_BG;
     local->active_color = EGUI_THEME_PRIMARY;
     local->thumb_color = EGUI_THEME_THUMB;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
+#endif
 
     egui_view_set_view_name(self, "egui_view_slider");
 }

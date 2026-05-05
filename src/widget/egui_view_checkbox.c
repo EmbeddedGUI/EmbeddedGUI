@@ -188,7 +188,7 @@ void egui_view_checkbox_set_checked(egui_view_t *self, uint8_t is_checked)
     }
 }
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 /** Flip the stored boolean when the normal click pipeline completes. */
 static int egui_view_checkbox_perform_click(egui_view_t *self)
 {
@@ -376,7 +376,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_checkbox_t) = {
         .on_attach_to_window = egui_view_on_attach_to_window,
         .on_draw = egui_view_checkbox_on_draw,
         .on_detach_from_window = egui_view_on_detach_from_window,
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .perform_click = egui_view_checkbox_perform_click,
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -409,6 +409,9 @@ void egui_view_checkbox_init(egui_view_t *self, egui_core_t *core)
     local->icon_font = NULL;
     local->on_checked_changed = NULL;
     self->is_clickable = true;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = true;
+#endif
 
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
     {

@@ -161,7 +161,9 @@ static void test_mini_calendar_custom_weekday_labels_can_override_and_reset(void
 void test_mini_calendar_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(mini_calendar);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_mini_calendar_release_requires_same_day);
+#endif
     EGUI_TEST_RUN(test_mini_calendar_custom_weekday_labels_can_override_and_reset);
     EGUI_TEST_SUITE_END();
 }

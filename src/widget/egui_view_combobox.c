@@ -875,6 +875,7 @@ static int egui_view_combobox_on_key_event(egui_view_t *self, egui_key_event_t *
         case EGUI_KEY_CODE_DOWN:
         case EGUI_KEY_CODE_HOME:
         case EGUI_KEY_CODE_END:
+            return local->is_expanded ? 1 : 0;
         case EGUI_KEY_CODE_ENTER:
         case EGUI_KEY_CODE_SPACE:
         case EGUI_KEY_CODE_ESCAPE:
@@ -895,8 +896,7 @@ static int egui_view_combobox_on_key_event(egui_view_t *self, egui_key_event_t *
     case EGUI_KEY_CODE_DOWN:
         if (!local->is_expanded)
         {
-            egui_view_combobox_expand(self);
-            return 1;
+            return 0;
         }
         if (next_index + 1 < limit_count)
         {
@@ -907,8 +907,7 @@ static int egui_view_combobox_on_key_event(egui_view_t *self, egui_key_event_t *
     case EGUI_KEY_CODE_UP:
         if (!local->is_expanded)
         {
-            egui_view_combobox_expand(self);
-            return 1;
+            return 0;
         }
         if (next_index > 0)
         {
@@ -917,9 +916,17 @@ static int egui_view_combobox_on_key_event(egui_view_t *self, egui_key_event_t *
         egui_view_combobox_commit_current_index(self, next_index, 1);
         return 1;
     case EGUI_KEY_CODE_HOME:
+        if (!local->is_expanded)
+        {
+            return 0;
+        }
         egui_view_combobox_commit_current_index(self, 0, 1);
         return 1;
     case EGUI_KEY_CODE_END:
+        if (!local->is_expanded)
+        {
+            return 0;
+        }
         egui_view_combobox_commit_current_index(self, (uint8_t)(limit_count - 1), 1);
         return 1;
     case EGUI_KEY_CODE_ENTER:

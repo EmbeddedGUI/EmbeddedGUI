@@ -26,6 +26,7 @@
       "checkbox",
       "chips",
       "combobox",
+      "focus_navigation",
       "list_view",
       "list_view_basic",
       "grid_view",
@@ -138,6 +139,14 @@
       ],
       "min_case_count": 13,
       "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "focus_navigation": {
+      "expected_actions": [
+        "wait"
+      ],
+      "min_case_count": 20,
+      "min_interaction_transitions": 5,
       "require_runtime_marker": true
     },
     "list_view_basic": {
@@ -312,10 +321,9 @@
     },
     "textinput": {
       "expected_actions": [
-        "click",
         "wait"
       ],
-      "min_case_count": 7,
+      "min_case_count": 10,
       "min_interaction_transitions": 2,
       "require_runtime_marker": true
     },

@@ -299,6 +299,194 @@ static void egui_view_keyboard_apply_key_label(egui_view_keyboard_t *keyboard, i
     egui_view_label_set_font(key_view, egui_view_keyboard_get_label_font(keyboard, key_idx));
 }
 
+static egui_view_t *egui_view_keyboard_get_key_view(egui_view_keyboard_t *keyboard, int key_idx)
+{
+    if (keyboard == NULL || key_idx < 0 || key_idx >= EGUI_KEYBOARD_TOTAL_KEYS)
+    {
+        return NULL;
+    }
+
+    return EGUI_VIEW_OF(&keyboard->keys[key_idx]);
+}
+
+static int egui_view_keyboard_is_keyboard_key(egui_view_keyboard_t *keyboard, egui_view_t *view)
+{
+    uint8_t i;
+
+    if (keyboard == NULL || view == NULL)
+    {
+        return 0;
+    }
+
+    for (i = 0; i < EGUI_KEYBOARD_TOTAL_KEYS; i++)
+    {
+        if (view == EGUI_VIEW_OF(&keyboard->keys[i]))
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static void egui_view_keyboard_request_key_focus(egui_view_keyboard_t *keyboard, int key_idx)
+{
+    egui_view_t *key_view = egui_view_keyboard_get_key_view(keyboard, key_idx);
+
+    if (key_view != NULL)
+    {
+        egui_view_request_focus(key_view);
+    }
+}
+
+static int egui_view_keyboard_find_focused_key_index(egui_view_keyboard_t *keyboard)
+{
+    egui_view_t *focused;
+
+    if (keyboard == NULL)
+    {
+        return -1;
+    }
+
+    focused = egui_view_get_focused_view(EGUI_VIEW_OF(keyboard));
+    if (!egui_view_keyboard_is_keyboard_key(keyboard, focused))
+    {
+        return -1;
+    }
+
+    return egui_view_keyboard_get_key_index(keyboard, focused);
+}
+
+static int egui_view_keyboard_get_row_start(int row)
+{
+    switch (row)
+    {
+    case 0:
+        return 0;
+    case 1:
+        return EGUI_KEYBOARD_ROW0_KEY_COUNT;
+    case 2:
+        return EGUI_KEYBOARD_ROW0_KEY_COUNT + EGUI_KEYBOARD_ROW1_KEY_COUNT;
+    case 3:
+        return EGUI_KEYBOARD_ROW0_KEY_COUNT + EGUI_KEYBOARD_ROW1_KEY_COUNT + EGUI_KEYBOARD_ROW2_KEY_COUNT;
+    default:
+        return 0;
+    }
+}
+
+static int egui_view_keyboard_get_row_count(int row)
+{
+    switch (row)
+    {
+    case 0:
+        return EGUI_KEYBOARD_ROW0_KEY_COUNT;
+    case 1:
+        return EGUI_KEYBOARD_ROW1_KEY_COUNT;
+    case 2:
+        return EGUI_KEYBOARD_ROW2_KEY_COUNT;
+    case 3:
+        return EGUI_KEYBOARD_ROW3_KEY_COUNT;
+    default:
+        return 0;
+    }
+}
+
+static int egui_view_keyboard_get_key_row(int key_idx)
+{
+    if (key_idx < EGUI_KEYBOARD_ROW0_KEY_COUNT)
+    {
+        return 0;
+    }
+    if (key_idx < EGUI_KEYBOARD_ROW0_KEY_COUNT + EGUI_KEYBOARD_ROW1_KEY_COUNT)
+    {
+        return 1;
+    }
+    if (key_idx < EGUI_KEYBOARD_ROW0_KEY_COUNT + EGUI_KEYBOARD_ROW1_KEY_COUNT + EGUI_KEYBOARD_ROW2_KEY_COUNT)
+    {
+        return 2;
+    }
+
+    return 3;
+}
+
+static int egui_view_keyboard_get_key_col(int key_idx)
+{
+    int row = egui_view_keyboard_get_key_row(key_idx);
+
+    return key_idx - egui_view_keyboard_get_row_start(row);
+}
+
+static int egui_view_keyboard_get_closest_col_in_row(int from_row, int from_col, int to_row)
+{
+    int from_count = egui_view_keyboard_get_row_count(from_row);
+    int to_count = egui_view_keyboard_get_row_count(to_row);
+    int to_col;
+
+    if (from_count <= 0 || to_count <= 0)
+    {
+        return 0;
+    }
+
+    to_col = ((from_col * 2 + 1) * to_count) / (from_count * 2);
+    if (to_col < 0)
+    {
+        to_col = 0;
+    }
+    if (to_col >= to_count)
+    {
+        to_col = to_count - 1;
+    }
+
+    return to_col;
+}
+
+static int egui_view_keyboard_move_focus(egui_view_keyboard_t *keyboard, uint8_t key_code)
+{
+    int current_idx = egui_view_keyboard_find_focused_key_index(keyboard);
+    int row;
+    int col;
+    int row_count;
+
+    if (current_idx < 0)
+    {
+        egui_view_keyboard_request_key_focus(keyboard, 0);
+        return 1;
+    }
+
+    row = egui_view_keyboard_get_key_row(current_idx);
+    col = egui_view_keyboard_get_key_col(current_idx);
+    row_count = egui_view_keyboard_get_row_count(row);
+
+    switch (key_code)
+    {
+    case EGUI_KEY_CODE_LEFT:
+        col = (col > 0) ? (col - 1) : (row_count - 1);
+        break;
+    case EGUI_KEY_CODE_RIGHT:
+        col = (col + 1) % row_count;
+        break;
+    case EGUI_KEY_CODE_UP:
+        if (row > 0)
+        {
+            col = egui_view_keyboard_get_closest_col_in_row(row, col, row - 1);
+            row--;
+        }
+        break;
+    case EGUI_KEY_CODE_DOWN:
+        if (row < EGUI_KEYBOARD_ROW_COUNT - 1)
+        {
+            col = egui_view_keyboard_get_closest_col_in_row(row, col, row + 1);
+            row++;
+        }
+        break;
+    default:
+        return 0;
+    }
+
+    egui_view_keyboard_request_key_focus(keyboard, egui_view_keyboard_get_row_start(row) + col);
+    return 1;
+}
+
 // ============== Key click callback ==============
 
 static void egui_view_keyboard_key_click_cb(egui_view_t *self)
@@ -363,6 +551,7 @@ static void egui_view_keyboard_key_click_cb(egui_view_t *self)
         {
             ti->on_submit(keyboard->target, ti->text);
         }
+        egui_view_keyboard_hide(EGUI_VIEW_OF(keyboard));
         return;
     }
 
@@ -378,6 +567,78 @@ static void egui_view_keyboard_key_click_cb(egui_view_t *self)
         {
             egui_view_keyboard_set_mode(EGUI_VIEW_OF(keyboard), EGUI_KEYBOARD_MODE_LOWERCASE);
         }
+    }
+}
+
+static int egui_view_keyboard_handle_key_event(egui_view_keyboard_t *keyboard, egui_key_event_t *event)
+{
+    if (keyboard == NULL || event == NULL)
+    {
+        return 0;
+    }
+
+    switch (event->key_code)
+    {
+    case EGUI_KEY_CODE_LEFT:
+    case EGUI_KEY_CODE_RIGHT:
+    case EGUI_KEY_CODE_UP:
+    case EGUI_KEY_CODE_DOWN:
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+        {
+            return egui_view_keyboard_move_focus(keyboard, event->key_code);
+        }
+        return event->type == EGUI_KEY_EVENT_ACTION_DOWN;
+    case EGUI_KEY_CODE_ESCAPE:
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+        {
+            egui_view_keyboard_hide(EGUI_VIEW_OF(keyboard));
+        }
+        return 1;
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+static int egui_view_keyboard_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+
+    if (egui_view_keyboard_handle_key_event(local, event))
+    {
+        return 1;
+    }
+
+    return egui_view_on_key_event(self, event);
+}
+
+static int egui_view_keyboard_key_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    egui_view_keyboard_t *keyboard = egui_view_keyboard_find_from_key(self);
+
+    if (egui_view_keyboard_handle_key_event(keyboard, event))
+    {
+        return 1;
+    }
+
+    return egui_view_on_key_event(self, event);
+}
+
+static void egui_view_keyboard_key_on_focus_changed(egui_view_t *self, int is_focused)
+{
+    egui_view_keyboard_t *keyboard = egui_view_keyboard_find_from_key(self);
+    egui_view_t *focused;
+
+    if (keyboard == NULL || is_focused)
+    {
+        return;
+    }
+
+    focused = egui_view_get_focused_view(self);
+    if (!egui_view_is_self_or_descendant_of(focused, EGUI_VIEW_OF(keyboard)) && focused != keyboard->target && keyboard->target != NULL)
+    {
+        egui_view_keyboard_hide(EGUI_VIEW_OF(keyboard));
     }
 }
 
@@ -474,6 +735,12 @@ void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
 {
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
 
+    if (target_textinput != NULL && local->suppress_show_target == target_textinput)
+    {
+        local->suppress_show_target = NULL;
+        return;
+    }
+
     // Restore any previous root-view offset first so switching targets does not accumulate shifts.
     if (local->adjusted_view != NULL)
     {
@@ -492,9 +759,11 @@ void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
 
     if (target_bottom + 4 > kbd_top)
     {
-        // Walk to the topmost ancestor so the whole page/dialog shifts together.
+        // Walk to the nearest user-root child so the page/dialog shifts without moving the keyboard overlay itself.
         egui_view_t *root_view = target_textinput;
-        while (EGUI_VIEW_PARENT(root_view) != NULL)
+        egui_core_t *core = egui_view_get_core(self);
+        egui_view_t *user_root = core != NULL ? EGUI_VIEW_OF(egui_core_get_user_root_view(core)) : NULL;
+        while (EGUI_VIEW_PARENT(root_view) != NULL && EGUI_VIEW_PARENT(root_view) != user_root)
         {
             root_view = EGUI_VIEW_PARENT(root_view);
         }
@@ -516,11 +785,21 @@ void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
     }
 
     egui_view_invalidate(self);
+    egui_view_keyboard_request_key_focus(local, 0);
 }
 
 void egui_view_keyboard_hide(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    egui_view_t *target = local->target;
+    egui_view_t *focused = egui_view_get_focused_view(self);
+    uint8_t focus_inside_keyboard = egui_view_is_self_or_descendant_of(focused, self);
+
+    if (target != NULL && focus_inside_keyboard)
+    {
+        local->suppress_show_target = target;
+    }
+
     local->target = NULL;
 
     // Restore the root view before hiding so the page returns to its original layout.
@@ -535,6 +814,20 @@ void egui_view_keyboard_hide(egui_view_t *self)
     egui_view_invalidate(self);
     self->is_visible = false;
     self->is_gone = true;
+
+    if (target != NULL && focus_inside_keyboard)
+    {
+        egui_view_request_focus(target);
+        if (local->suppress_show_target == target)
+        {
+            local->suppress_show_target = NULL;
+        }
+    }
+
+    if (focus_inside_keyboard && egui_view_is_self_or_descendant_of(egui_view_get_focused_view(self), self))
+    {
+        egui_view_clear_focus(self);
+    }
 }
 
 // ============== Helper to init a single key button ==============
@@ -547,6 +840,13 @@ static void egui_view_keyboard_init_key(egui_view_keyboard_t *keyboard, int key_
 
     // Keys are ordinary buttons; appearance differences come from width/background/font choices.
     egui_view_button_init(key_view, EGUI_VIEW_OF(keyboard)->core);
+    if (key_idx == 0)
+    {
+        egui_view_copy_api(key_view, &keyboard->key_api);
+        keyboard->key_api.on_key_event = egui_view_keyboard_key_on_key_event;
+        keyboard->key_api.on_focus_changed = egui_view_keyboard_key_on_focus_changed;
+    }
+    key_view->api = &keyboard->key_api;
     egui_view_set_size(key_view, width, EGUI_KEYBOARD_KEY_HEIGHT);
     egui_view_label_set_text(key_view, label);
     egui_view_label_set_font_color(key_view, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -555,6 +855,10 @@ static void egui_view_keyboard_init_key(egui_view_keyboard_t *keyboard, int key_
     egui_view_set_margin(key_view, 1, 1, 1, 1);
     // Prevent ACTION_DOWN on a key from clearing focus on the target textinput before ACTION_UP fires the click.
     key_view->is_no_focus_clear = 1;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    key_view->is_focusable = 1;
+    egui_view_set_focus_frame_style(key_view, 0, 2, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
+#endif
     egui_view_group_add_child(EGUI_VIEW_OF(row), key_view);
 }
 
@@ -573,9 +877,13 @@ void egui_view_keyboard_init(egui_view_t *self, egui_core_t *core)
     self->is_clickable = true;
     // Gap touches also must not clear textinput focus, or the keyboard would dismiss itself while in use.
     self->is_no_focus_clear = 1;
+    egui_view_copy_api(self, &local->api);
+    local->api.on_key_event = egui_view_keyboard_on_key_event;
+    self->api = &local->api;
 
     local->mode = EGUI_KEYBOARD_MODE_LOWERCASE;
     local->target = NULL;
+    local->suppress_show_target = NULL;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
     local->icon_font = NULL;
     local->shift_icon = EGUI_ICON_MS_KEYBOARD_ARROW_UP;
