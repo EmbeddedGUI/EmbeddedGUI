@@ -1,6 +1,7 @@
 #include "egui.h"
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "uicode_disp0.h"
 #include "app_egui_resource_generate.h"
 
@@ -17,6 +18,7 @@
 #define SHOWCASE_KEYBOARD_HEIGHT   128
 #define SHOWCASE_KEYBOARD_Y        ((EGUI_CONFIG_SCREEN_HEIGHT > SHOWCASE_KEYBOARD_HEIGHT) ? (EGUI_CONFIG_SCREEN_HEIGHT - SHOWCASE_KEYBOARD_HEIGHT) : 0)
 #define SHOWCASE_KEYBOARD_HIDDEN_Y (EGUI_CONFIG_SCREEN_HEIGHT + SHOWCASE_KEYBOARD_HEIGHT)
+#define SHOWCASE_TOAST_MS          700
 
 // ============================================================================
 // Widget Showcase
@@ -27,6 +29,7 @@
 // Slate Ocean palette: Dark=#0D1117 Light=#F6F8FA Accent=#58A6FF/#0969DA
 static egui_view_canvas_panner_t root;
 static egui_core_t *s_core;
+static egui_toast_std_t s_toast;
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_root_p_dark_new, EGUI_COLOR_MAKE(13, 17, 23), EGUI_ALPHA_100); // #0D1117
 EGUI_BACKGROUND_PARAM_INIT(bg_root_params_dark_new, &bg_root_p_dark_new, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_root_dark_new, &bg_root_params_dark_new);
@@ -178,6 +181,43 @@ static uint8_t is_chinese = 0;
 static const char *showcase_parity_frame_label_pending;
 #endif
 
+typedef enum showcase_focus_action
+{
+    SHOWCASE_FOCUS_ACTION_NONE = 0,
+    SHOWCASE_FOCUS_ACTION_CLICK,
+    SHOWCASE_FOCUS_ACTION_RIGHT,
+    SHOWCASE_FOCUS_ACTION_LEFT,
+    SHOWCASE_FOCUS_ACTION_UP,
+    SHOWCASE_FOCUS_ACTION_DOWN,
+    SHOWCASE_FOCUS_ACTION_COMBOBOX,
+    SHOWCASE_FOCUS_ACTION_TEXTINPUT,
+    SHOWCASE_FOCUS_ACTION_PROGRESS_HOLD,
+    SHOWCASE_FOCUS_ACTION_BUTTON_MATRIX,
+    SHOWCASE_FOCUS_ACTION_LAYER
+} showcase_focus_action_t;
+
+typedef struct showcase_focus_target
+{
+    egui_view_t *view;
+    egui_view_api_t api;
+    void (*base_focus_changed)(egui_view_t *self, int is_focused);
+    int (*base_on_key)(egui_view_t *self, egui_key_event_t *event);
+    const char *name;
+    showcase_focus_action_t action;
+    uint8_t visited;
+    uint8_t interacted;
+    uint8_t expected_unfocusable;
+} showcase_focus_target_t;
+
+static showcase_focus_target_t s_focus_targets[72];
+static uint8_t s_focus_target_count;
+static uint8_t s_showcase_runtime_focus_test_active;
+static uint8_t s_showcase_runtime_fail_reported;
+static uint8_t s_showcase_toast_ready;
+static uint16_t s_showcase_focus_toast_count;
+static uint16_t s_showcase_action_toast_count;
+static char s_toast_msg[64];
+
 static void update_theme(void);
 static void update_language(void);
 static void update_layer_visual(void);
@@ -185,6 +225,24 @@ static void on_theme_click(egui_view_t *view);
 static void on_lang_click(egui_view_t *view);
 static void on_layer_click(egui_view_t *view);
 static void on_textinput_focus_changed(egui_view_t *self, int is_focused);
+static int on_textinput_key(egui_view_t *self, egui_key_event_t *event);
+static void on_showcase_button_click(egui_view_t *view);
+static void on_switch_checked(egui_view_t *view, int is_checked);
+static void on_checkbox_checked(egui_view_t *view, int is_checked);
+static void on_radio_changed(egui_view_t *view, int index);
+static void on_toggle_toggled(egui_view_t *view, uint8_t is_toggled);
+static void on_progress_changed(egui_view_t *view, uint8_t progress);
+static void on_slider_changed(egui_view_t *view, uint8_t value);
+static void on_arc_slider_changed(egui_view_t *view, uint8_t value);
+static void on_number_picker_changed(egui_view_t *view, int16_t value);
+static void on_roller_selected(egui_view_t *view, uint8_t index);
+static void on_combobox_selected(egui_view_t *view, uint8_t index);
+static void on_tab_changed(egui_view_t *view, uint8_t index);
+static void on_button_matrix_click(egui_view_t *view, uint8_t index);
+static void on_list_item_click(egui_view_t *view, uint8_t index);
+static void on_menu_item_click(egui_view_t *view, uint8_t page_index, uint8_t item_index);
+static void on_textinput_submit(egui_view_t *view, const char *text);
+static void showcase_register_focus_targets(void);
 
 // ---- Animation ----
 #if !EGUI_SHOWCASE_PARITY_RECORDING
@@ -248,6 +306,280 @@ static const egui_view_menu_item_t menu_items[] = {
 static const egui_view_menu_page_t menu_pages[] = {
         {.title = "Menu", .items = menu_items, .item_count = 3},
 };
+
+static showcase_focus_target_t *showcase_find_focus_target(egui_view_t *view)
+{
+    for (uint8_t i = 0; i < s_focus_target_count; i++)
+    {
+        if (s_focus_targets[i].view == view)
+        {
+            return &s_focus_targets[i];
+        }
+    }
+    return NULL;
+}
+
+static void showcase_runtime_failure(const char *message)
+{
+    if (s_showcase_runtime_fail_reported)
+    {
+        return;
+    }
+
+    s_showcase_runtime_fail_reported = 1;
+    printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
+static void showcase_format_toast(const char *prefix, const char *name)
+{
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "%s %s", prefix, name != NULL ? name : "?");
+}
+
+static void showcase_show_toast(const char *prefix, const char *name)
+{
+    if (!s_showcase_toast_ready)
+    {
+        return;
+    }
+
+    showcase_format_toast(prefix, name);
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static uint8_t showcase_action_toast_allowed(egui_view_t *view)
+{
+    showcase_focus_target_t *target;
+
+    if (!s_showcase_toast_ready)
+    {
+        return 0;
+    }
+
+    if (view == NULL)
+    {
+        return 1;
+    }
+
+    target = showcase_find_focus_target(view);
+    if (target != NULL && target->view->is_focused)
+    {
+        return 1;
+    }
+
+    if (s_showcase_runtime_focus_test_active && view == EGUI_VIEW_OF(&wg_checkbox) && EGUI_VIEW_OF(&wg_radio)->is_focused)
+    {
+        return 1;
+    }
+
+    if (view == EGUI_VIEW_OF(&wg_list.items[0]) && EGUI_VIEW_OF(&wg_list)->is_focused)
+    {
+        return 1;
+    }
+
+    if (view == EGUI_VIEW_OF(&wg_textinput) && wg_keyboard.target == view)
+    {
+        return 1;
+    }
+
+    return s_showcase_runtime_focus_test_active && egui_view_is_self_or_descendant_of(egui_view_get_focused_view(view), view);
+}
+
+static void showcase_show_action_toast_for_view(egui_view_t *view, const char *name)
+{
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+
+    s_showcase_action_toast_count++;
+    showcase_show_toast("Action:", name);
+}
+
+static void showcase_mark_interacted(egui_view_t *view)
+{
+    showcase_focus_target_t *target = showcase_find_focus_target(view);
+    if (target != NULL)
+    {
+        target->interacted = 1;
+    }
+    else if (view == EGUI_VIEW_OF(&wg_list.items[0]))
+    {
+        showcase_mark_interacted(EGUI_VIEW_OF(&wg_list));
+    }
+}
+
+static void showcase_mark_interacted_name(const char *name)
+{
+    for (uint8_t i = 0; i < s_focus_target_count; i++)
+    {
+        if (strcmp(s_focus_targets[i].name, name) == 0)
+        {
+            s_focus_targets[i].interacted = 1;
+            return;
+        }
+    }
+}
+
+static void showcase_focus_changed(egui_view_t *self, int is_focused)
+{
+    showcase_focus_target_t *target = showcase_find_focus_target(self);
+
+    if (target != NULL && target->base_focus_changed != NULL)
+    {
+        target->base_focus_changed(self, is_focused);
+    }
+
+    if (is_focused && target != NULL && s_showcase_runtime_focus_test_active)
+    {
+        target->visited = 1;
+        s_showcase_focus_toast_count++;
+        showcase_show_toast("Focus:", target->name);
+    }
+}
+
+static int showcase_default_key(egui_view_t *self, egui_key_event_t *event)
+{
+    showcase_focus_target_t *target = showcase_find_focus_target(self);
+
+    if (target != NULL && target->base_on_key != NULL && target->base_on_key(self, event))
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+static void showcase_focus_target_add(egui_view_t *view, const char *name, showcase_focus_action_t action, uint8_t expected_unfocusable)
+{
+    showcase_focus_target_t *target;
+
+    if (view == NULL || s_focus_target_count >= (uint8_t)(sizeof(s_focus_targets) / sizeof(s_focus_targets[0])))
+    {
+        showcase_runtime_failure("showcase focus target overflow");
+        return;
+    }
+
+    target = &s_focus_targets[s_focus_target_count++];
+    memset(target, 0, sizeof(*target));
+    target->view = view;
+    target->name = name;
+    target->action = action;
+    target->expected_unfocusable = expected_unfocusable;
+
+    egui_view_copy_api(view, &target->api);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    target->base_focus_changed = target->api.on_focus_changed;
+    target->api.on_focus_changed = showcase_focus_changed;
+    egui_view_set_focusable(view, true);
+    egui_view_set_focus_frame_style(view, 4, 2, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    target->base_on_key = target->api.on_key;
+    target->api.on_key = showcase_default_key;
+#endif
+
+    if (expected_unfocusable)
+    {
+        target->view->is_focusable = true;
+    }
+}
+
+static void showcase_focus_target_add_textinput(egui_view_t *view, const char *name)
+{
+    showcase_focus_target_add(view, name, SHOWCASE_FOCUS_ACTION_TEXTINPUT, 0);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    showcase_focus_target_t *target = showcase_find_focus_target(view);
+    if (target != NULL)
+    {
+        target->api.on_focus_changed = on_textinput_focus_changed;
+        target->api.on_key = on_textinput_key;
+    }
+#endif
+}
+
+static void showcase_register_focus_targets(void)
+{
+    uint8_t toast_suppressed = s_showcase_runtime_focus_test_active;
+    s_showcase_runtime_focus_test_active = 0;
+
+    s_focus_target_count = 0;
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_button), "Button", SHOWCASE_FOCUS_ACTION_CLICK, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_label), "Label", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_textblock), "Textblock", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_dynlabel), "DynamicLabel", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_card), "Card", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add_textinput(EGUI_VIEW_OF(&wg_textinput), "TextInput");
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_switch), "Switch", SHOWCASE_FOCUS_ACTION_CLICK, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_checkbox), "Checkbox", SHOWCASE_FOCUS_ACTION_CLICK, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_radio), "Radio 1", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_radio2), "Radio 2", SHOWCASE_FOCUS_ACTION_CLICK, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_togbtn), "ToggleButton", SHOWCASE_FOCUS_ACTION_CLICK, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_led), "LED", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_badge), "Badge", SHOWCASE_FOCUS_ACTION_NONE, 0);
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_pbar), "ProgressBar", SHOWCASE_FOCUS_ACTION_PROGRESS_HOLD, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_cpbar), "CircularProgress", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_gauge), "Gauge", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_actring), "ActivityRing", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_pagind), "PageIndicator", SHOWCASE_FOCUS_ACTION_NONE, 0);
+
+    showcase_focus_target_add(&wg_cv_gradient, "Gradient", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(&wg_cv_shadow, "Shadow", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(&wg_cv_border1, "Stroke", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(&wg_cv_border2, "RoundRect", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(&wg_cv_alpha1, "Layer 1", SHOWCASE_FOCUS_ACTION_LAYER, 0);
+    showcase_focus_target_add(&wg_cv_alpha2, "Layer 2", SHOWCASE_FOCUS_ACTION_LAYER, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_cv_hqline), "HQ Line", SHOWCASE_FOCUS_ACTION_NONE, 0);
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_slider), "Slider", SHOWCASE_FOCUS_ACTION_RIGHT, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_arcslider), "ArcSlider", SHOWCASE_FOCUS_ACTION_RIGHT, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_numpick), "NumberPicker", SHOWCASE_FOCUS_ACTION_UP, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_spinner), "Spinner", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_roller), "Roller", SHOWCASE_FOCUS_ACTION_DOWN, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_combobox), "ComboBox", SHOWCASE_FOCUS_ACTION_COMBOBOX, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_scale), "Scale", SHOWCASE_FOCUS_ACTION_NONE, 0);
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_chart_line), "LineChart", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_chart_bar), "BarChart", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_chart_pie), "PieChart", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_chart_scatter), "ScatterChart", SHOWCASE_FOCUS_ACTION_NONE, 0);
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_aclock), "AnalogClock", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_dclock), "DigitalClock", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_stopwatch), "Stopwatch", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_calendar), "Calendar", SHOWCASE_FOCUS_ACTION_NONE, 0);
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_compass), "Compass", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_heartrate), "HeartRate", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_line), "Line", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_divider), "Divider", SHOWCASE_FOCUS_ACTION_NONE, 0);
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_table), "Table", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    egui_view_set_focus_frame_style(EGUI_VIEW_OF(&wg_table), 2, 2, EGUI_COLOR_ORANGE, EGUI_ALPHA_100);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_btnmatrix), "ButtonMatrix", SHOWCASE_FOCUS_ACTION_BUTTON_MATRIX, 0);
+    egui_view_set_focus_frame_style(EGUI_VIEW_OF(&wg_btnmatrix), 3, 2, EGUI_COLOR_CYAN, EGUI_ALPHA_100);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_tabbar), "TabBar", SHOWCASE_FOCUS_ACTION_RIGHT, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_list), "List", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_spangrp), "SpanGroup", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_window), "Window", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_menu), "Menu", SHOWCASE_FOCUS_ACTION_CLICK, 0);
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&btn_lang), "Language", SHOWCASE_FOCUS_ACTION_CLICK, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&btn_theme), "Theme", SHOWCASE_FOCUS_ACTION_CLICK, 0);
+
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_card_child), "Disabled sample", SHOWCASE_FOCUS_ACTION_NONE, 1);
+    egui_view_set_enable(EGUI_VIEW_OF(&wg_card_child), false);
+    showcase_focus_target_add(EGUI_VIEW_OF(&cap_label_wg), "Disabled label", SHOWCASE_FOCUS_ACTION_NONE, 1);
+    egui_view_set_enable(EGUI_VIEW_OF(&cap_label_wg), false);
+    showcase_focus_target_add(EGUI_VIEW_OF(&cap_textblock_wg), "Hidden label", SHOWCASE_FOCUS_ACTION_NONE, 1);
+    egui_view_set_visible(EGUI_VIEW_OF(&cap_textblock_wg), false);
+    showcase_focus_target_add(EGUI_VIEW_OF(&cap_dynlabel_wg), "Gone label", SHOWCASE_FOCUS_ACTION_NONE, 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&cap_dynlabel_wg), true);
+
+    s_showcase_runtime_focus_test_active = toast_suppressed;
+}
 
 // ============================================================================
 // Backgrounds for canvas demo
@@ -371,26 +703,64 @@ EGUI_BACKGROUND_PARAM_INIT(bg_numpick_light_params, &bg_numpick_light_p, NULL, N
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_numpick_light, &bg_numpick_light_params);
 
 // ============================================================================
-// TextInput focus: show/hide keyboard
+// TextInput focus/key handling
 // ============================================================================
 static void on_textinput_focus_changed(egui_view_t *self, int is_focused)
 {
     egui_view_textinput_t *ti = (egui_view_textinput_t *)self;
+    showcase_focus_target_t *target = showcase_find_focus_target(self);
+
+    if (target != NULL && target->base_focus_changed != NULL)
+    {
+        target->base_focus_changed(self, is_focused);
+    }
+
     if (is_focused)
     {
-        ti->cursor_visible = 1;
-        egui_view_start_timer(self, &ti->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
-        egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_Y);
-        egui_view_keyboard_show(EGUI_VIEW_OF(&wg_keyboard), self);
+        if (target != NULL && s_showcase_runtime_focus_test_active)
+        {
+            target->visited = 1;
+            s_showcase_focus_toast_count++;
+            showcase_show_toast("Focus:", target->name);
+        }
     }
     else
     {
-        ti->cursor_visible = 0;
-        egui_view_stop_timer(self, &ti->cursor_timer);
-        egui_view_keyboard_hide(EGUI_VIEW_OF(&wg_keyboard));
-        egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_HIDDEN_Y);
+        egui_view_t *focused = egui_view_get_focused_view(self);
+        if (!egui_view_is_self_or_descendant_of(focused, EGUI_VIEW_OF(&wg_keyboard)))
+        {
+            ti->cursor_visible = 0;
+            egui_view_stop_timer(self, &ti->cursor_timer);
+            egui_view_keyboard_hide(EGUI_VIEW_OF(&wg_keyboard));
+            egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_HIDDEN_Y);
+        }
     }
     egui_view_invalidate(self);
+}
+
+static int on_textinput_key(egui_view_t *self, egui_key_event_t *event)
+{
+    if (event == NULL)
+    {
+        return 0;
+    }
+
+    if (event->key_code == EGUI_KEY_CODE_ENTER)
+    {
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+        {
+            if (!EGUI_VIEW_OF(&wg_keyboard)->is_visible || wg_keyboard.target != self)
+            {
+                showcase_mark_interacted(self);
+                showcase_show_action_toast_for_view(self, "TextInput");
+                egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_Y);
+                egui_view_keyboard_show(EGUI_VIEW_OF(&wg_keyboard), self);
+            }
+        }
+        return 1;
+    }
+
+    return showcase_default_key(self, event);
 }
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
@@ -398,6 +768,204 @@ static void showcase_request_parity_snapshot(const char *label)
 {
     showcase_parity_frame_label_pending = label;
     recording_request_snapshot();
+}
+#endif
+
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+static void showcase_record_key_event(uint8_t type, uint8_t key_code)
+{
+    egui_key_event_t key_event;
+
+    memset(&key_event, 0, sizeof(key_event));
+    key_event.type = type;
+    key_event.key_code = key_code;
+    egui_core_process_input_key(s_core, &key_event);
+}
+
+static void showcase_record_key(uint8_t key_code)
+{
+    showcase_record_key_event(EGUI_KEY_EVENT_ACTION_DOWN, key_code);
+    showcase_record_key_event(EGUI_KEY_EVENT_ACTION_UP, key_code);
+}
+
+static void showcase_record_key_repeat(uint8_t type, uint8_t key_code, uint8_t count)
+{
+    for (uint8_t i = 0; i < count; i++)
+    {
+        showcase_record_key_event(type, key_code);
+    }
+}
+
+static uint8_t showcase_focused_is(egui_view_t *view)
+{
+    return egui_focus_manager_get_focused_view(s_core) == view;
+}
+
+static uint8_t showcase_keyboard_focused_key_is(uint8_t index)
+{
+    if (index >= EGUI_KEYBOARD_TOTAL_KEYS)
+    {
+        return 0;
+    }
+
+    return showcase_focused_is(EGUI_VIEW_OF(&wg_keyboard.keys[index]));
+}
+
+static uint8_t showcase_keyboard_is_hidden(void)
+{
+    return !EGUI_VIEW_OF(&wg_keyboard)->is_visible && EGUI_VIEW_OF(&wg_keyboard)->is_gone && wg_keyboard.target == NULL;
+}
+
+static void showcase_record_focus_target(uint8_t index)
+{
+    if (index >= s_focus_target_count)
+    {
+        showcase_runtime_failure("focus recording target out of range");
+        return;
+    }
+
+    egui_view_request_focus(s_focus_targets[index].view);
+}
+
+static void showcase_record_run_target_action(showcase_focus_target_t *target)
+{
+    if (target == NULL || !egui_focus_view_is_focusable(target->view))
+    {
+        return;
+    }
+
+    showcase_mark_interacted(target->view);
+
+    switch (target->action)
+    {
+    case SHOWCASE_FOCUS_ACTION_CLICK:
+    case SHOWCASE_FOCUS_ACTION_LAYER:
+        showcase_record_key(EGUI_KEY_CODE_ENTER);
+        break;
+    case SHOWCASE_FOCUS_ACTION_RIGHT:
+        showcase_record_key(EGUI_KEY_CODE_RIGHT);
+        break;
+    case SHOWCASE_FOCUS_ACTION_LEFT:
+        showcase_record_key(EGUI_KEY_CODE_LEFT);
+        break;
+    case SHOWCASE_FOCUS_ACTION_UP:
+        showcase_record_key(EGUI_KEY_CODE_UP);
+        break;
+    case SHOWCASE_FOCUS_ACTION_DOWN:
+        showcase_record_key(EGUI_KEY_CODE_DOWN);
+        break;
+    case SHOWCASE_FOCUS_ACTION_COMBOBOX:
+        showcase_record_key(EGUI_KEY_CODE_ENTER);
+        showcase_record_key(EGUI_KEY_CODE_DOWN);
+        showcase_record_key(EGUI_KEY_CODE_ENTER);
+        break;
+    case SHOWCASE_FOCUS_ACTION_TEXTINPUT:
+        break;
+    case SHOWCASE_FOCUS_ACTION_PROGRESS_HOLD:
+        showcase_record_key_event(EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_RIGHT);
+        showcase_record_key_repeat(EGUI_KEY_EVENT_ACTION_REPEAT, EGUI_KEY_CODE_RIGHT, 4);
+        showcase_record_key_event(EGUI_KEY_EVENT_ACTION_LONG_PRESS, EGUI_KEY_CODE_RIGHT);
+        showcase_record_key_event(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_RIGHT);
+        break;
+    case SHOWCASE_FOCUS_ACTION_BUTTON_MATRIX:
+        showcase_record_key(EGUI_KEY_CODE_RIGHT);
+        showcase_record_key(EGUI_KEY_CODE_DOWN);
+        showcase_record_key(EGUI_KEY_CODE_ENTER);
+        break;
+    case SHOWCASE_FOCUS_ACTION_NONE:
+        if (target->view == EGUI_VIEW_OF(&wg_list))
+        {
+            egui_view_list_set_on_item_click(EGUI_VIEW_OF(&wg_list), on_list_item_click);
+            egui_view_request_focus(EGUI_VIEW_OF(&wg_list.items[0]));
+            showcase_record_key(EGUI_KEY_CODE_ENTER);
+            egui_view_request_focus(EGUI_VIEW_OF(&wg_list));
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+static void showcase_record_verify_target(uint8_t index)
+{
+    showcase_focus_target_t *target;
+
+    if (index >= s_focus_target_count)
+    {
+        showcase_runtime_failure("focus verify target out of range");
+        return;
+    }
+
+    target = &s_focus_targets[index];
+    if (target->expected_unfocusable)
+    {
+        if (target->visited || showcase_focused_is(target->view))
+        {
+            showcase_runtime_failure("disabled/hidden/gone focus target was reachable");
+        }
+        return;
+    }
+
+    if (!target->visited)
+    {
+        snprintf(s_toast_msg, sizeof(s_toast_msg), "focus target not visited: %s", target->name);
+        showcase_runtime_failure(s_toast_msg);
+    }
+    if (target->action != SHOWCASE_FOCUS_ACTION_NONE && !target->interacted)
+    {
+        snprintf(s_toast_msg, sizeof(s_toast_msg), "focus target not interacted: %s", target->name);
+        showcase_runtime_failure(s_toast_msg);
+    }
+}
+
+static void showcase_record_reset_focus_state(void)
+{
+    for (uint8_t i = 0; i < s_focus_target_count; i++)
+    {
+        s_focus_targets[i].visited = 0;
+        s_focus_targets[i].interacted = 0;
+    }
+
+    s_showcase_runtime_fail_reported = 0;
+    s_showcase_focus_toast_count = 0;
+    s_showcase_action_toast_count = 0;
+    s_showcase_toast_ready = 1;
+    s_showcase_runtime_focus_test_active = 1;
+    egui_view_clear_focus(EGUI_VIEW_OF(&root));
+    egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_HIDDEN_Y);
+    egui_view_keyboard_hide(EGUI_VIEW_OF(&wg_keyboard));
+    egui_view_textinput_clear(EGUI_VIEW_OF(&wg_textinput));
+}
+
+static void showcase_record_final_verify(void)
+{
+    uint8_t expected_focusable_count = 0;
+
+    for (uint8_t i = 0; i < s_focus_target_count; i++)
+    {
+        if (!s_focus_targets[i].expected_unfocusable)
+        {
+            expected_focusable_count++;
+        }
+    }
+
+    if (s_showcase_focus_toast_count < expected_focusable_count)
+    {
+        showcase_runtime_failure("focus toast coverage too low");
+    }
+
+    if (s_showcase_action_toast_count == 0)
+    {
+        showcase_runtime_failure("action toast was not shown");
+    }
+
+    if (!showcase_keyboard_is_hidden())
+    {
+        showcase_runtime_failure("keyboard was not hidden after focus test");
+    }
+
+    printf("[SHOWCASE_FOCUS_CHECK] targets=%u focus_toasts=%u action_toasts=%u\n", s_focus_target_count, s_showcase_focus_toast_count,
+           s_showcase_action_toast_count);
 }
 #endif
 
@@ -442,6 +1010,7 @@ static void update_theme(void)
         wg_tabbar.active_text_color = title_color;
         egui_view_label_set_font_color(EGUI_VIEW_OF(&wg_window.title_label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
         egui_view_label_set_font_color(EGUI_VIEW_OF(&wg_window_lbl), text_color, EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&wg_card_child), text_color, EGUI_ALPHA_100);
         wg_menu.text_color = text_color;
         egui_view_button_matrix_set_text_color(EGUI_VIEW_OF(&wg_btnmatrix), text_color);
         for (int i = 0; i < wg_list.item_count; i++)
@@ -556,6 +1125,7 @@ static void update_theme(void)
         wg_tabbar.active_text_color = title_color;
         egui_view_label_set_font_color(EGUI_VIEW_OF(&wg_window.title_label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
         egui_view_label_set_font_color(EGUI_VIEW_OF(&wg_window_lbl), text_color, EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&wg_card_child), text_color, EGUI_ALPHA_100);
         wg_menu.text_color = text_color;
         egui_view_button_matrix_set_text_color(EGUI_VIEW_OF(&wg_btnmatrix), text_color);
         for (int i = 0; i < wg_list.item_count; i++)
@@ -692,12 +1262,13 @@ static void update_layer_visual(void)
 
 static void on_theme_click(egui_view_t *view)
 {
-    egui_view_clear_focus(view);
+    showcase_mark_interacted(view);
     is_dark_theme = !is_dark_theme;
     // light_mode (sun, U+E518) when dark active; dark_mode (moon, U+E51C) when light active
     egui_view_label_set_text(EGUI_VIEW_OF(&btn_theme), is_dark_theme ? "\xee\x94\x98" : "\xee\x94\x9c");
     update_theme();
     update_language();
+    showcase_show_action_toast_for_view(view, is_dark_theme ? "Theme dark" : "Theme light");
 }
 
 // i18n helper: select string by is_chinese flag
@@ -810,13 +1381,15 @@ static void update_language(void)
 
 static void on_lang_click(egui_view_t *view)
 {
-    egui_view_clear_focus(view);
+    showcase_mark_interacted(view);
     is_chinese = !is_chinese;
     update_language();
+    showcase_show_action_toast_for_view(view, is_chinese ? "Language CN" : "Language EN");
 }
 
 static void on_layer_click(egui_view_t *view)
 {
+    showcase_mark_interacted(view);
     if (view == &wg_cv_alpha1)
     {
         active_layer = 1;
@@ -828,6 +1401,179 @@ static void on_layer_click(egui_view_t *view)
 
     update_layer_visual();
     egui_view_invalidate(EGUI_VIEW_OF(&root));
+    showcase_show_action_toast_for_view(view, active_layer == 1 ? "Layer 1" : "Layer 2");
+}
+
+static void on_showcase_button_click(egui_view_t *view)
+{
+    EGUI_UNUSED(view);
+    showcase_mark_interacted(view);
+    showcase_show_action_toast_for_view(view, "Button");
+}
+
+static void on_switch_checked(egui_view_t *view, int is_checked)
+{
+    showcase_mark_interacted(view);
+    showcase_show_action_toast_for_view(view, is_checked ? "Switch on" : "Switch off");
+}
+
+static void on_checkbox_checked(egui_view_t *view, int is_checked)
+{
+    showcase_mark_interacted(view);
+    showcase_show_action_toast_for_view(view, is_checked ? "Checkbox checked" : "Checkbox unchecked");
+}
+
+static void on_radio_changed(egui_view_t *view, int index)
+{
+    showcase_mark_interacted(view);
+    if (index == 0)
+    {
+        showcase_mark_interacted_name("Radio 1");
+    }
+    else if (index == 1)
+    {
+        showcase_mark_interacted_name("Radio 2");
+    }
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Radio %d", index + 1);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_toggle_toggled(egui_view_t *view, uint8_t is_toggled)
+{
+    showcase_mark_interacted(view);
+    showcase_show_action_toast_for_view(view, is_toggled ? "Toggle on" : "Toggle off");
+}
+
+static void on_progress_changed(egui_view_t *view, uint8_t progress)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Progress %u", progress);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_slider_changed(egui_view_t *view, uint8_t value)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Slider %u", value);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_arc_slider_changed(egui_view_t *view, uint8_t value)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Arc %u", value);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_number_picker_changed(egui_view_t *view, int16_t value)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Number %d", value);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_roller_selected(egui_view_t *view, uint8_t index)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Roller %u", index);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_combobox_selected(egui_view_t *view, uint8_t index)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Combo %u", index);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_tab_changed(egui_view_t *view, uint8_t index)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Tab %u", index);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_button_matrix_click(egui_view_t *view, uint8_t index)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Matrix %u", index);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_list_item_click(egui_view_t *view, uint8_t index)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: List %u", index);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_menu_item_click(egui_view_t *view, uint8_t page_index, uint8_t item_index)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Menu %u/%u", page_index, item_index);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_textinput_submit(egui_view_t *view, const char *text)
+{
+    EGUI_UNUSED(text);
+    showcase_mark_interacted(view);
+    showcase_show_action_toast_for_view(view, "TextInput done");
 }
 
 // ============================================================================
@@ -1001,6 +1747,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_set_size(EGUI_VIEW_OF(&wg_button), 110, 36);
     egui_view_label_set_font(EGUI_VIEW_OF(&wg_button), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_text(EGUI_VIEW_OF(&wg_button), "Button");
+    egui_view_set_on_click_listener(EGUI_VIEW_OF(&wg_button), on_showcase_button_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_button));
 
     egui_view_label_init(EGUI_VIEW_OF(&wg_label), core);
@@ -1048,6 +1795,10 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_textinput_set_font(EGUI_VIEW_OF(&wg_textinput), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_textinput_set_placeholder(EGUI_VIEW_OF(&wg_textinput), "Type here...");
     egui_view_textinput_set_text(EGUI_VIEW_OF(&wg_textinput), "Hello");
+    egui_view_textinput_set_text_color(EGUI_VIEW_OF(&wg_textinput), EGUI_COLOR_MAKE(201, 209, 217), EGUI_ALPHA_100);
+    egui_view_textinput_set_placeholder_color(EGUI_VIEW_OF(&wg_textinput), EGUI_COLOR_MAKE(139, 148, 158), EGUI_ALPHA_100);
+    egui_view_textinput_set_cursor_color(EGUI_VIEW_OF(&wg_textinput), EGUI_COLOR_YELLOW);
+    egui_view_textinput_set_on_submit(EGUI_VIEW_OF(&wg_textinput), on_textinput_submit);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_textinput));
     // Type annotations for basic panel widgets (right-side labels)
     init_caption(&cap_label_wg, 130, 74, 74, "Label");
@@ -1062,6 +1813,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_switch_init(EGUI_VIEW_OF(&wg_switch), core);
     egui_view_set_position(EGUI_VIEW_OF(&wg_switch), 240, 30);
     egui_view_set_size(EGUI_VIEW_OF(&wg_switch), 54, 28);
+    egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(&wg_switch), on_switch_checked);
     egui_view_switch_set_checked(EGUI_VIEW_OF(&wg_switch), 1);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_switch));
     init_caption(&cap_switch, 300, 36, 70, "Switch");
@@ -1071,11 +1823,13 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_set_size(EGUI_VIEW_OF(&wg_checkbox), 160, 24);
     egui_view_checkbox_set_font(EGUI_VIEW_OF(&wg_checkbox), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_checkbox_set_text(EGUI_VIEW_OF(&wg_checkbox), "Checked");
+    egui_view_checkbox_set_on_checked_listener(EGUI_VIEW_OF(&wg_checkbox), on_checkbox_checked);
     egui_view_checkbox_set_checked(EGUI_VIEW_OF(&wg_checkbox), 1);
     egui_view_checkbox_set_text_color(EGUI_VIEW_OF(&wg_checkbox), EGUI_COLOR_WHITE);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_checkbox));
 
     egui_view_radio_group_init(&wg_radio_grp);
+    egui_view_radio_group_set_on_changed_listener(&wg_radio_grp, on_radio_changed);
     egui_view_radio_button_init(EGUI_VIEW_OF(&wg_radio), core);
     egui_view_set_position(EGUI_VIEW_OF(&wg_radio), 240, 98);
     egui_view_set_size(EGUI_VIEW_OF(&wg_radio), 110, 24);
@@ -1101,6 +1855,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_set_size(EGUI_VIEW_OF(&wg_togbtn), 110, 34);
     egui_view_toggle_button_set_font(EGUI_VIEW_OF(&wg_togbtn), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_toggle_button_set_text(EGUI_VIEW_OF(&wg_togbtn), "ON");
+    egui_view_toggle_button_set_on_toggled_listener(EGUI_VIEW_OF(&wg_togbtn), on_toggle_toggled);
     egui_view_toggle_button_set_toggled(EGUI_VIEW_OF(&wg_togbtn), 1);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_togbtn));
 
@@ -1125,6 +1880,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_progress_bar_init(EGUI_VIEW_OF(&wg_pbar), core);
     egui_view_set_position(EGUI_VIEW_OF(&wg_pbar), 430, 30);
     egui_view_set_size(EGUI_VIEW_OF(&wg_pbar), 210, 16);
+    egui_view_progress_bar_set_on_progress_listener(EGUI_VIEW_OF(&wg_pbar), on_progress_changed);
     egui_view_progress_bar_set_process(EGUI_VIEW_OF(&wg_pbar), 30);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_pbar));
 
@@ -1239,6 +1995,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_slider_init(EGUI_VIEW_OF(&wg_slider), core);
     egui_view_set_position(EGUI_VIEW_OF(&wg_slider), 16, 362);
     egui_view_set_size(EGUI_VIEW_OF(&wg_slider), 180, 28);
+    egui_view_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&wg_slider), on_slider_changed);
     egui_view_slider_set_value(EGUI_VIEW_OF(&wg_slider), 60);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_slider));
 
@@ -1247,6 +2004,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_set_size(EGUI_VIEW_OF(&wg_arcslider), 120, 120);
     wg_arcslider.stroke_width = 12;
     wg_arcslider.thumb_radius = 9;
+    egui_view_arc_slider_set_on_value_changed_listener(EGUI_VIEW_OF(&wg_arcslider), on_arc_slider_changed);
     egui_view_arc_slider_set_value(EGUI_VIEW_OF(&wg_arcslider), 70);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_arcslider));
 
@@ -1254,6 +2012,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_set_position(EGUI_VIEW_OF(&wg_numpick), 132, 390);
     egui_view_set_size(EGUI_VIEW_OF(&wg_numpick), 80, 120);
     egui_view_number_picker_set_range(EGUI_VIEW_OF(&wg_numpick), 0, 99);
+    egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&wg_numpick), on_number_picker_changed);
     egui_view_number_picker_set_value(EGUI_VIEW_OF(&wg_numpick), 42);
     egui_view_set_background(EGUI_VIEW_OF(&wg_numpick), EGUI_BG_OF(&bg_numpick_dark));
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_numpick));
@@ -1270,12 +2029,14 @@ static void uicode_disp0_init_ui(egui_core_t *core)
         EGUI_VIEW_ROLLER_PARAMS_INIT(rp, 276, 362, 90, 110, roller_items, 5, 1);
         egui_view_roller_init_with_params(EGUI_VIEW_OF(&wg_roller), core, &rp);
     }
+    egui_view_roller_set_on_selected_listener(EGUI_VIEW_OF(&wg_roller), on_roller_selected);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_roller));
 
     {
         EGUI_VIEW_COMBOBOX_PARAMS_INIT(cp, 16, 520, 150, 30, combo_items, 3, 0);
         egui_view_combobox_init_with_params(EGUI_VIEW_OF(&wg_combobox), core, &cp);
     }
+    egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&wg_combobox), on_combobox_selected);
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_combobox));
 
     {
@@ -1422,12 +2183,15 @@ static void uicode_disp0_init_ui(egui_core_t *core)
         EGUI_VIEW_BUTTON_MATRIX_PARAMS_INIT(bp, 860, 640, 170, 84, 3, 2);
         egui_view_button_matrix_init_with_params(EGUI_VIEW_OF(&wg_btnmatrix), core, &bp);
         egui_view_button_matrix_set_labels(EGUI_VIEW_OF(&wg_btnmatrix), bm_labels, 6, 3);
+        egui_view_button_matrix_set_selection_enabled(EGUI_VIEW_OF(&wg_btnmatrix), 1);
+        egui_view_button_matrix_set_on_click(EGUI_VIEW_OF(&wg_btnmatrix), on_button_matrix_click);
     }
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_btnmatrix));
 
     {
         EGUI_VIEW_TAB_BAR_PARAMS_INIT(tbp, 640, 748, 160, 34, tab_texts, 3);
         egui_view_tab_bar_init_with_params(EGUI_VIEW_OF(&wg_tabbar), core, &tbp);
+        egui_view_tab_bar_set_on_tab_changed_listener(EGUI_VIEW_OF(&wg_tabbar), on_tab_changed);
         egui_view_tab_bar_set_current_index(EGUI_VIEW_OF(&wg_tabbar), 0);
     }
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_tabbar));
@@ -1440,6 +2204,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
         egui_view_list_add_item(EGUI_VIEW_OF(&wg_list), "Item B");
         egui_view_list_add_item(EGUI_VIEW_OF(&wg_list), "Item C");
         egui_view_list_add_item(EGUI_VIEW_OF(&wg_list), "Item D");
+        egui_view_list_set_on_item_click(EGUI_VIEW_OF(&wg_list), on_list_item_click);
     }
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_list));
 
@@ -1466,6 +2231,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
         EGUI_VIEW_MENU_PARAMS_INIT(mp, 1060, 752, 150, 86, 20, 20);
         egui_view_menu_init_with_params(EGUI_VIEW_OF(&wg_menu), core, &mp);
         egui_view_menu_set_pages(EGUI_VIEW_OF(&wg_menu), menu_pages, 1);
+        egui_view_menu_set_on_item_click(EGUI_VIEW_OF(&wg_menu), on_menu_item_click);
     }
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_menu));
     // Language button and theme button added last so they render on top of all panels
@@ -1493,9 +2259,11 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     egui_view_keyboard_set_icon_font(EGUI_VIEW_OF(&wg_keyboard), EGUI_FONT_ICON_MS_20);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&wg_keyboard));
 
-    // Register focus listener on textinput to show/hide keyboard
-    static egui_view_api_t wg_textinput_focus_api;
-    egui_view_override_api_on_focus_changed(EGUI_VIEW_OF(&wg_textinput), &wg_textinput_focus_api, on_textinput_focus_changed);
+    showcase_register_focus_targets();
+
+    egui_toast_std_init((egui_toast_t *)&s_toast, core);
+    egui_toast_set_as_default((egui_toast_t *)&s_toast);
+    s_showcase_toast_ready = 1;
 
     // Default theme setup
     is_dark_theme = 1;
@@ -1562,6 +2330,167 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return false;
     }
 #else
+#if !EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    static int last_action = -1;
+    int first_call = action_index != last_action;
+    int target_index = action_index - 1;
+
+    last_action = action_index;
+
+    if (action_index == 0)
+    {
+        if (first_call)
+        {
+            showcase_record_reset_focus_state();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 80);
+        return true;
+    }
+
+    if (target_index >= 0 && target_index < (int)s_focus_target_count)
+    {
+        if (first_call)
+        {
+            showcase_record_focus_target((uint8_t)target_index);
+            showcase_record_run_target_action(&s_focus_targets[target_index]);
+            if (s_focus_targets[target_index].action == SHOWCASE_FOCUS_ACTION_TEXTINPUT)
+            {
+                recording_request_snapshot();
+            }
+        }
+        EGUI_SIM_SET_WAIT(p_action, 80);
+        return true;
+    }
+
+    if (target_index == (int)s_focus_target_count)
+    {
+        if (first_call)
+        {
+            egui_view_textinput_clear(EGUI_VIEW_OF(&wg_textinput));
+            egui_view_request_focus(EGUI_VIEW_OF(&wg_textinput));
+            showcase_record_key(EGUI_KEY_CODE_ENTER);
+            if (!EGUI_VIEW_OF(&wg_keyboard)->is_visible || wg_keyboard.target != EGUI_VIEW_OF(&wg_textinput) || !showcase_keyboard_focused_key_is(0))
+            {
+                showcase_runtime_failure("textinput enter did not show focused keyboard");
+            }
+            recording_request_snapshot();
+            showcase_record_key(EGUI_KEY_CODE_DOWN);
+            showcase_record_key(EGUI_KEY_CODE_RIGHT);
+            showcase_record_key(EGUI_KEY_CODE_RIGHT);
+            showcase_record_key(EGUI_KEY_CODE_RIGHT);
+            showcase_record_key(EGUI_KEY_CODE_RIGHT);
+            showcase_record_key(EGUI_KEY_CODE_RIGHT);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 80);
+        return true;
+    }
+
+    if (target_index == (int)s_focus_target_count + 1)
+    {
+        if (first_call)
+        {
+            if (!showcase_keyboard_focused_key_is(15))
+            {
+                showcase_runtime_failure("keyboard direction keys did not reach h");
+            }
+            showcase_record_key(EGUI_KEY_CODE_ENTER);
+            showcase_record_key(EGUI_KEY_CODE_UP);
+            showcase_record_key(EGUI_KEY_CODE_RIGHT);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 80);
+        return true;
+    }
+
+    if (target_index == (int)s_focus_target_count + 2)
+    {
+        if (first_call)
+        {
+            if (!showcase_keyboard_focused_key_is(7))
+            {
+                showcase_runtime_failure("keyboard direction keys did not reach i");
+            }
+            showcase_record_key(EGUI_KEY_CODE_ENTER);
+            showcase_record_key(EGUI_KEY_CODE_DOWN);
+            showcase_record_key(EGUI_KEY_CODE_DOWN);
+            showcase_record_key(EGUI_KEY_CODE_DOWN);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 80);
+        return true;
+    }
+
+    if (target_index == (int)s_focus_target_count + 3)
+    {
+        if (first_call)
+        {
+            if (strcmp(egui_view_textinput_get_text(EGUI_VIEW_OF(&wg_textinput)), "hi") != 0)
+            {
+                showcase_runtime_failure("keyboard did not enter hi");
+            }
+            if (!showcase_keyboard_focused_key_is(EGUI_KEYBOARD_KEY_IDX_ENTER))
+            {
+                showcase_runtime_failure("keyboard direction keys did not reach done");
+            }
+            showcase_record_key(EGUI_KEY_CODE_ENTER);
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 80);
+        return true;
+    }
+
+    if (target_index == (int)s_focus_target_count + 4)
+    {
+        if (first_call)
+        {
+            if (!showcase_keyboard_is_hidden())
+            {
+                showcase_runtime_failure("keyboard done did not hide keyboard");
+            }
+            if (!showcase_focused_is(EGUI_VIEW_OF(&wg_textinput)))
+            {
+                showcase_runtime_failure("keyboard done did not restore textinput focus");
+            }
+            showcase_record_key(EGUI_KEY_CODE_ENTER);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 80);
+        return true;
+    }
+
+    if (target_index == (int)s_focus_target_count + 5)
+    {
+        if (first_call)
+        {
+            if (!EGUI_VIEW_OF(&wg_keyboard)->is_visible || wg_keyboard.target != EGUI_VIEW_OF(&wg_textinput))
+            {
+                showcase_runtime_failure("textinput enter did not reopen keyboard");
+            }
+            showcase_record_key(EGUI_KEY_CODE_ESCAPE);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 80);
+        return true;
+    }
+
+    if (target_index == (int)s_focus_target_count + 6)
+    {
+        if (first_call)
+        {
+            if (!showcase_keyboard_is_hidden())
+            {
+                showcase_runtime_failure("keyboard escape did not hide keyboard");
+            }
+            for (uint8_t i = 0; i < s_focus_target_count; i++)
+            {
+                showcase_record_verify_target(i);
+            }
+            showcase_record_final_verify();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 120);
+        return true;
+    }
+
+    return false;
+#endif
 #if (SHOWCASE_CANVAS_WIDTH > EGUI_CONFIG_SCREEN_WIDTH) || (SHOWCASE_CANVAS_HEIGHT > EGUI_CONFIG_SCREEN_HEIGHT)
     static int last_action = -1;
     int first_call = action_index != last_action;

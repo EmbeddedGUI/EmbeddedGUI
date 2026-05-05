@@ -122,10 +122,9 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
 {
     int count = 0;
 
-// Simple stack-based DFS using a fixed-size stack to avoid heap allocation.
-// Depth and result count are intentionally capped for embedded use.
-#define FOCUS_DFS_MAX_DEPTH 16
-    egui_view_t *stack[FOCUS_DFS_MAX_DEPTH];
+    // Simple stack-based DFS using a fixed-size stack to avoid heap allocation.
+    // Depth and result count are intentionally capped for embedded use.
+    egui_view_t *stack[EGUI_CONFIG_FOCUS_DFS_MAX_DEPTH];
     int stack_top = 0;
 
     stack[stack_top++] = root;
@@ -153,14 +152,14 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
             egui_dnode_t *p_head;
 
             // Collect children first, then push in reverse order.
-            egui_view_t *children[FOCUS_DFS_MAX_DEPTH];
+            egui_view_t *children[EGUI_CONFIG_FOCUS_DFS_MAX_DEPTH];
             int child_count = 0;
 
             if (!egui_dlist_is_empty(&group->childs))
             {
                 EGUI_DLIST_FOR_EACH_NODE(&group->childs, p_head)
                 {
-                    if (child_count < FOCUS_DFS_MAX_DEPTH)
+                    if (child_count < EGUI_CONFIG_FOCUS_DFS_MAX_DEPTH)
                     {
                         children[child_count++] = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
                     }
@@ -170,7 +169,7 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
             // Reverse push keeps the original child order when popping from the stack.
             for (int i = child_count - 1; i >= 0; i--)
             {
-                if (stack_top < FOCUS_DFS_MAX_DEPTH)
+                if (stack_top < EGUI_CONFIG_FOCUS_DFS_MAX_DEPTH)
                 {
                     stack[stack_top++] = children[i];
                 }
@@ -179,10 +178,7 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
     }
 
     return count;
-#undef FOCUS_DFS_MAX_DEPTH
 }
-
-#define FOCUS_MAX_FOCUSABLE_VIEWS 32
 
 static egui_dim_t egui_focus_region_center_x(const egui_region_t *region)
 {
@@ -295,10 +291,10 @@ static uint32_t egui_focus_get_wrap_score(uint8_t key_code, const egui_region_t 
 /** Move focus to the next focusable view in traversal order, wrapping around at the end. */
 void egui_focus_manager_move_focus_next(egui_core_t *core)
 {
-    egui_view_t *focusable_list[FOCUS_MAX_FOCUSABLE_VIEWS];
+    egui_view_t *focusable_list[EGUI_CONFIG_FOCUS_MAX_FOCUSABLE_VIEWS];
     egui_view_group_t *root = egui_core_get_root_view(core);
 
-    int count = egui_focus_collect_focusable_views((egui_view_t *)root, focusable_list, FOCUS_MAX_FOCUSABLE_VIEWS);
+    int count = egui_focus_collect_focusable_views((egui_view_t *)root, focusable_list, EGUI_CONFIG_FOCUS_MAX_FOCUSABLE_VIEWS);
 
     if (count == 0)
     {
@@ -327,10 +323,10 @@ void egui_focus_manager_move_focus_next(egui_core_t *core)
 /** Move focus to the previous focusable view in traversal order, wrapping around at the beginning. */
 void egui_focus_manager_move_focus_prev(egui_core_t *core)
 {
-    egui_view_t *focusable_list[FOCUS_MAX_FOCUSABLE_VIEWS];
+    egui_view_t *focusable_list[EGUI_CONFIG_FOCUS_MAX_FOCUSABLE_VIEWS];
     egui_view_group_t *root = egui_core_get_root_view(core);
 
-    int count = egui_focus_collect_focusable_views((egui_view_t *)root, focusable_list, FOCUS_MAX_FOCUSABLE_VIEWS);
+    int count = egui_focus_collect_focusable_views((egui_view_t *)root, focusable_list, EGUI_CONFIG_FOCUS_MAX_FOCUSABLE_VIEWS);
 
     if (count == 0)
     {
@@ -366,7 +362,7 @@ void egui_focus_manager_move_focus_prev(egui_core_t *core)
 
 int egui_focus_manager_move_focus_direction(egui_core_t *core, uint8_t key_code)
 {
-    egui_view_t *focusable_list[FOCUS_MAX_FOCUSABLE_VIEWS];
+    egui_view_t *focusable_list[EGUI_CONFIG_FOCUS_MAX_FOCUSABLE_VIEWS];
     egui_view_group_t *root = egui_core_get_root_view(core);
     egui_view_t *current;
     egui_view_t *best = NULL;
@@ -384,7 +380,7 @@ int egui_focus_manager_move_focus_direction(egui_core_t *core, uint8_t key_code)
         return 0;
     }
 
-    count = egui_focus_collect_focusable_views((egui_view_t *)root, focusable_list, FOCUS_MAX_FOCUSABLE_VIEWS);
+    count = egui_focus_collect_focusable_views((egui_view_t *)root, focusable_list, EGUI_CONFIG_FOCUS_MAX_FOCUSABLE_VIEWS);
     if (count == 0)
     {
         return 0;

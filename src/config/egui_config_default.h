@@ -339,6 +339,22 @@ extern "C" {
 #endif
 
 /**
+ * Focus traversal options.
+ * Maximum number of focusable views collected during one directional or tab navigation pass.
+ */
+#ifndef EGUI_CONFIG_FOCUS_MAX_FOCUSABLE_VIEWS
+#define EGUI_CONFIG_FOCUS_MAX_FOCUSABLE_VIEWS 32
+#endif
+
+/**
+ * Focus traversal options.
+ * Maximum stack depth used by the embedded DFS focus collector.
+ */
+#ifndef EGUI_CONFIG_FOCUS_DFS_MAX_DEPTH
+#define EGUI_CONFIG_FOCUS_DFS_MAX_DEPTH 16
+#endif
+
+/**
  * Function options.
  * Select support view layer for z-ordering. if 0, disable layer (all views draw in insertion order).
  */
