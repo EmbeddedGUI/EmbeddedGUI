@@ -395,6 +395,16 @@ static void egui_view_combobox_commit_current_index(egui_view_t *self, uint8_t i
 static int egui_view_combobox_on_key_event(egui_view_t *self, egui_key_event_t *event);
 #endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+static void egui_view_combobox_invalidate_focus_region_if_focused(egui_view_t *self)
+{
+    if (self != NULL && self->is_focused)
+    {
+        egui_view_invalidate_focus_region(self);
+    }
+}
+#endif
+
 void egui_view_combobox_set_on_selected_listener(egui_view_t *self, egui_view_on_combobox_selected_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -540,12 +550,19 @@ void egui_view_combobox_expand(egui_view_t *self)
         egui_view_set_layer(self, EGUI_VIEW_LAYER_TOP);
 #endif
         egui_dim_t expanded_height = local->collapsed_height + visible_count * local->item_height;
-        // Mark old region dirty before changing size
+        // Mark old visual bounds before changing size. The common focus frame
+        // can extend outside region_screen, so it needs its own dirty pass.
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        egui_view_combobox_invalidate_focus_region_if_focused(self);
+#endif
         egui_view_update_region_dirty(self, &self->region_screen);
         self->region.size.height = expanded_height;
         self->region_screen.size.height = expanded_height;
-        // Mark new region dirty as well
+        // Mark new visual bounds after changing size.
         egui_view_update_region_dirty(self, &self->region_screen);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        egui_view_combobox_invalidate_focus_region_if_focused(self);
+#endif
         egui_view_invalidate(self);
     }
 }
@@ -559,10 +576,17 @@ void egui_view_combobox_collapse(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
         egui_view_set_layer(self, EGUI_VIEW_LAYER_DEFAULT);
 #endif
-        // Mark old (expanded) region dirty before changing size
+        // Mark old expanded visual bounds before changing size. This clears
+        // the focus-frame edge drawn outside the dropdown body.
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        egui_view_combobox_invalidate_focus_region_if_focused(self);
+#endif
         egui_view_update_region_dirty(self, &self->region_screen);
         self->region.size.height = local->collapsed_height;
         self->region_screen.size.height = local->collapsed_height;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        egui_view_combobox_invalidate_focus_region_if_focused(self);
+#endif
         egui_view_invalidate(self);
     }
 }

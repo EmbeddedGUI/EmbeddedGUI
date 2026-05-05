@@ -146,6 +146,36 @@ static void setup_combobox_in_parent(void)
     reset_listener_state();
 }
 
+static void collect_combobox_dirty_union(egui_region_t *out_region, uint8_t *out_count)
+{
+    egui_region_t *arr = egui_core_get_region_dirty_arr(test_combobox_get_core());
+    uint8_t count = 0;
+
+    egui_region_init_empty(out_region);
+    for (uint8_t i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    {
+        if (egui_region_is_empty(&arr[i]))
+        {
+            continue;
+        }
+
+        if (count == 0)
+        {
+            egui_region_copy(out_region, &arr[i]);
+        }
+        else
+        {
+            egui_region_union(out_region, &arr[i], out_region);
+        }
+        count++;
+    }
+
+    if (out_count != NULL)
+    {
+        *out_count = count;
+    }
+}
+
 static void setup_overlapping_comboboxes(void)
 {
     egui_core_t *core = test_combobox_get_core();
@@ -493,6 +523,35 @@ static void test_combobox_input_polling_prefers_reported_release_coords(void)
 }
 #endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+static void test_combobox_collapse_invalidates_expanded_focus_frame(void)
+{
+    egui_core_t *core = test_combobox_get_core();
+    egui_view_t *box = EGUI_VIEW_OF(&test_box);
+    egui_region_t expanded_focus_region;
+    egui_region_t dirty_union;
+    uint8_t dirty_count = 0;
+
+    setup_overlapping_comboboxes();
+    egui_focus_manager_clear_focus(core);
+    egui_focus_manager_set_focus(core, box);
+    egui_view_combobox_expand(box);
+    sync_layout();
+    egui_view_get_focus_frame_region(box, &expanded_focus_region);
+
+    egui_core_clear_region_dirty(core);
+    egui_view_combobox_collapse(box);
+    collect_combobox_dirty_union(&dirty_union, &dirty_count);
+
+    EGUI_TEST_ASSERT_FALSE(egui_view_combobox_is_expanded(box));
+    EGUI_TEST_ASSERT_FALSE(egui_region_is_empty(&dirty_union));
+    EGUI_TEST_ASSERT_TRUE(dirty_count > 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(expanded_focus_region.location.y + expanded_focus_region.size.height, dirty_union.location.y + dirty_union.size.height);
+
+    egui_focus_manager_clear_focus(core);
+}
+#endif
+
 static void test_combobox_expand_clamps_to_bound_core_screen_height(void)
 {
     egui_core_t local_core;
@@ -539,6 +598,9 @@ void test_combobox_run(void)
     EGUI_TEST_RUN(test_combobox_release_on_different_item_does_not_commit_selection);
     EGUI_TEST_RUN(test_combobox_input_polling_reuses_last_pressed_coords_for_release);
     EGUI_TEST_RUN(test_combobox_input_polling_prefers_reported_release_coords);
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    EGUI_TEST_RUN(test_combobox_collapse_invalidates_expanded_focus_frame);
 #endif
     EGUI_TEST_RUN(test_combobox_expand_clamps_to_bound_core_screen_height);
     EGUI_TEST_SUITE_END();
