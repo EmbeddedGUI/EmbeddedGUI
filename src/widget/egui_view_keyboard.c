@@ -642,6 +642,23 @@ static void egui_view_keyboard_key_on_focus_changed(egui_view_t *self, int is_fo
     }
 }
 
+static void egui_view_keyboard_key_on_draw_focus_frame(egui_view_t *self, const egui_region_t *frame_region)
+{
+    egui_canvas_t *canvas = egui_view_get_canvas(self);
+    egui_dim_t x;
+    egui_dim_t y;
+
+    if (self == NULL || canvas == NULL || frame_region == NULL || self->focus_frame_stroke <= 0)
+    {
+        return;
+    }
+
+    x = self->region_screen.location.x - frame_region->location.x;
+    y = self->region_screen.location.y - frame_region->location.y;
+    egui_canvas_draw_rectangle(canvas, x, y, self->region_screen.size.width, self->region_screen.size.height, self->focus_frame_stroke,
+                               self->focus_frame_color, self->focus_frame_alpha);
+}
+
 // ============== Public API ==============
 
 void egui_view_keyboard_set_mode(egui_view_t *self, uint8_t mode)
@@ -859,6 +876,7 @@ static void egui_view_keyboard_init_key(egui_view_keyboard_t *keyboard, int key_
         egui_view_copy_api(key_view, &keyboard->key_api);
         keyboard->key_api.on_key_event = egui_view_keyboard_key_on_key_event;
         keyboard->key_api.on_focus_changed = egui_view_keyboard_key_on_focus_changed;
+        keyboard->key_api.on_draw_focus_frame = egui_view_keyboard_key_on_draw_focus_frame;
     }
     key_view->api = &keyboard->key_api;
     egui_view_set_size(key_view, width, EGUI_KEYBOARD_KEY_HEIGHT);
