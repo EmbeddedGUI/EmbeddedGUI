@@ -14,6 +14,8 @@
 #define EGUI_VIEW_LIST_ITEM_MARGIN_Y    3
 #define EGUI_VIEW_LIST_TEXT_PADDING     12
 #define EGUI_VIEW_LIST_ICON_GAP_DEFAULT 8
+#define EGUI_VIEW_LIST_SELECTION_INSET  2
+#define EGUI_VIEW_LIST_SELECTION_STROKE 2
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
 void egui_view_scroll_draw(egui_view_t *self);
@@ -288,12 +290,13 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
         if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
         {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-            if (self->is_focused && local->selected_index == i && item_view->region.size.width > 2 && item_view->region.size.height > 2)
+            if (self->is_focused && local->selected_index == i && item_view->region.size.width > (EGUI_VIEW_LIST_SELECTION_INSET * 2 + 4) &&
+                item_view->region.size.height > (EGUI_VIEW_LIST_SELECTION_INSET * 2 + 4))
             {
-                egui_canvas_draw_round_rectangle_fill(canvas, 1, 1, item_view->region.size.width - 2, item_view->region.size.height - 2, EGUI_THEME_RADIUS_SM,
-                                                      EGUI_THEME_FOCUS, EGUI_ALPHA_20);
-                egui_canvas_draw_round_rectangle(canvas, 0, 0, item_view->region.size.width, item_view->region.size.height, EGUI_THEME_RADIUS_SM, 1,
-                                                 EGUI_THEME_FOCUS, EGUI_ALPHA_100);
+                egui_canvas_draw_round_rectangle_fill(canvas, EGUI_VIEW_LIST_SELECTION_INSET, EGUI_VIEW_LIST_SELECTION_INSET,
+                                                      item_view->region.size.width - (EGUI_VIEW_LIST_SELECTION_INSET * 2),
+                                                      item_view->region.size.height - (EGUI_VIEW_LIST_SELECTION_INSET * 2), EGUI_THEME_RADIUS_SM,
+                                                      EGUI_THEME_WARNING, EGUI_ALPHA_20);
             }
 #endif
 
@@ -325,6 +328,27 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
                                                   text_alpha);
                 }
             }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+            if (self->is_focused && local->selected_index == i && item_view->region.size.width > (EGUI_VIEW_LIST_SELECTION_INSET * 2 + 4) &&
+                item_view->region.size.height > (EGUI_VIEW_LIST_SELECTION_INSET * 2 + 4))
+            {
+                egui_dim_t x = EGUI_VIEW_LIST_SELECTION_INSET;
+                egui_dim_t y = EGUI_VIEW_LIST_SELECTION_INSET;
+                egui_dim_t w = item_view->region.size.width - (EGUI_VIEW_LIST_SELECTION_INSET * 2);
+                egui_dim_t h = item_view->region.size.height - (EGUI_VIEW_LIST_SELECTION_INSET * 2);
+                egui_dim_t inner_inset = EGUI_VIEW_LIST_SELECTION_INSET + EGUI_VIEW_LIST_SELECTION_STROKE + 1;
+
+                egui_canvas_draw_round_rectangle(canvas, x, y, w, h, EGUI_THEME_RADIUS_SM, EGUI_VIEW_LIST_SELECTION_STROKE, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
+                if (item_view->region.size.width > (inner_inset * 2 + 2) && item_view->region.size.height > (inner_inset * 2 + 2))
+                {
+                    egui_canvas_draw_round_rectangle(canvas, inner_inset, inner_inset, item_view->region.size.width - (inner_inset * 2),
+                                                     item_view->region.size.height - (inner_inset * 2),
+                                                     EGUI_THEME_RADIUS_SM > inner_inset ? (EGUI_THEME_RADIUS_SM - inner_inset) : 1, 1, EGUI_COLOR_WHITE,
+                                                     EGUI_ALPHA_80);
+                }
+            }
+#endif
         }
     }
 
