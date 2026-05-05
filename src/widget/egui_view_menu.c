@@ -78,6 +78,52 @@ static uint8_t egui_view_menu_has_submenu_icon(const egui_view_menu_t *local)
     return (icon != NULL && icon[0] != '\0' && egui_view_menu_get_icon_font(local, local->item_height) != NULL) ? 1U : 0U;
 }
 
+static uint8_t egui_view_menu_normalize_selected_index(egui_view_menu_t *local)
+{
+    const egui_view_menu_page_t *page;
+
+    if (local->pages == NULL || local->current_page >= local->page_count)
+    {
+        local->selected_index = EGUI_VIEW_MENU_SELECTED_NONE;
+        return local->selected_index;
+    }
+
+    page = &local->pages[local->current_page];
+    if (page->item_count == 0)
+    {
+        local->selected_index = EGUI_VIEW_MENU_SELECTED_NONE;
+    }
+    else if (local->selected_index == EGUI_VIEW_MENU_SELECTED_NONE || local->selected_index >= page->item_count)
+    {
+        local->selected_index = 0;
+    }
+
+    return local->selected_index;
+}
+
+static void egui_view_menu_set_selected_index(egui_view_t *self, uint8_t index)
+{
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    const egui_view_menu_page_t *page;
+
+    if (local->pages == NULL || local->current_page >= local->page_count)
+    {
+        return;
+    }
+
+    page = &local->pages[local->current_page];
+    if (index >= page->item_count)
+    {
+        return;
+    }
+
+    if (local->selected_index != index)
+    {
+        local->selected_index = index;
+        egui_view_invalidate(self);
+    }
+}
+
 /** Attach a new borrowed page table and reset navigation state to the root page. */
 void egui_view_menu_set_pages(egui_view_t *self, const egui_view_menu_page_t *pages, uint8_t page_count)
 {
@@ -87,6 +133,8 @@ void egui_view_menu_set_pages(egui_view_t *self, const egui_view_menu_page_t *pa
     local->current_page = 0;
     local->stack_depth = 0;
     local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
+    local->selected_index = EGUI_VIEW_MENU_SELECTED_NONE;
+    egui_view_menu_normalize_selected_index(local);
     egui_view_set_pressed(self, false);
     egui_view_invalidate(self);
 }
@@ -106,6 +154,8 @@ void egui_view_menu_navigate_to(egui_view_t *self, uint8_t page_index)
     }
     local->current_page = page_index;
     local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
+    local->selected_index = EGUI_VIEW_MENU_SELECTED_NONE;
+    egui_view_menu_normalize_selected_index(local);
     egui_view_set_pressed(self, false);
     egui_view_invalidate(self);
 }
@@ -119,6 +169,8 @@ void egui_view_menu_go_back(egui_view_t *self)
         local->stack_depth--;
         local->current_page = local->page_stack[local->stack_depth];
         local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
+        local->selected_index = EGUI_VIEW_MENU_SELECTED_NONE;
+        egui_view_menu_normalize_selected_index(local);
         egui_view_set_pressed(self, false);
         egui_view_invalidate(self);
     }
@@ -296,6 +348,13 @@ void egui_view_menu_on_draw(egui_view_t *self)
         {
             egui_canvas_draw_rectangle_fill(canvas, x, item_y, w, item_h, local->highlight_color, EGUI_ALPHA_100);
         }
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        else if (self->is_focused && local->selected_index == i)
+        {
+            egui_canvas_draw_rectangle_fill(canvas, x, item_y, w, item_h, EGUI_THEME_FOCUS, EGUI_ALPHA_20);
+            egui_canvas_draw_rectangle(canvas, x, item_y, w, item_h, 1, EGUI_THEME_FOCUS, EGUI_ALPHA_100);
+        }
+#endif
         else
         {
             egui_canvas_draw_rectangle_fill(canvas, x, item_y, w, item_h, local->item_color, EGUI_ALPHA_100);
@@ -430,6 +489,7 @@ int egui_view_menu_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
         else if (was_pressed && pressed_index >= 0 && pressed_index < (int8_t)page->item_count && pressed_index == hit_index)
         {
             const egui_view_menu_item_t *item = &page->items[pressed_index];
+            egui_view_menu_set_selected_index(self, (uint8_t)pressed_index);
             if (item->sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF)
             {
                 egui_view_menu_navigate_to(self, item->sub_page_index);
@@ -457,6 +517,140 @@ int egui_view_menu_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int egui_view_menu_move_selected_index(egui_view_t *self, uint8_t key_code)
+{
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    const egui_view_menu_page_t *page;
+    uint8_t old_index;
+    uint8_t new_index;
+
+    if (local->pages == NULL || local->current_page >= local->page_count)
+    {
+        return 0;
+    }
+
+    page = &local->pages[local->current_page];
+    if (page->item_count == 0)
+    {
+        local->selected_index = EGUI_VIEW_MENU_SELECTED_NONE;
+        return 1;
+    }
+
+    old_index = egui_view_menu_normalize_selected_index(local);
+    new_index = old_index;
+
+    switch (key_code)
+    {
+    case EGUI_KEY_CODE_UP:
+        if (new_index > 0)
+        {
+            new_index--;
+        }
+        break;
+    case EGUI_KEY_CODE_DOWN:
+        if (new_index + 1 < page->item_count)
+        {
+            new_index++;
+        }
+        break;
+    case EGUI_KEY_CODE_HOME:
+        new_index = 0;
+        break;
+    case EGUI_KEY_CODE_END:
+        new_index = (uint8_t)(page->item_count - 1);
+        break;
+    default:
+        return 0;
+    }
+
+    egui_view_menu_set_selected_index(self, new_index);
+    return 1;
+}
+
+static int egui_view_menu_activate_selected_index(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    const egui_view_menu_page_t *page;
+    const egui_view_menu_item_t *item;
+    uint8_t index;
+
+    if (local->pages == NULL || local->current_page >= local->page_count)
+    {
+        return 0;
+    }
+
+    page = &local->pages[local->current_page];
+    index = egui_view_menu_normalize_selected_index(local);
+    if (index == EGUI_VIEW_MENU_SELECTED_NONE || index >= page->item_count)
+    {
+        return 1;
+    }
+
+    item = &page->items[index];
+    if (item->sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF)
+    {
+        egui_view_menu_navigate_to(self, item->sub_page_index);
+    }
+    else if (local->on_item_click != NULL)
+    {
+        local->on_item_click(self, local->current_page, index);
+    }
+
+    return 1;
+}
+
+static int egui_view_menu_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    if (self->is_enable == false || event == NULL)
+    {
+        return 0;
+    }
+
+    switch (event->key_code)
+    {
+    case EGUI_KEY_CODE_UP:
+    case EGUI_KEY_CODE_DOWN:
+    case EGUI_KEY_CODE_HOME:
+    case EGUI_KEY_CODE_END:
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
+        {
+            return egui_view_menu_move_selected_index(self, event->key_code);
+        }
+        return 1;
+    case EGUI_KEY_CODE_RIGHT:
+    case EGUI_KEY_CODE_ENTER:
+    case EGUI_KEY_CODE_SPACE:
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+        {
+            return egui_view_menu_activate_selected_index(self);
+        }
+        return 1;
+    case EGUI_KEY_CODE_LEFT:
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+        {
+            egui_view_menu_go_back(self);
+            return 1;
+        }
+        return 1;
+    default:
+        return egui_view_on_key_event(self, event);
+    }
+}
+#endif
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_menu_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -474,7 +668,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_menu_t) = {
         .on_detach_from_window = egui_view_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
-        .on_key_event = egui_view_on_key_event,
+        .on_key_event = egui_view_menu_on_key_event,
 #endif
 };
 
@@ -505,6 +699,7 @@ void egui_view_menu_init(egui_view_t *self, egui_core_t *core)
     local->back_icon = EGUI_ICON_MS_ARROW_BACK;
     local->submenu_icon = EGUI_ICON_MS_ARROW_FORWARD;
     local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
+    local->selected_index = EGUI_VIEW_MENU_SELECTED_NONE;
     local->on_item_click = NULL;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW

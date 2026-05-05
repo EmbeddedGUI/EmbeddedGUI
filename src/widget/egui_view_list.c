@@ -150,6 +150,64 @@ static egui_dim_t egui_view_list_get_item_width(egui_view_t *self)
     return item_width;
 }
 
+static uint8_t egui_view_list_normalize_selected_index(egui_view_list_t *local)
+{
+    if (local->item_count == 0)
+    {
+        local->selected_index = EGUI_VIEW_LIST_SELECTED_NONE;
+    }
+    else if (local->selected_index == EGUI_VIEW_LIST_SELECTED_NONE || local->selected_index >= local->item_count)
+    {
+        local->selected_index = 0;
+    }
+
+    return local->selected_index;
+}
+
+static void egui_view_list_set_selected_index_internal(egui_view_t *self, uint8_t index, uint8_t ensure_visible)
+{
+    EGUI_LOCAL_INIT(egui_view_list_t);
+
+    if (local->item_count == 0)
+    {
+        local->selected_index = EGUI_VIEW_LIST_SELECTED_NONE;
+        egui_view_invalidate(self);
+        return;
+    }
+
+    if (index >= local->item_count)
+    {
+        return;
+    }
+
+    if (local->selected_index != index)
+    {
+        if (local->selected_index != EGUI_VIEW_LIST_SELECTED_NONE && local->selected_index < local->item_count)
+        {
+            egui_view_set_pressed(EGUI_VIEW_OF(&local->items[local->selected_index]), false);
+        }
+        local->selected_index = index;
+        egui_view_invalidate(self);
+    }
+
+    if (ensure_visible)
+    {
+        egui_view_t *container = EGUI_VIEW_OF(&local->base.container);
+        egui_view_t *item_view = EGUI_VIEW_OF(&local->items[index]);
+        egui_dim_t item_top = container->region.location.y + item_view->region.location.y - item_view->margin.top;
+        egui_dim_t item_bottom = container->region.location.y + item_view->region.location.y + item_view->region.size.height + item_view->margin.bottom;
+
+        if (item_top < 0)
+        {
+            egui_view_scroll_start_container_scroll(self, -item_top);
+        }
+        else if (item_bottom > self->region.size.height)
+        {
+            egui_view_scroll_start_container_scroll(self, self->region.size.height - item_bottom);
+        }
+    }
+}
+
 /** Sync one row button's size and basic label alignment with current list settings. */
 static void egui_view_list_update_item_style(egui_view_t *self, uint8_t index)
 {
@@ -229,6 +287,16 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
         egui_canvas_calc_work_region(canvas, &item_view->region_screen);
         if (!egui_region_is_empty(egui_canvas_get_base_view_work_region(canvas)))
         {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+            if (self->is_focused && local->selected_index == i && item_view->region.size.width > 2 && item_view->region.size.height > 2)
+            {
+                egui_canvas_draw_round_rectangle_fill(canvas, 1, 1, item_view->region.size.width - 2, item_view->region.size.height - 2, EGUI_THEME_RADIUS_SM,
+                                                      EGUI_THEME_FOCUS, EGUI_ALPHA_20);
+                egui_canvas_draw_round_rectangle(canvas, 0, 0, item_view->region.size.width, item_view->region.size.height, EGUI_THEME_RADIUS_SM, 1,
+                                                 EGUI_THEME_FOCUS, EGUI_ALPHA_100);
+            }
+#endif
+
             if (local->item_icons[i] != NULL && icon_width > 0)
             {
                 icon_region.location.x = EGUI_VIEW_LIST_TEXT_PADDING;
@@ -313,17 +381,19 @@ static void egui_view_list_item_click_handler(egui_view_t *self)
         return;
     }
 
-    list = (egui_view_list_t *)scroll_view;
-    if (list->on_item_click == NULL)
-    {
-        return;
-    }
-
     btn = (egui_view_button_t *)self;
+    list = (egui_view_list_t *)scroll_view;
     index = (uint8_t)(btn - &list->items[0]);
     if (index < list->item_count)
     {
-        list->on_item_click(scroll_view, index);
+        egui_view_list_set_selected_index_internal(scroll_view, index, 0);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        egui_view_request_focus(scroll_view);
+#endif
+        if (list->on_item_click != NULL)
+        {
+            list->on_item_click(scroll_view, index);
+        }
     }
 }
 
@@ -346,6 +416,9 @@ static int8_t egui_view_list_add_item_internal(egui_view_t *self, const char *ic
     egui_view_label_set_font(item_view, (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     /* Row labels are drawn by the list itself so icon and text can share one layout rule. */
     egui_view_label_set_text(item_view, NULL);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    egui_view_set_focusable(item_view, false);
+#endif
     egui_view_set_position(item_view, 0, 0);
     egui_view_set_margin(item_view, EGUI_VIEW_LIST_ITEM_MARGIN_X, EGUI_VIEW_LIST_ITEM_MARGIN_X, EGUI_VIEW_LIST_ITEM_MARGIN_Y, EGUI_VIEW_LIST_ITEM_MARGIN_Y);
     egui_view_set_on_click_listener(item_view, egui_view_list_item_click_handler);
@@ -353,6 +426,10 @@ static int8_t egui_view_list_add_item_internal(egui_view_t *self, const char *ic
     local->item_icons[idx] = icon;
     local->item_texts[idx] = text;
     local->item_count++;
+    if (local->selected_index == EGUI_VIEW_LIST_SELECTED_NONE)
+    {
+        local->selected_index = idx;
+    }
 
     egui_view_list_update_item_style(self, idx);
     egui_view_scroll_add_child(self, item_view);
@@ -381,6 +458,7 @@ void egui_view_list_clear(egui_view_t *self)
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&local->base.container));
     local->item_count = 0;
+    local->selected_index = EGUI_VIEW_LIST_SELECTED_NONE;
     egui_api_memset(local->item_icons, 0, sizeof(local->item_icons));
     egui_api_memset(local->item_texts, 0, sizeof(local->item_texts));
 
@@ -474,6 +552,127 @@ void egui_view_list_set_on_item_click(egui_view_t *self, egui_view_list_item_cli
     local->on_item_click = callback;
 }
 
+void egui_view_list_set_selected_index(egui_view_t *self, uint8_t index)
+{
+    egui_view_list_set_selected_index_internal(self, index, 1);
+}
+
+uint8_t egui_view_list_get_selected_index(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    return local->selected_index;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int egui_view_list_move_selected_index(egui_view_t *self, uint8_t key_code)
+{
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    uint8_t old_index;
+    uint8_t new_index;
+
+    if (local->item_count == 0)
+    {
+        return 1;
+    }
+
+    old_index = egui_view_list_normalize_selected_index(local);
+    new_index = old_index;
+
+    switch (key_code)
+    {
+    case EGUI_KEY_CODE_UP:
+        if (new_index > 0)
+        {
+            new_index--;
+        }
+        break;
+    case EGUI_KEY_CODE_DOWN:
+        if (new_index + 1 < local->item_count)
+        {
+            new_index++;
+        }
+        break;
+    case EGUI_KEY_CODE_HOME:
+        new_index = 0;
+        break;
+    case EGUI_KEY_CODE_END:
+        new_index = (uint8_t)(local->item_count - 1);
+        break;
+    default:
+        return 0;
+    }
+
+    egui_view_list_set_selected_index_internal(self, new_index, 1);
+    return 1;
+}
+
+static void egui_view_list_set_selected_pressed(egui_view_t *self, uint8_t pressed)
+{
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    uint8_t selected_index = egui_view_list_normalize_selected_index(local);
+
+    if (selected_index != EGUI_VIEW_LIST_SELECTED_NONE && selected_index < local->item_count)
+    {
+        egui_view_set_pressed(EGUI_VIEW_OF(&local->items[selected_index]), pressed != 0);
+    }
+}
+
+static int egui_view_list_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_list_t);
+
+    if (self->is_enable == false || event == NULL)
+    {
+        return 0;
+    }
+
+    switch (event->key_code)
+    {
+    case EGUI_KEY_CODE_UP:
+    case EGUI_KEY_CODE_DOWN:
+    case EGUI_KEY_CODE_HOME:
+    case EGUI_KEY_CODE_END:
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
+        {
+            return egui_view_list_move_selected_index(self, event->key_code);
+        }
+        return 1;
+    case EGUI_KEY_CODE_ENTER:
+    case EGUI_KEY_CODE_SPACE:
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            egui_view_list_set_selected_pressed(self, 1);
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+        {
+            uint8_t selected_index = egui_view_list_normalize_selected_index(local);
+            int should_click = 0;
+
+            if (selected_index != EGUI_VIEW_LIST_SELECTED_NONE && selected_index < local->item_count)
+            {
+                egui_view_t *item_view = EGUI_VIEW_OF(&local->items[selected_index]);
+                should_click = item_view->is_pressed;
+                egui_view_set_pressed(item_view, false);
+            }
+
+            if (should_click && local->on_item_click != NULL)
+            {
+                local->on_item_click(self, selected_index);
+            }
+            return 1;
+        }
+        return 1;
+    default:
+        return egui_view_on_key_event(self, event);
+    }
+}
+#endif
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_list_t) = {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
         .dispatch_touch_event = egui_view_group_dispatch_touch_event,
@@ -493,7 +692,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_list_t) = {
         .on_detach_from_window = egui_view_group_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_group_dispatch_key_event,
-        .on_key_event = egui_view_on_key_event,
+        .on_key_event = egui_view_list_on_key_event,
 #endif
 };
 
@@ -511,6 +710,7 @@ void egui_view_list_init(egui_view_t *self, egui_core_t *core)
     local->icon_color = EGUI_THEME_TEXT_SECONDARY;
     local->icon_font = NULL;
     local->on_item_click = NULL;
+    local->selected_index = EGUI_VIEW_LIST_SELECTED_NONE;
     egui_api_memset(local->item_icons, 0, sizeof(local->item_icons));
     egui_api_memset(local->item_texts, 0, sizeof(local->item_texts));
 

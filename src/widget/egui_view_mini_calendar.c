@@ -163,12 +163,42 @@ static void egui_view_mini_calendar_local_region_to_screen(egui_view_t *self, co
     screen_region->size.height = local_region->size.height;
 }
 
+static uint8_t egui_view_mini_calendar_normalize_focused_day(egui_view_mini_calendar_t *local)
+{
+    uint8_t total_days = days_in_month(local->year, local->month);
+
+    if (local->focused_day < 1 || local->focused_day > total_days)
+    {
+        if (local->day >= 1 && local->day <= total_days)
+        {
+            local->focused_day = local->day;
+        }
+        else
+        {
+            local->focused_day = 1;
+        }
+    }
+
+    return local->focused_day;
+}
+
+static void egui_view_mini_calendar_invalidate_day(egui_view_t *self, egui_view_mini_calendar_t *local, uint8_t day)
+{
+    egui_region_t day_region;
+
+    if (egui_view_mini_calendar_get_day_cell_region(self, local, day, &day_region))
+    {
+        egui_view_invalidate_region(self, &day_region);
+    }
+}
+
 void egui_view_mini_calendar_set_date(egui_view_t *self, uint16_t year, uint8_t month, uint8_t day)
 {
     EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
     local->year = year;
     local->month = month;
     local->day = day;
+    local->focused_day = day;
     egui_view_invalidate(self);
 }
 
@@ -342,6 +372,14 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
         {
             egui_canvas_draw_text_in_rect(canvas, font, buf, &day_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
         }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        if (self->is_focused && d == egui_view_mini_calendar_normalize_focused_day(local))
+        {
+            egui_canvas_draw_round_rectangle(canvas, day_rect.location.x + 1, day_rect.location.y + 1, day_rect.size.width - 2, day_rect.size.height - 2,
+                                             EGUI_THEME_RADIUS_SM, 1, EGUI_THEME_FOCUS, EGUI_ALPHA_100);
+        }
+#endif
     }
 }
 
@@ -383,6 +421,7 @@ static int egui_view_mini_calendar_on_touch_event(egui_view_t *self, egui_motion
             }
 
             local->day = hit_day;
+            local->focused_day = hit_day;
 
             if (egui_view_mini_calendar_get_day_cell_region(self, local, hit_day, &day_region))
             {
@@ -408,6 +447,136 @@ static int egui_view_mini_calendar_on_touch_event(egui_view_t *self, egui_motion
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int egui_view_mini_calendar_move_focused_day(egui_view_t *self, uint8_t key_code)
+{
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    uint8_t old_day;
+    uint8_t new_day;
+    uint8_t total_days;
+
+    total_days = days_in_month(local->year, local->month);
+    old_day = egui_view_mini_calendar_normalize_focused_day(local);
+    new_day = old_day;
+
+    switch (key_code)
+    {
+    case EGUI_KEY_CODE_LEFT:
+        if (new_day > 1)
+        {
+            new_day--;
+        }
+        break;
+    case EGUI_KEY_CODE_RIGHT:
+        if (new_day < total_days)
+        {
+            new_day++;
+        }
+        break;
+    case EGUI_KEY_CODE_UP:
+        if (new_day > 7)
+        {
+            new_day = (uint8_t)(new_day - 7);
+        }
+        else
+        {
+            new_day = 1;
+        }
+        break;
+    case EGUI_KEY_CODE_DOWN:
+        if (new_day + 7 <= total_days)
+        {
+            new_day = (uint8_t)(new_day + 7);
+        }
+        else
+        {
+            new_day = total_days;
+        }
+        break;
+    case EGUI_KEY_CODE_HOME:
+        new_day = 1;
+        break;
+    case EGUI_KEY_CODE_END:
+        new_day = total_days;
+        break;
+    default:
+        return 0;
+    }
+
+    if (new_day != old_day)
+    {
+        local->focused_day = new_day;
+        egui_view_mini_calendar_invalidate_day(self, local, old_day);
+        egui_view_mini_calendar_invalidate_day(self, local, new_day);
+    }
+
+    return 1;
+}
+
+static int egui_view_mini_calendar_commit_focused_day(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    uint8_t old_day = local->day;
+    uint8_t focused_day = egui_view_mini_calendar_normalize_focused_day(local);
+
+    if (old_day != focused_day)
+    {
+        egui_view_mini_calendar_invalidate_day(self, local, old_day);
+        local->day = focused_day;
+        egui_view_mini_calendar_invalidate_day(self, local, focused_day);
+    }
+
+    if (local->on_date_selected)
+    {
+        local->on_date_selected(self, focused_day);
+    }
+
+    return 1;
+}
+
+static int egui_view_mini_calendar_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    if (self->is_enable == false || event == NULL)
+    {
+        return 0;
+    }
+
+    switch (event->key_code)
+    {
+    case EGUI_KEY_CODE_LEFT:
+    case EGUI_KEY_CODE_RIGHT:
+    case EGUI_KEY_CODE_UP:
+    case EGUI_KEY_CODE_DOWN:
+    case EGUI_KEY_CODE_HOME:
+    case EGUI_KEY_CODE_END:
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP || event->type == EGUI_KEY_EVENT_ACTION_REPEAT)
+        {
+            return egui_view_mini_calendar_move_focused_day(self, event->key_code);
+        }
+        return 1;
+    case EGUI_KEY_CODE_ENTER:
+    case EGUI_KEY_CODE_SPACE:
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            egui_view_set_pressed(self, true);
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP)
+        {
+            egui_view_set_pressed(self, false);
+            return egui_view_mini_calendar_commit_focused_day(self);
+        }
+        return 1;
+    default:
+        return egui_view_on_key_event(self, event);
+    }
+}
+#endif
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_mini_calendar_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -425,7 +594,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_mini_calendar_t) = {
         .on_detach_from_window = egui_view_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
-        .on_key_event = egui_view_on_key_event,
+        .on_key_event = egui_view_mini_calendar_on_key_event,
 #endif
 };
 
@@ -444,6 +613,7 @@ void egui_view_mini_calendar_init(egui_view_t *self, egui_core_t *core)
     local->day = 1;
     local->today_day = 0;
     local->pressed_day = 0;
+    local->focused_day = 1;
     local->first_day_of_week = 0;
     local->header_color = EGUI_THEME_TEXT_PRIMARY;
     local->text_color = EGUI_THEME_TEXT_PRIMARY;
@@ -466,6 +636,7 @@ void egui_view_mini_calendar_apply_params(egui_view_t *self, const egui_view_min
     local->year = params->year;
     local->month = params->month;
     local->day = params->day;
+    local->focused_day = params->day;
 
     egui_view_invalidate(self);
 }

@@ -43,7 +43,20 @@ void egui_core_process_input_key(egui_core_t *core, egui_key_event_t *key_event)
     egui_view_t *focused = egui_focus_manager_get_focused_view(core);
     if (focused != NULL)
     {
+        int handled = 0;
+
         if (focused->api != NULL && focused->api->dispatch_key_event != NULL && focused->api->dispatch_key_event(focused, key_event))
+        {
+            handled = 1;
+        }
+
+        if (key_event->type == EGUI_KEY_EVENT_ACTION_UP && key_event->key_code == EGUI_KEY_CODE_ESCAPE)
+        {
+            egui_focus_manager_clear_focus(core);
+            return;
+        }
+
+        if (handled)
         {
             return;
         }
@@ -55,7 +68,14 @@ void egui_core_process_input_key(egui_core_t *core, egui_key_event_t *key_event)
         return;
     }
 
-    if (key_event->type == EGUI_KEY_EVENT_ACTION_UP && egui_core_key_is_direction(key_event->key_code) && egui_focus_manager_move_focus_direction(core, key_event->key_code))
+    if (key_event->type == EGUI_KEY_EVENT_ACTION_UP && key_event->key_code == EGUI_KEY_CODE_ESCAPE)
+    {
+        egui_focus_manager_clear_focus(core);
+        return;
+    }
+
+    if (key_event->type == EGUI_KEY_EVENT_ACTION_UP && egui_core_key_is_direction(key_event->key_code) &&
+        egui_focus_manager_move_focus_direction(core, key_event->key_code))
     {
         return;
     }

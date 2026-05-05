@@ -19,7 +19,9 @@ extern "C" {
 #endif
 
 /* Maximum number of rows stored directly inside one list instance. */
-#define EGUI_VIEW_LIST_MAX_ITEMS 16
+#define EGUI_VIEW_LIST_MAX_ITEMS     16
+/* Sentinel used when no row is currently selected by keyboard navigation. */
+#define EGUI_VIEW_LIST_SELECTED_NONE 0xFF
 
 /** Listener fired when a list row is clicked. */
 typedef void (*egui_view_list_item_click_cb_t)(egui_view_t *self, uint8_t index);
@@ -47,6 +49,8 @@ struct egui_view_list
     const egui_font_t *icon_font;
     /* Row-click callback. */
     egui_view_list_item_click_cb_t on_item_click;
+    /* Keyboard-selected row index, or `EGUI_VIEW_LIST_SELECTED_NONE`. */
+    uint8_t selected_index;
 };
 
 // ============== List Params ==============
@@ -84,6 +88,10 @@ void egui_view_list_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_list_set_icon_color(egui_view_t *self, egui_color_t color);
 /** Register the callback fired when a row button is clicked. */
 void egui_view_list_set_on_item_click(egui_view_t *self, egui_view_list_item_click_cb_t callback);
+/** Select one row for keyboard navigation. Out-of-range indices are ignored. */
+void egui_view_list_set_selected_index(egui_view_t *self, uint8_t index);
+/** Return the keyboard-selected row index, or `EGUI_VIEW_LIST_SELECTED_NONE`. */
+uint8_t egui_view_list_get_selected_index(egui_view_t *self);
 /** Initialize the fixed-capacity scrollable list widget. */
 void egui_view_list_init(egui_view_t *self, egui_core_t *core);
 

@@ -23,7 +23,9 @@ extern "C" {
 #define EGUI_VIEW_MENU_MAX_STACK 4
 
 /* Marker stored in `sub_page_index` for leaf rows without a submenu target. */
-#define EGUI_VIEW_MENU_ITEM_LEAF 0xFF
+#define EGUI_VIEW_MENU_ITEM_LEAF     0xFF
+/* Sentinel used when no row is currently selected by keyboard navigation. */
+#define EGUI_VIEW_MENU_SELECTED_NONE 0xFF
 
 typedef struct egui_view_menu_item
 {
@@ -91,6 +93,8 @@ struct egui_view_menu
 
     /* Press tracking: `-1` none, `-2` back button, otherwise item index. */
     int8_t pressed_index; // -1 = none, -2 = back button
+    /* Keyboard-selected row index on the current page, or `EGUI_VIEW_MENU_SELECTED_NONE`. */
+    uint8_t selected_index;
     /* Leaf-item activation callback. */
     egui_view_menu_item_click_cb_t on_item_click;
 };

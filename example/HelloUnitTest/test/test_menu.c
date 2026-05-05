@@ -28,11 +28,12 @@ static const egui_view_menu_item_t g_root_items[] = {
 
 static const egui_view_menu_item_t g_settings_items[] = {
         {"Display", EGUI_VIEW_MENU_ITEM_LEAF, NULL},
+        {"Sound", EGUI_VIEW_MENU_ITEM_LEAF, NULL},
 };
 
 static const egui_view_menu_page_t g_pages[] = {
         {"Main", g_root_items, 2},
-        {"Settings", g_settings_items, 1},
+        {"Settings", g_settings_items, 2},
 };
 
 static void on_item_click(egui_view_t *self, uint8_t page_index, uint8_t item_index)
@@ -78,6 +79,24 @@ static int send_touch(uint8_t type, egui_dim_t x, egui_dim_t y)
     event.location.y = y;
     return EGUI_VIEW_OF(&test_menu)->api->on_touch_event(EGUI_VIEW_OF(&test_menu), &event);
 }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int send_key(uint8_t type, uint8_t key_code)
+{
+    egui_key_event_t event;
+
+    memset(&event, 0, sizeof(event));
+    event.type = type;
+    event.key_code = key_code;
+    return EGUI_VIEW_OF(&test_menu)->api->on_key_event(EGUI_VIEW_OF(&test_menu), &event);
+}
+
+static void send_key_click(uint8_t key_code)
+{
+    EGUI_TEST_ASSERT_TRUE(send_key(EGUI_KEY_EVENT_ACTION_DOWN, key_code));
+    EGUI_TEST_ASSERT_TRUE(send_key(EGUI_KEY_EVENT_ACTION_UP, key_code));
+}
+#endif
 
 static void get_item_center(uint8_t index, egui_dim_t *x, egui_dim_t *y)
 {
@@ -159,11 +178,45 @@ static void test_menu_release_requires_same_hit_target(void)
     EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&test_menu)->is_pressed);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static void test_menu_key_navigation_opens_submenu_and_selects_child(void)
+{
+    setup_menu();
+    layout_menu();
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.current_page);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.selected_index);
+
+    send_key_click(EGUI_KEY_CODE_ENTER);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.current_page);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.stack_depth);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.selected_index);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_click_count);
+
+    EGUI_TEST_ASSERT_TRUE(send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_DOWN));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.selected_index);
+
+    send_key_click(EGUI_KEY_CODE_ENTER);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.current_page);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_click_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_last_page_index);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_last_item_index);
+
+    send_key_click(EGUI_KEY_CODE_LEFT);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.current_page);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.stack_depth);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.selected_index);
+}
+#endif
+
 void test_menu_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(menu);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_menu_release_requires_same_hit_target);
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    EGUI_TEST_RUN(test_menu_key_navigation_opens_submenu_and_selects_child);
 #endif
     EGUI_TEST_SUITE_END();
 }

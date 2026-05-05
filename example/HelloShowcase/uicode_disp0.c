@@ -193,7 +193,10 @@ typedef enum showcase_focus_action
     SHOWCASE_FOCUS_ACTION_TEXTINPUT,
     SHOWCASE_FOCUS_ACTION_PROGRESS_HOLD,
     SHOWCASE_FOCUS_ACTION_BUTTON_MATRIX,
-    SHOWCASE_FOCUS_ACTION_LAYER
+    SHOWCASE_FOCUS_ACTION_LAYER,
+    SHOWCASE_FOCUS_ACTION_LIST,
+    SHOWCASE_FOCUS_ACTION_MENU,
+    SHOWCASE_FOCUS_ACTION_CALENDAR
 } showcase_focus_action_t;
 
 typedef struct showcase_focus_target
@@ -241,6 +244,7 @@ static void on_tab_changed(egui_view_t *view, uint8_t index);
 static void on_button_matrix_click(egui_view_t *view, uint8_t index);
 static void on_list_item_click(egui_view_t *view, uint8_t index);
 static void on_menu_item_click(egui_view_t *view, uint8_t page_index, uint8_t item_index);
+static void on_calendar_date_selected(egui_view_t *view, uint8_t day);
 static void on_textinput_submit(egui_view_t *view, const char *text);
 static void showcase_register_focus_targets(void);
 
@@ -268,13 +272,18 @@ static const char *calendar_weekdays_cn[] = {"日", "一", "二", "三", "四", 
 // Button matrix labels
 static const char *bm_labels[] = {"1", "2", "3", "4", "5", "6"};
 // Chinese menu data
+static const egui_view_menu_item_t menu_settings_items_cn[] = {
+        {.text = "显示", .sub_page_index = EGUI_VIEW_MENU_ITEM_LEAF},
+        {.text = "声音", .sub_page_index = EGUI_VIEW_MENU_ITEM_LEAF},
+};
 static const egui_view_menu_item_t menu_items_cn[] = {
-        {.text = "设置", .sub_page_index = 0xFF},
-        {.text = "关于", .sub_page_index = 0xFF},
-        {.text = "帮助", .sub_page_index = 0xFF},
+        {.text = "设置", .sub_page_index = 1},
+        {.text = "关于", .sub_page_index = EGUI_VIEW_MENU_ITEM_LEAF},
+        {.text = "帮助", .sub_page_index = EGUI_VIEW_MENU_ITEM_LEAF},
 };
 static const egui_view_menu_page_t menu_pages_cn[] = {
         {.title = "菜单", .items = menu_items_cn, .item_count = 3},
+        {.title = "设置", .items = menu_settings_items_cn, .item_count = 2},
 };
 
 // Chart line data
@@ -298,13 +307,18 @@ static const egui_chart_pie_slice_t pie_sl[] = {
 static const egui_view_line_point_t hq_pts[] = {{0, 110}, {40, 10}, {80, 80}, {120, 20}, {160, 90}, {200, 40}};
 
 // Menu data
+static const egui_view_menu_item_t menu_settings_items[] = {
+        {.text = "Display", .sub_page_index = EGUI_VIEW_MENU_ITEM_LEAF},
+        {.text = "Sound", .sub_page_index = EGUI_VIEW_MENU_ITEM_LEAF},
+};
 static const egui_view_menu_item_t menu_items[] = {
-        {.text = "Settings", .sub_page_index = 0xFF},
-        {.text = "About", .sub_page_index = 0xFF},
-        {.text = "Help", .sub_page_index = 0xFF},
+        {.text = "Settings", .sub_page_index = 1},
+        {.text = "About", .sub_page_index = EGUI_VIEW_MENU_ITEM_LEAF},
+        {.text = "Help", .sub_page_index = EGUI_VIEW_MENU_ITEM_LEAF},
 };
 static const egui_view_menu_page_t menu_pages[] = {
         {.title = "Menu", .items = menu_items, .item_count = 3},
+        {.title = "Settings", .items = menu_settings_items, .item_count = 2},
 };
 
 static showcase_focus_target_t *showcase_find_focus_target(egui_view_t *view)
@@ -371,7 +385,7 @@ static uint8_t showcase_action_toast_allowed(egui_view_t *view)
         return 1;
     }
 
-    if (view == EGUI_VIEW_OF(&wg_list.items[0]) && EGUI_VIEW_OF(&wg_list)->is_focused)
+    if (view == EGUI_VIEW_OF(&wg_list) && EGUI_VIEW_OF(&wg_list)->is_focused)
     {
         return 1;
     }
@@ -401,10 +415,6 @@ static void showcase_mark_interacted(egui_view_t *view)
     if (target != NULL)
     {
         target->interacted = 1;
-    }
-    else if (view == EGUI_VIEW_OF(&wg_list.items[0]))
-    {
-        showcase_mark_interacted(EGUI_VIEW_OF(&wg_list));
     }
 }
 
@@ -549,7 +559,7 @@ static void showcase_register_focus_targets(void)
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_aclock), "AnalogClock", SHOWCASE_FOCUS_ACTION_NONE, 0);
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_dclock), "DigitalClock", SHOWCASE_FOCUS_ACTION_NONE, 0);
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_stopwatch), "Stopwatch", SHOWCASE_FOCUS_ACTION_NONE, 0);
-    showcase_focus_target_add(EGUI_VIEW_OF(&wg_calendar), "Calendar", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_calendar), "Calendar", SHOWCASE_FOCUS_ACTION_CALENDAR, 0);
 
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_compass), "Compass", SHOWCASE_FOCUS_ACTION_NONE, 0);
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_heartrate), "HeartRate", SHOWCASE_FOCUS_ACTION_NONE, 0);
@@ -561,10 +571,10 @@ static void showcase_register_focus_targets(void)
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_btnmatrix), "ButtonMatrix", SHOWCASE_FOCUS_ACTION_BUTTON_MATRIX, 0);
     egui_view_set_focus_frame_style(EGUI_VIEW_OF(&wg_btnmatrix), 3, 2, EGUI_COLOR_CYAN, EGUI_ALPHA_100);
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_tabbar), "TabBar", SHOWCASE_FOCUS_ACTION_RIGHT, 0);
-    showcase_focus_target_add(EGUI_VIEW_OF(&wg_list), "List", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_list), "List", SHOWCASE_FOCUS_ACTION_LIST, 0);
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_spangrp), "SpanGroup", SHOWCASE_FOCUS_ACTION_NONE, 0);
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_window), "Window", SHOWCASE_FOCUS_ACTION_NONE, 0);
-    showcase_focus_target_add(EGUI_VIEW_OF(&wg_menu), "Menu", SHOWCASE_FOCUS_ACTION_CLICK, 0);
+    showcase_focus_target_add(EGUI_VIEW_OF(&wg_menu), "Menu", SHOWCASE_FOCUS_ACTION_MENU, 0);
 
     showcase_focus_target_add(EGUI_VIEW_OF(&btn_lang), "Language", SHOWCASE_FOCUS_ACTION_CLICK, 0);
     showcase_focus_target_add(EGUI_VIEW_OF(&btn_theme), "Theme", SHOWCASE_FOCUS_ACTION_CLICK, 0);
@@ -872,14 +882,28 @@ static void showcase_record_run_target_action(showcase_focus_target_t *target)
         showcase_record_key(EGUI_KEY_CODE_DOWN);
         showcase_record_key(EGUI_KEY_CODE_ENTER);
         break;
-    case SHOWCASE_FOCUS_ACTION_NONE:
-        if (target->view == EGUI_VIEW_OF(&wg_list))
+    case SHOWCASE_FOCUS_ACTION_LIST:
+        egui_view_list_set_selected_index(EGUI_VIEW_OF(&wg_list), 0);
+        showcase_record_key(EGUI_KEY_CODE_DOWN);
+        showcase_record_key(EGUI_KEY_CODE_DOWN);
+        showcase_record_key(EGUI_KEY_CODE_DOWN);
+        if (!showcase_focused_is(EGUI_VIEW_OF(&wg_list)) || egui_view_list_get_selected_index(EGUI_VIEW_OF(&wg_list)) != 3)
         {
-            egui_view_list_set_on_item_click(EGUI_VIEW_OF(&wg_list), on_list_item_click);
-            egui_view_request_focus(EGUI_VIEW_OF(&wg_list.items[0]));
-            showcase_record_key(EGUI_KEY_CODE_ENTER);
-            egui_view_request_focus(EGUI_VIEW_OF(&wg_list));
+            showcase_runtime_failure("list keyboard navigation did not stay on Item D");
         }
+        showcase_record_key(EGUI_KEY_CODE_ENTER);
+        break;
+    case SHOWCASE_FOCUS_ACTION_MENU:
+        showcase_record_key(EGUI_KEY_CODE_ENTER);
+        showcase_record_key(EGUI_KEY_CODE_DOWN);
+        showcase_record_key(EGUI_KEY_CODE_ENTER);
+        break;
+    case SHOWCASE_FOCUS_ACTION_CALENDAR:
+        showcase_record_key(EGUI_KEY_CODE_RIGHT);
+        showcase_record_key(EGUI_KEY_CODE_DOWN);
+        showcase_record_key(EGUI_KEY_CODE_ENTER);
+        break;
+    case SHOWCASE_FOCUS_ACTION_NONE:
         break;
     default:
         break;
@@ -962,6 +986,11 @@ static void showcase_record_final_verify(void)
     if (!showcase_keyboard_is_hidden())
     {
         showcase_runtime_failure("keyboard was not hidden after focus test");
+    }
+
+    if (egui_focus_manager_get_focused_view(s_core) != NULL)
+    {
+        showcase_runtime_failure("escape did not exit focus mode");
     }
 
     printf("[SHOWCASE_FOCUS_CHECK] targets=%u focus_toasts=%u action_toasts=%u\n", s_focus_target_count, s_showcase_focus_toast_count,
@@ -1368,7 +1397,7 @@ static void update_language(void)
     egui_view_roller_set_items(EGUI_VIEW_OF(&wg_roller), is_chinese ? roller_items_cn : roller_items, 5);
     egui_view_combobox_set_items(EGUI_VIEW_OF(&wg_combobox), is_chinese ? combo_items_cn : combo_items, 3);
     egui_view_tab_bar_set_tabs(EGUI_VIEW_OF(&wg_tabbar), is_chinese ? tab_texts_cn : tab_texts, 3);
-    egui_view_menu_set_pages(EGUI_VIEW_OF(&wg_menu), is_chinese ? menu_pages_cn : menu_pages, 1);
+    egui_view_menu_set_pages(EGUI_VIEW_OF(&wg_menu), is_chinese ? menu_pages_cn : menu_pages, 2);
 
     // printf("[lang] is_chinese=%d  font=%s  menu_title=%s  tabbar[0]=%s  roller[0]=%s\n",
     //        is_chinese,
@@ -1565,6 +1594,18 @@ static void on_menu_item_click(egui_view_t *view, uint8_t page_index, uint8_t it
         return;
     }
     snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Menu %u/%u", page_index, item_index);
+    s_showcase_action_toast_count++;
+    egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
+}
+
+static void on_calendar_date_selected(egui_view_t *view, uint8_t day)
+{
+    showcase_mark_interacted(view);
+    if (!showcase_action_toast_allowed(view))
+    {
+        return;
+    }
+    snprintf(s_toast_msg, sizeof(s_toast_msg), "Action: Date %u", day);
     s_showcase_action_toast_count++;
     egui_view_show_toast_info_with_duration(EGUI_VIEW_OF(&root), s_toast_msg, SHOWCASE_TOAST_MS);
 }
@@ -2123,6 +2164,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     {
         EGUI_VIEW_MINI_CALENDAR_PARAMS_INIT(p, 160, 720, 180, 150, 2026, 3, 2);
         egui_view_mini_calendar_init_with_params(EGUI_VIEW_OF(&wg_calendar), core, &p);
+        egui_view_mini_calendar_set_on_date_selected_listener(EGUI_VIEW_OF(&wg_calendar), on_calendar_date_selected);
     }
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_calendar));
 
@@ -2230,7 +2272,7 @@ static void uicode_disp0_init_ui(egui_core_t *core)
     {
         EGUI_VIEW_MENU_PARAMS_INIT(mp, 1060, 752, 150, 86, 20, 20);
         egui_view_menu_init_with_params(EGUI_VIEW_OF(&wg_menu), core, &mp);
-        egui_view_menu_set_pages(EGUI_VIEW_OF(&wg_menu), menu_pages, 1);
+        egui_view_menu_set_pages(EGUI_VIEW_OF(&wg_menu), menu_pages, 2);
         egui_view_menu_set_on_item_click(EGUI_VIEW_OF(&wg_menu), on_menu_item_click);
     }
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_menu));
@@ -2477,6 +2519,25 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             if (!showcase_keyboard_is_hidden())
             {
                 showcase_runtime_failure("keyboard escape did not hide keyboard");
+            }
+            if (egui_focus_manager_get_focused_view(s_core) != NULL)
+            {
+                showcase_runtime_failure("keyboard escape did not clear focus");
+            }
+            egui_view_request_focus(EGUI_VIEW_OF(&wg_button));
+            showcase_record_key(EGUI_KEY_CODE_ESCAPE);
+        }
+        EGUI_SIM_SET_WAIT(p_action, 80);
+        return true;
+    }
+
+    if (target_index == (int)s_focus_target_count + 7)
+    {
+        if (first_call)
+        {
+            if (egui_focus_manager_get_focused_view(s_core) != NULL)
+            {
+                showcase_runtime_failure("escape did not clear focused button");
             }
             for (uint8_t i = 0; i < s_focus_target_count; i++)
             {

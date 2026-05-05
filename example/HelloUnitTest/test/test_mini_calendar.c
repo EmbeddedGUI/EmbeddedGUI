@@ -81,6 +81,24 @@ static int send_touch(uint8_t type, egui_dim_t x, egui_dim_t y)
     return EGUI_VIEW_OF(&test_calendar)->api->on_touch_event(EGUI_VIEW_OF(&test_calendar), &event);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int send_key(uint8_t type, uint8_t key_code)
+{
+    egui_key_event_t event;
+
+    memset(&event, 0, sizeof(event));
+    event.type = type;
+    event.key_code = key_code;
+    return EGUI_VIEW_OF(&test_calendar)->api->on_key_event(EGUI_VIEW_OF(&test_calendar), &event);
+}
+
+static void send_key_click(uint8_t key_code)
+{
+    EGUI_TEST_ASSERT_TRUE(send_key(EGUI_KEY_EVENT_ACTION_DOWN, key_code));
+    EGUI_TEST_ASSERT_TRUE(send_key(EGUI_KEY_EVENT_ACTION_UP, key_code));
+}
+#endif
+
 static void get_day_center(uint8_t day, egui_dim_t *x, egui_dim_t *y)
 {
     egui_dim_t cell_w = EGUI_VIEW_OF(&test_calendar)->region.size.width / 7;
@@ -158,6 +176,30 @@ static void test_mini_calendar_custom_weekday_labels_can_override_and_reset(void
     EGUI_TEST_ASSERT_NULL(test_calendar.weekday_labels[6]);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static void test_mini_calendar_key_focus_commits_on_enter(void)
+{
+    setup_calendar();
+    layout_calendar();
+
+    EGUI_TEST_ASSERT_EQUAL_INT(5, test_calendar.day);
+    EGUI_TEST_ASSERT_EQUAL_INT(5, test_calendar.focused_day);
+
+    EGUI_TEST_ASSERT_TRUE(send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_RIGHT));
+    EGUI_TEST_ASSERT_TRUE(send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_DOWN));
+    EGUI_TEST_ASSERT_EQUAL_INT(5, test_calendar.day);
+    EGUI_TEST_ASSERT_EQUAL_INT(13, test_calendar.focused_day);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_selected_count);
+
+    send_key_click(EGUI_KEY_CODE_ENTER);
+    EGUI_TEST_ASSERT_EQUAL_INT(13, test_calendar.day);
+    EGUI_TEST_ASSERT_EQUAL_INT(13, test_calendar.focused_day);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_selected_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(13, g_last_day);
+    EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&test_calendar)->is_pressed);
+}
+#endif
+
 void test_mini_calendar_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(mini_calendar);
@@ -165,5 +207,8 @@ void test_mini_calendar_run(void)
     EGUI_TEST_RUN(test_mini_calendar_release_requires_same_day);
 #endif
     EGUI_TEST_RUN(test_mini_calendar_custom_weekday_labels_can_override_and_reset);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    EGUI_TEST_RUN(test_mini_calendar_key_focus_commits_on_enter);
+#endif
     EGUI_TEST_SUITE_END();
 }
