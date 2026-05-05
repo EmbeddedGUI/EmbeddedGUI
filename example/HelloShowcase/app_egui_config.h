@@ -49,7 +49,8 @@ extern "C" {
 // debug
 #define EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH 0
 
-#define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH 0
+// Test focus.
+// #define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH 0
 
 #ifdef __cplusplus
 }
