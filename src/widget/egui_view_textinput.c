@@ -444,7 +444,6 @@ void egui_view_textinput_set_cursor_active(egui_view_t *self, int is_active)
         return;
     }
 
-    egui_view_textinput_invalidate_cursor_region(self, local);
     local->cursor_active = next_active;
 
     if (egui_view_textinput_is_cursor_active(self, local))
@@ -456,7 +455,7 @@ void egui_view_textinput_set_cursor_active(egui_view_t *self, int is_active)
         egui_view_textinput_stop_cursor_blink(self, local);
     }
 
-    egui_view_textinput_invalidate_cursor_region(self, local);
+    egui_view_invalidate(self);
 }
 
 void egui_view_textinput_set_max_length(egui_view_t *self, uint8_t max_length)
@@ -505,35 +504,41 @@ void egui_view_textinput_on_draw(egui_view_t *self)
         return;
     }
 
-    egui_region_t region = self->region_screen;
+    EGUI_REGION_DEFINE(region, 0, 0, self->region.size.width, self->region.size.height);
     egui_dim_t radius = EGUI_THEME_RADIUS_MD;
+    int field_active = egui_view_textinput_is_cursor_active(self, local);
+    egui_dim_t border_stroke = field_active ? (EGUI_THEME_STROKE_WIDTH + 1) : EGUI_THEME_STROKE_WIDTH;
+    egui_color_t border_color = field_active ? EGUI_THEME_FOCUS : egui_rgb_mix(EGUI_THEME_BORDER, EGUI_THEME_TEXT_SECONDARY, EGUI_ALPHA_50);
     if (radius > region.size.height / 2)
     {
         radius = region.size.height / 2;
     }
 
-    // Paint the field container before rendering text content and caret.
-#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+    // Paint the default field container before rendering text content and caret.
+    if (self->background == NULL)
     {
-        egui_color_t color_light = egui_rgb_mix(EGUI_THEME_SURFACE, EGUI_COLOR_WHITE, 80);
-        egui_gradient_stop_t stops[2] = {
-                {.position = 0, .color = color_light},
-                {.position = 255, .color = EGUI_THEME_SURFACE},
-        };
-        egui_gradient_t grad = {
-                .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
-                .stop_count = 2,
-                .alpha = EGUI_ALPHA_100,
-                .stops = stops,
-        };
-        egui_canvas_draw_round_rectangle_fill_gradient(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, &grad);
-    }
+#if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
+        {
+            egui_color_t color_light = egui_rgb_mix(EGUI_THEME_SURFACE, EGUI_COLOR_WHITE, 80);
+            egui_gradient_stop_t stops[2] = {
+                    {.position = 0, .color = color_light},
+                    {.position = 255, .color = EGUI_THEME_SURFACE},
+            };
+            egui_gradient_t grad = {
+                    .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
+                    .stop_count = 2,
+                    .alpha = EGUI_ALPHA_100,
+                    .stops = stops,
+            };
+            egui_canvas_draw_round_rectangle_fill_gradient(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, &grad);
+        }
 #else
-    egui_canvas_draw_round_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, EGUI_THEME_SURFACE,
-                                          EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, EGUI_THEME_SURFACE,
+                                              EGUI_ALPHA_100);
 #endif
-    egui_canvas_draw_round_rectangle(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, EGUI_THEME_STROKE_WIDTH,
-                                     self->is_focused ? EGUI_THEME_FOCUS : EGUI_THEME_BORDER, EGUI_ALPHA_100);
+    }
+    egui_canvas_draw_round_rectangle(canvas, region.location.x, region.location.y, region.size.width, region.size.height, radius, border_stroke, border_color,
+                                     EGUI_ALPHA_100);
 
     egui_region_t work_region;
     egui_view_get_work_region(self, &work_region);

@@ -39,7 +39,8 @@ EGUI_VIEW_LABEL_PARAMS_INIT(mode_params, 148, 48, 82, 26, "Mode", EGUI_CONFIG_FO
 EGUI_VIEW_BUTTON_PARAMS_INIT(start_button_params, 12, 82, 82, 32, NULL, NULL, EGUI_THEME_TEXT, EGUI_ALPHA_100);
 EGUI_VIEW_BUTTON_PARAMS_INIT(disabled_button_params, 100, 82, 40, 32, NULL, NULL, EGUI_THEME_TEXT, EGUI_ALPHA_100);
 EGUI_VIEW_COMBOBOX_PARAMS_INIT(mode_combo_params, 148, 82, 80, 32, mode_items, 3, 0);
-EGUI_VIEW_GROUP_PARAMS_INIT(keyboard_params, 0, EGUI_CONFIG_SCREEN_HEIGHT - EGUI_KEYBOARD_DEFAULT_HEIGHT, EGUI_KEYBOARD_DEFAULT_WIDTH, EGUI_KEYBOARD_DEFAULT_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(keyboard_params, 0, EGUI_CONFIG_SCREEN_HEIGHT - EGUI_KEYBOARD_DEFAULT_HEIGHT, EGUI_KEYBOARD_DEFAULT_WIDTH,
+                            EGUI_KEYBOARD_DEFAULT_HEIGHT);
 EGUI_VIEW_CHECKBOX_PARAMS_INIT_WITH_TEXT(ready_checkbox_params, 16, 152, 104, 30, 0, "Ready");
 EGUI_VIEW_CHECKBOX_PARAMS_INIT_WITH_TEXT(hidden_checkbox_params, 144, 136, 84, 28, 0, "Hidden");
 EGUI_VIEW_SWITCH_PARAMS_INIT(lock_switch_params, 144, 152, 64, 28, 0);
@@ -237,8 +238,8 @@ void test_init_ui(egui_core_t *core)
     egui_view_set_padding(EGUI_VIEW_OF(&name_input), 6, 6, 4, 4);
     egui_view_textinput_set_font(EGUI_VIEW_OF(&name_input), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_textinput_set_placeholder(EGUI_VIEW_OF(&name_input), "TextBox");
-    egui_view_textinput_set_text_color(EGUI_VIEW_OF(&name_input), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-    egui_view_textinput_set_placeholder_color(EGUI_VIEW_OF(&name_input), EGUI_COLOR_LIGHT_GREY, EGUI_ALPHA_100);
+    egui_view_textinput_set_text_color(EGUI_VIEW_OF(&name_input), EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
+    egui_view_textinput_set_placeholder_color(EGUI_VIEW_OF(&name_input), EGUI_THEME_TEXT_SECONDARY, EGUI_ALPHA_100);
     egui_view_textinput_set_cursor_color(EGUI_VIEW_OF(&name_input), EGUI_COLOR_YELLOW);
     egui_view_textinput_set_max_length(EGUI_VIEW_OF(&name_input), 12);
     egui_view_textinput_set_on_submit(EGUI_VIEW_OF(&name_input), name_input_submit_cb);
