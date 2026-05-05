@@ -734,11 +734,17 @@ void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shi
 void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
 {
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    egui_view_t *old_target = local->target;
 
     if (target_textinput != NULL && local->suppress_show_target == target_textinput)
     {
         local->suppress_show_target = NULL;
         return;
+    }
+
+    if (old_target != NULL && old_target != target_textinput)
+    {
+        egui_view_textinput_set_cursor_active(old_target, 0);
     }
 
     // Restore any previous root-view offset first so switching targets does not accumulate shifts.
@@ -750,6 +756,10 @@ void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
     }
 
     local->target = target_textinput;
+    if (target_textinput != NULL)
+    {
+        egui_view_textinput_set_cursor_active(target_textinput, 1);
+    }
     self->is_visible = true;
     self->is_gone = false;
 
@@ -801,6 +811,10 @@ void egui_view_keyboard_hide(egui_view_t *self)
     }
 
     local->target = NULL;
+    if (target != NULL)
+    {
+        egui_view_textinput_set_cursor_active(target, 0);
+    }
 
     // Restore the root view before hiding so the page returns to its original layout.
     if (local->adjusted_view != NULL)

@@ -26,8 +26,9 @@ struct egui_view_textinput
     uint8_t cursor_pos;                              /* Caret position expressed as a byte index. */
     uint8_t max_length;                              /* Runtime cap clamped by the build-time buffer size. */
 
-    uint8_t cursor_visible : 1; /* Blink state of the caret while focused. */
-    uint8_t reserved : 7;
+    uint8_t cursor_visible : 1; /* Blink state of the caret while focused or keyboard-active. */
+    uint8_t cursor_active : 1;  /* Keeps the caret active while an external editor, such as the on-screen keyboard, owns focus. */
+    uint8_t reserved : 6;
 
     egui_timer_t cursor_timer; /* Timer used to toggle the caret visibility. */
 
@@ -78,6 +79,8 @@ void egui_view_textinput_set_placeholder(egui_view_t *self, const char *placehol
 void egui_view_textinput_set_placeholder_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha);
 /** Set the blinking caret color. */
 void egui_view_textinput_set_cursor_color(egui_view_t *self, egui_color_t color);
+/** Keep the caret active while another focus owner edits this input. */
+void egui_view_textinput_set_cursor_active(egui_view_t *self, int is_active);
 /** Limit the editable length. Values above the build-time cap are clamped, and existing text may be truncated. */
 void egui_view_textinput_set_max_length(egui_view_t *self, uint8_t max_length);
 /** Register the callback fired after text-buffer mutations. */

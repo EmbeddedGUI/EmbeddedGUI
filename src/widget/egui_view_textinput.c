@@ -122,10 +122,52 @@ static void egui_view_textinput_invalidate_cursor_region(egui_view_t *self, egui
     egui_view_invalidate_region(self, &cursor_region);
 }
 
+static int egui_view_textinput_is_cursor_active(egui_view_t *self, egui_view_textinput_t *local)
+{
+    if (self == NULL || local == NULL)
+    {
+        return 0;
+    }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (self->is_focused)
+    {
+        return 1;
+    }
+#else
+    EGUI_UNUSED(self);
+#endif
+
+    return local->cursor_active;
+}
+
+static void egui_view_textinput_restart_cursor_blink(egui_view_t *self, egui_view_textinput_t *local)
+{
+    local->cursor_visible = 1;
+    egui_view_stop_timer(self, &local->cursor_timer);
+    if (egui_view_textinput_is_cursor_active(self, local))
+    {
+        egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
+    }
+}
+
+static void egui_view_textinput_stop_cursor_blink(egui_view_t *self, egui_view_textinput_t *local)
+{
+    local->cursor_visible = 0;
+    egui_view_stop_timer(self, &local->cursor_timer);
+}
+
 static void egui_view_textinput_cursor_timer_callback(egui_timer_t *timer)
 {
     egui_view_textinput_t *local = (egui_view_textinput_t *)timer->user_data;
     egui_view_t *self = (egui_view_t *)local;
+
+    if (!egui_view_textinput_is_cursor_active(self, local))
+    {
+        local->cursor_visible = 0;
+        egui_view_textinput_invalidate_cursor_region(self, local);
+        return;
+    }
 
     // Blink by toggling visibility and invalidating only the caret area when possible.
     local->cursor_visible = !local->cursor_visible;
@@ -143,14 +185,19 @@ static void egui_view_textinput_on_focus_change(egui_view_t *self, int is_focuse
     if (is_focused)
     {
         // Gaining focus makes the caret visible immediately, then starts blinking.
-        local->cursor_visible = 1;
-        egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
+        egui_view_textinput_restart_cursor_blink(self, local);
     }
     else
     {
-        // Losing focus hides the caret and stops the timer entirely.
-        local->cursor_visible = 0;
-        egui_view_stop_timer(self, &local->cursor_timer);
+        // Losing focus only hides the caret when no external editor keeps it active.
+        if (local->cursor_active)
+        {
+            egui_view_textinput_restart_cursor_blink(self, local);
+        }
+        else
+        {
+            egui_view_textinput_stop_cursor_blink(self, local);
+        }
     }
     egui_view_invalidate(self);
 }
@@ -222,9 +269,7 @@ void egui_view_textinput_insert_char(egui_view_t *self, char c)
     local->text[local->text_len] = '\0';
 
     // Fresh user input makes the caret visible again immediately.
-    local->cursor_visible = 1;
-    egui_view_stop_timer(self, &local->cursor_timer);
-    egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
+    egui_view_textinput_restart_cursor_blink(self, local);
 
     egui_view_textinput_update_scroll(self);
     egui_view_invalidate(self);
@@ -255,9 +300,7 @@ void egui_view_textinput_delete_char(egui_view_t *self)
     local->text[local->text_len] = '\0';
 
     // Editing restarts the blink cycle so the caret stays visible after the change.
-    local->cursor_visible = 1;
-    egui_view_stop_timer(self, &local->cursor_timer);
-    egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
+    egui_view_textinput_restart_cursor_blink(self, local);
 
     egui_view_textinput_update_scroll(self);
     egui_view_invalidate(self);
@@ -313,9 +356,7 @@ void egui_view_textinput_set_cursor_pos(egui_view_t *self, uint8_t pos)
     local->cursor_pos = pos;
 
     // Cursor moves also restart blinking so keyboard navigation feels responsive.
-    local->cursor_visible = 1;
-    egui_view_stop_timer(self, &local->cursor_timer);
-    egui_view_start_timer(self, &local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
+    egui_view_textinput_restart_cursor_blink(self, local);
 
     egui_view_textinput_update_scroll(self);
     egui_view_textinput_invalidate_cursor_region(self, local);
@@ -391,6 +432,31 @@ void egui_view_textinput_set_cursor_color(egui_view_t *self, egui_color_t color)
     EGUI_LOCAL_INIT(egui_view_textinput_t);
     local->cursor_color = color;
     egui_view_invalidate(self);
+}
+
+void egui_view_textinput_set_cursor_active(egui_view_t *self, int is_active)
+{
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    uint8_t next_active = is_active ? 1U : 0U;
+
+    if (local->cursor_active == next_active)
+    {
+        return;
+    }
+
+    egui_view_textinput_invalidate_cursor_region(self, local);
+    local->cursor_active = next_active;
+
+    if (egui_view_textinput_is_cursor_active(self, local))
+    {
+        egui_view_textinput_restart_cursor_blink(self, local);
+    }
+    else
+    {
+        egui_view_textinput_stop_cursor_blink(self, local);
+    }
+
+    egui_view_textinput_invalidate_cursor_region(self, local);
 }
 
 void egui_view_textinput_set_max_length(egui_view_t *self, uint8_t max_length)
@@ -501,7 +567,7 @@ void egui_view_textinput_on_draw(egui_view_t *self)
     }
 
     // The caret is clipped independently so it can disappear cleanly when scrolled out of view.
-    if (self->is_focused && local->cursor_visible)
+    if (egui_view_textinput_is_cursor_active(self, local) && local->cursor_visible)
     {
         egui_region_t cursor_region;
         egui_region_t cursor_screen_region;
@@ -686,6 +752,7 @@ void egui_view_textinput_init(egui_view_t *self, egui_core_t *core)
     local->max_length = EGUI_CONFIG_TEXTINPUT_MAX_LENGTH;
 
     local->cursor_visible = 0;
+    local->cursor_active = 0;
     local->reserved = 0;
 
     // The timer callback flips caret visibility while the widget keeps focus.

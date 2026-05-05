@@ -662,6 +662,7 @@ static egui_dim_t egui_view_get_focus_frame_expand(egui_view_t *self)
 void egui_view_get_focus_frame_region(egui_view_t *self, egui_region_t *region)
 {
     egui_dim_t expand;
+    egui_core_t *core;
 
     if (region == NULL)
     {
@@ -679,6 +680,13 @@ void egui_view_get_focus_frame_region(egui_view_t *self, egui_region_t *region)
     region->location.y = self->region_screen.location.y - expand;
     region->size.width = self->region_screen.size.width + (expand * 2);
     region->size.height = self->region_screen.size.height + (expand * 2);
+
+    core = egui_view_get_core(self);
+    if (core != NULL)
+    {
+        EGUI_REGION_DEFINE(screen_region, 0, 0, core->screen_width, core->screen_height);
+        egui_region_intersect(region, &screen_region, region);
+    }
 }
 
 void egui_view_invalidate_focus_region(egui_view_t *self)
