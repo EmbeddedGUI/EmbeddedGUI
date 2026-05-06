@@ -101,6 +101,7 @@ static uint8_t egui_view_menu_normalize_selected_index(egui_view_menu_t *local)
     return local->selected_index;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static void egui_view_menu_set_selected_index(egui_view_t *self, uint8_t index)
 {
     EGUI_LOCAL_INIT(egui_view_menu_t);
@@ -123,6 +124,7 @@ static void egui_view_menu_set_selected_index(egui_view_t *self, uint8_t index)
         egui_view_invalidate(self);
     }
 }
+#endif
 
 /** Attach a new borrowed page table and reset navigation state to the root page. */
 void egui_view_menu_set_pages(egui_view_t *self, const egui_view_menu_page_t *pages, uint8_t page_count)

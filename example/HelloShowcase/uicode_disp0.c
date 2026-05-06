@@ -781,7 +781,7 @@ static void showcase_request_parity_snapshot(const char *label)
 }
 #endif
 
-#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST && !EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 static void showcase_record_key_event(uint8_t type, uint8_t key_code)
 {
     egui_key_event_t key_event;

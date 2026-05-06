@@ -48,6 +48,7 @@ void egui_view_roller_set_current_index(egui_view_t *self, uint8_t index)
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static void egui_view_roller_select_index(egui_view_t *self, uint8_t index)
 {
     EGUI_LOCAL_INIT(egui_view_roller_t);
@@ -59,6 +60,7 @@ static void egui_view_roller_select_index(egui_view_t *self, uint8_t index)
         local->on_selected(self, local->current_index);
     }
 }
+#endif
 
 uint8_t egui_view_roller_get_current_index(egui_view_t *self)
 {

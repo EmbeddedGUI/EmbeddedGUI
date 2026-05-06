@@ -66,6 +66,11 @@ static egui_core_t *s_core;
 #define EGUI_PERF_FILE_IMAGE_PFB_TILED_HINT 192
 #endif
 
+#define EGUI_PERF_NEEDS_ENABLED_TEST_MODE                                                                                                                      \
+    ((!EGUI_PERF_QEMU_BENCHMARK_QUICK && (EGUI_PORT == EGUI_PORT_TYPE_QEMU || (EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY))) ||   \
+     (EGUI_CONFIG_FUNCTION_RECORDING_TEST && !(EGUI_PORT == EGUI_PORT_TYPE_QEMU && QEMU_HEAP_MEASURE) && !EGUI_PERF_CAPTURE_BENCHMARK_ONLY &&                  \
+      EGUI_TEST_CONFIG_SINGLE_TEST < 0))
+
 // views in test_view_group_1
 static egui_view_test_performance_t test_view;
 
@@ -73,7 +78,7 @@ static const char *egui_view_test_performance_type_string(int test_mode);
 static void egui_view_test_performance_set_test_mode(int test_mode);
 static int egui_view_test_performance_is_qoi_test_mode(int test_mode);
 static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test_mode);
-#if !EGUI_PERF_QEMU_BENCHMARK_QUICK || EGUI_CONFIG_FUNCTION_RECORDING_TEST
+#if EGUI_PERF_NEEDS_ENABLED_TEST_MODE
 static int egui_view_test_performance_get_enabled_test_mode(int scene_index);
 #endif
 #if EGUI_PORT == EGUI_PORT_TYPE_QEMU || (EGUI_CONFIG_FUNCTION_RECORDING_TEST && EGUI_PERF_CAPTURE_BENCHMARK_ONLY)
@@ -847,7 +852,7 @@ static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test
     }
 }
 
-#if !EGUI_PERF_QEMU_BENCHMARK_QUICK || EGUI_CONFIG_FUNCTION_RECORDING_TEST
+#if EGUI_PERF_NEEDS_ENABLED_TEST_MODE
 static int egui_view_test_performance_get_enabled_test_mode(int scene_index)
 {
     int enabled_index = 0;

@@ -163,6 +163,7 @@ static void egui_view_mini_calendar_local_region_to_screen(egui_view_t *self, co
     screen_region->size.height = local_region->size.height;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static uint8_t egui_view_mini_calendar_normalize_focused_day(egui_view_mini_calendar_t *local)
 {
     uint8_t total_days = days_in_month(local->year, local->month);
@@ -181,7 +182,9 @@ static uint8_t egui_view_mini_calendar_normalize_focused_day(egui_view_mini_cale
 
     return local->focused_day;
 }
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static void egui_view_mini_calendar_invalidate_day(egui_view_t *self, egui_view_mini_calendar_t *local, uint8_t day)
 {
     egui_region_t day_region;
@@ -191,6 +194,7 @@ static void egui_view_mini_calendar_invalidate_day(egui_view_t *self, egui_view_
         egui_view_invalidate_region(self, &day_region);
     }
 }
+#endif
 
 void egui_view_mini_calendar_set_date(egui_view_t *self, uint16_t year, uint8_t month, uint8_t day)
 {

@@ -112,6 +112,7 @@ void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process)
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static int egui_view_progress_bar_step_process(egui_view_t *self, egui_view_progress_bar_t *local, int8_t delta)
 {
     int16_t process = local->process;
@@ -133,6 +134,7 @@ static int egui_view_progress_bar_step_process(egui_view_t *self, egui_view_prog
     egui_view_progress_bar_set_process(self, (uint8_t)process);
     return 1;
 }
+#endif
 
 /**
  * @brief Draw the track, filled progress span, and optional control knob.

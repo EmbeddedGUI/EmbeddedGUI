@@ -152,6 +152,7 @@ static egui_dim_t egui_view_list_get_item_width(egui_view_t *self)
     return item_width;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static uint8_t egui_view_list_normalize_selected_index(egui_view_list_t *local)
 {
     if (local->item_count == 0)
@@ -165,6 +166,7 @@ static uint8_t egui_view_list_normalize_selected_index(egui_view_list_t *local)
 
     return local->selected_index;
 }
+#endif
 
 static void egui_view_list_set_selected_index_internal(egui_view_t *self, uint8_t index, uint8_t ensure_visible)
 {
