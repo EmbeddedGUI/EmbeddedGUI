@@ -48,8 +48,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/output)
 
 # Global include directories
 include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${CMAKE_SOURCE_DIR}/driver/bus)
+include_directories(${CMAKE_SOURCE_DIR}/driver/lcd)
+include_directories(${CMAKE_SOURCE_DIR}/driver/touch)
 include_directories(${CMAKE_SOURCE_DIR}/example/${APP})
+include_directories(${CMAKE_SOURCE_DIR}/porting/${PORT})
 include_directories(${CMAKE_SOURCE_DIR}/third_party/file_image)
+include_directories(${CMAKE_SOURCE_DIR}/third_party/plutosvg/source)
+include_directories(${CMAKE_SOURCE_DIR}/third_party/plutovg/include)
+
+if((PORT STREQUAL "pc" OR PORT STREQUAL "designer") AND CMAKE_SYSTEM_NAME MATCHES "Windows")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(SDL2_BITS "64")
+    else()
+        set(SDL2_BITS "32")
+    endif()
+    include_directories(${CMAKE_SOURCE_DIR}/porting/pc/sdl2/${SDL2_BITS}/include)
+endif()
 
 # For apps with sub-apps, add sub-app include paths
 if((APP STREQUAL "HelloBasic" OR APP STREQUAL "HelloVirtual" OR APP STREQUAL "HelloSizeAnalysis" OR APP STREQUAL "HelloGame") AND NOT APP_SUB STREQUAL "")

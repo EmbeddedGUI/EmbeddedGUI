@@ -32,9 +32,19 @@ const char *egui_motion_event_string(uint8_t type)
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
         str = DEFINE_STR(EGUI_MOTION_EVENT_ACTION_CANCEL);
         break;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+    case EGUI_MOTION_EVENT_ACTION_POINTER_DOWN:
+        str = DEFINE_STR(EGUI_MOTION_EVENT_ACTION_POINTER_DOWN);
+        break;
+    case EGUI_MOTION_EVENT_ACTION_POINTER_UP:
+        str = DEFINE_STR(EGUI_MOTION_EVENT_ACTION_POINTER_UP);
+        break;
+    case EGUI_MOTION_EVENT_ACTION_SCROLL:
+        str = DEFINE_STR(EGUI_MOTION_EVENT_ACTION_SCROLL);
+        break;
+#endif
 
     default:
-        // Multi-touch-only values currently fall back here unless this table is extended.
         str = "unknown";
         break;
     };

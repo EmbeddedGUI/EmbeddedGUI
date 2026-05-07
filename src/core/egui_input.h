@@ -54,8 +54,8 @@ void egui_input_polling_work(egui_core_t *core);
 void egui_input_init(egui_core_t *core);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
-/** Queue one multi-pointer motion event for drivers that report two simultaneous contact positions. */
-int egui_input_add_motion_multi(egui_core_t *core, uint8_t type, uint8_t pointer_count, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2);
+/** Queue one multi-pointer motion event from an array of screen-coordinate locations. */
+int egui_input_add_motion_points(egui_core_t *core, uint8_t type, uint8_t pointer_count, const egui_location_t *locations);
 /** Queue one scroll-wheel style event carrying the wheel delta in `delta`. */
 int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t delta);
 #endif

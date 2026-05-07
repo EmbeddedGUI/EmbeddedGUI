@@ -30,6 +30,9 @@ typedef enum
     EGUI_SIM_ACTION_DRAG,     // drag from one point to another over multiple steps
     EGUI_SIM_ACTION_SWIPE,    // fast drag with a fixed short step count
     EGUI_SIM_ACTION_WAIT,     // delay without generating pointer input
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+    EGUI_SIM_ACTION_MULTI_DRAG, // N-finger drag gesture
+#endif
 } egui_sim_action_type_t;
 
 /**
@@ -45,6 +48,13 @@ typedef struct egui_sim_action
     int steps;                   // number of intermediate drag steps, `0` lets the port pick one
     int interval_ms;             // delay before this action begins
     int display_id;              // target display index, `0` selects the main/default display
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+    uint8_t point_count;                             // number of valid points for `EGUI_SIM_ACTION_MULTI_DRAG`
+    int point_start_x[EGUI_CONFIG_TOUCH_MAX_POINTS]; // start X coordinates for `EGUI_SIM_ACTION_MULTI_DRAG`
+    int point_start_y[EGUI_CONFIG_TOUCH_MAX_POINTS]; // start Y coordinates for `EGUI_SIM_ACTION_MULTI_DRAG`
+    int point_end_x[EGUI_CONFIG_TOUCH_MAX_POINTS];   // end X coordinates for `EGUI_SIM_ACTION_MULTI_DRAG`
+    int point_end_y[EGUI_CONFIG_TOUCH_MAX_POINTS];   // end Y coordinates for `EGUI_SIM_ACTION_MULTI_DRAG`
+#endif
 } egui_sim_action_t;
 
 /**
@@ -269,6 +279,55 @@ extern void recording_request_snapshot(void);
         (_p_action)->interval_ms = (_interval_ms);                                                                                                             \
     } while (0)
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+/**
+ * @brief Fill one action as an N-finger drag on the default display.
+ */
+__EGUI_STATIC_INLINE__ void egui_sim_action_set_multi_drag(egui_sim_action_t *p_action, uint8_t point_count, const int *start_x, const int *start_y,
+                                                           const int *end_x, const int *end_y, int steps, int interval_ms)
+{
+    if (p_action == NULL)
+    {
+        return;
+    }
+
+    if (point_count > EGUI_CONFIG_TOUCH_MAX_POINTS)
+    {
+        point_count = EGUI_CONFIG_TOUCH_MAX_POINTS;
+    }
+
+    p_action->type = EGUI_SIM_ACTION_MULTI_DRAG;
+    p_action->x1 = point_count > 0 && start_x != NULL ? start_x[0] : 0;
+    p_action->y1 = point_count > 0 && start_y != NULL ? start_y[0] : 0;
+    p_action->x2 = point_count > 0 && end_x != NULL ? end_x[0] : p_action->x1;
+    p_action->y2 = point_count > 0 && end_y != NULL ? end_y[0] : p_action->y1;
+    p_action->steps = steps;
+    p_action->interval_ms = interval_ms;
+    p_action->display_id = 0;
+    p_action->point_count = point_count;
+
+    for (uint8_t i = 0; i < EGUI_CONFIG_TOUCH_MAX_POINTS; i++)
+    {
+        p_action->point_start_x[i] = 0;
+        p_action->point_start_y[i] = 0;
+        p_action->point_end_x[i] = 0;
+        p_action->point_end_y[i] = 0;
+    }
+
+    for (uint8_t i = 0; i < point_count; i++)
+    {
+        p_action->point_start_x[i] = start_x != NULL ? start_x[i] : 0;
+        p_action->point_start_y[i] = start_y != NULL ? start_y[i] : 0;
+        p_action->point_end_x[i] = end_x != NULL ? end_x[i] : p_action->point_start_x[i];
+        p_action->point_end_y[i] = end_y != NULL ? end_y[i] : p_action->point_start_y[i];
+    }
+}
+
+#define EGUI_SIM_SET_MULTI_DRAG(_p_action, _point_count, _start_x, _start_y, _end_x, _end_y, _steps, _interval_ms)                                             \
+    egui_sim_action_set_multi_drag((_p_action), (_point_count), (_start_x), (_start_y), (_end_x), (_end_y), (_steps), (_interval_ms))
+
+#endif
+
 /* ---- Multi-display action macros ---- */
 
 /**
@@ -331,6 +390,19 @@ extern void recording_request_snapshot(void);
         (_p_action)->interval_ms = (_interval_ms);                                                                                                             \
         (_p_action)->display_id = (_disp);                                                                                                                     \
     } while (0)
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+/**
+ * @brief Fill one action as an N-finger drag on the selected display.
+ */
+#define EGUI_SIM_SET_MULTI_DRAG_DISP(_p_action, _point_count, _start_x, _start_y, _end_x, _end_y, _steps, _interval_ms, _disp)                                 \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        EGUI_SIM_SET_MULTI_DRAG((_p_action), (_point_count), (_start_x), (_start_y), (_end_x), (_end_y), (_steps), (_interval_ms));                            \
+        (_p_action)->display_id = (_disp);                                                                                                                     \
+    } while (0)
+
+#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

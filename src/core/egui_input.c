@@ -37,6 +37,214 @@
 
 #include "egui_touch_driver.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+static uint8_t egui_input_touch_point_count_normalize(uint8_t point_count)
+{
+    if (point_count > EGUI_TOUCH_DRIVER_MAX_POINTS)
+    {
+        point_count = EGUI_TOUCH_DRIVER_MAX_POINTS;
+    }
+    return point_count;
+}
+
+static uint8_t egui_input_touch_ids_are_unique(const uint8_t *ids, uint8_t count)
+{
+    if (ids == NULL)
+    {
+        return 0;
+    }
+
+    for (uint8_t i = 0; i < count; i++)
+    {
+        for (uint8_t j = (uint8_t)(i + 1U); j < count; j++)
+        {
+            if (ids[i] == ids[j])
+            {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+static uint8_t egui_input_touch_ids_are_compact_index_order(const uint8_t *ids, uint8_t count)
+{
+    if (ids == NULL)
+    {
+        return 0;
+    }
+
+    for (uint8_t i = 0; i < count; i++)
+    {
+        if (ids[i] != i)
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static uint8_t egui_input_touch_should_match_by_id(const uint8_t *prev_ids, uint8_t prev_count, const uint8_t *current_ids, uint8_t current_count)
+{
+    if (!egui_input_touch_ids_are_unique(prev_ids, prev_count) || !egui_input_touch_ids_are_unique(current_ids, current_count))
+    {
+        return 0;
+    }
+
+    if (egui_input_touch_ids_are_compact_index_order(prev_ids, prev_count) && egui_input_touch_ids_are_compact_index_order(current_ids, current_count))
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+static uint8_t egui_input_touch_find_active_prev_index(const uint8_t *active_prev_indices, uint8_t active_count, uint8_t prev_index)
+{
+    for (uint8_t i = 0; i < active_count; i++)
+    {
+        if (active_prev_indices[i] == prev_index)
+        {
+            return i;
+        }
+    }
+    return EGUI_TOUCH_DRIVER_MAX_POINTS;
+}
+
+static void egui_input_touch_remove_active_point(egui_location_t *active_locations, uint8_t *active_ids, uint8_t *active_prev_indices, uint8_t *active_count,
+                                                 uint8_t active_index)
+{
+    if (active_locations == NULL || active_ids == NULL || active_prev_indices == NULL || active_count == NULL || active_index >= *active_count)
+    {
+        return;
+    }
+
+    for (uint8_t i = active_index; i + 1U < *active_count; i++)
+    {
+        active_locations[i] = active_locations[i + 1U];
+        active_ids[i] = active_ids[i + 1U];
+        active_prev_indices[i] = active_prev_indices[i + 1U];
+    }
+    (*active_count)--;
+}
+
+static void egui_input_touch_make_pointer_up_locations(const egui_location_t *active_locations, uint8_t active_count, uint8_t release_index,
+                                                       egui_location_t *event_locations)
+{
+    uint8_t out_index = 0;
+
+    if (active_locations == NULL || event_locations == NULL || release_index >= active_count)
+    {
+        return;
+    }
+
+    for (uint8_t i = 0; i < active_count; i++)
+    {
+        if (i == release_index)
+        {
+            continue;
+        }
+        event_locations[out_index++] = active_locations[i];
+    }
+    event_locations[active_count - 1U] = active_locations[release_index];
+}
+
+static uint8_t egui_input_touch_locations_changed_from_prev(egui_core_t *core, const egui_location_t *active_locations, uint8_t active_count)
+{
+    if (core == NULL || active_locations == NULL)
+    {
+        return 0;
+    }
+
+    for (uint8_t i = 0; i < active_count; i++)
+    {
+        if (i >= core->touch.prev_point_count || active_locations[i].x != core->touch.prev_locations[i].x ||
+            active_locations[i].y != core->touch.prev_locations[i].y)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void egui_input_motion_set_locations(egui_motion_event_t *motion_event, uint8_t pointer_count, const egui_location_t *locations, egui_dim_t fallback_x,
+                                            egui_dim_t fallback_y)
+{
+    pointer_count = egui_input_touch_point_count_normalize(pointer_count);
+
+    motion_event->location.x = fallback_x;
+    motion_event->location.y = fallback_y;
+    motion_event->pointer_count = pointer_count;
+    motion_event->scroll_delta = 0;
+
+    for (uint8_t i = 0; i < EGUI_TOUCH_DRIVER_MAX_POINTS; i++)
+    {
+        motion_event->locations[i].x = 0;
+        motion_event->locations[i].y = 0;
+    }
+
+    if (locations == NULL || pointer_count == 0)
+    {
+        return;
+    }
+
+    for (uint8_t i = 0; i < pointer_count; i++)
+    {
+        motion_event->locations[i] = locations[i];
+    }
+
+    motion_event->location = motion_event->locations[0];
+}
+
+int egui_input_add_motion_points(egui_core_t *core, uint8_t type, uint8_t pointer_count, const egui_location_t *locations)
+{
+    egui_location_t fallback = {0, 0};
+
+    pointer_count = egui_input_touch_point_count_normalize(pointer_count);
+    if (locations != NULL && pointer_count > 0)
+    {
+        fallback = locations[0];
+    }
+
+    __egui_disable_isr();
+    egui_motion_event_t *motion_event;
+    egui_motion_event_t *last_motion_event;
+    int is_reused = 0;
+
+    last_motion_event = (egui_motion_event_t *)egui_slist_peek_tail(&egui_input_info.motion_list);
+    if (last_motion_event != NULL)
+    {
+        if (last_motion_event->type == type && last_motion_event->type == EGUI_MOTION_EVENT_ACTION_MOVE)
+        {
+            motion_event = last_motion_event;
+            is_reused = 1;
+        }
+    }
+    if (!is_reused)
+    {
+        if (!SIMPLE_POOL_DEQUEUE(&input_motion_pool, motion_event))
+        {
+            __egui_enable_isr();
+            return 0;
+        }
+    }
+
+    motion_event->type = type;
+    motion_event->timestamp = egui_api_timer_get_current_core(core);
+    egui_input_motion_set_locations(motion_event, pointer_count, locations, fallback.x, fallback.y);
+
+#if EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
+    egui_velocity_tracker_add_motion(&egui_input_info.velocity_tracker, motion_event);
+#endif
+    if (!is_reused)
+    {
+        egui_slist_append(&egui_input_info.motion_list, &motion_event->node);
+    }
+    __egui_enable_isr();
+    return 1;
+}
+#endif
+
 /** Queue one single-pointer motion event, coalescing consecutive MOVE events to save queue slots. */
 int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_dim_t y)
 {
@@ -74,10 +282,8 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
     motion_event->location.y = y;
     motion_event->timestamp = egui_api_timer_get_current_core(core);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
-    motion_event->pointer_count = 1;
-    motion_event->location2.x = 0;
-    motion_event->location2.y = 0;
-    motion_event->scroll_delta = 0;
+    egui_location_t location = {x, y};
+    egui_input_motion_set_locations(motion_event, 1, &location, x, y);
 #endif
 
 #if EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
@@ -94,53 +300,6 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
-/** Queue one multi-touch motion event, using the same MOVE coalescing policy as single-touch input. */
-int egui_input_add_motion_multi(egui_core_t *core, uint8_t type, uint8_t pointer_count, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2)
-{
-    __egui_disable_isr();
-    egui_motion_event_t *motion_event;
-    egui_motion_event_t *last_motion_event;
-    int is_reused = 0;
-
-    // Merge consecutive multi-touch MOVE events
-    last_motion_event = (egui_motion_event_t *)egui_slist_peek_tail(&egui_input_info.motion_list);
-    if (last_motion_event != NULL)
-    {
-        if (last_motion_event->type == type && last_motion_event->type == EGUI_MOTION_EVENT_ACTION_MOVE)
-        {
-            motion_event = last_motion_event;
-            is_reused = 1;
-        }
-    }
-    if (!is_reused)
-    {
-        if (!SIMPLE_POOL_DEQUEUE(&input_motion_pool, motion_event))
-        {
-            __egui_enable_isr();
-            return 0;
-        }
-    }
-
-    motion_event->type = type;
-    motion_event->location.x = x1;
-    motion_event->location.y = y1;
-    motion_event->timestamp = egui_api_timer_get_current_core(core);
-    motion_event->pointer_count = pointer_count;
-    motion_event->location2.x = x2;
-    motion_event->location2.y = y2;
-    motion_event->scroll_delta = 0;
-
-#if EGUI_CONFIG_FUNCTION_INPUT_VELOCITY_TRACKER
-    egui_velocity_tracker_add_motion(&egui_input_info.velocity_tracker, motion_event);
-#endif
-    if (!is_reused)
-    {
-        egui_slist_append(&egui_input_info.motion_list, &motion_event->node);
-    }
-    __egui_enable_isr();
-    return 1;
-}
-
 /** Queue one scroll-wheel style motion event that carries a delta instead of a pressed state. */
 int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t delta)
 {
@@ -157,9 +316,7 @@ int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t
     motion_event->location.x = x;
     motion_event->location.y = y;
     motion_event->timestamp = egui_api_timer_get_current_core(core);
-    motion_event->pointer_count = 0;
-    motion_event->location2.x = 0;
-    motion_event->location2.y = 0;
+    egui_input_motion_set_locations(motion_event, 0, NULL, x, y);
     motion_event->scroll_delta = delta;
 
     egui_slist_append(&egui_input_info.motion_list, &motion_event->node);
@@ -167,6 +324,239 @@ int egui_input_add_scroll(egui_core_t *core, egui_dim_t x, egui_dim_t y, int16_t
     return 1;
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+static void egui_input_queue_touch_sample(egui_core_t *core, const egui_touch_driver_data_t *data)
+{
+    uint8_t point_count;
+    uint8_t prev_count;
+    egui_location_t current_locations[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    egui_location_t active_locations[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    egui_location_t event_locations[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    egui_location_t last_release_location = {0, 0};
+    uint8_t current_ids[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    uint8_t active_ids[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    uint8_t active_prev_indices[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    uint8_t prev_to_current[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    uint8_t current_used[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    uint8_t active_count;
+    uint8_t use_id_match;
+    uint8_t emitted_pointer_down = 0;
+    uint8_t emitted_release = 0;
+
+    if (data == NULL)
+    {
+        return;
+    }
+
+    point_count = egui_input_touch_point_count_normalize(data->point_count);
+    prev_count = core->touch.prev_point_count;
+
+    for (uint8_t i = 0; i < EGUI_TOUCH_DRIVER_MAX_POINTS; i++)
+    {
+        if (i < point_count)
+        {
+            current_locations[i].x = data->points[i].x;
+            current_locations[i].y = data->points[i].y;
+            current_ids[i] = data->points[i].id;
+        }
+        else
+        {
+            current_locations[i].x = 0;
+            current_locations[i].y = 0;
+            current_ids[i] = i;
+        }
+        prev_to_current[i] = EGUI_TOUCH_DRIVER_MAX_POINTS;
+        current_used[i] = 0;
+    }
+
+    use_id_match = egui_input_touch_should_match_by_id(core->touch.prev_ids, prev_count, current_ids, point_count);
+
+    for (uint8_t prev_index = 0; prev_index < prev_count; prev_index++)
+    {
+        for (uint8_t current_index = 0; current_index < point_count; current_index++)
+        {
+            if (current_used[current_index])
+            {
+                continue;
+            }
+
+            if ((use_id_match && core->touch.prev_ids[prev_index] == current_ids[current_index]) || (!use_id_match && prev_index == current_index))
+            {
+                prev_to_current[prev_index] = current_index;
+                current_used[current_index] = 1;
+                break;
+            }
+        }
+    }
+
+    active_count = prev_count;
+    for (uint8_t i = 0; i < active_count; i++)
+    {
+        active_locations[i] = core->touch.prev_locations[i];
+        active_ids[i] = core->touch.prev_ids[i];
+        active_prev_indices[i] = i;
+    }
+
+    for (uint8_t prev_index = 0; prev_index < prev_count; prev_index++)
+    {
+        uint8_t current_index = prev_to_current[prev_index];
+        uint8_t active_index;
+
+        if (current_index >= EGUI_TOUCH_DRIVER_MAX_POINTS)
+        {
+            continue;
+        }
+
+        active_index = egui_input_touch_find_active_prev_index(active_prev_indices, active_count, prev_index);
+        if (active_index < EGUI_TOUCH_DRIVER_MAX_POINTS)
+        {
+            active_locations[active_index] = current_locations[current_index];
+            active_ids[active_index] = current_ids[current_index];
+        }
+    }
+
+    for (uint8_t prev_offset = 0; prev_offset < prev_count; prev_offset++)
+    {
+        uint8_t prev_index = (uint8_t)(prev_count - 1U - prev_offset);
+        uint8_t active_index;
+
+        if (prev_to_current[prev_index] < EGUI_TOUCH_DRIVER_MAX_POINTS)
+        {
+            continue;
+        }
+
+        active_index = egui_input_touch_find_active_prev_index(active_prev_indices, active_count, prev_index);
+        if (active_index >= EGUI_TOUCH_DRIVER_MAX_POINTS)
+        {
+            continue;
+        }
+
+        last_release_location = active_locations[active_index];
+        if (active_count > 1)
+        {
+            egui_input_touch_make_pointer_up_locations(active_locations, active_count, active_index, event_locations);
+            egui_input_add_motion_points(core, EGUI_MOTION_EVENT_ACTION_POINTER_UP, active_count, event_locations);
+        }
+        else
+        {
+            egui_input_add_motion_points(core, EGUI_MOTION_EVENT_ACTION_UP, 1, active_locations);
+        }
+        emitted_release = 1;
+        egui_input_touch_remove_active_point(active_locations, active_ids, active_prev_indices, &active_count, active_index);
+    }
+
+    for (uint8_t current_index = 0; current_index < point_count; current_index++)
+    {
+        if (current_used[current_index])
+        {
+            continue;
+        }
+
+        if (active_count >= EGUI_TOUCH_DRIVER_MAX_POINTS)
+        {
+            continue;
+        }
+
+        active_locations[active_count] = current_locations[current_index];
+        active_ids[active_count] = current_ids[current_index];
+        active_prev_indices[active_count] = EGUI_TOUCH_DRIVER_MAX_POINTS;
+        active_count++;
+
+        if (active_count == 1)
+        {
+            egui_input_add_motion_points(core, EGUI_MOTION_EVENT_ACTION_DOWN, 1, active_locations);
+        }
+        else
+        {
+            egui_input_add_motion_points(core, EGUI_MOTION_EVENT_ACTION_POINTER_DOWN, active_count, active_locations);
+        }
+        emitted_pointer_down = 1;
+    }
+
+    if (!emitted_pointer_down && active_count > 0 && egui_input_touch_locations_changed_from_prev(core, active_locations, active_count))
+    {
+        egui_input_add_motion_points(core, EGUI_MOTION_EVENT_ACTION_MOVE, active_count, active_locations);
+    }
+
+    core->touch.prev_point_count = active_count;
+    core->touch.prev_pressed = active_count > 0;
+
+    for (uint8_t i = 0; i < EGUI_TOUCH_DRIVER_MAX_POINTS; i++)
+    {
+        if (i < active_count)
+        {
+            core->touch.prev_locations[i] = active_locations[i];
+            core->touch.prev_ids[i] = active_ids[i];
+        }
+        else
+        {
+            core->touch.prev_locations[i].x = 0;
+            core->touch.prev_locations[i].y = 0;
+            core->touch.prev_ids[i] = i;
+        }
+    }
+
+    if (active_count > 0)
+    {
+        core->touch.prev_x = active_locations[0].x;
+        core->touch.prev_y = active_locations[0].y;
+    }
+    else if (emitted_release)
+    {
+        core->touch.prev_x = last_release_location.x;
+        core->touch.prev_y = last_release_location.y;
+    }
+}
+#else
+static void egui_input_queue_touch_sample(egui_core_t *core, const egui_touch_driver_data_t *data)
+{
+    uint8_t pressed;
+    int16_t tx;
+    int16_t ty;
+
+    if (data == NULL)
+    {
+        return;
+    }
+
+    pressed = data->point_count > 0;
+    tx = pressed ? data->points[0].x : core->touch.prev_x;
+    ty = pressed ? data->points[0].y : core->touch.prev_y;
+
+    if (pressed && !core->touch.prev_pressed)
+    {
+        egui_input_add_motion(core, EGUI_MOTION_EVENT_ACTION_DOWN, tx, ty);
+    }
+    else if (pressed && core->touch.prev_pressed)
+    {
+        if (tx != core->touch.prev_x || ty != core->touch.prev_y)
+        {
+            egui_input_add_motion(core, EGUI_MOTION_EVENT_ACTION_MOVE, tx, ty);
+        }
+    }
+    else if (!pressed && core->touch.prev_pressed)
+    {
+        egui_input_add_motion(core, EGUI_MOTION_EVENT_ACTION_UP, core->touch.prev_x, core->touch.prev_y);
+    }
+
+    core->touch.prev_pressed = pressed;
+    core->touch.prev_point_count = pressed ? 1 : 0;
+    core->touch.prev_ids[0] = 0;
+    if (pressed)
+    {
+        core->touch.prev_x = tx;
+        core->touch.prev_y = ty;
+        core->touch.prev_locations[0].x = tx;
+        core->touch.prev_locations[0].y = ty;
+    }
+    else
+    {
+        core->touch.prev_locations[0].x = 0;
+        core->touch.prev_locations[0].y = 0;
+    }
+}
+#endif
 
 /** Return the last measured horizontal fling velocity, or zero when tracking is disabled. */
 egui_float_t egui_input_get_velocity_x(egui_core_t *core)
@@ -206,44 +596,13 @@ void egui_input_polling_work(egui_core_t *core)
 
     // Sample the touch driver first so polling-mode ports still feed the same queue-based pipeline.
     egui_touch_driver_t *tdrv = egui_touch_driver_get(core);
-    if (tdrv != NULL && tdrv->ops->read != NULL)
+    if (tdrv != NULL && tdrv->ops != NULL && tdrv->ops->read != NULL)
     {
-        uint8_t pressed = 0;
-        uint8_t has_position = 0;
-        int16_t tx = 0, ty = 0;
-        if (tdrv->ops->read_ex != NULL)
+        egui_touch_driver_data_t touch_data;
+        egui_api_memset(&touch_data, 0, (int)sizeof(touch_data));
+        if (tdrv->ops->read(core, &touch_data) == 0)
         {
-            tdrv->ops->read_ex(core, &pressed, &tx, &ty, &has_position);
-        }
-        else
-        {
-            tdrv->ops->read(core, &pressed, &tx, &ty);
-            has_position = pressed;
-        }
-
-        // Translate the current raw pressed/not-pressed state into DOWN/MOVE/UP edge events.
-        if (pressed && !core->touch.prev_pressed)
-        {
-            egui_input_add_motion(core, EGUI_MOTION_EVENT_ACTION_DOWN, tx, ty);
-        }
-        else if (pressed && core->touch.prev_pressed)
-        {
-            if (tx != core->touch.prev_x || ty != core->touch.prev_y)
-            {
-                egui_input_add_motion(core, EGUI_MOTION_EVENT_ACTION_MOVE, tx, ty);
-            }
-        }
-        else if (!pressed && core->touch.prev_pressed)
-        {
-            // Prefer a driver-reported release coordinate when available.
-            // Fallback to the last pressed coordinate for ports that cannot report it.
-            egui_input_add_motion(core, EGUI_MOTION_EVENT_ACTION_UP, has_position ? tx : core->touch.prev_x, has_position ? ty : core->touch.prev_y);
-        }
-        core->touch.prev_pressed = pressed;
-        if (pressed || has_position)
-        {
-            core->touch.prev_x = tx;
-            core->touch.prev_y = ty;
+            egui_input_queue_touch_sample(core, &touch_data);
         }
     }
 
@@ -270,7 +629,24 @@ void egui_input_polling_work(egui_core_t *core)
             egui_display_driver_t *drv = egui_display_driver_get(core);
             if (drv != NULL && drv->rotation != EGUI_DISPLAY_ROTATION_0 && drv->ops->set_rotation == NULL)
             {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+                if (motion_event->pointer_count > 0)
+                {
+                    for (uint8_t i = 0; i < motion_event->pointer_count; i++)
+                    {
+                        egui_rotation_transform_touch(drv->rotation, drv->physical_width, drv->physical_height, &motion_event->locations[i].x,
+                                                      &motion_event->locations[i].y);
+                    }
+                    motion_event->location = motion_event->locations[0];
+                }
+                else
+                {
+                    egui_rotation_transform_touch(drv->rotation, drv->physical_width, drv->physical_height, &motion_event->location.x,
+                                                  &motion_event->location.y);
+                }
+#else
                 egui_rotation_transform_touch(drv->rotation, drv->physical_width, drv->physical_height, &motion_event->location.x, &motion_event->location.y);
+#endif
             }
         }
 #endif
@@ -300,6 +676,13 @@ void egui_input_init(egui_core_t *core)
     core->touch.prev_pressed = 0;
     core->touch.prev_x = 0;
     core->touch.prev_y = 0;
+    core->touch.prev_point_count = 0;
+    for (uint8_t i = 0; i < EGUI_TOUCH_DRIVER_MAX_POINTS; i++)
+    {
+        core->touch.prev_locations[i].x = 0;
+        core->touch.prev_locations[i].y = 0;
+        core->touch.prev_ids[i] = i;
+    }
 
     // Initialize touch driver if registered
 }

@@ -38,13 +38,16 @@ typedef struct egui_hal_touch_point
 
 /**
  * Touch data structure (multi-touch)
+ *
+ * Drivers only report currently active points. `point_count == 0` means no
+ * point is active; release events are
+ * inferred by the core from the previous
+ * sample. Keep point IDs stable while a finger remains active.
  */
 typedef struct egui_hal_touch_data
 {
-    uint8_t point_count;                                      /**< Number of active touch points */
+    uint8_t point_count;                                      /**< Number of active touch points, 0 means all released */
     uint8_t gesture;                                          /**< Gesture code (driver-specific) */
-    uint8_t has_release_point;                                /**< Release coordinates are valid when point_count=0 */
-    egui_hal_touch_point_t release_point;                     /**< Optional release coordinate */
     egui_hal_touch_point_t points[EGUI_HAL_TOUCH_MAX_POINTS]; /**< Touch point array */
 } egui_hal_touch_data_t;
 
@@ -101,8 +104,8 @@ struct egui_hal_touch_driver
  * Register HAL touch driver with Core.
  *
  * Calls reset(), init(), then registers with Core's touch driver system.
- * Extracts first touch point for single-point events.
- * Checks INT pin (if available) to skip reads when no interrupt pending.
+ * Reports the current active touch points to Core.
+ * Checks INT pin (if available) to skip reads when no interrupt is pending.
  *
  * @param core    Core instance that owns this touch route
  * @param touch   HAL touch driver instance (factory_init already called)

@@ -148,12 +148,23 @@ static SDL_mutex *sdl_touch_mutex = NULL;
 static SDL_mutex *sdl_frame_mutex = NULL;
 static SDL_mutex *sdl_recording_mutex = NULL;
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 typedef struct sdl_touch_event
 {
-    uint8_t pressed;
+    uint8_t point_count;
+    egui_touch_driver_point_t points[EGUI_TOUCH_DRIVER_MAX_POINTS];
+} sdl_touch_event_t;
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+typedef struct sdl_touch_finger_state
+{
+    SDL_FingerID id;
+    uint8_t active;
     int16_t x;
     int16_t y;
-} sdl_touch_event_t;
+} sdl_touch_finger_state_t;
+#endif
+#endif
 
 #define SDL_TOUCH_EVENT_QUEUE_SIZE 64
 
@@ -162,7 +173,217 @@ static sdl_touch_event_t sdl_touch_event_queue[SDL_TOUCH_EVENT_QUEUE_SIZE];
 static uint8_t sdl_touch_event_head = 0;
 static uint8_t sdl_touch_event_tail = 0;
 static uint8_t sdl_touch_event_count = 0;
-static sdl_touch_event_t sdl_touch_last_state = {0, 0, 0};
+static sdl_touch_event_t sdl_touch_last_state = {0};
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+static sdl_touch_finger_state_t sdl_touch_fingers[EGUI_TOUCH_DRIVER_MAX_POINTS];
+#endif
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static void sdl_touch_event_set_point_array(sdl_touch_event_t *event, uint8_t point_count, const egui_touch_driver_point_t *points, int16_t fallback_x,
+                                            int16_t fallback_y)
+{
+    if (event == NULL)
+    {
+        return;
+    }
+
+    if (point_count > EGUI_TOUCH_DRIVER_MAX_POINTS)
+    {
+        point_count = EGUI_TOUCH_DRIVER_MAX_POINTS;
+    }
+
+    EGUI_UNUSED(fallback_x);
+    EGUI_UNUSED(fallback_y);
+    event->point_count = point_count;
+    for (uint8_t i = 0; i < EGUI_TOUCH_DRIVER_MAX_POINTS; i++)
+    {
+        if (i < point_count && points != NULL)
+        {
+            event->points[i] = points[i];
+        }
+        else
+        {
+            event->points[i].x = 0;
+            event->points[i].y = 0;
+            event->points[i].id = i;
+            event->points[i].pressure = 0;
+        }
+    }
+}
+
+static void sdl_touch_event_set_points(sdl_touch_event_t *event, uint8_t point_count, int16_t x1, int16_t y1, int16_t x2, int16_t y2)
+{
+    egui_touch_driver_point_t points[EGUI_TOUCH_DRIVER_MAX_POINTS];
+
+    if (point_count > 2)
+    {
+        point_count = 2;
+    }
+
+    memset(points, 0, sizeof(points));
+    if (EGUI_TOUCH_DRIVER_MAX_POINTS > 0)
+    {
+        points[0].x = x1;
+        points[0].y = y1;
+        points[0].id = 0;
+        points[0].pressure = point_count > 0 ? 1 : 0;
+    }
+#if EGUI_TOUCH_DRIVER_MAX_POINTS > 1
+    points[1].x = x2;
+    points[1].y = y2;
+    points[1].id = 1;
+    points[1].pressure = point_count > 1 ? 1 : 0;
+#else
+    EGUI_UNUSED(x2);
+    EGUI_UNUSED(y2);
+#endif
+    sdl_touch_event_set_point_array(event, point_count, points, x1, y1);
+}
+
+static void sdl_touch_driver_data_from_event(egui_touch_driver_data_t *data, const sdl_touch_event_t *event)
+{
+    if (data == NULL || event == NULL)
+    {
+        return;
+    }
+
+    memset(data, 0, sizeof(*data));
+    data->point_count = event->point_count;
+    if (data->point_count > EGUI_TOUCH_DRIVER_MAX_POINTS)
+    {
+        data->point_count = EGUI_TOUCH_DRIVER_MAX_POINTS;
+    }
+
+    for (uint8_t i = 0; i < data->point_count; i++)
+    {
+        data->points[i] = event->points[i];
+    }
+}
+
+static void sdl_touch_queue_push(sdl_touch_event_t *queue, uint8_t *head, uint8_t *tail, uint8_t *count, sdl_touch_event_t *last,
+                                 const sdl_touch_event_t *event)
+{
+    if (queue == NULL || head == NULL || tail == NULL || count == NULL || last == NULL || event == NULL)
+    {
+        return;
+    }
+
+    *last = *event;
+
+    if (*count >= SDL_TOUCH_EVENT_QUEUE_SIZE)
+    {
+        *head = (uint8_t)((*head + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
+        (*count)--;
+    }
+
+    queue[*tail] = *event;
+    *tail = (uint8_t)((*tail + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
+    (*count)++;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+static int16_t sdl_touch_float_to_coord(float value, int16_t size)
+{
+    if (value <= 0.0f)
+    {
+        return 0;
+    }
+    if (value >= 1.0f)
+    {
+        return size > 0 ? (int16_t)(size - 1) : 0;
+    }
+    return (int16_t)(value * (float)size);
+}
+
+static void sdl_touch_event_from_fingers(sdl_touch_event_t *event, const sdl_touch_finger_state_t *fingers, int16_t width, int16_t height, int16_t fallback_x,
+                                         int16_t fallback_y)
+{
+    uint8_t point_count = 0;
+    egui_touch_driver_point_t points[EGUI_TOUCH_DRIVER_MAX_POINTS];
+
+    if (event == NULL || fingers == NULL)
+    {
+        return;
+    }
+
+    EGUI_UNUSED(width);
+    EGUI_UNUSED(height);
+    memset(points, 0, sizeof(points));
+
+    for (uint8_t i = 0; i < EGUI_TOUCH_DRIVER_MAX_POINTS; i++)
+    {
+        if (!fingers[i].active)
+        {
+            continue;
+        }
+
+        points[point_count].x = fingers[i].x;
+        points[point_count].y = fingers[i].y;
+        points[point_count].id = (uint8_t)i;
+        points[point_count].pressure = 1;
+        point_count++;
+    }
+
+    sdl_touch_event_set_point_array(event, point_count, points, fallback_x, fallback_y);
+}
+
+static int sdl_touch_find_finger(sdl_touch_finger_state_t *fingers, SDL_FingerID id)
+{
+    for (uint8_t i = 0; i < EGUI_TOUCH_DRIVER_MAX_POINTS; i++)
+    {
+        if (fingers[i].active && fingers[i].id == id)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int sdl_touch_alloc_finger(sdl_touch_finger_state_t *fingers, SDL_FingerID id)
+{
+    int existing = sdl_touch_find_finger(fingers, id);
+    if (existing >= 0)
+    {
+        return existing;
+    }
+
+    for (uint8_t i = 0; i < EGUI_TOUCH_DRIVER_MAX_POINTS; i++)
+    {
+        if (!fingers[i].active)
+        {
+            fingers[i].id = id;
+            fingers[i].active = 1;
+            return i;
+        }
+    }
+    return -1;
+}
+
+static void sdl_touch_update_fingers(sdl_touch_finger_state_t *fingers, uint32_t event_type, SDL_FingerID id, int16_t x, int16_t y)
+{
+    int index;
+
+    if (event_type == SDL_FINGERUP)
+    {
+        index = sdl_touch_find_finger(fingers, id);
+        if (index >= 0)
+        {
+            fingers[index].active = 0;
+            fingers[index].x = x;
+            fingers[index].y = y;
+        }
+        return;
+    }
+
+    index = sdl_touch_alloc_finger(fingers, id);
+    if (index >= 0)
+    {
+        fingers[index].x = x;
+        fingers[index].y = y;
+    }
+}
+#endif
 #endif
 
 /* ---- Multi-display SDL support ---- */
@@ -191,6 +412,9 @@ typedef struct sdl_extra_display
     uint8_t touch_tail;
     uint8_t touch_count;
     sdl_touch_event_t touch_last;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+    sdl_touch_finger_state_t touch_fingers[EGUI_TOUCH_DRIVER_MAX_POINTS];
+#endif
 #endif
 } sdl_extra_display_t;
 
@@ -218,27 +442,50 @@ static int sdl_get_display_for_window(uint32_t window_id)
 static void sdl_extra_touch_push(int idx, uint8_t pressed, int16_t x, int16_t y)
 {
     sdl_extra_display_t *ctx = &sdl_extra[idx];
+    sdl_touch_event_t event;
 
     SDL_LockMutex(ctx->touch_mutex);
-    ctx->touch_last.pressed = pressed;
-    ctx->touch_last.x = x;
-    ctx->touch_last.y = y;
-
-    if (ctx->touch_count >= SDL_TOUCH_EVENT_QUEUE_SIZE)
-    {
-        ctx->touch_head = (uint8_t)((ctx->touch_head + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
-        ctx->touch_count--;
-    }
-    ctx->touch_queue[ctx->touch_tail] = ctx->touch_last;
-    ctx->touch_tail = (uint8_t)((ctx->touch_tail + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
-    ctx->touch_count++;
+    sdl_touch_event_set_points(&event, pressed ? 1 : 0, x, y, 0, 0);
+    sdl_touch_queue_push(ctx->touch_queue, &ctx->touch_head, &ctx->touch_tail, &ctx->touch_count, &ctx->touch_last, &event);
     SDL_UnlockMutex(ctx->touch_mutex);
 }
 
-static void sdl_extra_touch_read(int idx, uint8_t *pressed, int16_t *x, int16_t *y)
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
+static void sdl_extra_touch_push_points(int idx, uint8_t point_count, const egui_touch_driver_point_t *points, int16_t fallback_x, int16_t fallback_y)
 {
     sdl_extra_display_t *ctx = &sdl_extra[idx];
     sdl_touch_event_t event;
+
+    SDL_LockMutex(ctx->touch_mutex);
+    sdl_touch_event_set_point_array(&event, point_count, points, fallback_x, fallback_y);
+    sdl_touch_queue_push(ctx->touch_queue, &ctx->touch_head, &ctx->touch_tail, &ctx->touch_count, &ctx->touch_last, &event);
+    SDL_UnlockMutex(ctx->touch_mutex);
+}
+#endif
+
+static void sdl_extra_touch_push_finger(int idx, uint32_t event_type, SDL_FingerID id, int16_t x, int16_t y)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    sdl_touch_event_t event;
+
+    SDL_LockMutex(ctx->touch_mutex);
+    sdl_touch_update_fingers(ctx->touch_fingers, event_type, id, x, y);
+    sdl_touch_event_from_fingers(&event, ctx->touch_fingers, ctx->width, ctx->height, x, y);
+    sdl_touch_queue_push(ctx->touch_queue, &ctx->touch_head, &ctx->touch_tail, &ctx->touch_count, &ctx->touch_last, &event);
+    SDL_UnlockMutex(ctx->touch_mutex);
+}
+#endif
+
+static int sdl_extra_touch_read(int idx, egui_touch_driver_data_t *data)
+{
+    sdl_extra_display_t *ctx = &sdl_extra[idx];
+    sdl_touch_event_t event;
+
+    if (data == NULL)
+    {
+        return -1;
+    }
 
     SDL_LockMutex(ctx->touch_mutex);
     if (ctx->touch_count > 0)
@@ -254,9 +501,8 @@ static void sdl_extra_touch_read(int idx, uint8_t *pressed, int16_t *x, int16_t 
     }
     SDL_UnlockMutex(ctx->touch_mutex);
 
-    *pressed = event.pressed;
-    *x = event.x;
-    *y = event.y;
+    sdl_touch_driver_data_from_event(data, &event);
+    return 0;
 }
 #endif /* EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH */
 
@@ -454,46 +700,61 @@ static void sdl_touch_unlock(void)
 
 static void sdl_port_touch_push_event(uint8_t pressed, int16_t x, int16_t y)
 {
+    sdl_touch_event_t event;
+
     sdl_touch_lock();
 
-    sdl_touch_last_state.pressed = pressed;
-    sdl_touch_last_state.x = x;
-    sdl_touch_last_state.y = y;
-
-    if (sdl_touch_event_count >= SDL_TOUCH_EVENT_QUEUE_SIZE)
-    {
-        sdl_touch_event_head = (uint8_t)((sdl_touch_event_head + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
-        sdl_touch_event_count--;
-    }
-
-    sdl_touch_event_queue[sdl_touch_event_tail] = sdl_touch_last_state;
-    sdl_touch_event_tail = (uint8_t)((sdl_touch_event_tail + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
-    sdl_touch_event_count++;
+    sdl_touch_event_set_points(&event, pressed ? 1 : 0, x, y, 0, 0);
+    sdl_touch_queue_push(sdl_touch_event_queue, &sdl_touch_event_head, &sdl_touch_event_tail, &sdl_touch_event_count, &sdl_touch_last_state, &event);
 
     sdl_touch_unlock();
 }
 
-void sdl_port_touch_read(egui_core_t *core_ctx, uint8_t *pressed, int16_t *x, int16_t *y)
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+#if EGUI_CONFIG_FUNCTION_RECORDING_TEST
+static void sdl_port_touch_push_points(uint8_t point_count, const egui_touch_driver_point_t *points, int16_t fallback_x, int16_t fallback_y)
 {
-    EGUI_UNUSED(core_ctx);
     sdl_touch_event_t event;
 
-    if (pressed == NULL || x == NULL || y == NULL)
+    sdl_touch_lock();
+    sdl_touch_event_set_point_array(&event, point_count, points, fallback_x, fallback_y);
+    sdl_touch_queue_push(sdl_touch_event_queue, &sdl_touch_event_head, &sdl_touch_event_tail, &sdl_touch_event_count, &sdl_touch_last_state, &event);
+    sdl_touch_unlock();
+}
+#endif
+
+static void sdl_port_touch_push_finger(uint32_t event_type, SDL_FingerID id, int16_t x, int16_t y)
+{
+    sdl_touch_event_t event;
+
+    sdl_touch_lock();
+    sdl_touch_update_fingers(sdl_touch_fingers, event_type, id, x, y);
+    sdl_touch_event_from_fingers(&event, sdl_touch_fingers, VT_WIDTH, VT_HEIGHT, x, y);
+    sdl_touch_queue_push(sdl_touch_event_queue, &sdl_touch_event_head, &sdl_touch_event_tail, &sdl_touch_event_count, &sdl_touch_last_state, &event);
+    sdl_touch_unlock();
+}
+#endif
+
+int sdl_port_touch_read(egui_core_t *core_ctx, egui_touch_driver_data_t *data)
+{
+    sdl_touch_event_t event;
+
+    if (data == NULL)
     {
-        return;
+        return -1;
     }
 
 #if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
     int disp_id = core_ctx != NULL ? core_ctx->id : 0;
     if (disp_id > 0 && disp_id <= sdl_extra_count)
     {
-        sdl_extra_touch_read(disp_id - 1, pressed, x, y);
-        return;
+        return sdl_extra_touch_read(disp_id - 1, data);
     }
+#else
+    EGUI_UNUSED(core_ctx);
 #endif
 
     sdl_touch_lock();
-
     if (sdl_touch_event_count > 0)
     {
         event = sdl_touch_event_queue[sdl_touch_event_head];
@@ -505,12 +766,11 @@ void sdl_port_touch_read(egui_core_t *core_ctx, uint8_t *pressed, int16_t *x, in
     {
         event = sdl_touch_last_state;
     }
-
     sdl_touch_unlock();
 
-    *pressed = event.pressed;
-    *x = event.x;
-    *y = event.y;
+    sdl_touch_driver_data_from_event(data, &event);
+
+    return 0;
 }
 #endif /* EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH */
 
@@ -1089,6 +1349,34 @@ void VT_sdl_refresh_task(void)
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
             break;
         }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+        case SDL_FINGERDOWN:
+        case SDL_FINGERMOTION:
+        case SDL_FINGERUP:
+        {
+            int16_t tx;
+            int16_t ty;
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+            int target_touch = sdl_get_display_for_window((&event)->tfinger.windowID);
+            if (target_touch > 0 && target_touch <= sdl_extra_count)
+            {
+                tx = sdl_touch_float_to_coord((&event)->tfinger.x, sdl_extra[target_touch - 1].width);
+                ty = sdl_touch_float_to_coord((&event)->tfinger.y, sdl_extra[target_touch - 1].height);
+                sdl_extra_touch_push_finger(target_touch - 1, (&event)->type, (&event)->tfinger.fingerId, tx, ty);
+                break;
+            }
+            if (target_touch < 0)
+            {
+                break;
+            }
+#endif
+            tx = sdl_touch_float_to_coord((&event)->tfinger.x, VT_WIDTH);
+            ty = sdl_touch_float_to_coord((&event)->tfinger.y, VT_HEIGHT);
+            sdl_port_touch_push_finger((&event)->type, (&event)->tfinger.fingerId, tx, ty);
+            break;
+        }
+#endif
 
         case SDL_WINDOWEVENT:
             switch ((&event)->window.event)
@@ -1960,6 +2248,28 @@ static void recording_execute_action_step(void)
     int y1 = action->y1;
     int x2 = action->x2;
     int y2 = action->y2;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+    egui_touch_driver_point_t action_points[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    int action_end_x[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    int action_end_y[EGUI_TOUCH_DRIVER_MAX_POINTS];
+    uint8_t action_point_count = action->type == EGUI_SIM_ACTION_MULTI_DRAG ? action->point_count : 0;
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+    if (action_point_count > EGUI_TOUCH_DRIVER_MAX_POINTS)
+    {
+        action_point_count = EGUI_TOUCH_DRIVER_MAX_POINTS;
+    }
+    for (uint8_t i = 0; i < EGUI_TOUCH_DRIVER_MAX_POINTS; i++)
+    {
+        action_points[i].x = i < action_point_count ? (int16_t)action->point_start_x[i] : 0;
+        action_points[i].y = i < action_point_count ? (int16_t)action->point_start_y[i] : 0;
+        action_points[i].id = i;
+        action_points[i].pressure = i < action_point_count ? 1 : 0;
+        action_end_x[i] = i < action_point_count ? action->point_end_x[i] : 0;
+        action_end_y[i] = i < action_point_count ? action->point_end_y[i] : 0;
+    }
+#endif
 
 #if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
     /* Route touch to the correct display's queue */
@@ -1972,8 +2282,21 @@ static void recording_execute_action_step(void)
         else                                                                                                                                                   \
             sdl_port_touch_push_event((pressed), (x), (y));                                                                                                    \
     } while (0)
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+#define RECORDING_TOUCH_PUSH_POINTS(point_count, points, fallback_x, fallback_y)                                                                               \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        if (target_display > 0 && target_display <= sdl_extra_count)                                                                                           \
+            sdl_extra_touch_push_points(target_display - 1, (point_count), (points), (fallback_x), (fallback_y));                                              \
+        else                                                                                                                                                   \
+            sdl_port_touch_push_points((point_count), (points), (fallback_x), (fallback_y));                                                                   \
+    } while (0)
+#endif
 #else
 #define RECORDING_TOUCH_PUSH(pressed, x, y) sdl_port_touch_push_event((pressed), (x), (y))
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+#define RECORDING_TOUCH_PUSH_POINTS(point_count, points, fallback_x, fallback_y) sdl_port_touch_push_points((point_count), (points), (fallback_x), (fallback_y))
+#endif
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SOFTWARE_ROTATION_ENABLE
@@ -1982,7 +2305,11 @@ static void recording_execute_action_step(void)
     // will transform physical -> logical). Convert logical -> physical here.
     // Keep the converted coordinates in locals so one click uses the same
     // physical point for both DOWN and UP.
-    if (action->type == EGUI_SIM_ACTION_CLICK || action->type == EGUI_SIM_ACTION_DRAG || action->type == EGUI_SIM_ACTION_SWIPE)
+    if (action->type == EGUI_SIM_ACTION_CLICK || action->type == EGUI_SIM_ACTION_DRAG || action->type == EGUI_SIM_ACTION_SWIPE
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+        || action->type == EGUI_SIM_ACTION_MULTI_DRAG
+#endif
+    )
     {
         egui_core_t *target_core = NULL;
         egui_port_display_runtime_info_t runtime_info;
@@ -1998,6 +2325,23 @@ static void recording_execute_action_step(void)
             {
             case EGUI_DISPLAY_ROTATION_90:
                 // Inverse: lx,ly -> px=pw-1-ly, py=lx
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+                if (action->type == EGUI_SIM_ACTION_MULTI_DRAG)
+                {
+                    for (uint8_t i = 0; i < action_point_count; i++)
+                    {
+                        int start_lx = action->point_start_x[i];
+                        int start_ly = action->point_start_y[i];
+                        int end_lx = action->point_end_x[i];
+                        int end_ly = action->point_end_y[i];
+                        action_points[i].x = (int16_t)(pw - 1 - start_ly);
+                        action_points[i].y = (int16_t)start_lx;
+                        action_end_x[i] = pw - 1 - end_ly;
+                        action_end_y[i] = end_lx;
+                    }
+                    break;
+                }
+#endif
                 lx = x1;
                 ly = y1;
                 x1 = pw - 1 - ly;
@@ -2012,6 +2356,19 @@ static void recording_execute_action_step(void)
                 break;
             case EGUI_DISPLAY_ROTATION_180:
                 // Inverse: lx,ly -> px=pw-1-lx, py=ph-1-ly
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+                if (action->type == EGUI_SIM_ACTION_MULTI_DRAG)
+                {
+                    for (uint8_t i = 0; i < action_point_count; i++)
+                    {
+                        action_points[i].x = (int16_t)(pw - 1 - action->point_start_x[i]);
+                        action_points[i].y = (int16_t)(ph - 1 - action->point_start_y[i]);
+                        action_end_x[i] = pw - 1 - action->point_end_x[i];
+                        action_end_y[i] = ph - 1 - action->point_end_y[i];
+                    }
+                    break;
+                }
+#endif
                 x1 = pw - 1 - x1;
                 y1 = ph - 1 - y1;
                 if (action->type != EGUI_SIM_ACTION_CLICK)
@@ -2022,6 +2379,23 @@ static void recording_execute_action_step(void)
                 break;
             case EGUI_DISPLAY_ROTATION_270:
                 // Inverse: lx,ly -> px=ly, py=ph-1-lx
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+                if (action->type == EGUI_SIM_ACTION_MULTI_DRAG)
+                {
+                    for (uint8_t i = 0; i < action_point_count; i++)
+                    {
+                        int start_lx = action->point_start_x[i];
+                        int start_ly = action->point_start_y[i];
+                        int end_lx = action->point_end_x[i];
+                        int end_ly = action->point_end_y[i];
+                        action_points[i].x = (int16_t)start_ly;
+                        action_points[i].y = (int16_t)(ph - 1 - start_lx);
+                        action_end_x[i] = end_ly;
+                        action_end_y[i] = ph - 1 - end_lx;
+                    }
+                    break;
+                }
+#endif
                 lx = x1;
                 ly = y1;
                 x1 = ly;
@@ -2082,12 +2456,56 @@ static void recording_execute_action_step(void)
         break;
     }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+    case EGUI_SIM_ACTION_MULTI_DRAG:
+    {
+        int steps = action->steps > 0 ? action->steps : 10;
+        int step = g_recording_drag_current_step;
+        int fallback_x = action_point_count > 0 ? action_end_x[0] : x2;
+        int fallback_y = action_point_count > 0 ? action_end_y[0] : y2;
+        int start_x[EGUI_TOUCH_DRIVER_MAX_POINTS];
+        int start_y[EGUI_TOUCH_DRIVER_MAX_POINTS];
+
+        for (uint8_t i = 0; i < action_point_count; i++)
+        {
+            start_x[i] = action_points[i].x;
+            start_y[i] = action_points[i].y;
+        }
+
+        if (step == 0)
+        {
+            RECORDING_TOUCH_PUSH_POINTS(action_point_count, action_points, fallback_x, fallback_y);
+            g_recording_drag_in_progress = true;
+        }
+        else if (step <= steps)
+        {
+            for (uint8_t i = 0; i < action_point_count; i++)
+            {
+                action_points[i].x = (int16_t)(start_x[i] + (action_end_x[i] - start_x[i]) * step / steps);
+                action_points[i].y = (int16_t)(start_y[i] + (action_end_y[i] - start_y[i]) * step / steps);
+                action_points[i].pressure = 1;
+            }
+            RECORDING_TOUCH_PUSH_POINTS(action_point_count, action_points, fallback_x, fallback_y);
+        }
+
+        if (step >= steps)
+        {
+            RECORDING_TOUCH_PUSH_POINTS(0, action_points, fallback_x, fallback_y);
+            g_recording_drag_in_progress = false;
+        }
+        break;
+    }
+#endif
+
     case EGUI_SIM_ACTION_WAIT:
     case EGUI_SIM_ACTION_NONE:
     default:
         // No touch action needed
         break;
     }
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+#undef RECORDING_TOUCH_PUSH_POINTS
+#endif
 #undef RECORDING_TOUCH_PUSH
 #endif
 }

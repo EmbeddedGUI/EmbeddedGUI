@@ -13,6 +13,20 @@ file(GLOB_RECURSE STYLE_SRC_FILES style/*.c)
 file(GLOB_RECURSE UTILS_SRC_FILES utils/*.c)
 file(GLOB_RECURSE WIDGET_SRC_FILES widget/*.c)
 
+set(THIRD_PARTY_SRC_FILES
+    ${CMAKE_SOURCE_DIR}/third_party/plutosvg/source/plutosvg.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-blend.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-canvas.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-font.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-ft-math.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-ft-raster.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-ft-stroker.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-matrix.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-paint.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-path.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-rasterize.c
+    ${CMAKE_SOURCE_DIR}/third_party/plutovg/source/plutovg-surface.c)
+
 # Test sources (only for HelloUnitTest)
 set(TEST_SRC_FILES "")
 if(APP STREQUAL "HelloUnitTest")
@@ -34,5 +48,6 @@ add_library(src_lib
     ${STYLE_SRC_FILES}
     ${UTILS_SRC_FILES}
     ${WIDGET_SRC_FILES}
+    ${THIRD_PARTY_SRC_FILES}
     ${TEST_SRC_FILES})
 

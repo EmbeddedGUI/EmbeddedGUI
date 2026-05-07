@@ -11,6 +11,8 @@ if(NOT APP_SUB STREQUAL "")
     list(APPEND HELLO_BASIC_SRC ${APP_SUB_SRC} ${APP_SUB_RESOURCE_SRC})
 
     if(APP_SUB STREQUAL "file_image")
+        file(GLOB APP_SUB_MOUNT_ROUTER_SRC ${APP_SUB}/mount_router_template/*.c)
+        list(APPEND HELLO_BASIC_SRC ${APP_SUB_MOUNT_ROUTER_SRC})
         list(APPEND HELLO_BASIC_SRC
             ${CMAKE_SOURCE_DIR}/third_party/file_image/decoder_bmp_stream.c
             ${CMAKE_SOURCE_DIR}/third_party/file_image/decoder_stb.c

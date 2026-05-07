@@ -18,7 +18,7 @@ typedef struct egui_core_touch_trace_record
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-/** Per-core touch input state, including queueing, capture snapshots, and legacy HAL bridging. */
+/** Per-core touch input state, including queueing, capture snapshots, and HAL bridging. */
 typedef struct egui_core_touch_state
 {
     egui_input_t input;                                            // queued motion/key state owned by the touch subsystem
@@ -27,13 +27,13 @@ typedef struct egui_core_touch_state
     uint8_t prev_pressed;                                          // previous single-touch pressed flag for edge detection
     int16_t prev_x;                                                // previous single-touch x position
     int16_t prev_y;                                                // previous single-touch y position
-    egui_touch_driver_t hal_bridge_driver;                         // compatibility touch driver that wraps the legacy HAL entry points
-    egui_touch_driver_ops_t hal_bridge_ops;                        // callback table exposed by the legacy HAL bridge
-    void *hal_bridge_hal_driver;                                   // opaque legacy HAL touch-driver pointer
-    uint8_t hal_touch_last_position_valid;                         // whether the bridge has a remembered last coordinate
+    uint8_t prev_point_count;                                      // previous touch point count for edge detection
+    uint8_t prev_ids[EGUI_TOUCH_DRIVER_MAX_POINTS];                // previous touch point IDs
+    egui_location_t prev_locations[EGUI_TOUCH_DRIVER_MAX_POINTS];  // previous touch positions
+    egui_touch_driver_t hal_bridge_driver;                         // touch driver that wraps the HAL entry points
+    egui_touch_driver_ops_t hal_bridge_ops;                        // callback table exposed by the HAL bridge
+    void *hal_bridge_hal_driver;                                   // opaque HAL touch-driver pointer
     uint8_t hal_touch_last_pressed;                                // last pressed flag observed through the HAL bridge
-    int16_t hal_touch_last_x;                                      // last x coordinate cached by the HAL bridge
-    int16_t hal_touch_last_y;                                      // last y coordinate cached by the HAL bridge
 #if EGUI_CONFIG_DEBUG_TOUCH_TRACE && EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS > 0
     egui_core_touch_trace_record_t trace_record; // optional gesture path recording for debug visualization
 #endif

@@ -24,8 +24,8 @@ enum egui_motion_event_type
     EGUI_MOTION_EVENT_ACTION_MOVE,   // active pointer position changed
     EGUI_MOTION_EVENT_ACTION_CANCEL, // current gesture was aborted
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
-    EGUI_MOTION_EVENT_ACTION_POINTER_DOWN, // second pointer became active while the first is still down
-    EGUI_MOTION_EVENT_ACTION_POINTER_UP,   // second pointer was released while the first is still down
+    EGUI_MOTION_EVENT_ACTION_POINTER_DOWN, // an additional pointer became active while the first is still down
+    EGUI_MOTION_EVENT_ACTION_POINTER_UP,   // an additional pointer was released while the first is still down
     EGUI_MOTION_EVENT_ACTION_SCROLL,       // wheel-like event carrying a signed scroll delta
 #endif
 };
@@ -40,9 +40,9 @@ struct egui_motion_event
     uint32_t timestamp;       // event timestamp in milliseconds
     egui_location_t location; // primary pointer position in screen coordinates
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
-    uint8_t pointer_count;     // number of valid touch points described by this event
-    egui_location_t location2; // second pointer position when `pointer_count >= 2`
-    int16_t scroll_delta;      // signed wheel delta used only by `ACTION_SCROLL`
+    uint8_t pointer_count;                                   // number of valid touch points described by this event
+    egui_location_t locations[EGUI_CONFIG_TOUCH_MAX_POINTS]; // all active/relevant pointer positions
+    int16_t scroll_delta;                                    // signed wheel delta used only by `ACTION_SCROLL`
 #endif
 };
 

@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "egui_hal_sdl_sim.h"
+#include "core/egui_touch_driver.h"
 #include "sdl_port.h"
 
 static int sdl_lcd_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
@@ -88,28 +89,30 @@ static void sdl_touch_del(egui_hal_touch_driver_t *self)
 
 static int sdl_touch_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
-    uint8_t pressed = 0;
-    int16_t x = 0;
-    int16_t y = 0;
+    egui_touch_driver_data_t touch_data;
 
     EGUI_UNUSED(self);
 
     memset(data, 0, sizeof(*data));
-    sdl_port_touch_read(core, &pressed, &x, &y);
-
-    if (!pressed)
+    memset(&touch_data, 0, sizeof(touch_data));
+    if (sdl_port_touch_read(core, &touch_data) != 0)
     {
-        data->has_release_point = 1;
-        data->release_point.x = x;
-        data->release_point.y = y;
-        return 0;
+        return -1;
     }
 
-    data->point_count = 1;
-    data->points[0].x = x;
-    data->points[0].y = y;
-    data->points[0].id = 0;
-    data->points[0].pressure = 1;
+    data->point_count = touch_data.point_count;
+    if (data->point_count > EGUI_HAL_TOUCH_MAX_POINTS)
+    {
+        data->point_count = EGUI_HAL_TOUCH_MAX_POINTS;
+    }
+
+    for (uint8_t i = 0; i < data->point_count; i++)
+    {
+        data->points[i].x = touch_data.points[i].x;
+        data->points[i].y = touch_data.points[i].y;
+        data->points[i].id = touch_data.points[i].id;
+        data->points[i].pressure = touch_data.points[i].pressure;
+    }
     return 0;
 }
 
@@ -117,7 +120,7 @@ void egui_hal_sdl_touch_setup(egui_hal_touch_driver_t *storage)
 {
     memset(storage, 0, sizeof(*storage));
     storage->name = "SDL_TOUCH";
-    storage->max_points = 1;
+    storage->max_points = EGUI_TOUCH_DRIVER_MAX_POINTS;
     storage->reset = sdl_touch_reset;
     storage->init = sdl_touch_init;
     storage->del = sdl_touch_del;
