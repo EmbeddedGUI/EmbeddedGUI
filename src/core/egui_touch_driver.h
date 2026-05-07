@@ -13,10 +13,32 @@
 extern "C" {
 #endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
+#define EGUI_TOUCH_DRIVER_MAX_POINTS EGUI_CONFIG_TOUCH_MAX_POINTS
+#else
+#define EGUI_TOUCH_DRIVER_MAX_POINTS 1
+#endif
+
+typedef struct egui_touch_driver_point
+{
+    int16_t x;
+    int16_t y;
+    uint8_t id;
+    uint8_t pressure;
+} egui_touch_driver_point_t;
+
+typedef struct egui_touch_driver_data
+{
+    uint8_t point_count; /* Active points in this sample; 0 means all released. */
+    egui_touch_driver_point_t points[EGUI_TOUCH_DRIVER_MAX_POINTS];
+} egui_touch_driver_data_t;
+
 /**
  * Touch driver operations (vtable).
  * The port implements this table to expose raw touch state.
- * `read()` is polled from `egui_input_polling_work()`, and the core converts the reported pressed/released state into motion events automatically.
+ * `read()` is polled from `egui_input_polling_work()`,
+ * and the core converts
+ * the active-point sample into motion events automatically.
  */
 struct egui_touch_driver_ops
 {
@@ -24,23 +46,14 @@ struct egui_touch_driver_ops
     void (*init)(egui_core_t *core);
 
     /**
-     * Read the current touch state.
-     * This callback is the required baseline polling hook; the input layer
-     * checks it before consulting `read_ex`.
-     *
-     * @param[out] pressed  1 if touch is active, 0 if released
-     * @param[out] x        touch X coordinate (only valid when pressed=1)
-     * @param[out] y        touch Y coordinate (only valid when pressed=1)
+     * The driver reports only the points that are active in the current sample.
+     * `point_count == 0` means all points are released. The input
+     * layer compares
+     * consecutive samples, uses stable point IDs for continuity when available,
+     * and emits DOWN, POINTER_DOWN, MOVE, POINTER_UP,
+     * and UP automatically.
      */
-    void (*read)(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y);
-
-    /**
-     * Extended read with explicit release-coordinate validity.
-     * When implemented, x/y may still be valid after release and has_position
-     * tells the input layer whether it should trust them for `ACTION_UP`.
-     * Ports that cannot report release coordinates can leave this `NULL`.
-     */
-    void (*read_ex)(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y, uint8_t *has_position);
+    int (*read)(egui_core_t *core, egui_touch_driver_data_t *data);
 };
 
 /**

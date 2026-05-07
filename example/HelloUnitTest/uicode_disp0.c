@@ -22,6 +22,7 @@
 #include "test/test_image_file.h"
 #include "test/test_grid_view.h"
 #include "test/test_image_svg.h"
+#include "test/test_input.h"
 #include "test/test_interpolator.h"
 #include "test/test_invalidate_region.h"
 #include "test/test_linearlayout.h"
@@ -171,6 +172,8 @@ void uicode_disp0_init(egui_core_t *core)
         test_grid_view_run();
     if (uicode_should_run_suite("image_svg"))
         test_image_svg_run();
+    if (uicode_should_run_suite("input"))
+        test_input_run();
     if (uicode_should_run_suite("lyric_scroller"))
         test_lyric_scroller_run();
     if (uicode_should_run_suite("menu"))

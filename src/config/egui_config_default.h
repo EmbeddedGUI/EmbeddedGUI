@@ -147,6 +147,16 @@ extern "C" {
 #endif
 
 /**
+ * Touch input options.
+ * Maximum number of simultaneous touch points captured by the core when
+ * multi-touch is enabled. The default matches the common
+ * HAL touch data limit.
+ */
+#ifndef EGUI_CONFIG_TOUCH_MAX_POINTS
+#define EGUI_CONFIG_TOUCH_MAX_POINTS 5
+#endif
+
+/**
  * Input options.
  * Select support velocity tracker for fling/scroll helpers. if 0, return zero
  * velocity and skip the extra per-core history state.

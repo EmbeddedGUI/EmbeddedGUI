@@ -1,8 +1,11 @@
 # Port source files
 set(PC_SRC_FILES
     ${CMAKE_SOURCE_DIR}/porting/pc/main.c
+    ${CMAKE_SOURCE_DIR}/porting/pc/egui_hal_sdl_sim.c
     ${CMAKE_SOURCE_DIR}/porting/pc/egui_port_pc.c
     ${CMAKE_SOURCE_DIR}/porting/pc/sdl_port.c
+    ${CMAKE_SOURCE_DIR}/driver/lcd/egui_lcd.c
+    ${CMAKE_SOURCE_DIR}/driver/touch/egui_touch.c
 )
 
 # Platform-specific SDL2 configuration

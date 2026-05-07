@@ -6,7 +6,8 @@ INCLUDE	+= $(EGUI_PORT_PATH)
 
 # driver file selection is port-owned
 EGUI_CODE_SRC_FILES += \
-    driver/lcd/egui_lcd.c
+    driver/lcd/egui_lcd.c \
+    driver/touch/egui_touch.c
 
 # define lib directory
 LIB		+=

@@ -312,8 +312,6 @@ static void mcu_interrupt_enable(egui_base_t level)
 typedef struct egui_hal_touch_data {
     uint8_t point_count;
     uint8_t gesture;
-    uint8_t has_release_point;
-    egui_hal_touch_point_t release_point;
     egui_hal_touch_point_t points[EGUI_HAL_TOUCH_MAX_POINTS];
 } egui_hal_touch_data_t;
 
@@ -335,7 +333,7 @@ struct egui_hal_touch_driver {
 };
 ```
 
-当前 Core 最终仍以单点事件为主，`egui_hal_touch_register()` 会自动把 HAL touch driver 的第一触点作为主触点上报给 Core。
+驱动只需要上报当前仍按下的触点：`point_count == 0` 表示全部释放；同一根手指保持按下期间应尽量保持稳定 `id`，Core 会根据前后两次采样自动推导 `DOWN`、`MOVE`、`POINTER_UP` 和 `UP`。
 
 ### 5.2 Port 层接入方式
 
@@ -372,9 +370,10 @@ void egui_port_register_touch_driver(egui_core_t *core)
 ### 5.3 自定义触摸驱动时的最小能力
 
 ```c
-static int my_touch_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+static int my_touch_read(egui_hal_touch_driver_t *self, egui_core_t *core, egui_hal_touch_data_t *data)
 {
     EGUI_UNUSED(self);
+    EGUI_UNUSED(core);
     memset(data, 0, sizeof(*data));
 
     if (!touch_ic_is_pressed())

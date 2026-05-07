@@ -1183,8 +1183,8 @@ int egui_chart_axis_on_touch_event(egui_view_t *self, egui_chart_axis_base_t *ab
     {
         if (event->pointer_count >= 2 && !ab->is_panning)
         {
-            int32_t dx = (int32_t)event->location2.x - (int32_t)event->location.x;
-            int32_t dy = (int32_t)event->location2.y - (int32_t)event->location.y;
+            int32_t dx = (int32_t)event->locations[1].x - (int32_t)event->locations[0].x;
+            int32_t dy = (int32_t)event->locations[1].y - (int32_t)event->locations[0].y;
             int32_t dx_abs = chart_iabs32(dx);
             int32_t dy_abs = chart_iabs32(dy);
 
@@ -1279,8 +1279,8 @@ int egui_chart_axis_on_touch_event(egui_view_t *self, egui_chart_axis_base_t *ab
         // Snapshot the starting viewport so the pinch gesture can scale both axes from one baseline.
         ab->is_pinching = 1;
         ab->is_panning = 0;
-        int32_t dx = (int32_t)event->location2.x - (int32_t)event->location.x;
-        int32_t dy = (int32_t)event->location2.y - (int32_t)event->location.y;
+        int32_t dx = (int32_t)event->locations[1].x - (int32_t)event->locations[0].x;
+        int32_t dy = (int32_t)event->locations[1].y - (int32_t)event->locations[0].y;
         ab->pinch_start_dx_abs = chart_iabs32(dx);
         ab->pinch_start_dy_abs = chart_iabs32(dy);
         if (ab->pinch_start_dx_abs <= 0)

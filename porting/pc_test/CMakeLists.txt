@@ -2,6 +2,8 @@
 set(PC_TEST_SRC_FILES
     ${CMAKE_SOURCE_DIR}/porting/pc_test/main.c
     ${CMAKE_SOURCE_DIR}/porting/pc_test/port_api.c
+    ${CMAKE_SOURCE_DIR}/driver/lcd/egui_lcd.c
+    ${CMAKE_SOURCE_DIR}/driver/touch/egui_touch.c
 )
 
 # Include directory

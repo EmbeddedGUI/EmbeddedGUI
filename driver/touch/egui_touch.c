@@ -34,110 +34,95 @@ static void hal_touch_transform_point(const egui_hal_touch_config_t *cfg, egui_h
     point->y = ty;
 }
 
-static void hal_touch_read_ex(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y, uint8_t *has_position)
+static int hal_touch_read(egui_core_t *core, egui_touch_driver_data_t *out_data)
 {
-    egui_hal_touch_driver_t *hal_touch = (egui_hal_touch_driver_t *)core->touch.hal_bridge_hal_driver;
+    egui_hal_touch_driver_t *hal_touch;
 
-    *pressed = core->touch.hal_touch_last_pressed;
-    *x = core->touch.hal_touch_last_x;
-    *y = core->touch.hal_touch_last_y;
-    *has_position = core->touch.hal_touch_last_position_valid;
-
-    if (!hal_touch || !hal_touch->read)
+    if (out_data == NULL)
     {
-        return;
+        return -1;
     }
 
-    /*
-     * Some touch controllers expose INT as an event pulse rather than a
-     * level that stays asserted for the whole press. Only skip the read when
-     * there is no active touch state; otherwise keep reading until the
-     * controller explicitly reports release.
-     */
+    memset(out_data, 0, sizeof(*out_data));
+    if (core == NULL)
+    {
+        return -1;
+    }
+
+    hal_touch = (egui_hal_touch_driver_t *)core->touch.hal_bridge_hal_driver;
+    if (!hal_touch || !hal_touch->read)
+    {
+        return -1;
+    }
+
     if (hal_touch->get_int)
     {
         if (!hal_touch->get_int() && !core->touch.hal_touch_last_pressed)
         {
-            *pressed = 0;
-            return;
+            return 0;
         }
     }
 
     egui_hal_touch_data_t data;
-    if (hal_touch->read(hal_touch, core, &data) == 0)
+    memset(&data, 0, sizeof(data));
+    if (hal_touch->read(hal_touch, core, &data) != 0)
     {
-        const egui_hal_touch_config_t *cfg = &hal_touch->config;
-
-        if (data.has_release_point)
-        {
-            hal_touch_transform_point(cfg, &data.release_point);
-            *x = data.release_point.x;
-            *y = data.release_point.y;
-            *has_position = 1;
-            core->touch.hal_touch_last_x = *x;
-            core->touch.hal_touch_last_y = *y;
-            core->touch.hal_touch_last_position_valid = 1;
-        }
-
-        if (data.point_count > 0)
-        {
-            for (uint8_t i = 0; i < data.point_count; i++)
-            {
-                hal_touch_transform_point(cfg, &data.points[i]);
-            }
-
-            *pressed = 1;
-            *x = data.points[0].x;
-            *y = data.points[0].y;
-            *has_position = 1;
-            core->touch.hal_touch_last_x = *x;
-            core->touch.hal_touch_last_y = *y;
-            core->touch.hal_touch_last_position_valid = 1;
-        }
-
-        if (data.point_count == 0)
-        {
-            *pressed = 0;
-        }
+        return -1;
     }
 
-    core->touch.hal_touch_last_pressed = *pressed;
-}
-
-static void hal_touch_read(egui_core_t *core, uint8_t *pressed, int16_t *x, int16_t *y)
-{
-    uint8_t has_position = 0;
-
-    hal_touch_read_ex(core, pressed, x, y, &has_position);
-    if (!*pressed)
+    const egui_hal_touch_config_t *cfg = &hal_touch->config;
+    if (data.point_count > EGUI_TOUCH_DRIVER_MAX_POINTS)
     {
-        *x = 0;
-        *y = 0;
+        data.point_count = EGUI_TOUCH_DRIVER_MAX_POINTS;
     }
+    if (data.point_count > EGUI_HAL_TOUCH_MAX_POINTS)
+    {
+        data.point_count = EGUI_HAL_TOUCH_MAX_POINTS;
+    }
+
+    for (uint8_t i = 0; i < data.point_count; i++)
+    {
+        hal_touch_transform_point(cfg, &data.points[i]);
+        out_data->points[i].x = data.points[i].x;
+        out_data->points[i].y = data.points[i].y;
+        out_data->points[i].id = data.points[i].id;
+        out_data->points[i].pressure = data.points[i].pressure;
+    }
+
+    out_data->point_count = data.point_count;
+    core->touch.hal_touch_last_pressed = out_data->point_count > 0;
+    return 0;
 }
 
 void egui_hal_touch_register(egui_core_t *core, egui_hal_touch_driver_t *touch, const egui_hal_touch_config_t *config)
 {
+    if (core == NULL || touch == NULL || config == NULL)
+    {
+        return;
+    }
+
     /* Reset and initialize the HAL touch driver */
     if (touch->reset)
     {
-        touch->reset(touch);
+        if (touch->reset(touch) != 0)
+        {
+            return;
+        }
     }
     if (touch->init)
     {
-        touch->init(touch, config);
+        if (touch->init(touch, config) != 0)
+        {
+            return;
+        }
     }
 
     /* Register with Core */
     core->touch.hal_bridge_hal_driver = touch;
     core->touch.hal_bridge_ops.init = NULL;
     core->touch.hal_bridge_ops.read = hal_touch_read;
-    core->touch.hal_bridge_ops.read_ex = hal_touch_read_ex;
     core->touch.hal_bridge_driver.ops = &core->touch.hal_bridge_ops;
-    core->touch.hal_touch_last_position_valid = 0;
     core->touch.hal_touch_last_pressed = 0;
-    core->touch.hal_touch_last_x = 0;
-    core->touch.hal_touch_last_y = 0;
 
     egui_touch_driver_register(core, &core->touch.hal_bridge_driver);
 }
