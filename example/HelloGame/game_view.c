@@ -41,8 +41,8 @@ static void hello_game_reset(hello_game_view_t *local);
 static egui_color_t hello_game_palette(uint8_t index)
 {
     static const egui_color_t colors[] = {
-            EGUI_COLOR_MAKE(80, 160, 255),  EGUI_COLOR_MAKE(48, 204, 120), EGUI_COLOR_MAKE(255, 188, 66),  EGUI_COLOR_MAKE(246, 92, 92),
-            EGUI_COLOR_MAKE(190, 125, 255), EGUI_COLOR_MAKE(78, 210, 220), EGUI_COLOR_MAKE(240, 124, 200), EGUI_COLOR_MAKE(170, 220, 80),
+            EGUI_COLOR_MAKE_INIT(80, 160, 255),  EGUI_COLOR_MAKE_INIT(48, 204, 120), EGUI_COLOR_MAKE_INIT(255, 188, 66),  EGUI_COLOR_MAKE_INIT(246, 92, 92),
+            EGUI_COLOR_MAKE_INIT(190, 125, 255), EGUI_COLOR_MAKE_INIT(78, 210, 220), EGUI_COLOR_MAKE_INIT(240, 124, 200), EGUI_COLOR_MAKE_INIT(170, 220, 80),
     };
 
     return colors[index % (uint8_t)EGUI_ARRAY_SIZE(colors)];

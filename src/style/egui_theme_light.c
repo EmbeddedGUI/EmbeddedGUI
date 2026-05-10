@@ -12,7 +12,7 @@ static const egui_shadow_t shadow_sm = {
         .ofs_y = EGUI_THEME_SHADOW_OFS_Y_SM,
         .spread = 0,
         .opa = EGUI_THEME_SHADOW_OPA,
-        .color = EGUI_COLOR_BLACK,
+        .color = EGUI_COLOR_BLACK_INIT,
         .corner_radius = EGUI_THEME_RADIUS_MD,
 };
 
@@ -22,7 +22,7 @@ static const egui_shadow_t shadow_md = {
         .ofs_y = EGUI_THEME_SHADOW_OFS_Y_MD,
         .spread = 0,
         .opa = EGUI_THEME_SHADOW_OPA,
-        .color = EGUI_COLOR_BLACK,
+        .color = EGUI_COLOR_BLACK_INIT,
         .corner_radius = EGUI_THEME_RADIUS_LG,
 };
 
@@ -32,10 +32,10 @@ static const egui_shadow_t shadow_md = {
 
 static const egui_style_t light_btn_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_TEXT_COLOR | EGUI_STYLE_PROP_SHADOW | EGUI_STYLE_PROP_PADDING,
-        .bg_color = EGUI_THEME_PRIMARY,
+        .bg_color = EGUI_THEME_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = EGUI_THEME_PRIMARY,
+        .border_color = EGUI_THEME_PRIMARY_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_MD,
@@ -43,7 +43,7 @@ static const egui_style_t light_btn_normal = {
         .pad_bottom = 6,
         .pad_left = 12,
         .pad_right = 12,
-        .text_color = EGUI_THEME_TEXT,
+        .text_color = EGUI_THEME_TEXT_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = &shadow_sm,
@@ -51,10 +51,10 @@ static const egui_style_t light_btn_normal = {
 
 static const egui_style_t light_btn_pressed = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_TEXT_COLOR | EGUI_STYLE_PROP_PADDING,
-        .bg_color = EGUI_THEME_PRIMARY_DARK,
+        .bg_color = EGUI_THEME_PRIMARY_DARK_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = EGUI_THEME_PRIMARY_DARK,
+        .border_color = EGUI_THEME_PRIMARY_DARK_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_MD,
@@ -62,7 +62,7 @@ static const egui_style_t light_btn_pressed = {
         .pad_bottom = 6,
         .pad_left = 12,
         .pad_right = 12,
-        .text_color = EGUI_THEME_TEXT,
+        .text_color = EGUI_THEME_TEXT_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -70,10 +70,10 @@ static const egui_style_t light_btn_pressed = {
 
 static const egui_style_t light_btn_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_TEXT_COLOR | EGUI_STYLE_PROP_PADDING,
-        .bg_color = EGUI_THEME_DISABLED,
+        .bg_color = EGUI_THEME_DISABLED_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = EGUI_THEME_DISABLED,
+        .border_color = EGUI_THEME_DISABLED_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_MD,
@@ -81,7 +81,7 @@ static const egui_style_t light_btn_disabled = {
         .pad_bottom = 6,
         .pad_left = 12,
         .pad_right = 12,
-        .text_color = EGUI_THEME_TEXT_SECONDARY,
+        .text_color = EGUI_THEME_TEXT_SECONDARY_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -102,7 +102,7 @@ static const egui_widget_style_desc_t light_btn_desc = {
 
 static const egui_style_t light_label_normal = {
         .flags = EGUI_STYLE_PROP_TEXT_COLOR,
-        .bg_color = EGUI_THEME_SURFACE,
+        .bg_color = EGUI_THEME_SURFACE_INIT,
         .bg_alpha = EGUI_ALPHA_TRANSP,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -113,7 +113,7 @@ static const egui_style_t light_label_normal = {
         .pad_bottom = 0,
         .pad_left = 0,
         .pad_right = 0,
-        .text_color = EGUI_THEME_TEXT_PRIMARY,
+        .text_color = EGUI_THEME_TEXT_PRIMARY_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -121,7 +121,7 @@ static const egui_style_t light_label_normal = {
 
 static const egui_style_t light_label_disabled = {
         .flags = EGUI_STYLE_PROP_TEXT_COLOR,
-        .bg_color = EGUI_THEME_SURFACE,
+        .bg_color = EGUI_THEME_SURFACE_INIT,
         .bg_alpha = EGUI_ALPHA_TRANSP,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -132,7 +132,7 @@ static const egui_style_t light_label_disabled = {
         .pad_bottom = 0,
         .pad_left = 0,
         .pad_right = 0,
-        .text_color = EGUI_THEME_TEXT_SECONDARY,
+        .text_color = EGUI_THEME_TEXT_SECONDARY_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -153,7 +153,7 @@ static const egui_widget_style_desc_t light_label_desc = {
 
 static const egui_style_t light_sw_track_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_TRACK_OFF,
+        .bg_color = EGUI_THEME_TRACK_OFF_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -172,7 +172,7 @@ static const egui_style_t light_sw_track_normal = {
 
 static const egui_style_t light_sw_track_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_DISABLED,
+        .bg_color = EGUI_THEME_DISABLED_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -191,7 +191,7 @@ static const egui_style_t light_sw_track_disabled = {
 
 static const egui_style_t light_sw_track_checked = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_PRIMARY,
+        .bg_color = EGUI_THEME_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -210,7 +210,7 @@ static const egui_style_t light_sw_track_checked = {
 
 static const egui_style_t light_sw_thumb_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_SHADOW,
-        .bg_color = EGUI_THEME_THUMB,
+        .bg_color = EGUI_THEME_THUMB_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -250,7 +250,7 @@ static const egui_widget_style_desc_t light_sw_desc = {.part_count = 2, .styles 
 
 static const egui_style_t light_slider_track = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_TRACK_BG_DARK,
+        .bg_color = EGUI_THEME_TRACK_BG_DARK_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -269,7 +269,7 @@ static const egui_style_t light_slider_track = {
 
 static const egui_style_t light_slider_track_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_DISABLED,
+        .bg_color = EGUI_THEME_DISABLED_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -288,7 +288,7 @@ static const egui_style_t light_slider_track_disabled = {
 
 static const egui_style_t light_slider_indicator = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_PRIMARY,
+        .bg_color = EGUI_THEME_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -307,7 +307,7 @@ static const egui_style_t light_slider_indicator = {
 
 static const egui_style_t light_slider_indicator_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_TEXT_SECONDARY,
+        .bg_color = EGUI_THEME_TEXT_SECONDARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -326,7 +326,7 @@ static const egui_style_t light_slider_indicator_disabled = {
 
 static const egui_style_t light_slider_knob = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_SHADOW,
-        .bg_color = EGUI_THEME_THUMB,
+        .bg_color = EGUI_THEME_THUMB_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -345,7 +345,7 @@ static const egui_style_t light_slider_knob = {
 
 static const egui_style_t light_slider_knob_pressed = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_SHADOW,
-        .bg_color = EGUI_THEME_PRIMARY_LIGHT,
+        .bg_color = EGUI_THEME_PRIMARY_LIGHT_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -377,10 +377,10 @@ static const egui_widget_style_desc_t light_slider_desc = {.part_count = 3, .sty
 
 static const egui_style_t light_cb_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_BORDER | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_SURFACE,
+        .bg_color = EGUI_THEME_SURFACE_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = EGUI_THEME_BORDER,
+        .border_color = EGUI_THEME_BORDER_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 2,
         .radius = EGUI_THEME_RADIUS_SM,
@@ -396,10 +396,10 @@ static const egui_style_t light_cb_normal = {
 
 static const egui_style_t light_cb_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_BORDER | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_DISABLED,
+        .bg_color = EGUI_THEME_DISABLED_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = EGUI_THEME_DISABLED,
+        .border_color = EGUI_THEME_DISABLED_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 2,
         .radius = EGUI_THEME_RADIUS_SM,
@@ -415,10 +415,10 @@ static const egui_style_t light_cb_disabled = {
 
 static const egui_style_t light_cb_checked = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_PRIMARY,
+        .bg_color = EGUI_THEME_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = EGUI_THEME_PRIMARY,
+        .border_color = EGUI_THEME_PRIMARY_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_SM,
@@ -426,7 +426,7 @@ static const egui_style_t light_cb_checked = {
         .pad_bottom = 0,
         .pad_left = 0,
         .pad_right = 0,
-        .text_color = EGUI_THEME_TEXT,
+        .text_color = EGUI_THEME_TEXT_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -444,10 +444,10 @@ static const egui_widget_style_desc_t light_cb_desc = {.part_count = 1, .styles 
 
 static const egui_style_t light_card_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_SHADOW | EGUI_STYLE_PROP_PADDING,
-        .bg_color = EGUI_THEME_SURFACE,
+        .bg_color = EGUI_THEME_SURFACE_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = EGUI_THEME_BORDER,
+        .border_color = EGUI_THEME_BORDER_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_LG,
@@ -455,7 +455,7 @@ static const egui_style_t light_card_normal = {
         .pad_bottom = 12,
         .pad_left = 12,
         .pad_right = 12,
-        .text_color = EGUI_THEME_TEXT_PRIMARY,
+        .text_color = EGUI_THEME_TEXT_PRIMARY_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = &shadow_md,
@@ -473,7 +473,7 @@ static const egui_widget_style_desc_t light_card_desc = {.part_count = 1, .style
 
 static const egui_style_t light_pb_track = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_TRACK_BG_DARK,
+        .bg_color = EGUI_THEME_TRACK_BG_DARK_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -492,7 +492,7 @@ static const egui_style_t light_pb_track = {
 
 static const egui_style_t light_pb_indicator = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = EGUI_THEME_PRIMARY,
+        .bg_color = EGUI_THEME_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},

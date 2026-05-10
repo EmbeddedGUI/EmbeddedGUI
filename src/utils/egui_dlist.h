@@ -36,6 +36,10 @@ typedef struct _egui_dnode egui_dnode_t;
 #define egui_dlist_container_of(ptr, type, member) ((type *)(((const char *)(ptr)) - offsetof(type, member)))
 #endif
 
+#if !defined(_MSC_VER) && (defined(__GNUC__) || defined(__clang__))
+#define EGUI_DLIST_CONTAINER_TYPE(__cn) __typeof__(*(__cn))
+#endif
+
 #define EGUI_DLIST_ENTRY(ptr, type, member) egui_dlist_container_of(ptr, type, member)
 
 /**
@@ -141,7 +145,27 @@ typedef struct _egui_dnode egui_dnode_t;
  * @param __cn Container struct type pointer
  * @param __n The field name of egui_dnode_t within the container struct
  */
-#define EGUI_DLIST_CONTAINER(__dn, __cn, __n)           ((__dn != NULL) ? CONTAINER_OF(__dn, __typeof__(*__cn), __n) : NULL)
+#ifdef EGUI_DLIST_CONTAINER_TYPE
+#define EGUI_DLIST_CONTAINER(__dn, __cn, __n) ((__dn != NULL) ? egui_dlist_container_of(__dn, EGUI_DLIST_CONTAINER_TYPE(__cn), __n) : NULL)
+#else
+#define EGUI_DLIST_CONTAINER(__dn, __cn, __n) EGUI_DLIST_CONTAINER_REQUIRES_TYPEOF_OR_TYPED_MACRO
+#endif
+
+#define EGUI_DLIST_CONTAINER_TYPED(__dn, __type, __n)           ((__dn != NULL) ? egui_dlist_container_of(__dn, __type, __n) : NULL)
+#define EGUI_DLIST_PEEK_HEAD_CONTAINER_TYPED(__dl, __type, __n) EGUI_DLIST_CONTAINER_TYPED(egui_dlist_peek_head(__dl), __type, __n)
+#define EGUI_DLIST_PEEK_NEXT_CONTAINER_TYPED(__dl, __cn, __type, __n)                                                                                          \
+    ((__cn != NULL) ? EGUI_DLIST_CONTAINER_TYPED(egui_dlist_peek_next(__dl, &(__cn->__n)), __type, __n) : NULL)
+
+#ifdef EGUI_DLIST_CONTAINER_TYPE
+#define EGUI_DLIST_FOR_EACH_CONTAINER_TYPED(__dl, __cn, __type, __n)             EGUI_DLIST_FOR_EACH_CONTAINER(__dl, __cn, __n)
+#define EGUI_DLIST_FOR_EACH_CONTAINER_SAFE_TYPED(__dl, __cn, __cns, __type, __n) EGUI_DLIST_FOR_EACH_CONTAINER_SAFE(__dl, __cn, __cns, __n)
+#else
+#define EGUI_DLIST_FOR_EACH_CONTAINER_TYPED(__dl, __cn, __type, __n)                                                                                           \
+    for (__cn = EGUI_DLIST_PEEK_HEAD_CONTAINER_TYPED(__dl, __type, __n); __cn != NULL; __cn = EGUI_DLIST_PEEK_NEXT_CONTAINER_TYPED(__dl, __cn, __type, __n))
+#define EGUI_DLIST_FOR_EACH_CONTAINER_SAFE_TYPED(__dl, __cn, __cns, __type, __n)                                                                               \
+    for (__cn = EGUI_DLIST_PEEK_HEAD_CONTAINER_TYPED(__dl, __type, __n), __cns = EGUI_DLIST_PEEK_NEXT_CONTAINER_TYPED(__dl, __cn, __type, __n); __cn != NULL;  \
+         __cn = __cns, __cns = EGUI_DLIST_PEEK_NEXT_CONTAINER_TYPED(__dl, __cn, __type, __n))
+#endif
 /*
  * @brief Provide the primitive to peek container of the list head
  *

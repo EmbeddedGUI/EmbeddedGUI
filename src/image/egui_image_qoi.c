@@ -2576,6 +2576,7 @@ cleanup:
         egui_free(core, row_pixel_scratch);
     }
 #endif
+    return;
 }
 
 static void egui_image_qoi_draw_image_resize(const egui_image_t *self, egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)

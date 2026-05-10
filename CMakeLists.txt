@@ -4,6 +4,8 @@ project(EGUI_Project C)
 
 # C standard
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 
 # Application selection (same variables as Makefile)
 set(APP "HelloSimple" CACHE STRING "Application to build (e.g. HelloSimple, HelloBasic, HelloVirtual, HelloActivity, ...)")
@@ -16,6 +18,9 @@ set(EGUI_USER_CFLAGS "" CACHE STRING "Additional compiler flags for compatibilit
 add_compile_definitions(EGUI_APP="${APP}")
 if(PORT STREQUAL "pc" OR PORT STREQUAL "designer")
     add_compile_definitions(EGUI_PORT=EGUI_PORT_TYPE_PC)
+    if(MSVC)
+        add_compile_options(/W3 /utf-8)
+    endif()
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
         add_compile_options(
             -Wall

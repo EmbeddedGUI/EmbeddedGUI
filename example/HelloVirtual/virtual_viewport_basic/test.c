@@ -146,43 +146,43 @@ static const egui_view_virtual_viewport_params_t basic_viewport_params = {
         .estimated_item_extent = 48,
 };
 
-EGUI_BACKGROUND_GRADIENT_PARAM_INIT(basic_screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX(0xEFF4F7), EGUI_COLOR_HEX(0xDDE9F0),
-                                    EGUI_ALPHA_100);
+EGUI_BACKGROUND_GRADIENT_PARAM_INIT_COLOR(basic_screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX_INIT(0xEFF4F7),
+                                          EGUI_COLOR_HEX_INIT(0xDDE9F0), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(basic_screen_bg_params, &basic_screen_bg_param, NULL, NULL);
 EGUI_BACKGROUND_GRADIENT_STATIC_CONST_INIT(basic_screen_bg, &basic_screen_bg_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(basic_viewport_bg_param, EGUI_COLOR_HEX(0xF8FBFD), EGUI_ALPHA_100, 14, 1, EGUI_COLOR_HEX(0xC9D9E4),
-                                                        EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(basic_viewport_bg_param, EGUI_COLOR_HEX_INIT(0xF8FBFD), EGUI_ALPHA_100, 14, 1,
+                                                              EGUI_COLOR_HEX_INIT(0xC9D9E4), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(basic_viewport_bg_params, &basic_viewport_bg_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(basic_viewport_bg, &basic_viewport_bg_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(basic_button_idle_param, EGUI_COLOR_WHITE, EGUI_ALPHA_100, 11, 1, EGUI_COLOR_HEX(0xB8C9D5),
-                                                        EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(basic_button_idle_param, EGUI_COLOR_WHITE_INIT, EGUI_ALPHA_100, 11, 1,
+                                                              EGUI_COLOR_HEX_INIT(0xB8C9D5), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(basic_button_idle_params, &basic_button_idle_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(basic_button_idle_bg, &basic_button_idle_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(basic_button_on_param, EGUI_COLOR_HEX(0xDFF4EA), EGUI_ALPHA_100, 11, 1, EGUI_COLOR_HEX(0x7BBF9D),
-                                                        EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(basic_button_on_param, EGUI_COLOR_HEX_INIT(0xDFF4EA), EGUI_ALPHA_100, 11, 1,
+                                                              EGUI_COLOR_HEX_INIT(0x7BBF9D), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(basic_button_on_params, &basic_button_on_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(basic_button_on_bg, &basic_button_on_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(basic_button_selected_param, EGUI_COLOR_HEX(0x2F5E8A), EGUI_ALPHA_100, 11, 1, EGUI_COLOR_HEX(0x224665),
-                                                        EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(basic_button_selected_param, EGUI_COLOR_HEX_INIT(0x2F5E8A), EGUI_ALPHA_100, 11, 1,
+                                                              EGUI_COLOR_HEX_INIT(0x224665), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(basic_button_selected_params, &basic_button_selected_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(basic_button_selected_bg, &basic_button_selected_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(basic_action_patch_param, EGUI_COLOR_HEX(0xE6F6EF), EGUI_ALPHA_100, 10, 1, EGUI_COLOR_HEX(0xA7D4BF),
-                                                        EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(basic_action_patch_param, EGUI_COLOR_HEX_INIT(0xE6F6EF), EGUI_ALPHA_100, 10, 1,
+                                                              EGUI_COLOR_HEX_INIT(0xA7D4BF), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(basic_action_patch_params, &basic_action_patch_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(basic_action_patch_bg, &basic_action_patch_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(basic_action_jump_param, EGUI_COLOR_HEX(0xE7F0FA), EGUI_ALPHA_100, 10, 1, EGUI_COLOR_HEX(0xACC4DB),
-                                                        EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(basic_action_jump_param, EGUI_COLOR_HEX_INIT(0xE7F0FA), EGUI_ALPHA_100, 10, 1,
+                                                              EGUI_COLOR_HEX_INIT(0xACC4DB), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(basic_action_jump_params, &basic_action_jump_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(basic_action_jump_bg, &basic_action_jump_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(basic_action_reset_param, EGUI_COLOR_HEX(0xF9E9E4), EGUI_ALPHA_100, 10, 1, EGUI_COLOR_HEX(0xD4B2A9),
-                                                        EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(basic_action_reset_param, EGUI_COLOR_HEX_INIT(0xF9E9E4), EGUI_ALPHA_100, 10, 1,
+                                                              EGUI_COLOR_HEX_INIT(0xD4B2A9), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(basic_action_reset_params, &basic_action_reset_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(basic_action_reset_bg, &basic_action_reset_params);
 

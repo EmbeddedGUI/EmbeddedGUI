@@ -316,6 +316,85 @@ cmake -B build_cmake/HelloUnitTest_pc_test -DAPP=HelloUnitTest -DPORT=pc_test -G
 cmake --build build_cmake/HelloUnitTest_pc_test -j
 ```
 
+Windows 下也可以用仓库内置的 Visual Studio + SDL2 preset 生成 CMake 工程并调试 PC 模拟器：
+
+```powershell
+cmake --preset visual_studio_sdl
+cmake --build --preset visual_studio_sdl
+.\build_vs\visual_studio_sdl\output\Debug\HelloSimple.exe
+```
+
+`visual_studio_sdl` 默认使用 Visual Studio 2022、MSVC x64 和仓库内置 SDL2。若使用 Visual Studio 2026，可改用 `visual_studio_sdl_vs2026`。需要切换示例时，在 CMake configure 参数中覆盖 `APP` / `APP_SUB` / `PORT`，例如 `-DAPP=HelloBasic -DAPP_SUB=button -DPORT=pc`。
+
+如果只想双击打开工程，可直接打开 `porting/pc/EmbeddedGUI_PC_Simulator.sln`。该方案参考 `lv_port_pc_visual_studio` 的组织方式：PC 模拟器相关的 Visual Studio 工程文件集中放在 `porting/pc/`，仓库只维护一个 `EmbeddedGUI_PC_Simulator` 工程，公共源码和 SDL2/MSVC 配置固定在工程中，常用示例通过 Visual Studio 顶部的解决方案配置下拉框选择。该工程只维护 x64 平台配置，避免 Visual Studio 打开时自动补全 Win32 映射并重写 `.sln`。
+
+常用配置包括：
+
+- `HelloSimple_Debug|x64`
+- `HelloBasic_button_Debug|x64`
+- `HelloBasic_slider_Debug|x64`
+- `HelloVirtual_virtual_viewport_basic_Debug|x64`
+- `HelloVirtual_virtual_stage_basic_Debug|x64`
+- `HelloGame_snake_Debug|x64`
+- `HelloSizeAnalysis_canvas_path_probe_Debug|x64`
+
+其中普通示例使用 `APP_Debug` 命名，带子应用的示例使用 `APP_APP_SUB_Debug` 命名。选择配置后直接生成或按 F5 调试即可，输出位于 `build_vs/<APP 或 APP_APP_SUB>/x64/<配置名>/`，例如 `build_vs/HelloBasic_button/x64/HelloBasic_button_Debug/HelloBasic_button.exe`。Visual Studio 方案使用 Windows 子系统运行 PC 模拟器，不弹出额外控制台窗口；`Hello, egui!`、录制状态、shutdown 检查、普通 `printf()` 和 `EGUI_LOG_*` 日志会显示在 Visual Studio 的“输出”窗口中，查看来源选择“调试”。Debug 配置会在应用未显式配置日志级别时默认打开 INFO 及以上框架日志。
+
+`porting/pc/EmbeddedGUI.VisualStudio.props` 仍保留为高级自定义入口。没有预置到下拉框里的示例，可以选择 `Debug|x64` 或 `Release|x64`，再修改下面的默认值：
+
+```xml
+<EguiApp>HelloSimple</EguiApp>
+<EguiAppSub></EguiAppSub>
+<EguiPort>pc</EguiPort>
+```
+
+需要切换到带子应用的示例时，修改 `porting/pc/EmbeddedGUI.VisualStudio.props` 后重新生成即可，例如：
+
+```xml
+<EguiApp>HelloBasic</EguiApp>
+<EguiAppSub>button</EguiAppSub>
+<EguiPort>pc</EguiPort>
+```
+
+`HelloBasic`、`HelloVirtual`、`HelloGame`、`HelloSizeAnalysis` 在 `EguiAppSub` 留空时会使用各自默认子应用。Visual Studio 调试工作目录为仓库根目录，方便 `file_image`、`deferred_image`、`HelloPerformance` 这类示例读取仓库内的示例文件。
+
+Visual Studio C++ 工程不直接使用 `*.c`、`**/*.h` 或 `$(EguiAppPath)` 这类通配符项目项，避免 IDE 加载时禁用项目缓存并长时间停在“正在加载项目”。`.vcxproj` 中的源码和头文件列表由脚本生成，`.vcxproj.filters` 中的 `Source Files` / `Header Files` 也会按仓库原始目录结构自动生成，例如 `Source Files\src\core`、`Header Files\example\HelloBasic\button`。
+
+新增示例后，如果希望它出现在 Visual Studio 配置下拉框中，需要同步 `porting/pc/` 下的 `.sln` 和 `.vcxproj`。直接运行脚本会自动扫描 `example/` 下所有含 `build.mk` 的 app，以及使用 `APP_SUB` 的 app 下所有含 `app_egui_config.h` 的一级子目录，并刷新 x64 配置和显式工程项列表：
+
+```powershell
+python scripts\platform\update_visual_studio_sln.py
+```
+
+如果只想同步某个指定示例，也可以显式指定 app 或 sub app。脚本可重复执行，已有配置不会重复插入：
+
+```powershell
+# 新增普通示例
+python scripts\platform\update_visual_studio_sln.py --app HelloDirty
+
+# 新增带 APP_SUB 的示例
+python scripts\platform\update_visual_studio_sln.py --app HelloBasic --app-sub checkbox
+
+# 一次添加多个配置
+python scripts\platform\update_visual_studio_sln.py --entry HelloDirty --entry HelloBasic/checkbox
+```
+
+如果只是新增、删除或重命名了某个已有源码目录下的 `.c/.h` 文件，不需要手动修改 `.sln`、`.vcxproj` 或 `.vcxproj.filters`，直接运行脚本刷新工程项和目录过滤器即可：
+
+```powershell
+python scripts\platform\update_visual_studio_sln.py
+```
+
+如果新增的是全新的源码目录，先按 Makefile 规则把目录加入对应 `build.mk`，再运行上面的脚本同步 Visual Studio 工程视图。
+
+发布前检查也会覆盖 Visual Studio 工程同步和轻量编译检查。若只想单独检查这一项，可以运行：
+
+```powershell
+python scripts\release_check.py --only visual_studio
+```
+
+该步骤使用 `--check` 模式，不会自动改写工程文件；如果失败，先运行 `python scripts\platform\update_visual_studio_sln.py` 更新 `porting/pc/` 下的 `.sln/.vcxproj/.vcxproj.filters`，再重新执行 release check。
+
 CMake 产物默认输出到对应 `build_cmake/<target>/output/` 目录。对于 `stm32g0`、`qemu`、`emscripten` 这类非 CMake 移植层，日常开发仍推荐使用 Makefile。
 
 ## 交叉编译

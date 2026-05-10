@@ -3986,11 +3986,11 @@ int egui_font_std_draw_string(const egui_font_t *self, egui_canvas_t *canvas, co
         next_line = strchr(s, '\n');
         if (next_line)
         {
-            str_cnt += (next_line - s) + 1;
+            str_cnt += (int)(next_line - s) + 1;
         }
         else
         {
-            str_cnt += strlen(s);
+            str_cnt += (int)strlen(s);
         }
         return str_cnt;
     }
@@ -4022,11 +4022,11 @@ int egui_font_std_draw_string(const egui_font_t *self, egui_canvas_t *canvas, co
             next_line = strchr(s, '\n');
             if (next_line)
             {
-                str_cnt += (next_line - s) + 1;
+                str_cnt += (int)(next_line - s) + 1;
             }
             else
             {
-                str_cnt += strlen(s);
+                str_cnt += (int)strlen(s);
             }
             break;
         }

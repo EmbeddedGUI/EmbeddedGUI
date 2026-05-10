@@ -64,7 +64,7 @@ void *egui_svg_alloc_calloc(size_t count, size_t size)
     ptr = egui_svg_alloc_malloc(total);
     if (ptr != NULL)
     {
-        egui_api_memset(ptr, 0, total);
+        egui_api_memset(ptr, 0, (int)total);
     }
     return ptr;
 }
@@ -140,7 +140,7 @@ void *egui_svg_alloc_plain_calloc(size_t count, size_t size)
     ptr = egui_svg_alloc_plain_malloc(total);
     if (ptr != NULL)
     {
-        egui_api_memset(ptr, 0, total);
+        egui_api_memset(ptr, 0, (int)total);
     }
     return ptr;
 }
@@ -342,7 +342,7 @@ static int egui_svg_dim_from_integral_float(float value, egui_dim_t *out_value)
     return 1;
 }
 
-static __attribute__((unused)) int32_t egui_svg_dim_for_log(float value)
+static __EGUI_UNUSED_ATTR__ int32_t egui_svg_dim_for_log(float value)
 {
     int32_t rounded;
 
@@ -1339,8 +1339,7 @@ static void egui_svg_flatten_append_rect(egui_svg_rect_t *rects, uint16_t *rect_
     (*rect_count)++;
 }
 
-static __attribute__((unused)) int egui_svg_flatten_rects(const egui_svg_rect_t *src_rects, uint16_t src_count, egui_svg_rect_t **out_rects,
-                                                          uint16_t *out_count)
+static __EGUI_UNUSED_ATTR__ int egui_svg_flatten_rects(const egui_svg_rect_t *src_rects, uint16_t src_count, egui_svg_rect_t **out_rects, uint16_t *out_count)
 {
     float *x_edges;
     float *y_edges;

@@ -1,0 +1,41 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "visual_studio_sdl",
+            "displayName": "Visual Studio SDL (VS 2022 MSVC x64)",
+            "description": "Build the PC SDL simulator with Visual Studio 2022 and the bundled SDL2 import library.",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build_vs/visual_studio_sdl",
+            "cacheVariables": {
+                "APP": "HelloSimple",
+                "PORT": "pc"
+            }
+        },
+        {
+            "name": "visual_studio_sdl_vs2026",
+            "displayName": "Visual Studio SDL (VS 2026 MSVC x64)",
+            "description": "Build the PC SDL simulator with Visual Studio 2026 and the bundled SDL2 import library.",
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build_vs/visual_studio_sdl_vs2026",
+            "cacheVariables": {
+                "APP": "HelloSimple",
+                "PORT": "pc"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "visual_studio_sdl",
+            "configurePreset": "visual_studio_sdl",
+            "configuration": "Debug"
+        },
+        {
+            "name": "visual_studio_sdl_vs2026",
+            "configurePreset": "visual_studio_sdl_vs2026",
+            "configuration": "Debug"
+        }
+    ]
+}

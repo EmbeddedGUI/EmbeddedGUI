@@ -20,45 +20,46 @@ extern "C" {
 typedef int32_t egui_fixed_t;
 
 /**
+ *  Count the number of bits set in a 32-bit word.
+ */
+static inline uint32_t egui_fx_bitcount_u32(uint32_t word)
+{
+    word = word - ((word >> 1) & UINT32_C(0x55555555));
+    word = (word & UINT32_C(0x33333333)) + ((word >> 2) & UINT32_C(0x33333333));
+    return (((word + (word >> 4)) & UINT32_C(0x0f0f0f0f)) * UINT32_C(0x01010101)) >> 24;
+}
+
+/**
  *  Count the number of leading zeros in a 32-bit word.
  *  Note that fx_clz(0) is undefined.
  */
-#define EGUI_FX_CLZ(word)                                                                                                                                      \
-    ({                                                                                                                                                         \
-        uint32_t w__ = (word);                                                                                                                                 \
-        w__ |= (w__ >> 1);                                                                                                                                     \
-        w__ |= (w__ >> 2);                                                                                                                                     \
-        w__ |= (w__ >> 4);                                                                                                                                     \
-        w__ |= (w__ >> 8);                                                                                                                                     \
-        w__ |= (w__ >> 16);                                                                                                                                    \
-        EGUI_FX_BITCOUNT(~w__);                                                                                                                                \
-    })
+static inline uint32_t egui_fx_clz_u32(uint32_t word)
+{
+    word |= (word >> 1);
+    word |= (word >> 2);
+    word |= (word >> 4);
+    word |= (word >> 8);
+    word |= (word >> 16);
+    return egui_fx_bitcount_u32(~word);
+}
 
 /**
  *  Count the number of trailing zeros in a 32-bit word.
  *  Note that fx_ctz(0) is undefined.
  */
-#define EGUI_FX_CTZ(word)                                                                                                                                      \
-    ({                                                                                                                                                         \
-        uint32_t w__ = (word);                                                                                                                                 \
-        w__ |= (w__ << 1);                                                                                                                                     \
-        w__ |= (w__ << 2);                                                                                                                                     \
-        w__ |= (w__ << 4);                                                                                                                                     \
-        w__ |= (w__ << 8);                                                                                                                                     \
-        w__ |= (w__ << 16);                                                                                                                                    \
-        EGUI_FX_BITCOUNT(~w__);                                                                                                                                \
-    })
+static inline uint32_t egui_fx_ctz_u32(uint32_t word)
+{
+    word |= (word << 1);
+    word |= (word << 2);
+    word |= (word << 4);
+    word |= (word << 8);
+    word |= (word << 16);
+    return egui_fx_bitcount_u32(~word);
+}
 
-/**
- *  Count the number of bits set in a 32-bit word.
- */
-#define EGUI_FX_BITCOUNT(word)                                                                                                                                 \
-    ({                                                                                                                                                         \
-        uint32_t u__ = (word);                                                                                                                                 \
-        u__ = u__ - ((u__ >> 1) & 0x55555555UL);                                                                                                               \
-        u__ = (u__ & 0x33333333UL) + ((u__ >> 2) & 0x33333333UL);                                                                                              \
-        (((u__ + (u__ >> 4)) & UINT32_C(0xf0f0f0f)) * UINT32_C(0x1010101)) >> 24;                                                                              \
-    })
+#define EGUI_FX_BITCOUNT(word) egui_fx_bitcount_u32((uint32_t)(word))
+#define EGUI_FX_CLZ(word)      egui_fx_clz_u32((uint32_t)(word))
+#define EGUI_FX_CTZ(word)      egui_fx_ctz_u32((uint32_t)(word))
 
 /**
  *  Signed fixed-point multiply, i.e. s32 x s32 -> s64.

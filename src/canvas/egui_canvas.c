@@ -269,11 +269,13 @@ void egui_canvas_draw_fillrect(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, 
         return;
     }
 
-    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && self->mask != NULL)
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+    if (self->mask != NULL)
     {
         egui_canvas_set_rect_color_with_mask(self, region.location.x, region.location.y, region.size.width, region.size.height, color, alpha);
     }
     else
+#endif
     {
         if (alpha == EGUI_ALPHA_100)
         {

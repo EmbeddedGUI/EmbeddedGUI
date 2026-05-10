@@ -63,30 +63,49 @@ extern "C" {
 
 #define EGUI_UNUSED(_x) (void)(_x)
 
-#define __EGUI_WEAK__ __attribute__((weak))
-
-#if defined(__clang__)
-#define __EGUI_UNUSED_ATTR__ __attribute__((unused))
-#else
+#if defined(_MSC_VER)
+#define __EGUI_WEAK__
 #define __EGUI_UNUSED_ATTR__
+#define __EGUI_MAY_ALIAS_ATTR__
+#define __EGUI_OPTIMIZE_SIZE_ATTR__
+#elif defined(__GNUC__) || defined(__clang__)
+#define __EGUI_WEAK__               __attribute__((weak))
+#define __EGUI_UNUSED_ATTR__        __attribute__((unused))
+#define __EGUI_MAY_ALIAS_ATTR__     __attribute__((__may_alias__))
+#define __EGUI_OPTIMIZE_SIZE_ATTR__ __attribute__((optimize("Os")))
+#else
+#define __EGUI_WEAK__
+#define __EGUI_UNUSED_ATTR__
+#define __EGUI_MAY_ALIAS_ATTR__
+#define __EGUI_OPTIMIZE_SIZE_ATTR__
 #endif
 
 #define __EGUI_STATIC_INLINE__ static inline __EGUI_UNUSED_ATTR__
+
+#if defined(_MSC_VER) && defined(_M_X64)
+#define __EGUI_MSVC_ALTERNATE_NAME(_symbol, _fallback) __pragma(comment(linker, "/alternatename:" #_symbol "=" #_fallback))
+#else
+#define __EGUI_MSVC_ALTERNATE_NAME(_symbol, _fallback)
+#endif
 
 /*---------------------- Graphic LCD color definitions -----------------------*/
 
 /* The most simple macro to create a color from R,G and B values.
  * Keep the scalar full value canonical; endian only changes memory byte order. */
 #if EGUI_CONFIG_COLOR_DEPTH == 8
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t)(uint8_t)((((uint16_t)(_r8)) + ((uint16_t)(_g8)) + ((uint16_t)(_b8))) / 3U))
+#define EGUI_COLOR_MAKE_INIT(_r8, _g8, _b8) {((uint8_t)((((uint16_t)(_r8)) + ((uint16_t)(_g8)) + ((uint16_t)(_b8))) / 3U))}
 #elif EGUI_CONFIG_COLOR_DEPTH == 16
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8)                                                                                                                         \
-    ((egui_color_t)(uint16_t)(((((uint16_t)(_r8)) & 0xF8U) << 8) | ((((uint16_t)(_g8)) & 0xFCU) << 3) | (((uint16_t)(_b8)) >> 3)))
+#define EGUI_COLOR_MAKE_INIT(_r8, _g8, _b8) {((uint16_t)(((((uint16_t)(_r8)) & 0xF8U) << 8) | ((((uint16_t)(_g8)) & 0xFCU) << 3) | (((uint16_t)(_b8)) >> 3)))}
 #elif EGUI_CONFIG_COLOR_DEPTH == 32
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t)(uint32_t)((((uint32_t)(_r8)) << 16) | (((uint32_t)(_g8)) << 8) | ((uint32_t)(_b8))))
+#define EGUI_COLOR_MAKE_INIT(_r8, _g8, _b8) {((uint32_t)((((uint32_t)(_r8)) << 16) | (((uint32_t)(_g8)) << 8) | ((uint32_t)(_b8))))}
 #endif
 
-#define EGUI_COLOR_HEX(c) EGUI_COLOR_MAKE(((uint32_t)((uint32_t)c >> 16) & 0xFF), ((uint32_t)((uint32_t)c >> 8) & 0xFF), ((uint32_t)c & 0xFF))
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t)EGUI_COLOR_MAKE_INIT(_r8, _g8, _b8))
+
+#define EGUI_COLOR_HEX(c)      EGUI_COLOR_MAKE(((uint32_t)((uint32_t)c >> 16) & 0xFF), ((uint32_t)((uint32_t)c >> 8) & 0xFF), ((uint32_t)c & 0xFF))
+#define EGUI_COLOR_HEX_INIT(c) EGUI_COLOR_MAKE_INIT(((uint32_t)((uint32_t)c >> 16) & 0xFF), ((uint32_t)((uint32_t)c >> 8) & 0xFF), ((uint32_t)c & 0xFF))
+
+#define EGUI_COLOR_NAMED_INIT(_color) _color##_INIT
 
 #if EGUI_CONFIG_COLOR_DEPTH == 8
 #define EGUI_COLOR_RGB888_TRANS(_color)                                                                                                                        \
@@ -112,23 +131,40 @@ extern "C" {
 #endif
 
 /* GLCD RGB color definitions                            */
-#define EGUI_COLOR_BLACK      EGUI_COLOR_MAKE(0, 0, 0)
-#define EGUI_COLOR_NAVY       EGUI_COLOR_MAKE(0, 0, 128)
-#define EGUI_COLOR_DARK_GREEN EGUI_COLOR_MAKE(0, 128, 0)
-#define EGUI_COLOR_DARK_CYAN  EGUI_COLOR_MAKE(0, 128, 128)
-#define EGUI_COLOR_MAROON     EGUI_COLOR_MAKE(128, 0, 0)
-#define EGUI_COLOR_PURPLE     EGUI_COLOR_MAKE(128, 0, 128)
-#define EGUI_COLOR_OLIVE      EGUI_COLOR_MAKE(128, 128, 0)
-#define EGUI_COLOR_LIGHT_GREY EGUI_COLOR_MAKE(192, 192, 192)
-#define EGUI_COLOR_DARK_GREY  EGUI_COLOR_MAKE(128, 128, 128)
-#define EGUI_COLOR_BLUE       EGUI_COLOR_MAKE(0, 0, 255)
-#define EGUI_COLOR_GREEN      EGUI_COLOR_MAKE(0, 255, 0)
-#define EGUI_COLOR_CYAN       EGUI_COLOR_MAKE(0, 255, 255)
-#define EGUI_COLOR_RED        EGUI_COLOR_MAKE(255, 0, 0)
-#define EGUI_COLOR_MAGENTA    EGUI_COLOR_MAKE(255, 0, 255)
-#define EGUI_COLOR_YELLOW     EGUI_COLOR_MAKE(255, 255, 0)
-#define EGUI_COLOR_WHITE      EGUI_COLOR_MAKE(255, 255, 255)
-#define EGUI_COLOR_ORANGE     EGUI_COLOR_MAKE(255, 128, 0)
+#define EGUI_COLOR_BLACK           EGUI_COLOR_MAKE(0, 0, 0)
+#define EGUI_COLOR_BLACK_INIT      EGUI_COLOR_MAKE_INIT(0, 0, 0)
+#define EGUI_COLOR_NAVY            EGUI_COLOR_MAKE(0, 0, 128)
+#define EGUI_COLOR_NAVY_INIT       EGUI_COLOR_MAKE_INIT(0, 0, 128)
+#define EGUI_COLOR_DARK_GREEN      EGUI_COLOR_MAKE(0, 128, 0)
+#define EGUI_COLOR_DARK_GREEN_INIT EGUI_COLOR_MAKE_INIT(0, 128, 0)
+#define EGUI_COLOR_DARK_CYAN       EGUI_COLOR_MAKE(0, 128, 128)
+#define EGUI_COLOR_DARK_CYAN_INIT  EGUI_COLOR_MAKE_INIT(0, 128, 128)
+#define EGUI_COLOR_MAROON          EGUI_COLOR_MAKE(128, 0, 0)
+#define EGUI_COLOR_MAROON_INIT     EGUI_COLOR_MAKE_INIT(128, 0, 0)
+#define EGUI_COLOR_PURPLE          EGUI_COLOR_MAKE(128, 0, 128)
+#define EGUI_COLOR_PURPLE_INIT     EGUI_COLOR_MAKE_INIT(128, 0, 128)
+#define EGUI_COLOR_OLIVE           EGUI_COLOR_MAKE(128, 128, 0)
+#define EGUI_COLOR_OLIVE_INIT      EGUI_COLOR_MAKE_INIT(128, 128, 0)
+#define EGUI_COLOR_LIGHT_GREY      EGUI_COLOR_MAKE(192, 192, 192)
+#define EGUI_COLOR_LIGHT_GREY_INIT EGUI_COLOR_MAKE_INIT(192, 192, 192)
+#define EGUI_COLOR_DARK_GREY       EGUI_COLOR_MAKE(128, 128, 128)
+#define EGUI_COLOR_DARK_GREY_INIT  EGUI_COLOR_MAKE_INIT(128, 128, 128)
+#define EGUI_COLOR_BLUE            EGUI_COLOR_MAKE(0, 0, 255)
+#define EGUI_COLOR_BLUE_INIT       EGUI_COLOR_MAKE_INIT(0, 0, 255)
+#define EGUI_COLOR_GREEN           EGUI_COLOR_MAKE(0, 255, 0)
+#define EGUI_COLOR_GREEN_INIT      EGUI_COLOR_MAKE_INIT(0, 255, 0)
+#define EGUI_COLOR_CYAN            EGUI_COLOR_MAKE(0, 255, 255)
+#define EGUI_COLOR_CYAN_INIT       EGUI_COLOR_MAKE_INIT(0, 255, 255)
+#define EGUI_COLOR_RED             EGUI_COLOR_MAKE(255, 0, 0)
+#define EGUI_COLOR_RED_INIT        EGUI_COLOR_MAKE_INIT(255, 0, 0)
+#define EGUI_COLOR_MAGENTA         EGUI_COLOR_MAKE(255, 0, 255)
+#define EGUI_COLOR_MAGENTA_INIT    EGUI_COLOR_MAKE_INIT(255, 0, 255)
+#define EGUI_COLOR_YELLOW          EGUI_COLOR_MAKE(255, 255, 0)
+#define EGUI_COLOR_YELLOW_INIT     EGUI_COLOR_MAKE_INIT(255, 255, 0)
+#define EGUI_COLOR_WHITE           EGUI_COLOR_MAKE(255, 255, 255)
+#define EGUI_COLOR_WHITE_INIT      EGUI_COLOR_MAKE_INIT(255, 255, 255)
+#define EGUI_COLOR_ORANGE          EGUI_COLOR_MAKE(255, 128, 0)
+#define EGUI_COLOR_ORANGE_INIT     EGUI_COLOR_MAKE_INIT(255, 128, 0)
 
 enum
 {
@@ -310,7 +346,7 @@ extern const uint8_t egui_alpha_change_table_2[4];
 extern const uint8_t egui_alpha_change_table_4[16];
 
 /** Combine two alpha factors the same way layered rendering composes opacity. */
-static __attribute__((unused)) egui_alpha_t egui_color_alpha_mix(egui_alpha_t alpha_0, egui_alpha_t alpha_1)
+static __EGUI_UNUSED_ATTR__ egui_alpha_t egui_color_alpha_mix(egui_alpha_t alpha_0, egui_alpha_t alpha_1)
 {
     if (alpha_0 == EGUI_ALPHA_100)
     {
@@ -328,7 +364,7 @@ static __attribute__((unused)) egui_alpha_t egui_color_alpha_mix(egui_alpha_t al
 }
 
 /** Blend one foreground color over one background color with a single alpha factor. */
-static __attribute__((unused)) egui_color_t egui_rgb_mix(egui_color_t back_color, egui_color_t fore_color, egui_alpha_t fore_alpha)
+static __EGUI_UNUSED_ATTR__ egui_color_t egui_rgb_mix(egui_color_t back_color, egui_color_t fore_color, egui_alpha_t fore_alpha)
 {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
     /* Early-out for fully opaque / fully transparent */
@@ -363,7 +399,7 @@ static __attribute__((unused)) egui_color_t egui_rgb_mix(egui_color_t back_color
 }
 
 /** Pointer-based variant of `egui_rgb_mix()` for hot paths that already work on addresses. */
-static __attribute__((unused)) void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_color_t *p_fore_color, egui_color_t *p_out_color, egui_alpha_t fore_alpha)
+static __EGUI_UNUSED_ATTR__ void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_color_t *p_fore_color, egui_color_t *p_out_color, egui_alpha_t fore_alpha)
 {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
     if (fore_alpha > 251)

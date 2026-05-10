@@ -23,25 +23,43 @@ extern "C" {
 #ifndef EGUI_THEME_PRIMARY
 #define EGUI_THEME_PRIMARY EGUI_COLOR_MAKE(0x25, 0x63, 0xEB) /* Blue 600 */
 #endif
+#ifndef EGUI_THEME_PRIMARY_INIT
+#define EGUI_THEME_PRIMARY_INIT EGUI_COLOR_MAKE_INIT(0x25, 0x63, 0xEB) /* Blue 600 */
+#endif
 
 #ifndef EGUI_THEME_PRIMARY_DARK
 #define EGUI_THEME_PRIMARY_DARK EGUI_COLOR_MAKE(0x1D, 0x4E, 0xD8) /* Blue 700 (Pressed) */
+#endif
+#ifndef EGUI_THEME_PRIMARY_DARK_INIT
+#define EGUI_THEME_PRIMARY_DARK_INIT EGUI_COLOR_MAKE_INIT(0x1D, 0x4E, 0xD8) /* Blue 700 (Pressed) */
 #endif
 
 #ifndef EGUI_THEME_SECONDARY
 #define EGUI_THEME_SECONDARY EGUI_COLOR_MAKE(0x14, 0xB8, 0xA6) /* Teal 500 */
 #endif
+#ifndef EGUI_THEME_SECONDARY_INIT
+#define EGUI_THEME_SECONDARY_INIT EGUI_COLOR_MAKE_INIT(0x14, 0xB8, 0xA6) /* Teal 500 */
+#endif
 
 #ifndef EGUI_THEME_SUCCESS
 #define EGUI_THEME_SUCCESS EGUI_COLOR_MAKE(0x16, 0xA3, 0x4A) /* Green 600 */
+#endif
+#ifndef EGUI_THEME_SUCCESS_INIT
+#define EGUI_THEME_SUCCESS_INIT EGUI_COLOR_MAKE_INIT(0x16, 0xA3, 0x4A) /* Green 600 */
 #endif
 
 #ifndef EGUI_THEME_WARNING
 #define EGUI_THEME_WARNING EGUI_COLOR_MAKE(0xF5, 0x9E, 0x0B) /* Amber 500 */
 #endif
+#ifndef EGUI_THEME_WARNING_INIT
+#define EGUI_THEME_WARNING_INIT EGUI_COLOR_MAKE_INIT(0xF5, 0x9E, 0x0B) /* Amber 500 */
+#endif
 
 #ifndef EGUI_THEME_DANGER
 #define EGUI_THEME_DANGER EGUI_COLOR_MAKE(0xDC, 0x26, 0x26) /* Red 600 */
+#endif
+#ifndef EGUI_THEME_DANGER_INIT
+#define EGUI_THEME_DANGER_INIT EGUI_COLOR_MAKE_INIT(0xDC, 0x26, 0x26) /* Red 600 */
 #endif
 
 /* ---- Track & state colors ---- */
@@ -49,17 +67,29 @@ extern "C" {
 #ifndef EGUI_THEME_TRACK_BG
 #define EGUI_THEME_TRACK_BG EGUI_COLOR_MAKE(0xE2, 0xE8, 0xF0) /* Slate 200 */
 #endif
+#ifndef EGUI_THEME_TRACK_BG_INIT
+#define EGUI_THEME_TRACK_BG_INIT EGUI_COLOR_MAKE_INIT(0xE2, 0xE8, 0xF0) /* Slate 200 */
+#endif
 
 #ifndef EGUI_THEME_TRACK_OFF
 #define EGUI_THEME_TRACK_OFF EGUI_COLOR_MAKE(0xCB, 0xD5, 0xE1) /* Slate 300 */
+#endif
+#ifndef EGUI_THEME_TRACK_OFF_INIT
+#define EGUI_THEME_TRACK_OFF_INIT EGUI_COLOR_MAKE_INIT(0xCB, 0xD5, 0xE1) /* Slate 300 */
 #endif
 
 #ifndef EGUI_THEME_DISABLED
 #define EGUI_THEME_DISABLED EGUI_COLOR_MAKE(0xD1, 0xD5, 0xDB) /* Gray 300 */
 #endif
+#ifndef EGUI_THEME_DISABLED_INIT
+#define EGUI_THEME_DISABLED_INIT EGUI_COLOR_MAKE_INIT(0xD1, 0xD5, 0xDB) /* Gray 300 */
+#endif
 
 #ifndef EGUI_THEME_THUMB
 #define EGUI_THEME_THUMB EGUI_COLOR_WHITE /* Slider/Switch knobs */
+#endif
+#ifndef EGUI_THEME_THUMB_INIT
+#define EGUI_THEME_THUMB_INIT EGUI_COLOR_WHITE_INIT /* Slider/Switch knobs */
 #endif
 
 /* ---- Text colors ---- */
@@ -67,13 +97,22 @@ extern "C" {
 #ifndef EGUI_THEME_TEXT
 #define EGUI_THEME_TEXT EGUI_COLOR_WHITE /* White text on primary */
 #endif
+#ifndef EGUI_THEME_TEXT_INIT
+#define EGUI_THEME_TEXT_INIT EGUI_COLOR_WHITE_INIT /* White text on primary */
+#endif
 
 #ifndef EGUI_THEME_TEXT_PRIMARY
 #define EGUI_THEME_TEXT_PRIMARY EGUI_COLOR_MAKE(0x11, 0x18, 0x27) /* Gray 900 */
 #endif
+#ifndef EGUI_THEME_TEXT_PRIMARY_INIT
+#define EGUI_THEME_TEXT_PRIMARY_INIT EGUI_COLOR_MAKE_INIT(0x11, 0x18, 0x27) /* Gray 900 */
+#endif
 
 #ifndef EGUI_THEME_TEXT_SECONDARY
 #define EGUI_THEME_TEXT_SECONDARY EGUI_COLOR_MAKE(0x6B, 0x72, 0x80) /* Gray 500 */
+#endif
+#ifndef EGUI_THEME_TEXT_SECONDARY_INIT
+#define EGUI_THEME_TEXT_SECONDARY_INIT EGUI_COLOR_MAKE_INIT(0x6B, 0x72, 0x80) /* Gray 500 */
 #endif
 
 /* ---- Surface & border ---- */
@@ -81,23 +120,38 @@ extern "C" {
 #ifndef EGUI_THEME_SURFACE
 #define EGUI_THEME_SURFACE EGUI_COLOR_MAKE(0xFF, 0xFF, 0xFF) /* White surface */
 #endif
+#ifndef EGUI_THEME_SURFACE_INIT
+#define EGUI_THEME_SURFACE_INIT EGUI_COLOR_MAKE_INIT(0xFF, 0xFF, 0xFF) /* White surface */
+#endif
 
 #ifndef EGUI_THEME_SURFACE_VARIANT
 #define EGUI_THEME_SURFACE_VARIANT EGUI_COLOR_MAKE(0xF8, 0xFA, 0xFC) /* Slate 50 */
+#endif
+#ifndef EGUI_THEME_SURFACE_VARIANT_INIT
+#define EGUI_THEME_SURFACE_VARIANT_INIT EGUI_COLOR_MAKE_INIT(0xF8, 0xFA, 0xFC) /* Slate 50 */
 #endif
 
 #ifndef EGUI_THEME_BORDER
 #define EGUI_THEME_BORDER EGUI_COLOR_MAKE(0xE2, 0xE8, 0xF0) /* Slate 200 */
 #endif
+#ifndef EGUI_THEME_BORDER_INIT
+#define EGUI_THEME_BORDER_INIT EGUI_COLOR_MAKE_INIT(0xE2, 0xE8, 0xF0) /* Slate 200 */
+#endif
 
 #ifndef EGUI_THEME_FOCUS
 #define EGUI_THEME_FOCUS EGUI_THEME_PRIMARY /* Focus ring color */
+#endif
+#ifndef EGUI_THEME_FOCUS_INIT
+#define EGUI_THEME_FOCUS_INIT EGUI_THEME_PRIMARY_INIT /* Focus ring color */
 #endif
 
 /* ---- Press overlay ---- */
 
 #ifndef EGUI_THEME_PRESS_OVERLAY
 #define EGUI_THEME_PRESS_OVERLAY EGUI_COLOR_BLACK /* Press overlay color */
+#endif
+#ifndef EGUI_THEME_PRESS_OVERLAY_INIT
+#define EGUI_THEME_PRESS_OVERLAY_INIT EGUI_COLOR_BLACK_INIT /* Press overlay color */
 #endif
 
 #ifndef EGUI_THEME_PRESS_OVERLAY_ALPHA
@@ -131,6 +185,9 @@ extern "C" {
 #ifndef EGUI_THEME_SCROLLBAR_COLOR
 #define EGUI_THEME_SCROLLBAR_COLOR EGUI_COLOR_MAKE(0x94, 0xA3, 0xB8) /* Slate 400 */
 #endif
+#ifndef EGUI_THEME_SCROLLBAR_COLOR_INIT
+#define EGUI_THEME_SCROLLBAR_COLOR_INIT EGUI_COLOR_MAKE_INIT(0x94, 0xA3, 0xB8) /* Slate 400 */
+#endif
 
 #ifndef EGUI_THEME_SCROLLBAR_ALPHA
 #define EGUI_THEME_SCROLLBAR_ALPHA EGUI_ALPHA_50
@@ -161,9 +218,15 @@ extern "C" {
 #ifndef EGUI_THEME_PRIMARY_LIGHT
 #define EGUI_THEME_PRIMARY_LIGHT EGUI_COLOR_MAKE(0x3B, 0x82, 0xF6) /* Blue 500 */
 #endif
+#ifndef EGUI_THEME_PRIMARY_LIGHT_INIT
+#define EGUI_THEME_PRIMARY_LIGHT_INIT EGUI_COLOR_MAKE_INIT(0x3B, 0x82, 0xF6) /* Blue 500 */
+#endif
 
 #ifndef EGUI_THEME_TRACK_BG_DARK
 #define EGUI_THEME_TRACK_BG_DARK EGUI_COLOR_MAKE(0xCB, 0xD5, 0xE1) /* Slate 300 */
+#endif
+#ifndef EGUI_THEME_TRACK_BG_DARK_INIT
+#define EGUI_THEME_TRACK_BG_DARK_INIT EGUI_COLOR_MAKE_INIT(0xCB, 0xD5, 0xE1) /* Slate 300 */
 #endif
 
 /* ---- Enhanced draw shadow ---- */

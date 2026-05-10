@@ -50,14 +50,14 @@ void egui_core_process_input_key(egui_core_t *core, egui_key_event_t *key_event)
             handled = 1;
         }
 
-        if (key_event->type == EGUI_KEY_EVENT_ACTION_UP && key_event->key_code == EGUI_KEY_CODE_ESCAPE)
+        if (handled)
         {
-            egui_focus_manager_clear_focus(core);
             return;
         }
 
-        if (handled)
+        if (key_event->type == EGUI_KEY_EVENT_ACTION_UP && key_event->key_code == EGUI_KEY_CODE_ESCAPE)
         {
+            egui_focus_manager_clear_focus(core);
             return;
         }
 

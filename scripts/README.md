@@ -19,7 +19,7 @@
   新增 rank 字段后，也支持用 `--results-jsonl-combination-rank`、`--per-app-thresholds-scope-rank`、`--per-app-thresholds-min-passing-rank` 直接过滤。
   现也支持按布尔标签直接过滤：`--results-jsonl-has-stage-tag`、`--results-jsonl-has-contention-tag`、`--per-app-thresholds-all-passed`、`--per-app-thresholds-all-failed`。
 - `platform/`
-  平台/工程维护脚本，如 `keil_project_sync.py`。
+  平台/工程维护脚本，如 `keil_project_sync.py`、`update_visual_studio_sln.py` 和 `visual_studio_project_check.py`。新增、删除或重命名 Visual Studio 工程内源码后，先运行 `python scripts/platform/update_visual_studio_sln.py` 同步；发布前可用 `python scripts/release_check.py --only visual_studio` 检查 `.sln/.vcxproj/.filters` 是否最新并做轻量 MSBuild 编译。
 - `web/`
   Emscripten / WASM 相关脚本，如 `wasm_build_demos.py`、`emcc_wrapper.py`。
 - `recording/`

@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "egui.h"
@@ -33,6 +34,10 @@ extern "C" {
 
 #define VT_VIRTUAL_MACHINE 0 /*Different rendering should be used if running in a Virtual machine*/
 
+#ifndef EGUI_PC_LOG_TO_DEBUG_OUTPUT
+#define EGUI_PC_LOG_TO_DEBUG_OUTPUT 0
+#endif
+
 extern void VT_init(void);
 extern bool VT_is_request_quit(void);
 extern void VT_begin_shutdown(void);
@@ -46,6 +51,9 @@ extern uint32_t sdl_get_system_timestamp_ms(void);
 extern void VT_Fill_Multiple_Colors(int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p);
 extern void VT_Fill_Multiple_Colors_Core(egui_core_t *core, int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p);
 extern void sdl_port_sleep(uint32_t nMS);
+extern void egui_pc_log_init(void);
+extern void egui_pc_log(const char *format, ...);
+extern void egui_pc_vlog(const char *format, va_list args);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 extern int sdl_port_touch_read(egui_core_t *core, egui_touch_driver_data_t *data);
 #endif

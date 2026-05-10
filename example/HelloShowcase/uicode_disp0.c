@@ -199,14 +199,27 @@ typedef enum showcase_focus_action
     SHOWCASE_FOCUS_ACTION_CALENDAR
 } showcase_focus_action_t;
 
+typedef enum showcase_focus_api_type
+{
+    SHOWCASE_FOCUS_API_VIEW = 0,
+    SHOWCASE_FOCUS_API_CHART_AXIS,
+} showcase_focus_api_type_t;
+
+typedef union showcase_focus_api
+{
+    egui_view_api_t view;
+    egui_view_chart_axis_api_t chart_axis;
+} showcase_focus_api_t;
+
 typedef struct showcase_focus_target
 {
     egui_view_t *view;
-    egui_view_api_t api;
+    showcase_focus_api_t api;
     void (*base_focus_changed)(egui_view_t *self, int is_focused);
     int (*base_on_key)(egui_view_t *self, egui_key_event_t *event);
     const char *name;
     showcase_focus_action_t action;
+    showcase_focus_api_type_t api_type;
     uint8_t visited;
     uint8_t interacted;
     uint8_t expected_unfocusable;
@@ -459,9 +472,26 @@ static int showcase_default_key(egui_view_t *self, egui_key_event_t *event)
     return 0;
 }
 
-static void showcase_focus_target_add(egui_view_t *view, const char *name, showcase_focus_action_t action, uint8_t expected_unfocusable)
+static egui_view_api_t *showcase_focus_target_get_api(showcase_focus_target_t *target)
+{
+    if (target == NULL)
+    {
+        return NULL;
+    }
+
+    if (target->api_type == SHOWCASE_FOCUS_API_CHART_AXIS)
+    {
+        return &target->api.chart_axis.base;
+    }
+
+    return &target->api.view;
+}
+
+static void showcase_focus_target_add_with_api_type(egui_view_t *view, const char *name, showcase_focus_action_t action, uint8_t expected_unfocusable,
+                                                    showcase_focus_api_type_t api_type)
 {
     showcase_focus_target_t *target;
+    egui_view_api_t *api;
 
     if (view == NULL || s_focus_target_count >= (uint8_t)(sizeof(s_focus_targets) / sizeof(s_focus_targets[0])))
     {
@@ -475,17 +505,32 @@ static void showcase_focus_target_add(egui_view_t *view, const char *name, showc
     target->name = name;
     target->action = action;
     target->expected_unfocusable = expected_unfocusable;
+    target->api_type = api_type;
 
-    egui_view_copy_api(view, &target->api);
+    if (api_type == SHOWCASE_FOCUS_API_CHART_AXIS)
+    {
+        target->api.chart_axis = *(const egui_view_chart_axis_api_t *)view->api;
+        view->api = (const egui_view_api_t *)&target->api.chart_axis;
+    }
+    else
+    {
+        egui_view_copy_api(view, &target->api.view);
+    }
+
+    api = showcase_focus_target_get_api(target);
+    if (api == NULL)
+    {
+        return;
+    }
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    target->base_focus_changed = target->api.on_focus_changed;
-    target->api.on_focus_changed = showcase_focus_changed;
+    target->base_focus_changed = api->on_focus_changed;
+    api->on_focus_changed = showcase_focus_changed;
     egui_view_set_focusable(view, true);
     egui_view_set_focus_frame_style(view, 4, 2, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-    target->base_on_key = target->api.on_key;
-    target->api.on_key = showcase_default_key;
+    target->base_on_key = api->on_key;
+    api->on_key = showcase_default_key;
 #endif
 
     if (expected_unfocusable)
@@ -494,21 +539,36 @@ static void showcase_focus_target_add(egui_view_t *view, const char *name, showc
     }
 }
 
+static void showcase_focus_target_add(egui_view_t *view, const char *name, showcase_focus_action_t action, uint8_t expected_unfocusable)
+{
+    showcase_focus_target_add_with_api_type(view, name, action, expected_unfocusable, SHOWCASE_FOCUS_API_VIEW);
+}
+
+static void showcase_focus_target_add_chart_axis(egui_view_t *view, const char *name)
+{
+    showcase_focus_target_add_with_api_type(view, name, SHOWCASE_FOCUS_ACTION_NONE, 0, SHOWCASE_FOCUS_API_CHART_AXIS);
+}
+
 static void showcase_focus_target_add_textinput(egui_view_t *view, const char *name)
 {
     showcase_focus_target_add(view, name, SHOWCASE_FOCUS_ACTION_TEXTINPUT, 0);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
     showcase_focus_target_t *target = showcase_find_focus_target(view);
-    if (target != NULL)
+    egui_view_api_t *api = showcase_focus_target_get_api(target);
+    if (api != NULL)
     {
-        target->api.on_focus_changed = on_textinput_focus_changed;
-        target->api.on_key = on_textinput_key;
+        api->on_focus_changed = on_textinput_focus_changed;
+        api->on_key = on_textinput_key;
     }
 #endif
 }
 
 static void showcase_register_focus_targets(void)
 {
+#if EGUI_SHOWCASE_PARITY_RECORDING
+    s_focus_target_count = 0;
+    return;
+#else
     uint8_t toast_suppressed = s_showcase_runtime_focus_test_active;
     s_showcase_runtime_focus_test_active = 0;
 
@@ -551,10 +611,10 @@ static void showcase_register_focus_targets(void)
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_combobox), "ComboBox", SHOWCASE_FOCUS_ACTION_COMBOBOX, 0);
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_scale), "Scale", SHOWCASE_FOCUS_ACTION_NONE, 0);
 
-    showcase_focus_target_add(EGUI_VIEW_OF(&wg_chart_line), "LineChart", SHOWCASE_FOCUS_ACTION_NONE, 0);
-    showcase_focus_target_add(EGUI_VIEW_OF(&wg_chart_bar), "BarChart", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add_chart_axis(EGUI_VIEW_OF(&wg_chart_line), "LineChart");
+    showcase_focus_target_add_chart_axis(EGUI_VIEW_OF(&wg_chart_bar), "BarChart");
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_chart_pie), "PieChart", SHOWCASE_FOCUS_ACTION_NONE, 0);
-    showcase_focus_target_add(EGUI_VIEW_OF(&wg_chart_scatter), "ScatterChart", SHOWCASE_FOCUS_ACTION_NONE, 0);
+    showcase_focus_target_add_chart_axis(EGUI_VIEW_OF(&wg_chart_scatter), "ScatterChart");
 
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_aclock), "AnalogClock", SHOWCASE_FOCUS_ACTION_NONE, 0);
     showcase_focus_target_add(EGUI_VIEW_OF(&wg_dclock), "DigitalClock", SHOWCASE_FOCUS_ACTION_NONE, 0);
@@ -589,6 +649,7 @@ static void showcase_register_focus_targets(void)
     egui_view_set_gone(EGUI_VIEW_OF(&cap_dynlabel_wg), true);
 
     s_showcase_runtime_focus_test_active = toast_suppressed;
+#endif
 }
 
 // ============================================================================
@@ -778,6 +839,22 @@ static void showcase_request_parity_snapshot(const char *label)
 {
     showcase_parity_frame_label_pending = label;
     recording_request_snapshot();
+}
+
+static void showcase_apply_parity_theme_toggle(void)
+{
+    is_dark_theme = !is_dark_theme;
+    egui_view_label_set_text(EGUI_VIEW_OF(&btn_theme), is_dark_theme ? "\xee\x94\x98" : "\xee\x94\x9c");
+    update_theme();
+    update_language();
+    egui_view_clear_focus(EGUI_VIEW_OF(&root));
+}
+
+static void showcase_apply_parity_language_toggle(void)
+{
+    is_chinese = !is_chinese;
+    update_language();
+    egui_view_clear_focus(EGUI_VIEW_OF(&root));
 }
 #endif
 
@@ -2349,7 +2426,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     case 1:
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &btn_theme, 500);
+        if (first_call)
+        {
+            showcase_apply_parity_theme_toggle();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 500);
         return true;
     case 2:
         if (first_call)
@@ -2359,7 +2440,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     case 3:
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &btn_lang, 500);
+        if (first_call)
+        {
+            showcase_apply_parity_language_toggle();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 500);
         return true;
     case 4:
         if (first_call)
@@ -2520,9 +2605,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             {
                 showcase_runtime_failure("keyboard escape did not hide keyboard");
             }
-            if (egui_focus_manager_get_focused_view(s_core) != NULL)
+            if (!showcase_focused_is(EGUI_VIEW_OF(&wg_textinput)))
             {
-                showcase_runtime_failure("keyboard escape did not clear focus");
+                showcase_runtime_failure("keyboard escape did not restore textinput focus");
             }
             egui_view_request_focus(EGUI_VIEW_OF(&wg_button));
             showcase_record_key(EGUI_KEY_CODE_ESCAPE);

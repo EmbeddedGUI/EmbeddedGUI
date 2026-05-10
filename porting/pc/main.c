@@ -8,6 +8,33 @@
 
 static egui_core_t g_cores[EGUI_CONFIG_MAX_DISPLAY_COUNT];
 static egui_core_t *g_registered_cores[EGUI_CONFIG_MAX_DISPLAY_COUNT];
+#if defined(_MSC_VER)
+static SDL_SpinLock g_registered_cores_lock;
+#endif
+
+static void pc_atomic_store_core(egui_core_t **target, egui_core_t *value)
+{
+#if defined(_MSC_VER)
+    SDL_AtomicLock(&g_registered_cores_lock);
+    *target = value;
+    SDL_AtomicUnlock(&g_registered_cores_lock);
+#else
+    __atomic_store_n(target, value, __ATOMIC_RELEASE);
+#endif
+}
+
+static egui_core_t *pc_atomic_load_core(egui_core_t **target)
+{
+#if defined(_MSC_VER)
+    egui_core_t *value;
+    SDL_AtomicLock(&g_registered_cores_lock);
+    value = *target;
+    SDL_AtomicUnlock(&g_registered_cores_lock);
+    return value;
+#else
+    return __atomic_load_n(target, __ATOMIC_ACQUIRE);
+#endif
+}
 
 #ifndef EGUI_PORT_PC_CORE_TASK_QUEUE_CAPACITY
 #define EGUI_PORT_PC_CORE_TASK_QUEUE_CAPACITY 32
@@ -70,7 +97,8 @@ static pc_core_thread_context_t g_core_threads[EGUI_CONFIG_MAX_DISPLAY_COUNT];
 
 static void pc_log_core_task_post_failure(const char *context, int display_id, const char *reason)
 {
-    printf("[PC_CORE_TASK_FAIL] context=%s display=%d reason=%s\n", context != NULL ? context : "unknown", display_id, reason != NULL ? reason : "unknown");
+    egui_pc_log("[PC_CORE_TASK_FAIL] context=%s display=%d reason=%s\n", context != NULL ? context : "unknown", display_id,
+                reason != NULL ? reason : "unknown");
 }
 
 static void pc_record_core_task_wait_timeout(int display_id)
@@ -232,12 +260,17 @@ static int pc_wait_core_task_done_with_timeout(pc_core_thread_context_t *thread_
 }
 
 #if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+#if defined(_MSC_VER)
+int egui_port_get_additional_display_descriptors_default(egui_port_extra_display_descriptor_t *descriptors, int max_count)
+#else
 __EGUI_WEAK__ int egui_port_get_additional_display_descriptors(egui_port_extra_display_descriptor_t *descriptors, int max_count)
+#endif
 {
     EGUI_UNUSED(descriptors);
     EGUI_UNUSED(max_count);
     return 0;
 }
+__EGUI_MSVC_ALTERNATE_NAME(egui_port_get_additional_display_descriptors, egui_port_get_additional_display_descriptors_default)
 #endif
 
 void egui_port_register_core(egui_core_t *core_inst)
@@ -247,7 +280,7 @@ void egui_port_register_core(egui_core_t *core_inst)
     display_id = (int)core_inst->id;
     EGUI_ASSERT(display_id >= 0 && display_id < EGUI_CONFIG_MAX_DISPLAY_COUNT);
     EGUI_ASSERT(core_inst == &g_cores[display_id]);
-    __atomic_store_n(&g_registered_cores[display_id], core_inst, __ATOMIC_RELEASE);
+    pc_atomic_store_core(&g_registered_cores[display_id], core_inst);
 }
 
 egui_core_t *egui_port_get_core_by_display_id(int display_id)
@@ -257,7 +290,7 @@ egui_core_t *egui_port_get_core_by_display_id(int display_id)
     {
         return NULL;
     }
-    return __atomic_load_n(&g_registered_cores[display_id], __ATOMIC_ACQUIRE);
+    return pc_atomic_load_core(&g_registered_cores[display_id]);
 }
 
 int egui_port_post_core_task(egui_core_t *core, egui_port_core_task_func_t task_func, uintptr_t user_data)
@@ -835,16 +868,16 @@ static void pc_stop_core_threads(void)
         }
         if (g_core_threads[display_id].core != NULL)
         {
-            printf("%s display=%d queue_capacity=%d posted=%lu retries=%lu max_retry_burst=%lu rejected=%lu wait_timeouts=%lu peak_queue=%u pending=%u "
-                   "inflight=%u max_queue_wait_ms=%lu max_queue_wait_ctx=%s max_exec_time_ms=%lu max_exec_time_ctx=%s\n",
-                   SHUTDOWN_MARKER_PREFIX, display_id, PC_CORE_TASK_QUEUE_CAPACITY, (unsigned long)g_core_threads[display_id].task_post_success_count,
-                   (unsigned long)g_core_threads[display_id].task_post_retry_count, (unsigned long)g_core_threads[display_id].task_post_max_retry_burst,
-                   (unsigned long)g_core_threads[display_id].task_post_reject_count, (unsigned long)g_core_threads[display_id].task_wait_timeout_count,
-                   (unsigned int)g_core_threads[display_id].task_peak_count, (unsigned int)g_core_threads[display_id].task_count,
-                   (unsigned int)g_core_threads[display_id].task_inflight_count, (unsigned long)g_core_threads[display_id].task_max_queue_wait_ms,
-                   g_core_threads[display_id].task_max_queue_wait_context != NULL ? g_core_threads[display_id].task_max_queue_wait_context : "none",
-                   (unsigned long)g_core_threads[display_id].task_max_exec_time_ms,
-                   g_core_threads[display_id].task_max_exec_time_context != NULL ? g_core_threads[display_id].task_max_exec_time_context : "none");
+            egui_pc_log("%s display=%d queue_capacity=%d posted=%lu retries=%lu max_retry_burst=%lu rejected=%lu wait_timeouts=%lu peak_queue=%u pending=%u "
+                        "inflight=%u max_queue_wait_ms=%lu max_queue_wait_ctx=%s max_exec_time_ms=%lu max_exec_time_ctx=%s\n",
+                        SHUTDOWN_MARKER_PREFIX, display_id, PC_CORE_TASK_QUEUE_CAPACITY, (unsigned long)g_core_threads[display_id].task_post_success_count,
+                        (unsigned long)g_core_threads[display_id].task_post_retry_count, (unsigned long)g_core_threads[display_id].task_post_max_retry_burst,
+                        (unsigned long)g_core_threads[display_id].task_post_reject_count, (unsigned long)g_core_threads[display_id].task_wait_timeout_count,
+                        (unsigned int)g_core_threads[display_id].task_peak_count, (unsigned int)g_core_threads[display_id].task_count,
+                        (unsigned int)g_core_threads[display_id].task_inflight_count, (unsigned long)g_core_threads[display_id].task_max_queue_wait_ms,
+                        g_core_threads[display_id].task_max_queue_wait_context != NULL ? g_core_threads[display_id].task_max_queue_wait_context : "none",
+                        (unsigned long)g_core_threads[display_id].task_max_exec_time_ms,
+                        g_core_threads[display_id].task_max_exec_time_context != NULL ? g_core_threads[display_id].task_max_exec_time_context : "none");
         }
         if (g_core_threads[display_id].task_mutex != NULL)
         {
@@ -859,7 +892,7 @@ static void pc_stop_core_threads(void)
         g_core_threads[display_id].core = NULL;
     }
 
-    printf("%s core_threads_stopped=%d\n", SHUTDOWN_MARKER_PREFIX, stopped_threads);
+    egui_pc_log("%s core_threads_stopped=%d\n", SHUTDOWN_MARKER_PREFIX, stopped_threads);
 }
 
 static int pc_start_registered_core_threads(void)
@@ -868,7 +901,7 @@ static int pc_start_registered_core_threads(void)
 
     for (int display_id = 0; display_id < EGUI_CONFIG_MAX_DISPLAY_COUNT; display_id++)
     {
-        egui_core_t *registered = __atomic_load_n(&g_registered_cores[display_id], __ATOMIC_ACQUIRE);
+        egui_core_t *registered = pc_atomic_load_core(&g_registered_cores[display_id]);
         pc_core_thread_context_t *thread_ctx;
 
         if (registered == NULL)
@@ -882,14 +915,14 @@ static int pc_start_registered_core_threads(void)
         thread_ctx->task_mutex = SDL_CreateMutex();
         if (thread_ctx->task_mutex == NULL)
         {
-            printf("Failed to create task mutex for display %d: %s\n", display_id, SDL_GetError());
+            egui_pc_log("Failed to create task mutex for display %d: %s\n", display_id, SDL_GetError());
             pc_stop_core_threads();
             return -1;
         }
         thread_ctx->wake_sem = SDL_CreateSemaphore(0);
         if (thread_ctx->wake_sem == NULL)
         {
-            printf("Failed to create wake semaphore for display %d: %s\n", display_id, SDL_GetError());
+            egui_pc_log("Failed to create wake semaphore for display %d: %s\n", display_id, SDL_GetError());
             pc_stop_core_threads();
             return -1;
         }
@@ -898,7 +931,7 @@ static int pc_start_registered_core_threads(void)
         thread_ctx->thread = SDL_CreateThread(pc_core_thread_entry, thread_ctx->name, thread_ctx);
         if (thread_ctx->thread == NULL)
         {
-            printf("Failed to create egui thread for display %d: %s\n", display_id, SDL_GetError());
+            egui_pc_log("Failed to create egui thread for display %d: %s\n", display_id, SDL_GetError());
             pc_stop_core_threads();
             return -1;
         }
@@ -909,7 +942,8 @@ static int pc_start_registered_core_threads(void)
 
 int main(int argc, const char *argv[])
 {
-    printf("Hello, egui!\n");
+    egui_pc_log_init();
+    egui_pc_log("Hello, egui!\n");
 
     pasre_input_params(argc, argv);
     parse_recording_params(argc, argv);
@@ -934,7 +968,7 @@ int main(int argc, const char *argv[])
 #endif
                          uicode_disp0_init) != 0)
     {
-        printf("Failed to setup primary display.\n");
+        egui_pc_log("Failed to setup primary display.\n");
         VT_deinit();
         return -1;
     }
@@ -949,7 +983,7 @@ int main(int argc, const char *argv[])
 
         if (extra_display_count < 0 || extra_display_count > (EGUI_CONFIG_MAX_DISPLAY_COUNT - 1))
         {
-            printf("Invalid additional display count: %d\n", extra_display_count);
+            egui_pc_log("Invalid additional display count: %d\n", extra_display_count);
             VT_deinit();
             return -1;
         }
@@ -963,7 +997,7 @@ int main(int argc, const char *argv[])
             sub_driver = egui_port_create_sub_display(&g_cores[0], display_id, descriptor->screen_width, descriptor->screen_height);
             if (sub_driver == NULL)
             {
-                printf("Failed to create sub display driver for display %d.\n", display_id);
+                egui_pc_log("Failed to create sub display driver for display %d.\n", display_id);
                 VT_deinit();
                 return -1;
             }
@@ -972,7 +1006,7 @@ int main(int argc, const char *argv[])
                                  descriptor->pfb_height, descriptor->pfb_buffers, descriptor->pfb_buffer_count, sub_driver, descriptor->render_config,
                                  descriptor->touch_register, descriptor->uicode_init) != 0)
             {
-                printf("Failed to setup additional display %d.\n", display_id);
+                egui_pc_log("Failed to setup additional display %d.\n", display_id);
                 VT_deinit();
                 return -1;
             }

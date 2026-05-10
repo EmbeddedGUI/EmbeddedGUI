@@ -14,8 +14,16 @@ extern "C" {
 #define EGUI_BACKGROUND_GRADIENT_DIR_HORIZONTAL 1
 
 /** Build one two-stop gradient parameter block. */
-#define EGUI_BACKGROUND_GRADIENT_PARAM_INIT(_name, _dir, _start_color, _end_color, _alpha)                                                                     \
+#define EGUI_BACKGROUND_GRADIENT_PARAM_INIT_COLOR(_name, _dir, _start_color, _end_color, _alpha)                                                               \
     static const egui_background_gradient_param_t _name = {.direction = _dir, .alpha = _alpha, .start_color = _start_color, .end_color = _end_color}
+
+#if defined(_MSC_VER)
+#define EGUI_BACKGROUND_GRADIENT_PARAM_INIT(_name, _dir, _start_color, _end_color, _alpha)                                                                     \
+    EGUI_BACKGROUND_GRADIENT_PARAM_INIT_COLOR(_name, _dir, _start_color##_INIT, _end_color##_INIT, _alpha)
+#else
+#define EGUI_BACKGROUND_GRADIENT_PARAM_INIT(_name, _dir, _start_color, _end_color, _alpha)                                                                     \
+    EGUI_BACKGROUND_GRADIENT_PARAM_INIT_COLOR(_name, _dir, (_start_color), (_end_color), _alpha)
+#endif
 
 extern const egui_background_api_t egui_background_gradient_t_api_table;
 

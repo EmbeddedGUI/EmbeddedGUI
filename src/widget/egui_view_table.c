@@ -33,6 +33,20 @@ void egui_view_table_set_cell(egui_view_t *self, uint8_t row, uint8_t col, const
     egui_view_invalidate(self);
 }
 
+static void egui_view_table_clear_cells(egui_view_table_t *local)
+{
+    uint8_t row;
+    uint8_t col;
+
+    for (row = 0; row < EGUI_VIEW_TABLE_MAX_ROWS; row++)
+    {
+        for (col = 0; col < EGUI_VIEW_TABLE_MAX_COLS; col++)
+        {
+            local->cells[row][col] = NULL;
+        }
+    }
+}
+
 /** Clamp the visible row and column counts to the built-in storage capacity. */
 void egui_view_table_set_size(egui_view_t *self, uint8_t rows, uint8_t cols)
 {
@@ -191,7 +205,7 @@ void egui_view_table_init(egui_view_t *self, egui_core_t *core)
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_table_t);
 
     // init local data.
-    egui_api_memset(local->cells, 0, sizeof(local->cells));
+    egui_view_table_clear_cells(local);
     local->row_count = 0;
     local->col_count = 0;
     local->header_rows = 1;

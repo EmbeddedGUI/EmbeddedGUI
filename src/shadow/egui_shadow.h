@@ -28,18 +28,40 @@ struct egui_shadow
 };
 
 /** Build one square-corner shadow descriptor without spread. */
-#define EGUI_SHADOW_PARAM_INIT(_name, _width, _ofs_x, _ofs_y, _color, _opa)                                                                                    \
+#define EGUI_SHADOW_PARAM_INIT_COLOR(_name, _width, _ofs_x, _ofs_y, _color, _opa)                                                                              \
     static const egui_shadow_t _name = {.width = _width, .ofs_x = _ofs_x, .ofs_y = _ofs_y, .spread = 0, .opa = _opa, .color = _color, .corner_radius = 0}
 
+#if defined(_MSC_VER)
+#define EGUI_SHADOW_PARAM_INIT(_name, _width, _ofs_x, _ofs_y, _color, _opa) EGUI_SHADOW_PARAM_INIT_COLOR(_name, _width, _ofs_x, _ofs_y, _color##_INIT, _opa)
+#else
+#define EGUI_SHADOW_PARAM_INIT(_name, _width, _ofs_x, _ofs_y, _color, _opa) EGUI_SHADOW_PARAM_INIT_COLOR(_name, _width, _ofs_x, _ofs_y, (_color), _opa)
+#endif
+
 /** Build one rounded shadow descriptor without spread. */
-#define EGUI_SHADOW_PARAM_INIT_ROUND(_name, _width, _ofs_x, _ofs_y, _color, _opa, _corner_radius)                                                              \
+#define EGUI_SHADOW_PARAM_INIT_ROUND_COLOR(_name, _width, _ofs_x, _ofs_y, _color, _opa, _corner_radius)                                                        \
     static const egui_shadow_t _name = {                                                                                                                       \
             .width = _width, .ofs_x = _ofs_x, .ofs_y = _ofs_y, .spread = 0, .opa = _opa, .color = _color, .corner_radius = _corner_radius}
 
+#if defined(_MSC_VER)
+#define EGUI_SHADOW_PARAM_INIT_ROUND(_name, _width, _ofs_x, _ofs_y, _color, _opa, _corner_radius)                                                              \
+    EGUI_SHADOW_PARAM_INIT_ROUND_COLOR(_name, _width, _ofs_x, _ofs_y, _color##_INIT, _opa, _corner_radius)
+#else
+#define EGUI_SHADOW_PARAM_INIT_ROUND(_name, _width, _ofs_x, _ofs_y, _color, _opa, _corner_radius)                                                              \
+    EGUI_SHADOW_PARAM_INIT_ROUND_COLOR(_name, _width, _ofs_x, _ofs_y, (_color), _opa, _corner_radius)
+#endif
+
 /** Build one full shadow descriptor with explicit spread and corner radius. */
-#define EGUI_SHADOW_PARAM_INIT_FULL(_name, _width, _ofs_x, _ofs_y, _spread, _color, _opa, _corner_radius)                                                      \
+#define EGUI_SHADOW_PARAM_INIT_FULL_COLOR(_name, _width, _ofs_x, _ofs_y, _spread, _color, _opa, _corner_radius)                                                \
     static const egui_shadow_t _name = {                                                                                                                       \
             .width = _width, .ofs_x = _ofs_x, .ofs_y = _ofs_y, .spread = _spread, .opa = _opa, .color = _color, .corner_radius = _corner_radius}
+
+#if defined(_MSC_VER)
+#define EGUI_SHADOW_PARAM_INIT_FULL(_name, _width, _ofs_x, _ofs_y, _spread, _color, _opa, _corner_radius)                                                      \
+    EGUI_SHADOW_PARAM_INIT_FULL_COLOR(_name, _width, _ofs_x, _ofs_y, _spread, _color##_INIT, _opa, _corner_radius)
+#else
+#define EGUI_SHADOW_PARAM_INIT_FULL(_name, _width, _ofs_x, _ofs_y, _spread, _color, _opa, _corner_radius)                                                      \
+    EGUI_SHADOW_PARAM_INIT_FULL_COLOR(_name, _width, _ofs_x, _ofs_y, _spread, (_color), _opa, _corner_radius)
+#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
 

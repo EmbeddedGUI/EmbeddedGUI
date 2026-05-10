@@ -71,8 +71,18 @@ void egui_scroller_start_filing(egui_scroller_t *self, egui_core_t *core, egui_d
     self->duration = EGUI_ABS(velocity) / EGUI_SCROLLER_DECCELERATION; // unit is milliseconds
 
     uint32_t total_distance = (uint32_t)(EGUI_FLOAT_MULT(velocity, velocity) / (EGUI_SCROLLER_DECCELERATION * 2));
+    int delta_limit = EGUI_ABS(delta);
 
-    self->delta = EGUI_MIN(EGUI_ABS(delta), total_distance);
+    if (delta_limit > EGUI_DIM_MAX)
+    {
+        delta_limit = EGUI_DIM_MAX;
+    }
+    if (total_distance > (uint32_t)EGUI_DIM_MAX)
+    {
+        total_distance = (uint32_t)EGUI_DIM_MAX;
+    }
+
+    self->delta = total_distance < (uint32_t)delta_limit ? (egui_dim_t)total_distance : (egui_dim_t)delta_limit;
     self->delta_offset = 0;
 
     if (velocity < 0)

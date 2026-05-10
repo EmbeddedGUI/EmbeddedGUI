@@ -66,13 +66,20 @@ static void pc_assert_handler(const char *file, int line)
     char s_buf[0x200];
     memset(s_buf, 0, sizeof(s_buf));
     sprintf(s_buf, "vvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\nAssert@ file = %s, line = %d\n\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n", file, line);
-    printf("%s", s_buf);
+    egui_pc_log("%s", s_buf);
 #else
-    printf("Assert@ file = %s, line = %d\n", file, line);
+    egui_pc_log("Assert@ file = %s, line = %d\n", file, line);
 #endif
     while (1)
         ;
 }
+
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+static void pc_vlog(const char *format, va_list args)
+{
+    egui_pc_vlog(format, args);
+}
+#endif
 
 static void pc_delay(uint32_t ms)
 {
@@ -266,6 +273,9 @@ static void pc_load_external_resource(egui_core_t *core, void *dest, egui_uintpt
 #endif
 
 static const egui_platform_ops_t pc_platform_ops = {
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+        .vlog = pc_vlog,
+#endif
         .assert_handler = pc_assert_handler,
         .delay = pc_delay,
         .get_tick_ms = pc_get_tick_ms,

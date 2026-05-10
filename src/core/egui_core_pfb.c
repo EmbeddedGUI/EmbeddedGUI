@@ -48,11 +48,16 @@ void egui_core_pfb_set_buffer(egui_core_t *core, egui_color_int_t *pfb, uint16_t
 }
 
 /** Weak extension hook that lets ports or applications suggest a preferred logical probe width. */
+#if defined(_MSC_VER)
+egui_dim_t egui_core_get_logical_pfb_target_width_hint_default(egui_core_t *core)
+#else
 __EGUI_WEAK__ egui_dim_t egui_core_get_logical_pfb_target_width_hint(egui_core_t *core)
+#endif
 {
     EGUI_UNUSED(core);
     return 0;
 }
+__EGUI_MSVC_ALTERNATE_NAME(egui_core_get_logical_pfb_target_width_hint, egui_core_get_logical_pfb_target_width_hint_default)
 
 /** Pick a wider logical probe width when the same pixel budget can form a useful alternative tile shape. */
 static egui_dim_t egui_core_get_logical_pfb_probe_width(egui_core_t *core, uint32_t pfb_total_pixel_count)

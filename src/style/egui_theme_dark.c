@@ -3,15 +3,15 @@
 #include "shadow/egui_shadow.h"
 
 /* Dark theme color tokens */
-#define DARK_BG         EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B) /* Slate 800 */
-#define DARK_SURFACE    EGUI_COLOR_MAKE(0x33, 0x41, 0x55) /* Slate 700 */
-#define DARK_BORDER     EGUI_COLOR_MAKE(0x47, 0x55, 0x69) /* Slate 600 */
-#define DARK_TEXT       EGUI_COLOR_MAKE(0xF1, 0xF5, 0xF9) /* Slate 100 */
-#define DARK_TEXT_SEC   EGUI_COLOR_MAKE(0x94, 0xA3, 0xB8) /* Slate 400 */
-#define DARK_PRIMARY    EGUI_COLOR_MAKE(0x60, 0xA5, 0xFA) /* Blue 400 */
-#define DARK_PRIMARY_DK EGUI_COLOR_MAKE(0x3B, 0x82, 0xF6) /* Blue 500 */
-#define DARK_TRACK      EGUI_COLOR_MAKE(0x47, 0x55, 0x69) /* Slate 600 */
-#define DARK_DISABLED   EGUI_COLOR_MAKE(0x64, 0x74, 0x8B) /* Slate 500 */
+#define DARK_BG_INIT         EGUI_COLOR_MAKE_INIT(0x1E, 0x29, 0x3B) /* Slate 800 */
+#define DARK_SURFACE_INIT    EGUI_COLOR_MAKE_INIT(0x33, 0x41, 0x55) /* Slate 700 */
+#define DARK_BORDER_INIT     EGUI_COLOR_MAKE_INIT(0x47, 0x55, 0x69) /* Slate 600 */
+#define DARK_TEXT_INIT       EGUI_COLOR_MAKE_INIT(0xF1, 0xF5, 0xF9) /* Slate 100 */
+#define DARK_TEXT_SEC_INIT   EGUI_COLOR_MAKE_INIT(0x94, 0xA3, 0xB8) /* Slate 400 */
+#define DARK_PRIMARY_INIT    EGUI_COLOR_MAKE_INIT(0x60, 0xA5, 0xFA) /* Blue 400 */
+#define DARK_PRIMARY_DK_INIT EGUI_COLOR_MAKE_INIT(0x3B, 0x82, 0xF6) /* Blue 500 */
+#define DARK_TRACK_INIT      EGUI_COLOR_MAKE_INIT(0x47, 0x55, 0x69) /* Slate 600 */
+#define DARK_DISABLED_INIT   EGUI_COLOR_MAKE_INIT(0x64, 0x74, 0x8B) /* Slate 500 */
 
 /* ------------------------------------------------------------------ */
 /* Shadows                                                            */
@@ -23,7 +23,7 @@ static const egui_shadow_t dark_shadow_sm = {
         .ofs_y = EGUI_THEME_SHADOW_OFS_Y_SM,
         .spread = 0,
         .opa = EGUI_THEME_SHADOW_OPA,
-        .color = EGUI_COLOR_BLACK,
+        .color = EGUI_COLOR_BLACK_INIT,
         .corner_radius = EGUI_THEME_RADIUS_MD,
 };
 
@@ -33,7 +33,7 @@ static const egui_shadow_t dark_shadow_md = {
         .ofs_y = EGUI_THEME_SHADOW_OFS_Y_MD,
         .spread = 0,
         .opa = EGUI_THEME_SHADOW_OPA,
-        .color = EGUI_COLOR_BLACK,
+        .color = EGUI_COLOR_BLACK_INIT,
         .corner_radius = EGUI_THEME_RADIUS_LG,
 };
 
@@ -43,10 +43,10 @@ static const egui_shadow_t dark_shadow_md = {
 
 static const egui_style_t dark_btn_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_TEXT_COLOR | EGUI_STYLE_PROP_SHADOW | EGUI_STYLE_PROP_PADDING,
-        .bg_color = DARK_PRIMARY,
+        .bg_color = DARK_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = DARK_PRIMARY,
+        .border_color = DARK_PRIMARY_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_MD,
@@ -54,7 +54,7 @@ static const egui_style_t dark_btn_normal = {
         .pad_bottom = 6,
         .pad_left = 12,
         .pad_right = 12,
-        .text_color = DARK_BG,
+        .text_color = DARK_BG_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = &dark_shadow_sm,
@@ -62,10 +62,10 @@ static const egui_style_t dark_btn_normal = {
 
 static const egui_style_t dark_btn_pressed = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_TEXT_COLOR | EGUI_STYLE_PROP_PADDING,
-        .bg_color = DARK_PRIMARY_DK,
+        .bg_color = DARK_PRIMARY_DK_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = DARK_PRIMARY_DK,
+        .border_color = DARK_PRIMARY_DK_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_MD,
@@ -73,7 +73,7 @@ static const egui_style_t dark_btn_pressed = {
         .pad_bottom = 6,
         .pad_left = 12,
         .pad_right = 12,
-        .text_color = DARK_BG,
+        .text_color = DARK_BG_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -81,10 +81,10 @@ static const egui_style_t dark_btn_pressed = {
 
 static const egui_style_t dark_btn_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_TEXT_COLOR | EGUI_STYLE_PROP_PADDING,
-        .bg_color = DARK_DISABLED,
+        .bg_color = DARK_DISABLED_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = DARK_DISABLED,
+        .border_color = DARK_DISABLED_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_MD,
@@ -92,7 +92,7 @@ static const egui_style_t dark_btn_disabled = {
         .pad_bottom = 6,
         .pad_left = 12,
         .pad_right = 12,
-        .text_color = DARK_TEXT_SEC,
+        .text_color = DARK_TEXT_SEC_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -121,7 +121,7 @@ static const egui_style_t dark_label_normal = {
         .pad_bottom = 0,
         .pad_left = 0,
         .pad_right = 0,
-        .text_color = DARK_TEXT,
+        .text_color = DARK_TEXT_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -140,7 +140,7 @@ static const egui_style_t dark_label_disabled = {
         .pad_bottom = 0,
         .pad_left = 0,
         .pad_right = 0,
-        .text_color = DARK_TEXT_SEC,
+        .text_color = DARK_TEXT_SEC_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -158,7 +158,7 @@ static const egui_widget_style_desc_t dark_label_desc = {.part_count = 1, .style
 
 static const egui_style_t dark_sw_track_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_TRACK,
+        .bg_color = DARK_TRACK_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -177,7 +177,7 @@ static const egui_style_t dark_sw_track_normal = {
 
 static const egui_style_t dark_sw_track_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_DISABLED,
+        .bg_color = DARK_DISABLED_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -196,7 +196,7 @@ static const egui_style_t dark_sw_track_disabled = {
 
 static const egui_style_t dark_sw_track_checked = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_PRIMARY,
+        .bg_color = DARK_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -215,7 +215,7 @@ static const egui_style_t dark_sw_track_checked = {
 
 static const egui_style_t dark_sw_thumb_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_SHADOW,
-        .bg_color = DARK_TEXT,
+        .bg_color = DARK_TEXT_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -245,7 +245,7 @@ static const egui_widget_style_desc_t dark_sw_desc = {.part_count = 2, .styles =
 
 static const egui_style_t dark_slider_track = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_TRACK,
+        .bg_color = DARK_TRACK_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -264,7 +264,7 @@ static const egui_style_t dark_slider_track = {
 
 static const egui_style_t dark_slider_track_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_DISABLED,
+        .bg_color = DARK_DISABLED_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -283,7 +283,7 @@ static const egui_style_t dark_slider_track_disabled = {
 
 static const egui_style_t dark_slider_indicator = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_PRIMARY,
+        .bg_color = DARK_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -302,7 +302,7 @@ static const egui_style_t dark_slider_indicator = {
 
 static const egui_style_t dark_slider_indicator_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_TEXT_SEC,
+        .bg_color = DARK_TEXT_SEC_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -321,7 +321,7 @@ static const egui_style_t dark_slider_indicator_disabled = {
 
 static const egui_style_t dark_slider_knob = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_SHADOW,
-        .bg_color = DARK_TEXT,
+        .bg_color = DARK_TEXT_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -340,7 +340,7 @@ static const egui_style_t dark_slider_knob = {
 
 static const egui_style_t dark_slider_knob_pressed = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_SHADOW,
-        .bg_color = DARK_PRIMARY,
+        .bg_color = DARK_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -372,10 +372,10 @@ static const egui_widget_style_desc_t dark_slider_desc = {.part_count = 3, .styl
 
 static const egui_style_t dark_cb_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_BORDER | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_SURFACE,
+        .bg_color = DARK_SURFACE_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = DARK_BORDER,
+        .border_color = DARK_BORDER_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 2,
         .radius = EGUI_THEME_RADIUS_SM,
@@ -391,10 +391,10 @@ static const egui_style_t dark_cb_normal = {
 
 static const egui_style_t dark_cb_disabled = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_BORDER | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_DISABLED,
+        .bg_color = DARK_DISABLED_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = DARK_DISABLED,
+        .border_color = DARK_DISABLED_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 2,
         .radius = EGUI_THEME_RADIUS_SM,
@@ -410,10 +410,10 @@ static const egui_style_t dark_cb_disabled = {
 
 static const egui_style_t dark_cb_checked = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_PRIMARY,
+        .bg_color = DARK_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = DARK_PRIMARY,
+        .border_color = DARK_PRIMARY_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_SM,
@@ -421,7 +421,7 @@ static const egui_style_t dark_cb_checked = {
         .pad_bottom = 0,
         .pad_left = 0,
         .pad_right = 0,
-        .text_color = DARK_BG,
+        .text_color = DARK_BG_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = NULL,
@@ -439,10 +439,10 @@ static const egui_widget_style_desc_t dark_cb_desc = {.part_count = 1, .styles =
 
 static const egui_style_t dark_card_normal = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS | EGUI_STYLE_PROP_SHADOW | EGUI_STYLE_PROP_PADDING,
-        .bg_color = DARK_SURFACE,
+        .bg_color = DARK_SURFACE_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
-        .border_color = DARK_BORDER,
+        .border_color = DARK_BORDER_INIT,
         .border_alpha = EGUI_ALPHA_COVER,
         .border_width = 0,
         .radius = EGUI_THEME_RADIUS_LG,
@@ -450,7 +450,7 @@ static const egui_style_t dark_card_normal = {
         .pad_bottom = 12,
         .pad_left = 12,
         .pad_right = 12,
-        .text_color = DARK_TEXT,
+        .text_color = DARK_TEXT_INIT,
         .text_alpha = EGUI_ALPHA_COVER,
         .text_font = NULL,
         .shadow = &dark_shadow_md,
@@ -468,7 +468,7 @@ static const egui_widget_style_desc_t dark_card_desc = {.part_count = 1, .styles
 
 static const egui_style_t dark_pb_track = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_TRACK,
+        .bg_color = DARK_TRACK_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},
@@ -487,7 +487,7 @@ static const egui_style_t dark_pb_track = {
 
 static const egui_style_t dark_pb_indicator = {
         .flags = EGUI_STYLE_PROP_BG_COLOR | EGUI_STYLE_PROP_RADIUS,
-        .bg_color = DARK_PRIMARY,
+        .bg_color = DARK_PRIMARY_INIT,
         .bg_alpha = EGUI_ALPHA_COVER,
         .bg_gradient = NULL,
         .border_color = {0},

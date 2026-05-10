@@ -207,7 +207,7 @@ int egui_input_add_motion_points(egui_core_t *core, uint8_t type, uint8_t pointe
     }
 
     __egui_disable_isr();
-    egui_motion_event_t *motion_event;
+    egui_motion_event_t *motion_event = NULL;
     egui_motion_event_t *last_motion_event;
     int is_reused = 0;
 
@@ -251,7 +251,7 @@ int egui_input_add_motion(egui_core_t *core, uint8_t type, egui_dim_t x, egui_di
     // EGUI_LOG_DBG("egui_input_add_motion type:%d x:%d y:%d\n", type, x, y);
     __egui_disable_isr();
 
-    egui_motion_event_t *motion_event;
+    egui_motion_event_t *motion_event = NULL;
     // Merge move events with the same type and location
     egui_motion_event_t *last_motion_event;
     int is_reused = 0;

@@ -655,8 +655,8 @@ static void egui_view_keyboard_key_on_draw_focus_frame(egui_view_t *self, const 
 
     x = self->region_screen.location.x - frame_region->location.x;
     y = self->region_screen.location.y - frame_region->location.y;
-    egui_canvas_draw_rectangle(canvas, x, y, self->region_screen.size.width, self->region_screen.size.height, self->focus_frame_stroke,
-                               self->focus_frame_color, self->focus_frame_alpha);
+    egui_canvas_draw_rectangle(canvas, x, y, self->region_screen.size.width, self->region_screen.size.height, self->focus_frame_stroke, self->focus_frame_color,
+                               self->focus_frame_alpha);
 }
 
 // ============== Public API ==============

@@ -21,25 +21,24 @@
 void egui_view_dynamic_label_set_text(egui_view_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_dynamic_label_t);
-    int len = strlen(text);
-    // Clamp to the internal buffer size so the embedded label always points to valid storage.
-    if (len > EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE)
+    size_t len = strlen(text);
+    size_t copy_len;
+
+    // Leave room for the terminator so the embedded label always points to valid storage.
+    if (len >= EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE)
     {
-        len = EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE;
+        len = EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE - 1;
     }
+    copy_len = len;
+
     // Skip invalidation when the copied text would be byte-for-byte identical.
-    for (int i = 0; i < EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE; i++)
+    if (strncmp(local->text_buffer, text, copy_len) == 0 && local->text_buffer[copy_len] == '\0')
     {
-        if (text[i] != local->text_buffer[i])
-        {
-            break;
-        }
-        if (text[i] == '\0')
-        {
-            return;
-        }
+        return;
     }
-    egui_api_memcpy(local->text_buffer, text, len + 1);
+
+    egui_api_memcpy(local->text_buffer, text, (int)copy_len);
+    local->text_buffer[copy_len] = '\0';
 
     egui_view_invalidate(self);
 }

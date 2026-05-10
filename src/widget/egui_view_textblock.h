@@ -88,17 +88,25 @@ struct egui_view_textblock_params
     uint8_t is_scroll_enabled;
 };
 
-#define EGUI_VIEW_TEXTBLOCK_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                                   \
+#define EGUI_VIEW_TEXTBLOCK_PARAMS_INIT_COLOR(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                             \
     static const egui_view_textblock_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                                 \
                                                        .align_type = EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP,                                                         \
                                                        .is_auto_wrap_enabled = 1,                                                                              \
                                                        .is_scroll_enabled = 1,                                                                                 \
                                                        .text = (_text),                                                                                        \
                                                        .font = (const egui_font_t *)(_font),                                                                   \
-                                                       .color = (_color),                                                                                      \
+                                                       .color = _color,                                                                                        \
                                                        .alpha = (_alpha),                                                                                      \
                                                        .line_space = 2,                                                                                        \
                                                        .max_lines = 0}
+
+#if defined(_MSC_VER)
+#define EGUI_VIEW_TEXTBLOCK_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                                   \
+    EGUI_VIEW_TEXTBLOCK_PARAMS_INIT_COLOR(_name, _x, _y, _w, _h, _text, _font, _color##_INIT, _alpha)
+#else
+#define EGUI_VIEW_TEXTBLOCK_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                                   \
+    EGUI_VIEW_TEXTBLOCK_PARAMS_INIT_COLOR(_name, _x, _y, _w, _h, _text, _font, (_color), _alpha)
+#endif
 
 #define EGUI_VIEW_TEXTBLOCK_PARAMS_INIT_SIMPLE(_name, _x, _y, _w, _h, _text)                                                                                   \
     static const egui_view_textblock_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                                 \
@@ -107,7 +115,7 @@ struct egui_view_textblock_params
                                                        .is_scroll_enabled = 1,                                                                                 \
                                                        .text = (_text),                                                                                        \
                                                        .font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT,                                                  \
-                                                       .color = EGUI_COLOR_WHITE,                                                                              \
+                                                       .color = EGUI_COLOR_WHITE_INIT,                                                                         \
                                                        .alpha = EGUI_ALPHA_100,                                                                                \
                                                        .line_space = 2,                                                                                        \
                                                        .max_lines = 0}

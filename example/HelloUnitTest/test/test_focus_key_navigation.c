@@ -651,7 +651,7 @@ static void test_keyboard_keys_support_focus_navigation_and_hide(void)
     test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_ESCAPE);
     EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&keyboard_view)->is_visible);
     EGUI_TEST_ASSERT_NULL(keyboard_view.target);
-    EGUI_TEST_ASSERT_NULL(egui_focus_manager_get_focused_view(core));
+    EGUI_TEST_ASSERT_TRUE(egui_focus_manager_get_focused_view(core) == EGUI_VIEW_OF(&keyboard_textinput));
 
     test_focus_key_teardown_root();
 }

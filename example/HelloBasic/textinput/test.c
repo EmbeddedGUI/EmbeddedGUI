@@ -23,11 +23,11 @@ static egui_view_label_t label_result;
 static egui_view_keyboard_t keyboard;
 
 // Background for text input - normal
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(bg_textinput_param_normal, EGUI_COLOR_MAKE(0x30, 0x30, 0x30), EGUI_ALPHA_100, 4, 1,
-                                                        EGUI_COLOR_LIGHT_GREY, EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(bg_textinput_param_normal, EGUI_COLOR_MAKE_INIT(0x30, 0x30, 0x30), EGUI_ALPHA_100, 4, 1,
+                                                              EGUI_COLOR_LIGHT_GREY_INIT, EGUI_ALPHA_100);
 // Background for text input - focused
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(bg_textinput_param_focused, EGUI_COLOR_MAKE(0x30, 0x30, 0x30), EGUI_ALPHA_100, 4, 2, EGUI_COLOR_GREEN,
-                                                        EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(bg_textinput_param_focused, EGUI_COLOR_MAKE_INIT(0x30, 0x30, 0x30), EGUI_ALPHA_100, 4, 2,
+                                                              EGUI_COLOR_GREEN_INIT, EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT_WITH_FOCUS(bg_textinput_params, &bg_textinput_param_normal, NULL, NULL, &bg_textinput_param_focused);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_textinput, &bg_textinput_params);
 

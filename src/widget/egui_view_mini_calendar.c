@@ -54,6 +54,16 @@ static uint8_t is_weekend_col(uint8_t col, uint8_t first_day_of_week)
 static const char *const egui_view_mini_calendar_default_weekdays_sun[] = {"S", "M", "T", "W", "T", "F", "S"};
 static const char *const egui_view_mini_calendar_default_weekdays_mon[] = {"M", "T", "W", "T", "F", "S", "S"};
 
+static void egui_view_mini_calendar_clear_weekday_labels(egui_view_mini_calendar_t *local)
+{
+    uint8_t i;
+
+    for (i = 0; i < 7; i++)
+    {
+        local->weekday_labels[i] = NULL;
+    }
+}
+
 static const char *const *egui_view_mini_calendar_get_weekday_labels(egui_view_mini_calendar_t *local)
 {
     if (local->weekday_labels[0] != NULL)
@@ -226,7 +236,7 @@ void egui_view_mini_calendar_set_weekday_labels(egui_view_t *self, const char *c
 
     if (labels == NULL)
     {
-        egui_api_memset(local->weekday_labels, 0, (int)sizeof(local->weekday_labels));
+        egui_view_mini_calendar_clear_weekday_labels(local);
     }
     else
     {
@@ -625,7 +635,7 @@ void egui_view_mini_calendar_init(egui_view_t *self, egui_core_t *core)
     local->selected_color = EGUI_THEME_SECONDARY;
     local->weekend_color = EGUI_THEME_TEXT_SECONDARY;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    egui_api_memset(local->weekday_labels, 0, (int)sizeof(local->weekday_labels));
+    egui_view_mini_calendar_clear_weekday_labels(local);
     local->on_date_selected = NULL;
 
     egui_view_set_view_name(self, "egui_view_mini_calendar");

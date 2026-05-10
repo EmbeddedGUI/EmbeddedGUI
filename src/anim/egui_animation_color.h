@@ -16,11 +16,17 @@ extern "C" {
  * Color animation: interpolates between two colors (R/G/B per-channel).
  * Applies the result to the target view's label font color.
  */
-#define EGUI_ANIMATION_COLOR_PARAMS_INIT(_name, _from_color, _to_color)                                                                                        \
+#define EGUI_ANIMATION_COLOR_PARAMS_INIT_COLOR(_name, _from_color, _to_color)                                                                                  \
     static const egui_animation_color_params_t _name = {                                                                                                       \
             .from_color = _from_color,                                                                                                                         \
             .to_color = _to_color,                                                                                                                             \
     }
+
+#if defined(_MSC_VER)
+#define EGUI_ANIMATION_COLOR_PARAMS_INIT(_name, _from_color, _to_color) EGUI_ANIMATION_COLOR_PARAMS_INIT_COLOR(_name, _from_color##_INIT, _to_color##_INIT)
+#else
+#define EGUI_ANIMATION_COLOR_PARAMS_INIT(_name, _from_color, _to_color) EGUI_ANIMATION_COLOR_PARAMS_INIT_COLOR(_name, (_from_color), (_to_color))
+#endif
 
 typedef struct egui_animation_color_params egui_animation_color_params_t;
 struct egui_animation_color_params

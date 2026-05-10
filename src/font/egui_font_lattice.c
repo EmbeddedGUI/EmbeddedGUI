@@ -86,7 +86,7 @@ int egui_font_lattice_draw_string(const egui_font_t *self, egui_canvas_t *canvas
         offset += egui_font_lattice_draw_single_char(self, canvas, utf8_code, (x + offset), y, color, alpha);
     }
 
-    return (s - (const char *)string);
+    return (int)(s - (const char *)string);
 }
 
 int egui_font_lattice_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width,

@@ -334,16 +334,26 @@ void egui_refresh_timer_callback(egui_timer_t *timer)
 }
 
 /** Weak hook for ports that want a notification after one frame is fully rendered and flushed. */
+#if defined(_MSC_VER)
+void egui_port_notify_frame_render_complete_default(void)
+#else
 __EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
+#endif
 {
 }
+__EGUI_MSVC_ALTERNATE_NAME(egui_port_notify_frame_render_complete, egui_port_notify_frame_render_complete_default)
 
 /** Weak hook for ports that need to delay an expensive refresh frame temporarily. */
+#if defined(_MSC_VER)
+int egui_port_should_defer_refresh_default(egui_core_t *core)
+#else
 __EGUI_WEAK__ int egui_port_should_defer_refresh(egui_core_t *core)
+#endif
 {
     EGUI_UNUSED(core);
     return 0;
 }
+__EGUI_MSVC_ALTERNATE_NAME(egui_port_should_defer_refresh, egui_port_should_defer_refresh_default)
 
 /**
  * Render all pending dirty regions immediately.

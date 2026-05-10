@@ -38,20 +38,28 @@ struct egui_view_label_params
     egui_alpha_t alpha;
 };
 
-#define EGUI_VIEW_LABEL_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                                       \
+#define EGUI_VIEW_LABEL_PARAMS_INIT_COLOR(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                                 \
     static const egui_view_label_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                                     \
                                                    .align_type = EGUI_ALIGN_CENTER,                                                                            \
                                                    .text = (_text),                                                                                            \
                                                    .font = (const egui_font_t *)(_font),                                                                       \
-                                                   .color = (_color),                                                                                          \
+                                                   .color = _color,                                                                                            \
                                                    .alpha = (_alpha)}
+
+#if defined(_MSC_VER)
+#define EGUI_VIEW_LABEL_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                                       \
+    EGUI_VIEW_LABEL_PARAMS_INIT_COLOR(_name, _x, _y, _w, _h, _text, _font, _color##_INIT, _alpha)
+#else
+#define EGUI_VIEW_LABEL_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                                       \
+    EGUI_VIEW_LABEL_PARAMS_INIT_COLOR(_name, _x, _y, _w, _h, _text, _font, (_color), _alpha)
+#endif
 
 #define EGUI_VIEW_LABEL_PARAMS_INIT_SIMPLE(_name, _x, _y, _w, _h, _text)                                                                                       \
     static const egui_view_label_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                                     \
                                                    .align_type = EGUI_ALIGN_CENTER,                                                                            \
                                                    .text = (_text),                                                                                            \
                                                    .font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT,                                                      \
-                                                   .color = EGUI_COLOR_WHITE,                                                                                  \
+                                                   .color = EGUI_COLOR_WHITE_INIT,                                                                             \
                                                    .alpha = EGUI_ALPHA_100}
 
 /** Apply a label parameter block after initialization. */

@@ -24,8 +24,8 @@ static const egui_dim_t probe_polyline_points[] = {
 };
 
 static const egui_gradient_stop_t probe_gradient_stops[] = {
-        {.position = 0, .color = EGUI_COLOR_RED},
-        {.position = 255, .color = EGUI_COLOR_BLUE},
+        {.position = 0, .color = EGUI_COLOR_RED_INIT},
+        {.position = 255, .color = EGUI_COLOR_BLUE_INIT},
 };
 
 static const egui_gradient_t probe_linear_gradient = {

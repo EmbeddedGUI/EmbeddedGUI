@@ -46,21 +46,29 @@ struct egui_view_lyric_scroller_params
     uint16_t pause_duration_ms;
 };
 
-#define EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                              \
+#define EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT_COLOR(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                        \
     static const egui_view_lyric_scroller_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                            \
                                                             .text = (_text),                                                                                   \
                                                             .font = (const egui_font_t *)(_font),                                                              \
-                                                            .color = (_color),                                                                                 \
+                                                            .color = _color,                                                                                   \
                                                             .alpha = (_alpha),                                                                                 \
                                                             .scroll_step = 1,                                                                                  \
                                                             .interval_ms = 50,                                                                                 \
                                                             .pause_duration_ms = 400}
 
+#if defined(_MSC_VER)
+#define EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                              \
+    EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT_COLOR(_name, _x, _y, _w, _h, _text, _font, _color##_INIT, _alpha)
+#else
+#define EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                              \
+    EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT_COLOR(_name, _x, _y, _w, _h, _text, _font, (_color), _alpha)
+#endif
+
 #define EGUI_VIEW_LYRIC_SCROLLER_PARAMS_INIT_SIMPLE(_name, _x, _y, _w, _h, _text)                                                                              \
     static const egui_view_lyric_scroller_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                            \
                                                             .text = (_text),                                                                                   \
                                                             .font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT,                                             \
-                                                            .color = EGUI_THEME_TEXT_PRIMARY,                                                                  \
+                                                            .color = EGUI_THEME_TEXT_PRIMARY_INIT,                                                             \
                                                             .alpha = EGUI_ALPHA_100,                                                                           \
                                                             .scroll_step = 1,                                                                                  \
                                                             .interval_ms = 50,                                                                                 \

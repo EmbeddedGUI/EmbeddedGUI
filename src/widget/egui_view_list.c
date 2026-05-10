@@ -44,6 +44,17 @@ static const egui_font_t *egui_view_list_get_icon_font(egui_view_list_t *local)
     return egui_view_icon_font_get_auto(local->item_height, 30, 36);
 }
 
+static void egui_view_list_clear_item_refs(egui_view_list_t *local)
+{
+    uint8_t i;
+
+    for (i = 0; i < EGUI_VIEW_LIST_MAX_ITEMS; i++)
+    {
+        local->item_icons[i] = NULL;
+        local->item_texts[i] = NULL;
+    }
+}
+
 /** Measure the widest icon slot needed across all rows that currently show icons. */
 static egui_dim_t egui_view_list_get_icon_area_width(egui_view_list_t *local)
 {
@@ -485,8 +496,7 @@ void egui_view_list_clear(egui_view_t *self)
     egui_view_group_clear_childs(EGUI_VIEW_OF(&local->base.container));
     local->item_count = 0;
     local->selected_index = EGUI_VIEW_LIST_SELECTED_NONE;
-    egui_api_memset(local->item_icons, 0, sizeof(local->item_icons));
-    egui_api_memset(local->item_texts, 0, sizeof(local->item_texts));
+    egui_view_list_clear_item_refs(local);
 
     egui_view_invalidate(self);
 }
@@ -737,8 +747,7 @@ void egui_view_list_init(egui_view_t *self, egui_core_t *core)
     local->icon_font = NULL;
     local->on_item_click = NULL;
     local->selected_index = EGUI_VIEW_LIST_SELECTED_NONE;
-    egui_api_memset(local->item_icons, 0, sizeof(local->item_icons));
-    egui_api_memset(local->item_texts, 0, sizeof(local->item_texts));
+    egui_view_list_clear_item_refs(local);
 
     egui_view_set_view_name(self, "egui_view_list");
 }

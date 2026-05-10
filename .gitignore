@@ -13,6 +13,10 @@
 *.pyc
 /build
 /build_cmake
+/build_vs
+/.vs
+/porting/pc/.vs/
+*.vcxproj.user
 *.o
 *.d
 *.crf
@@ -79,6 +83,14 @@ perf_output
 temp
 tmp
 .claude
+!.claude/
+!.claude/skills/
+!.claude/skills/*.md
+!.claude/skills/embeddedgui-teaching-video/
+!.claude/skills/embeddedgui-teaching-video/**
+!.claude/workflow/
+!.claude/workflow/*.md
+.claude/plans/
 .tmp*
 docs
 /*.log

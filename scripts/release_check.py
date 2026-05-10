@@ -32,6 +32,7 @@ ALL_STEP_NAMES = [
     "format",
     "icon_font",
     "keil_sync",
+    "visual_studio",
     "compile",
     "compile_gnu99",
     "wasm",
@@ -49,6 +50,7 @@ STEP_DESCRIPTIONS = {
     "format": "Code formatting (clang-format)",
     "icon_font": "Example icon font explicitness check",
     "keil_sync": "Keil project file sync (src/ vs .uvprojx)",
+    "visual_studio": "Visual Studio solution sync and smoke build",
     "compile": "Full compile check (all examples)",
     "compile_gnu99": "GNU99 compile check (typical apps)",
     "wasm": "WASM demos build",
@@ -83,7 +85,7 @@ RELEASE_SCOPE_OVERVIEWS = {
         "lines": (
             "Apps: HelloMultiDisplay, HelloMultiDisplayHetero",
             "Runtime checks: frame suite, stage labels, primary click isolation, concurrent activity animations, sub-display tick continuity/reset, shutdown order",
-            "Steps: format + scoped compile + scoped runtime + Sphinx dummy doc build",
+            "Steps: format + Visual Studio sync/build + scoped compile + scoped runtime + Sphinx dummy doc build",
             "Optional probe: --queue-capacity-probe N forwards to scoped compile/runtime builds",
             "Optional stress: --queue-stress-probe N enables runtime-only burst core-task pressure",
             "Optional stress pacing: --queue-stress-post-gap-probe N inserts ms gap between synthetic burst posts",
@@ -91,8 +93,9 @@ RELEASE_SCOPE_OVERVIEWS = {
             "Optional runtime guardrail: --max-core-task-retries N / --max-single-post-core-task-retries N / --fail-on-full-core-task-queue",
             "Optional peak-time guardrail: --max-shutdown-queue-wait-ms N / --max-shutdown-exec-time-ms N",
         ),
-        "step_names": ("format", "compile", "runtime", "doc"),
+        "step_names": ("format", "visual_studio", "compile", "runtime", "doc"),
         "drilldown": (
+            "python scripts/platform/visual_studio_project_check.py --check",
             "python scripts/code_compile_check.py --scope multi-display --case-jobs 2",
             "python scripts/code_runtime_check.py --scope multi-display --jobs 2 --timeout 10 --keep-screenshots",
             "python -m sphinx -b dummy doc/source doc/build/dummy",
@@ -239,6 +242,7 @@ def build_steps(args):
 
         return [
             ("format", STEP_DESCRIPTIONS["format"], [py, str(SCRIPT_DIR / "code_format.py")]),
+            ("visual_studio", STEP_DESCRIPTIONS["visual_studio"], [py, str(SCRIPT_DIR / "platform" / "visual_studio_project_check.py"), "--check"]),
             ("compile", "Compile check (multi-display apps)", compile_cmd),
             ("runtime", "Runtime verification (frames/stages/self-checks/shutdown)", runtime_cmd),
             ("doc", "Sphinx documentation build (dummy, multi-display docs)", doc_cmd),
@@ -248,6 +252,7 @@ def build_steps(args):
         ("format", STEP_DESCRIPTIONS["format"], [py, str(SCRIPT_DIR / "code_format.py")]),
         ("icon_font", STEP_DESCRIPTIONS["icon_font"], [py, str(SCRIPT_DIR / "checks" / "check_example_icon_font.py")]),
         ("keil_sync", STEP_DESCRIPTIONS["keil_sync"], [py, str(SCRIPT_DIR / "platform" / "keil_project_sync.py")]),
+        ("visual_studio", STEP_DESCRIPTIONS["visual_studio"], [py, str(SCRIPT_DIR / "platform" / "visual_studio_project_check.py"), "--check"]),
         ("compile", STEP_DESCRIPTIONS["compile"], compile_cmd),
         ("compile_gnu99", STEP_DESCRIPTIONS["compile_gnu99"], compile_gnu99_cmd),
         ("wasm", STEP_DESCRIPTIONS["wasm"], wasm_cmd),
@@ -306,9 +311,13 @@ def get_scope_step_names(scope):
 
 def build_failure_hint_commands(step_name, cmd, args):
     commands = [format_command(cmd)]
+    if step_name == "visual_studio":
+        py = Path(sys.executable).name or "python"
+        commands.append(f"{py} scripts/platform/update_visual_studio_sln.py")
+        commands.append(f"{py} scripts/platform/visual_studio_project_check.py")
     if args.scope is not None:
         scope_drilldown = get_scope_drilldown_commands(args.scope)
-        if step_name in {"compile", "runtime", "doc"}:
+        if step_name in {"visual_studio", "compile", "runtime", "doc"}:
             commands.extend(scope_drilldown)
     return dedupe_commands(commands)
 

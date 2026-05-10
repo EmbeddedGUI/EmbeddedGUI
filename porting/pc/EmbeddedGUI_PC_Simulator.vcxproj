@@ -1,0 +1,2068 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloSimple_Debug|x64">
+      <Configuration>HelloSimple_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloActivity_Debug|x64">
+      <Configuration>HelloActivity_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloAPP_Debug|x64">
+      <Configuration>HelloAPP_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloCanvas_Debug|x64">
+      <Configuration>HelloCanvas_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloChart_Debug|x64">
+      <Configuration>HelloChart_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloLayer_Debug|x64">
+      <Configuration>HelloLayer_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloPFB_Debug|x64">
+      <Configuration>HelloPFB_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloResourceManager_Debug|x64">
+      <Configuration>HelloResourceManager_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloShowcase_Debug|x64">
+      <Configuration>HelloShowcase_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloStyleDemo_Debug|x64">
+      <Configuration>HelloStyleDemo_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloViewPageAndScroll_Debug|x64">
+      <Configuration>HelloViewPageAndScroll_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_button_Debug|x64">
+      <Configuration>HelloBasic_button_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_slider_Debug|x64">
+      <Configuration>HelloBasic_slider_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_label_Debug|x64">
+      <Configuration>HelloBasic_label_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_textinput_Debug|x64">
+      <Configuration>HelloBasic_textinput_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_viewport_basic_Debug|x64">
+      <Configuration>HelloVirtual_virtual_viewport_basic_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_stage_basic_Debug|x64">
+      <Configuration>HelloVirtual_virtual_stage_basic_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloGame_snake_Debug|x64">
+      <Configuration>HelloGame_snake_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloSizeAnalysis_canvas_path_probe_Debug|x64">
+      <Configuration>HelloSizeAnalysis_canvas_path_probe_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_activity_ring_Debug|x64">
+      <Configuration>HelloBasic_activity_ring_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_analog_clock_Debug|x64">
+      <Configuration>HelloBasic_analog_clock_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_anim_Debug|x64">
+      <Configuration>HelloBasic_anim_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_animated_image_Debug|x64">
+      <Configuration>HelloBasic_animated_image_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_arc_slider_Debug|x64">
+      <Configuration>HelloBasic_arc_slider_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_autocomplete_Debug|x64">
+      <Configuration>HelloBasic_autocomplete_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_button_img_Debug|x64">
+      <Configuration>HelloBasic_button_img_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_button_matrix_Debug|x64">
+      <Configuration>HelloBasic_button_matrix_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_card_Debug|x64">
+      <Configuration>HelloBasic_card_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_checkbox_Debug|x64">
+      <Configuration>HelloBasic_checkbox_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_chips_Debug|x64">
+      <Configuration>HelloBasic_chips_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_circular_progress_bar_Debug|x64">
+      <Configuration>HelloBasic_circular_progress_bar_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_combobox_Debug|x64">
+      <Configuration>HelloBasic_combobox_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_compass_Debug|x64">
+      <Configuration>HelloBasic_compass_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_deferred_image_Debug|x64">
+      <Configuration>HelloBasic_deferred_image_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_digital_clock_Debug|x64">
+      <Configuration>HelloBasic_digital_clock_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_dirty_passthrough_activity_Debug|x64">
+      <Configuration>HelloBasic_dirty_passthrough_activity_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_dirty_passthrough_container_Debug|x64">
+      <Configuration>HelloBasic_dirty_passthrough_container_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_dirty_passthrough_page_Debug|x64">
+      <Configuration>HelloBasic_dirty_passthrough_page_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_divider_Debug|x64">
+      <Configuration>HelloBasic_divider_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_enhanced_widgets_Debug|x64">
+      <Configuration>HelloBasic_enhanced_widgets_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_file_image_Debug|x64">
+      <Configuration>HelloBasic_file_image_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_focus_navigation_Debug|x64">
+      <Configuration>HelloBasic_focus_navigation_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_gauge_Debug|x64">
+      <Configuration>HelloBasic_gauge_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_gridlayout_Debug|x64">
+      <Configuration>HelloBasic_gridlayout_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_heart_rate_Debug|x64">
+      <Configuration>HelloBasic_heart_rate_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_image_Debug|x64">
+      <Configuration>HelloBasic_image_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_image_button_Debug|x64">
+      <Configuration>HelloBasic_image_button_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_led_Debug|x64">
+      <Configuration>HelloBasic_led_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_line_Debug|x64">
+      <Configuration>HelloBasic_line_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_linearlayout_Debug|x64">
+      <Configuration>HelloBasic_linearlayout_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_list_Debug|x64">
+      <Configuration>HelloBasic_list_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_lyric_scroller_Debug|x64">
+      <Configuration>HelloBasic_lyric_scroller_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_mask_Debug|x64">
+      <Configuration>HelloBasic_mask_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_menu_Debug|x64">
+      <Configuration>HelloBasic_menu_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_mini_calendar_Debug|x64">
+      <Configuration>HelloBasic_mini_calendar_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_mp4_Debug|x64">
+      <Configuration>HelloBasic_mp4_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_notification_badge_Debug|x64">
+      <Configuration>HelloBasic_notification_badge_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_number_picker_Debug|x64">
+      <Configuration>HelloBasic_number_picker_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_page_indicator_Debug|x64">
+      <Configuration>HelloBasic_page_indicator_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_pattern_lock_Debug|x64">
+      <Configuration>HelloBasic_pattern_lock_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_progress_bar_Debug|x64">
+      <Configuration>HelloBasic_progress_bar_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_punch_region_Debug|x64">
+      <Configuration>HelloBasic_punch_region_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_radio_button_Debug|x64">
+      <Configuration>HelloBasic_radio_button_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_roller_Debug|x64">
+      <Configuration>HelloBasic_roller_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_rotation_Debug|x64">
+      <Configuration>HelloBasic_rotation_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_scale_Debug|x64">
+      <Configuration>HelloBasic_scale_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_scroll_Debug|x64">
+      <Configuration>HelloBasic_scroll_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_segmented_control_Debug|x64">
+      <Configuration>HelloBasic_segmented_control_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_spangroup_Debug|x64">
+      <Configuration>HelloBasic_spangroup_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_spinner_Debug|x64">
+      <Configuration>HelloBasic_spinner_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_stepper_Debug|x64">
+      <Configuration>HelloBasic_stepper_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_stopwatch_Debug|x64">
+      <Configuration>HelloBasic_stopwatch_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_svg_Debug|x64">
+      <Configuration>HelloBasic_svg_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_switch_Debug|x64">
+      <Configuration>HelloBasic_switch_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_tab_bar_Debug|x64">
+      <Configuration>HelloBasic_tab_bar_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_table_Debug|x64">
+      <Configuration>HelloBasic_table_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_textblock_Debug|x64">
+      <Configuration>HelloBasic_textblock_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_tileview_Debug|x64">
+      <Configuration>HelloBasic_tileview_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_toggle_button_Debug|x64">
+      <Configuration>HelloBasic_toggle_button_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_viewpage_Debug|x64">
+      <Configuration>HelloBasic_viewpage_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_viewpage_cache_Debug|x64">
+      <Configuration>HelloBasic_viewpage_cache_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloBasic_window_Debug|x64">
+      <Configuration>HelloBasic_window_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloDirty_Debug|x64">
+      <Configuration>HelloDirty_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloEasyPage_Debug|x64">
+      <Configuration>HelloEasyPage_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloGame_bouncy_ball_Debug|x64">
+      <Configuration>HelloGame_bouncy_ball_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloGame_brick_breaker_Debug|x64">
+      <Configuration>HelloGame_brick_breaker_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloGame_game_2048_Debug|x64">
+      <Configuration>HelloGame_game_2048_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloGame_link_match_Debug|x64">
+      <Configuration>HelloGame_link_match_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloGame_minesweeper_Debug|x64">
+      <Configuration>HelloGame_minesweeper_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloGame_sokoban_Debug|x64">
+      <Configuration>HelloGame_sokoban_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloGame_tetris_Debug|x64">
+      <Configuration>HelloGame_tetris_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloGradient_Debug|x64">
+      <Configuration>HelloGradient_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloMultiDisplay_Debug|x64">
+      <Configuration>HelloMultiDisplay_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloMultiDisplayHetero_Debug|x64">
+      <Configuration>HelloMultiDisplayHetero_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloMultiTouch_Debug|x64">
+      <Configuration>HelloMultiTouch_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloPerformance_Debug|x64">
+      <Configuration>HelloPerformance_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloSVGSpec_Debug|x64">
+      <Configuration>HelloSVGSpec_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloSizeAnalysis_hq_path_probe_Debug|x64">
+      <Configuration>HelloSizeAnalysis_hq_path_probe_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloSizeAnalysis_preset_validation_Debug|x64">
+      <Configuration>HelloSizeAnalysis_preset_validation_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloSizeAnalysis_widget_feature_probe_Debug|x64">
+      <Configuration>HelloSizeAnalysis_widget_feature_probe_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloTest_Debug|x64">
+      <Configuration>HelloTest_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloUnitTest_Debug|x64">
+      <Configuration>HelloUnitTest_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_grid_view_Debug|x64">
+      <Configuration>HelloVirtual_grid_view_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_grid_view_basic_Debug|x64">
+      <Configuration>HelloVirtual_grid_view_basic_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_list_view_Debug|x64">
+      <Configuration>HelloVirtual_list_view_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_list_view_basic_Debug|x64">
+      <Configuration>HelloVirtual_list_view_basic_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_grid_Debug|x64">
+      <Configuration>HelloVirtual_virtual_grid_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_grid_basic_Debug|x64">
+      <Configuration>HelloVirtual_virtual_grid_basic_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_page_Debug|x64">
+      <Configuration>HelloVirtual_virtual_page_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_page_basic_Debug|x64">
+      <Configuration>HelloVirtual_virtual_page_basic_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_section_list_Debug|x64">
+      <Configuration>HelloVirtual_virtual_section_list_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_section_list_basic_Debug|x64">
+      <Configuration>HelloVirtual_virtual_section_list_basic_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_stage_Debug|x64">
+      <Configuration>HelloVirtual_virtual_stage_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_stage_showcase_Debug|x64">
+      <Configuration>HelloVirtual_virtual_stage_showcase_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_strip_Debug|x64">
+      <Configuration>HelloVirtual_virtual_strip_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_strip_basic_Debug|x64">
+      <Configuration>HelloVirtual_virtual_strip_basic_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_tree_Debug|x64">
+      <Configuration>HelloVirtual_virtual_tree_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_tree_basic_Debug|x64">
+      <Configuration>HelloVirtual_virtual_tree_basic_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HelloVirtual_virtual_viewport_Debug|x64">
+      <Configuration>HelloVirtual_virtual_viewport_Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{8D1710A5-EAD2-494C-8349-4F658D2D199A}</ProjectGuid>
+    <RootNamespace>EmbeddedGUIPCSimulator</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup>
+    <PlatformToolset Condition="'$(PlatformToolset)'=='' And Exists('$(VCTargetsPath)\Platforms\$(Platform)\PlatformToolsets\v145\Toolset.props')">v145</PlatformToolset>
+    <PlatformToolset Condition="'$(PlatformToolset)'=='' And Exists('$(VCTargetsPath)\Platforms\$(Platform)\PlatformToolsets\v143\Toolset.props')">v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup>
+    <EguiBuildFlavor Condition="'$(Configuration)'=='Debug'">Debug</EguiBuildFlavor>
+    <EguiBuildFlavor Condition="'$(Configuration)'=='Release'">Release</EguiBuildFlavor>
+    <EguiBuildFlavor Condition="'$(EguiBuildFlavor)'=='' And $([System.String]::Copy('$(Configuration)').EndsWith('_Debug'))">Debug</EguiBuildFlavor>
+    <EguiBuildFlavor Condition="'$(EguiBuildFlavor)'=='' And $([System.String]::Copy('$(Configuration)').EndsWith('_Release'))">Release</EguiBuildFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EguiBuildFlavor)'=='Debug'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EguiBuildFlavor)'=='Release'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="EmbeddedGUI.VisualStudio.props" />
+  <PropertyGroup Label="EmbeddedGUI Named App Configurations">
+    <EguiApp Condition="'$(Configuration)'=='HelloSimple_Debug'">HelloSimple</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloSimple_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloActivity_Debug'">HelloActivity</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloActivity_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloAPP_Debug'">HelloAPP</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloAPP_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloCanvas_Debug'">HelloCanvas</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloCanvas_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloChart_Debug'">HelloChart</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloChart_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloLayer_Debug'">HelloLayer</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloLayer_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloPFB_Debug'">HelloPFB</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloPFB_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloResourceManager_Debug'">HelloResourceManager</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloResourceManager_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloShowcase_Debug'">HelloShowcase</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloShowcase_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloStyleDemo_Debug'">HelloStyleDemo</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloStyleDemo_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloViewPageAndScroll_Debug'">HelloViewPageAndScroll</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloViewPageAndScroll_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_button_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_button_Debug'">button</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_slider_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_slider_Debug'">slider</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_label_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_label_Debug'">label</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_textinput_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_textinput_Debug'">textinput</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_viewport_basic_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_viewport_basic_Debug'">virtual_viewport_basic</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_stage_basic_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_stage_basic_Debug'">virtual_stage_basic</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloGame_snake_Debug'">HelloGame</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloGame_snake_Debug'">snake</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloSizeAnalysis_canvas_path_probe_Debug'">HelloSizeAnalysis</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloSizeAnalysis_canvas_path_probe_Debug'">canvas_path_probe</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_activity_ring_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_activity_ring_Debug'">activity_ring</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_analog_clock_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_analog_clock_Debug'">analog_clock</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_anim_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_anim_Debug'">anim</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_animated_image_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_animated_image_Debug'">animated_image</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_arc_slider_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_arc_slider_Debug'">arc_slider</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_autocomplete_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_autocomplete_Debug'">autocomplete</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_button_img_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_button_img_Debug'">button_img</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_button_matrix_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_button_matrix_Debug'">button_matrix</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_card_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_card_Debug'">card</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_checkbox_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_checkbox_Debug'">checkbox</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_chips_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_chips_Debug'">chips</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_circular_progress_bar_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_circular_progress_bar_Debug'">circular_progress_bar</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_combobox_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_combobox_Debug'">combobox</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_compass_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_compass_Debug'">compass</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_deferred_image_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_deferred_image_Debug'">deferred_image</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_digital_clock_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_digital_clock_Debug'">digital_clock</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_dirty_passthrough_activity_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_dirty_passthrough_activity_Debug'">dirty_passthrough_activity</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_dirty_passthrough_container_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_dirty_passthrough_container_Debug'">dirty_passthrough_container</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_dirty_passthrough_page_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_dirty_passthrough_page_Debug'">dirty_passthrough_page</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_divider_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_divider_Debug'">divider</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_enhanced_widgets_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_enhanced_widgets_Debug'">enhanced_widgets</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_file_image_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_file_image_Debug'">file_image</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_focus_navigation_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_focus_navigation_Debug'">focus_navigation</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_gauge_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_gauge_Debug'">gauge</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_gridlayout_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_gridlayout_Debug'">gridlayout</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_heart_rate_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_heart_rate_Debug'">heart_rate</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_image_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_image_Debug'">image</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_image_button_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_image_button_Debug'">image_button</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_led_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_led_Debug'">led</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_line_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_line_Debug'">line</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_linearlayout_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_linearlayout_Debug'">linearlayout</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_list_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_list_Debug'">list</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_lyric_scroller_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_lyric_scroller_Debug'">lyric_scroller</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_mask_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_mask_Debug'">mask</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_menu_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_menu_Debug'">menu</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_mini_calendar_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_mini_calendar_Debug'">mini_calendar</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_mp4_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_mp4_Debug'">mp4</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_notification_badge_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_notification_badge_Debug'">notification_badge</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_number_picker_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_number_picker_Debug'">number_picker</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_page_indicator_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_page_indicator_Debug'">page_indicator</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_pattern_lock_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_pattern_lock_Debug'">pattern_lock</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_progress_bar_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_progress_bar_Debug'">progress_bar</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_punch_region_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_punch_region_Debug'">punch_region</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_radio_button_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_radio_button_Debug'">radio_button</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_roller_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_roller_Debug'">roller</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_rotation_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_rotation_Debug'">rotation</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_scale_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_scale_Debug'">scale</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_scroll_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_scroll_Debug'">scroll</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_segmented_control_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_segmented_control_Debug'">segmented_control</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_spangroup_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_spangroup_Debug'">spangroup</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_spinner_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_spinner_Debug'">spinner</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_stepper_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_stepper_Debug'">stepper</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_stopwatch_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_stopwatch_Debug'">stopwatch</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_svg_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_svg_Debug'">svg</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_switch_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_switch_Debug'">switch</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_tab_bar_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_tab_bar_Debug'">tab_bar</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_table_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_table_Debug'">table</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_textblock_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_textblock_Debug'">textblock</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_tileview_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_tileview_Debug'">tileview</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_toggle_button_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_toggle_button_Debug'">toggle_button</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_viewpage_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_viewpage_Debug'">viewpage</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_viewpage_cache_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_viewpage_cache_Debug'">viewpage_cache</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloBasic_window_Debug'">HelloBasic</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloBasic_window_Debug'">window</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloDirty_Debug'">HelloDirty</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloDirty_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloEasyPage_Debug'">HelloEasyPage</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloEasyPage_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloGame_bouncy_ball_Debug'">HelloGame</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloGame_bouncy_ball_Debug'">bouncy_ball</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloGame_brick_breaker_Debug'">HelloGame</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloGame_brick_breaker_Debug'">brick_breaker</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloGame_game_2048_Debug'">HelloGame</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloGame_game_2048_Debug'">game_2048</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloGame_link_match_Debug'">HelloGame</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloGame_link_match_Debug'">link_match</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloGame_minesweeper_Debug'">HelloGame</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloGame_minesweeper_Debug'">minesweeper</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloGame_sokoban_Debug'">HelloGame</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloGame_sokoban_Debug'">sokoban</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloGame_tetris_Debug'">HelloGame</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloGame_tetris_Debug'">tetris</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloGradient_Debug'">HelloGradient</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloGradient_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloMultiDisplay_Debug'">HelloMultiDisplay</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloMultiDisplay_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloMultiDisplayHetero_Debug'">HelloMultiDisplayHetero</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloMultiDisplayHetero_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloMultiTouch_Debug'">HelloMultiTouch</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloMultiTouch_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloPerformance_Debug'">HelloPerformance</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloPerformance_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloSVGSpec_Debug'">HelloSVGSpec</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloSVGSpec_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloSizeAnalysis_hq_path_probe_Debug'">HelloSizeAnalysis</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloSizeAnalysis_hq_path_probe_Debug'">hq_path_probe</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloSizeAnalysis_preset_validation_Debug'">HelloSizeAnalysis</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloSizeAnalysis_preset_validation_Debug'">preset_validation</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloSizeAnalysis_widget_feature_probe_Debug'">HelloSizeAnalysis</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloSizeAnalysis_widget_feature_probe_Debug'">widget_feature_probe</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloTest_Debug'">HelloTest</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloTest_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloUnitTest_Debug'">HelloUnitTest</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloUnitTest_Debug'"></EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_grid_view_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_grid_view_Debug'">grid_view</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_grid_view_basic_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_grid_view_basic_Debug'">grid_view_basic</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_list_view_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_list_view_Debug'">list_view</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_list_view_basic_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_list_view_basic_Debug'">list_view_basic</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_grid_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_grid_Debug'">virtual_grid</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_grid_basic_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_grid_basic_Debug'">virtual_grid_basic</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_page_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_page_Debug'">virtual_page</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_page_basic_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_page_basic_Debug'">virtual_page_basic</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_section_list_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_section_list_Debug'">virtual_section_list</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_section_list_basic_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_section_list_basic_Debug'">virtual_section_list_basic</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_stage_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_stage_Debug'">virtual_stage</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_stage_showcase_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_stage_showcase_Debug'">virtual_stage_showcase</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_strip_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_strip_Debug'">virtual_strip</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_strip_basic_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_strip_basic_Debug'">virtual_strip_basic</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_tree_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_tree_Debug'">virtual_tree</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_tree_basic_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_tree_basic_Debug'">virtual_tree_basic</EguiAppSub>
+    <EguiApp Condition="'$(Configuration)'=='HelloVirtual_virtual_viewport_Debug'">HelloVirtual</EguiApp>
+    <EguiAppSub Condition="'$(Configuration)'=='HelloVirtual_virtual_viewport_Debug'">virtual_viewport</EguiAppSub>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'==''">
+    <EguiAppSub>button</EguiAppSub>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'==''">
+    <EguiAppSub>virtual_viewport_basic</EguiAppSub>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EguiApp)'=='HelloGame' And '$(EguiAppSub)'==''">
+    <EguiAppSub>snake</EguiAppSub>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EguiApp)'=='HelloSizeAnalysis' And '$(EguiAppSub)'==''">
+    <EguiAppSub>canvas_path_probe</EguiAppSub>
+  </PropertyGroup>
+  <PropertyGroup>
+    <EguiRoot>$(ProjectDir)..\..\</EguiRoot>
+    <EguiAppPath>$(EguiRoot)example\$(EguiApp)</EguiAppPath>
+    <EguiAppSubPath Condition="'$(EguiAppSub)'!=''">$(EguiAppPath)\$(EguiAppSub)</EguiAppSubPath>
+    <EguiResourcePath Condition="'$(EguiAppSub)'==''">$(EguiAppPath)\resource</EguiResourcePath>
+    <EguiResourcePath Condition="'$(EguiAppSub)'!=''">$(EguiAppSubPath)\resource</EguiResourcePath>
+    <EguiTargetName Condition="'$(EguiAppSub)'==''">$(EguiApp)</EguiTargetName>
+    <EguiTargetName Condition="'$(EguiAppSub)'!=''">$(EguiApp)_$(EguiAppSub)</EguiTargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EguiApp)'=='HelloUnitTest'">
+    <EguiExtraIncludeDirectories>example\HelloUnitTest\test;src\test;$(EguiExtraIncludeDirectories)</EguiExtraIncludeDirectories>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EguiApp)'=='HelloBasic' And ('$(EguiAppSub)'=='file_image' Or '$(EguiAppSub)'=='deferred_image')">
+    <EguiExtraIncludeDirectories>example\HelloBasic\file_image;$(EguiExtraIncludeDirectories)</EguiExtraIncludeDirectories>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EguiApp)'=='HelloPerformance'">
+    <EguiExtraIncludeDirectories>example\HelloBasic\file_image;example\HelloBasic\file_image\mount_router_template;$(EguiExtraIncludeDirectories)</EguiExtraIncludeDirectories>
+  </PropertyGroup>
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Platform)'=='x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <SdlBits>64</SdlBits>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutDir>$(EguiRoot)build_vs\$(EguiTargetName)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(EguiRoot)build_vs\$(EguiTargetName)\obj\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(EguiTargetName)</TargetName>
+    <LocalDebuggerWorkingDirectory>$(EguiRoot)</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(EguiBuildFlavor)'=='Debug'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <CompileAs>CompileAsC</CompileAs>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;EGUI_APP=&quot;$(EguiApp)&quot;;EGUI_PORT=EGUI_PORT_TYPE_PC;EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF=1;EGUI_PC_LOG_TO_DEBUG_OUTPUT=1;EGUI_PC_DEFAULT_DEBUG_LOG_LEVEL=3;PLUTOVG_BUILD_STATIC=1;PLUTOSVG_BUILD_STATIC=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(EguiRoot)src;$(EguiRoot)driver\bus;$(EguiRoot)driver\lcd;$(EguiRoot)driver\touch;$(EguiAppPath);$(EguiAppSubPath);$(EguiResourcePath);$(EguiResourcePath)\font;$(EguiResourcePath)\img;$(EguiExtraIncludeDirectories);$(EguiRoot)porting\pc;$(EguiRoot)porting\pc\sdl2\$(SdlBits)\include;$(EguiRoot)third_party\file_image;$(EguiRoot)third_party\plutosvg\source;$(EguiRoot)third_party\plutovg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <AdditionalLibraryDirectories>$(EguiRoot)porting\pc\sdl2\$(SdlBits)\lib\msvc;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(EguiRoot)porting\pc\sdl2\$(SdlBits)\bin\SDL2.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(EguiBuildFlavor)'=='Release'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <CompileAs>CompileAsC</CompileAs>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;EGUI_APP=&quot;$(EguiApp)&quot;;EGUI_PORT=EGUI_PORT_TYPE_PC;EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF=1;EGUI_PC_LOG_TO_DEBUG_OUTPUT=1;PLUTOVG_BUILD_STATIC=1;PLUTOSVG_BUILD_STATIC=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(EguiRoot)src;$(EguiRoot)driver\bus;$(EguiRoot)driver\lcd;$(EguiRoot)driver\touch;$(EguiAppPath);$(EguiAppSubPath);$(EguiResourcePath);$(EguiResourcePath)\font;$(EguiResourcePath)\img;$(EguiExtraIncludeDirectories);$(EguiRoot)porting\pc;$(EguiRoot)porting\pc\sdl2\$(SdlBits)\include;$(EguiRoot)third_party\file_image;$(EguiRoot)third_party\plutosvg\source;$(EguiRoot)third_party\plutovg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(EguiRoot)porting\pc\sdl2\$(SdlBits)\lib\msvc;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(EguiRoot)porting\pc\sdl2\$(SdlBits)\bin\SDL2.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <!-- BEGIN EmbeddedGUI generated project items -->
+  <ItemGroup Label="EmbeddedGUI Generated C Sources">
+    <ClCompile Include="..\..\driver\lcd\egui_lcd.c" />
+    <ClCompile Include="..\..\driver\touch\egui_touch.c" />
+    <ClCompile Include="egui_hal_sdl_sim.c" />
+    <ClCompile Include="egui_port_pc.c" />
+    <ClCompile Include="main.c" />
+    <ClCompile Include="sdl_port.c" />
+    <ClCompile Include="..\..\third_party\plutosvg\source\plutosvg.c" />
+    <ClCompile Include="..\..\src\anim\egui_animation.c" />
+    <ClCompile Include="..\..\src\anim\egui_animation_alpha.c" />
+    <ClCompile Include="..\..\src\anim\egui_animation_color.c" />
+    <ClCompile Include="..\..\src\anim\egui_animation_resize.c" />
+    <ClCompile Include="..\..\src\anim\egui_animation_scale_size.c" />
+    <ClCompile Include="..\..\src\anim\egui_animation_set.c" />
+    <ClCompile Include="..\..\src\anim\egui_animation_translate.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator_accelerate.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator_accelerate_decelerate.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator_anticipate.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator_anticipate_overshoot.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator_bounce.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator_cycle.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator_decelerate.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator_linear.c" />
+    <ClCompile Include="..\..\src\anim\egui_interpolator_overshoot.c" />
+    <ClCompile Include="..\..\src\app\egui_activity.c" />
+    <ClCompile Include="..\..\src\app\egui_dialog.c" />
+    <ClCompile Include="..\..\src\app\egui_page_base.c" />
+    <ClCompile Include="..\..\src\app\egui_toast.c" />
+    <ClCompile Include="..\..\src\app\egui_toast_std.c" />
+    <ClCompile Include="..\..\src\background\egui_background.c" />
+    <ClCompile Include="..\..\src\background\egui_background_color.c" />
+    <ClCompile Include="..\..\src\background\egui_background_gradient.c" />
+    <ClCompile Include="..\..\src\background\egui_background_image.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_bezier.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_circle_hq.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_compact.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_ellipse.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_gradient.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_line.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_line_hq.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_polygon.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_transform.c" />
+    <ClCompile Include="..\..\src\canvas\egui_canvas_triangle.c" />
+    <ClCompile Include="..\..\src\core\egui_api.c" />
+    <ClCompile Include="..\..\src\core\egui_common.c" />
+    <ClCompile Include="..\..\src\core\egui_core.c" />
+    <ClCompile Include="..\..\src\core\egui_core_activity.c" />
+    <ClCompile Include="..\..\src\core\egui_core_animation.c" />
+    <ClCompile Include="..\..\src\core\egui_core_debug.c" />
+    <ClCompile Include="..\..\src\core\egui_core_dialog.c" />
+    <ClCompile Include="..\..\src\core\egui_core_dirty.c" />
+    <ClCompile Include="..\..\src\core\egui_core_key.c" />
+    <ClCompile Include="..\..\src\core\egui_core_pfb.c" />
+    <ClCompile Include="..\..\src\core\egui_core_toast.c" />
+    <ClCompile Include="..\..\src\core\egui_core_touch.c" />
+    <ClCompile Include="..\..\src\core\egui_display_driver.c" />
+    <ClCompile Include="..\..\src\core\egui_focus.c" />
+    <ClCompile Include="..\..\src\core\egui_input.c" />
+    <ClCompile Include="..\..\src\core\egui_key_event.c" />
+    <ClCompile Include="..\..\src\core\egui_motion_event.c" />
+    <ClCompile Include="..\..\src\core\egui_pfb_manager.c" />
+    <ClCompile Include="..\..\src\core\egui_platform.c" />
+    <ClCompile Include="..\..\src\core\egui_region.c" />
+    <ClCompile Include="..\..\src\core\egui_rotation.c" />
+    <ClCompile Include="..\..\src\core\egui_scroller.c" />
+    <ClCompile Include="..\..\src\core\egui_timer.c" />
+    <ClCompile Include="..\..\src\core\egui_touch_driver.c" />
+    <ClCompile Include="..\..\src\core\egui_trig_lut.c" />
+    <ClCompile Include="..\..\src\core\egui_velocity_tracker.c" />
+    <ClCompile Include="..\..\src\font\egui_font.c" />
+    <ClCompile Include="..\..\src\font\egui_font_lattice.c" />
+    <ClCompile Include="..\..\src\font\egui_font_std.c" />
+    <ClCompile Include="..\..\src\image\egui_image.c" />
+    <ClCompile Include="..\..\src\image\egui_image_decode_utils.c" />
+    <ClCompile Include="..\..\src\image\egui_image_file.c" />
+    <ClCompile Include="..\..\src\image\egui_image_qoi.c" />
+    <ClCompile Include="..\..\src\image\egui_image_rle.c" />
+    <ClCompile Include="..\..\src\image\egui_image_std.c" />
+    <ClCompile Include="..\..\src\image\egui_image_svg.c" />
+    <ClCompile Include="..\..\src\mask\egui_mask.c" />
+    <ClCompile Include="..\..\src\mask\egui_mask_circle.c" />
+    <ClCompile Include="..\..\src\mask\egui_mask_gradient.c" />
+    <ClCompile Include="..\..\src\mask\egui_mask_image.c" />
+    <ClCompile Include="..\..\src\mask\egui_mask_round_rectangle.c" />
+    <ClCompile Include="..\..\src\resource\egui_i18n.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_circle_info.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_material_symbols_common_16_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_material_symbols_common_20_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_material_symbols_common_24_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_10_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_12_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_14_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_16_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_18_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_20_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_22_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_24_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_26_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_28_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_30_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_32_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_34_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_36_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_38_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_40_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_42_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_44_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_46_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_48_4.c" />
+    <ClCompile Include="..\..\src\resource\egui_res_font_montserrat_8_4.c" />
+    <ClCompile Include="..\..\src\shadow\egui_shadow.c" />
+    <ClCompile Include="..\..\src\style\egui_style.c" />
+    <ClCompile Include="..\..\src\style\egui_style_transition.c" />
+    <ClCompile Include="..\..\src\style\egui_theme.c" />
+    <ClCompile Include="..\..\src\style\egui_theme_dark.c" />
+    <ClCompile Include="..\..\src\style\egui_theme_light.c" />
+    <ClCompile Include="..\..\src\utils\egui_fixmath.c" />
+    <ClCompile Include="..\..\src\utils\egui_sprintf.c" />
+    <ClCompile Include="..\..\src\utils\egui_utils.c" />
+    <ClCompile Include="..\..\src\utils\simple_ringbuffer\simple_data_ringbuffer.c" />
+    <ClCompile Include="..\..\src\utils\simple_ringbuffer\simple_ringbuffer.c" />
+    <ClCompile Include="..\..\src\widget\egui_view.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_activity_ring.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_analog_clock.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_animated_image.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_arc_slider.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_autocomplete.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_button.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_button_matrix.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_canvas_panner.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_canvas_viewport.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_card.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_chart_axis.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_chart_bar.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_chart_common.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_chart_line.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_chart_pie.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_chart_scatter.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_checkbox.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_chips.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_circle_dirty.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_circular_progress_bar.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_combobox.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_compass.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_deferred_image.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_digital_clock.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_divider.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_dynamic_label.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_gauge.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_grid_view.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_gridlayout.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_group.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_heart_rate.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_image.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_image_button.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_keyboard.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_label.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_led.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_line.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_linear_value_helper.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_linearlayout.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_list.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_list_view.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_lyric_scroller.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_menu.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_mini_calendar.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_mp4.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_notification_badge.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_number_picker.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_page_indicator.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_pattern_lock.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_progress_bar.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_radio_button.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_ring_text_basic.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_roller.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_scale.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_scroll.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_segmented_control.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_slider.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_spangroup.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_spinner.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_stepper.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_stopwatch.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_switch.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_tab_bar.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_table.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_textblock.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_textinput.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_tileview.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_toggle_button.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_viewpage.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_viewpage_cache.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_virtual_grid.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_virtual_list.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_virtual_page.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_virtual_section_list.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_virtual_stage.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_virtual_strip.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_virtual_tree.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_virtual_viewport.c" />
+    <ClCompile Include="..\..\src\widget\egui_view_window.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-blend.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-canvas.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-font.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-ft-math.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-ft-raster.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-ft-stroker.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-matrix.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-paint.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-path.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-rasterize.c" />
+    <ClCompile Include="..\..\third_party\plutovg\source\plutovg-surface.c" />
+    <ClCompile Include="..\..\example\HelloAPP\egui_page_0.c" Condition="'$(EguiApp)'=='HelloAPP'" />
+    <ClCompile Include="..\..\example\HelloAPP\egui_page_1.c" Condition="'$(EguiApp)'=='HelloAPP'" />
+    <ClCompile Include="..\..\example\HelloAPP\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloAPP' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloAPP\resource\font\egui_res_font_dejavusans_30_4.c" Condition="'$(EguiApp)'=='HelloAPP' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloAPP\resource\font\egui_res_font_test_25_4.c" Condition="'$(EguiApp)'=='HelloAPP' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloAPP\resource\img\egui_res_image_star_rgb565_4.c" Condition="'$(EguiApp)'=='HelloAPP' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloAPP\resource\img\egui_res_image_test_rgb565_4.c" Condition="'$(EguiApp)'=='HelloAPP' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloAPP\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloAPP'" />
+    <ClCompile Include="..\..\example\HelloActivity\egui_activity_test.c" Condition="'$(EguiApp)'=='HelloActivity'" />
+    <ClCompile Include="..\..\example\HelloActivity\egui_dialog_test.c" Condition="'$(EguiApp)'=='HelloActivity'" />
+    <ClCompile Include="..\..\example\HelloActivity\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloActivity'" />
+    <ClCompile Include="..\..\example\HelloBasic\activity_ring\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='activity_ring'" />
+    <ClCompile Include="..\..\example\HelloBasic\analog_clock\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='analog_clock'" />
+    <ClCompile Include="..\..\example\HelloBasic\anim\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='anim'" />
+    <ClCompile Include="..\..\example\HelloBasic\animated_image\resource\egui_res_image_star_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='animated_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\animated_image\resource\egui_res_image_test_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='animated_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\animated_image\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='animated_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\arc_slider\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='arc_slider'" />
+    <ClCompile Include="..\..\example\HelloBasic\autocomplete\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='autocomplete'" />
+    <ClCompile Include="..\..\example\HelloBasic\button\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='button'" />
+    <ClCompile Include="..\..\example\HelloBasic\button_img\resource\egui_res_image_star_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='button_img'" />
+    <ClCompile Include="..\..\example\HelloBasic\button_img\resource\egui_res_image_test_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='button_img'" />
+    <ClCompile Include="..\..\example\HelloBasic\button_img\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='button_img'" />
+    <ClCompile Include="..\..\example\HelloBasic\button_matrix\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='button_matrix'" />
+    <ClCompile Include="..\..\example\HelloBasic\card\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='card'" />
+    <ClCompile Include="..\..\example\HelloBasic\checkbox\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='checkbox'" />
+    <ClCompile Include="..\..\example\HelloBasic\chips\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='chips'" />
+    <ClCompile Include="..\..\example\HelloBasic\circular_progress_bar\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='circular_progress_bar'" />
+    <ClCompile Include="..\..\example\HelloBasic\combobox\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='combobox'" />
+    <ClCompile Include="..\..\example\HelloBasic\compass\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='compass'" />
+    <ClCompile Include="..\..\example\HelloBasic\deferred_image\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='deferred_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\digital_clock\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='digital_clock'" />
+    <ClCompile Include="..\..\example\HelloBasic\dirty_passthrough_activity\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='dirty_passthrough_activity'" />
+    <ClCompile Include="..\..\example\HelloBasic\dirty_passthrough_container\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='dirty_passthrough_container'" />
+    <ClCompile Include="..\..\example\HelloBasic\dirty_passthrough_page\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='dirty_passthrough_page'" />
+    <ClCompile Include="..\..\example\HelloBasic\divider\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='divider'" />
+    <ClCompile Include="..\..\example\HelloBasic\enhanced_widgets\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='enhanced_widgets'" />
+    <ClCompile Include="..\..\example\HelloBasic\file_image\decoder_registry.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='file_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\file_image\file_image_stack.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='file_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\file_image\file_io_stdio.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='file_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\file_image\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='file_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\focus_navigation\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='focus_navigation'" />
+    <ClCompile Include="..\..\example\HelloBasic\gauge\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='gauge'" />
+    <ClCompile Include="..\..\example\HelloBasic\gridlayout\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='gridlayout'" />
+    <ClCompile Include="..\..\example\HelloBasic\heart_rate\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='heart_rate'" />
+    <ClCompile Include="..\..\example\HelloBasic\image\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image'" />
+    <ClCompile Include="..\..\example\HelloBasic\image\resource\img\egui_res_image_star_qoi_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image'" />
+    <ClCompile Include="..\..\example\HelloBasic\image\resource\img\egui_res_image_star_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image'" />
+    <ClCompile Include="..\..\example\HelloBasic\image\resource\img\egui_res_image_star_rle_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image'" />
+    <ClCompile Include="..\..\example\HelloBasic\image\resource\img\egui_res_image_test_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image'" />
+    <ClCompile Include="..\..\example\HelloBasic\image\resource\img\egui_res_image_test_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image'" />
+    <ClCompile Include="..\..\example\HelloBasic\image\resource\img\egui_res_image_test_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image'" />
+    <ClCompile Include="..\..\example\HelloBasic\image\resource\img\egui_res_svg_badge.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image'" />
+    <ClCompile Include="..\..\example\HelloBasic\image\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image'" />
+    <ClCompile Include="..\..\example\HelloBasic\image_button\resource\egui_res_image_star_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image_button'" />
+    <ClCompile Include="..\..\example\HelloBasic\image_button\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='image_button'" />
+    <ClCompile Include="..\..\example\HelloBasic\label\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='label'" />
+    <ClCompile Include="..\..\example\HelloBasic\led\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='led'" />
+    <ClCompile Include="..\..\example\HelloBasic\line\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='line'" />
+    <ClCompile Include="..\..\example\HelloBasic\linearlayout\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='linearlayout'" />
+    <ClCompile Include="..\..\example\HelloBasic\list\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='list'" />
+    <ClCompile Include="..\..\example\HelloBasic\lyric_scroller\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='lyric_scroller'" />
+    <ClCompile Include="..\..\example\HelloBasic\mask\egui_view_test_mask.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mask'" />
+    <ClCompile Include="..\..\example\HelloBasic\mask\resource\egui_res_image_star_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mask'" />
+    <ClCompile Include="..\..\example\HelloBasic\mask\resource\egui_res_image_test_rgb565_8.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mask'" />
+    <ClCompile Include="..\..\example\HelloBasic\mask\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mask'" />
+    <ClCompile Include="..\..\example\HelloBasic\menu\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='menu'" />
+    <ClCompile Include="..\..\example\HelloBasic\mini_calendar\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mini_calendar'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0001_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0002_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0003_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0004_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0005_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0006_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0007_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0008_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0009_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0010_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0011_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0012_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0013_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0014_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0015_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0016_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0017_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0018_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0019_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_qoi_frame_test_0020_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0001_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0002_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0003_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0004_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0005_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0006_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0007_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0008_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0009_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0010_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0011_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0012_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0013_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0014_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0015_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0016_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0017_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0018_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0019_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_rle_frame_test_0020_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0001_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0002_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0003_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0004_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0005_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0006_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0007_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0008_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0009_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0010_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0011_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0012_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0013_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0014_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0015_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0016_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0017_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0018_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0019_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_cmp_std_frame_test_0020_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0001_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0002_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0003_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0004_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0005_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0006_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0007_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0008_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0009_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0010_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0011_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0012_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0013_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0014_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0015_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0016_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0017_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0018_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0019_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\resource\img\egui_res_image_test_std_frame_test_0020_rgb565_0.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\mp4\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='mp4'" />
+    <ClCompile Include="..\..\example\HelloBasic\notification_badge\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='notification_badge'" />
+    <ClCompile Include="..\..\example\HelloBasic\number_picker\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='number_picker'" />
+    <ClCompile Include="..\..\example\HelloBasic\page_indicator\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='page_indicator'" />
+    <ClCompile Include="..\..\example\HelloBasic\pattern_lock\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='pattern_lock'" />
+    <ClCompile Include="..\..\example\HelloBasic\progress_bar\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='progress_bar'" />
+    <ClCompile Include="..\..\example\HelloBasic\punch_region\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='punch_region'" />
+    <ClCompile Include="..\..\example\HelloBasic\radio_button\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='radio_button'" />
+    <ClCompile Include="..\..\example\HelloBasic\roller\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='roller'" />
+    <ClCompile Include="..\..\example\HelloBasic\rotation\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='rotation'" />
+    <ClCompile Include="..\..\example\HelloBasic\scale\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='scale'" />
+    <ClCompile Include="..\..\example\HelloBasic\scroll\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='scroll'" />
+    <ClCompile Include="..\..\example\HelloBasic\segmented_control\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='segmented_control'" />
+    <ClCompile Include="..\..\example\HelloBasic\slider\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='slider'" />
+    <ClCompile Include="..\..\example\HelloBasic\spangroup\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='spangroup'" />
+    <ClCompile Include="..\..\example\HelloBasic\spinner\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='spinner'" />
+    <ClCompile Include="..\..\example\HelloBasic\stepper\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='stepper'" />
+    <ClCompile Include="..\..\example\HelloBasic\stopwatch\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='stopwatch'" />
+    <ClCompile Include="..\..\example\HelloBasic\svg\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='svg'" />
+    <ClCompile Include="..\..\example\HelloBasic\switch\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='switch'" />
+    <ClCompile Include="..\..\example\HelloBasic\tab_bar\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='tab_bar'" />
+    <ClCompile Include="..\..\example\HelloBasic\table\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='table'" />
+    <ClCompile Include="..\..\example\HelloBasic\textblock\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='textblock'" />
+    <ClCompile Include="..\..\example\HelloBasic\textinput\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='textinput'" />
+    <ClCompile Include="..\..\example\HelloBasic\tileview\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='tileview'" />
+    <ClCompile Include="..\..\example\HelloBasic\toggle_button\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='toggle_button'" />
+    <ClCompile Include="..\..\example\HelloBasic\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloBasic'" />
+    <ClCompile Include="..\..\example\HelloBasic\viewpage\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='viewpage'" />
+    <ClCompile Include="..\..\example\HelloBasic\viewpage_cache\egui_view_page_test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='viewpage_cache'" />
+    <ClCompile Include="..\..\example\HelloBasic\viewpage_cache\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='viewpage_cache'" />
+    <ClCompile Include="..\..\example\HelloBasic\window\test.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='window'" />
+    <ClCompile Include="..\..\example\HelloCanvas\egui_view_canvas.c" Condition="'$(EguiApp)'=='HelloCanvas'" />
+    <ClCompile Include="..\..\example\HelloCanvas\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloCanvas'" />
+    <ClCompile Include="..\..\example\HelloChart\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloChart'" />
+    <ClCompile Include="..\..\example\HelloDirty\egui_view_dirty_demo.c" Condition="'$(EguiApp)'=='HelloDirty'" />
+    <ClCompile Include="..\..\example\HelloDirty\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloDirty'" />
+    <ClCompile Include="..\..\example\HelloEasyPage\egui_page_0.c" Condition="'$(EguiApp)'=='HelloEasyPage'" />
+    <ClCompile Include="..\..\example\HelloEasyPage\egui_page_1.c" Condition="'$(EguiApp)'=='HelloEasyPage'" />
+    <ClCompile Include="..\..\example\HelloEasyPage\egui_page_2.c" Condition="'$(EguiApp)'=='HelloEasyPage'" />
+    <ClCompile Include="..\..\example\HelloEasyPage\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloEasyPage'" />
+    <ClCompile Include="..\..\example\HelloGame\bouncy_ball\game_descriptor.c" Condition="'$(EguiApp)'=='HelloGame' And '$(EguiAppSub)'=='bouncy_ball'" />
+    <ClCompile Include="..\..\example\HelloGame\brick_breaker\game_descriptor.c" Condition="'$(EguiApp)'=='HelloGame' And '$(EguiAppSub)'=='brick_breaker'" />
+    <ClCompile Include="..\..\example\HelloGame\game_2048\game_descriptor.c" Condition="'$(EguiApp)'=='HelloGame' And '$(EguiAppSub)'=='game_2048'" />
+    <ClCompile Include="..\..\example\HelloGame\game_main.c" Condition="'$(EguiApp)'=='HelloGame'" />
+    <ClCompile Include="..\..\example\HelloGame\game_view.c" Condition="'$(EguiApp)'=='HelloGame'" />
+    <ClCompile Include="..\..\example\HelloGame\link_match\game_descriptor.c" Condition="'$(EguiApp)'=='HelloGame' And '$(EguiAppSub)'=='link_match'" />
+    <ClCompile Include="..\..\example\HelloGame\minesweeper\game_descriptor.c" Condition="'$(EguiApp)'=='HelloGame' And '$(EguiAppSub)'=='minesweeper'" />
+    <ClCompile Include="..\..\example\HelloGame\snake\game_descriptor.c" Condition="'$(EguiApp)'=='HelloGame' And '$(EguiAppSub)'=='snake'" />
+    <ClCompile Include="..\..\example\HelloGame\sokoban\game_descriptor.c" Condition="'$(EguiApp)'=='HelloGame' And '$(EguiAppSub)'=='sokoban'" />
+    <ClCompile Include="..\..\example\HelloGame\tetris\game_descriptor.c" Condition="'$(EguiApp)'=='HelloGame' And '$(EguiAppSub)'=='tetris'" />
+    <ClCompile Include="..\..\example\HelloGame\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloGame'" />
+    <ClCompile Include="..\..\example\HelloGradient\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloGradient'" />
+    <ClCompile Include="..\..\example\HelloLayer\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloLayer'" />
+    <ClCompile Include="..\..\example\HelloMultiDisplayHetero\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloMultiDisplayHetero'" />
+    <ClCompile Include="..\..\example\HelloMultiDisplayHetero\uicode_disp1.c" Condition="'$(EguiApp)'=='HelloMultiDisplayHetero'" />
+    <ClCompile Include="..\..\example\HelloMultiDisplayHetero\uicode_recording.c" Condition="'$(EguiApp)'=='HelloMultiDisplayHetero'" />
+    <ClCompile Include="..\..\example\HelloMultiDisplay\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloMultiDisplay'" />
+    <ClCompile Include="..\..\example\HelloMultiDisplay\uicode_disp1.c" Condition="'$(EguiApp)'=='HelloMultiDisplay'" />
+    <ClCompile Include="..\..\example\HelloMultiDisplay\uicode_recording.c" Condition="'$(EguiApp)'=='HelloMultiDisplay'" />
+    <ClCompile Include="..\..\example\HelloMultiTouch\egui_view_multitouch_canvas.c" Condition="'$(EguiApp)'=='HelloMultiTouch'" />
+    <ClCompile Include="..\..\example\HelloMultiTouch\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloMultiTouch'" />
+    <ClCompile Include="..\..\example\HelloPFB\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloPFB'" />
+    <ClCompile Include="..\..\example\HelloPerformance\egui_view_test_performance.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+    <ClCompile Include="..\..\example\HelloPerformance\file_image_port_io.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\font\egui_res_font_montserrat_perf_26_4.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\font\egui_res_font_montserrat_perf_26_4_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\font\egui_res_font_montserrat_perf_26_4_rle4.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\font\egui_res_font_montserrat_perf_26_4_rle4_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\font\egui_res_font_montserrat_perf_26_4_rle4xor.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\font\egui_res_font_montserrat_perf_26_4_rle4xor_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_ext_qoi_rgb565_8_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_ext_rgb565_1_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_ext_rgb565_2_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_ext_rgb565_4_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_ext_rgb565_8_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_ext_rle_rgb565_8_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_qoi_rgb565_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_rgb565_1.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_rgb565_2.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_rgb565_4.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_rgb565_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_120_rle_rgb565_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_ext_qoi_rgb565_8_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_ext_rgb565_1_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_ext_rgb565_2_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_ext_rgb565_4_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_ext_rgb565_8_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_ext_rle_rgb565_8_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_qoi_rgb565_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_rgb565_1.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_rgb565_2.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_rgb565_4.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_rgb565_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_240_rle_rgb565_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_ext_rgb565_1_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_ext_rgb565_2_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_ext_rgb565_4_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_ext_rgb565_8_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_qoi_rgb565_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_rgb565_1.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_rgb565_2.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_rgb565_4.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_rgb565_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_40_rle_rgb565_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_pure_120_alpha_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_star_pure_240_alpha_8.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_120_ext_qoi_rgb565_0_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_120_ext_rgb565_0_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_120_ext_rle_rgb565_0_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_120_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_120_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_120_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_240_ext_qoi_rgb565_0_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_240_ext_rgb565_0_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_240_ext_rle_rgb565_0_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_240_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_240_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_240_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_40_ext_rgb565_0_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_40_qoi_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_40_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_40_rle_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_image_test_perf_480_rgb565_0.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_svg_perf_screen_orbit.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\resource\img\egui_res_svg_perf_screen_orbit_bin.c" Condition="'$(EguiApp)'=='HelloPerformance' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloPerformance\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\font\egui_res_font_test_16_1.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\font\egui_res_font_test_16_1_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\font\egui_res_font_test_16_2.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\font\egui_res_font_test_16_2_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\font\egui_res_font_test_16_4.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\font\egui_res_font_test_16_4_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\font\egui_res_font_test_16_8.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\font\egui_res_font_test_16_8_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_0.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_0_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_1.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_1_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_2.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_2_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_4.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_4_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_8.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_gray8_8_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_0.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_0_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_1.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_1_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_2.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_2_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_4.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_4_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_8.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb32_8_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_0.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_0_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_1.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_1_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_2.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_2_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_4.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_4_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_8.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_star_rgb565_8_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\resource\img\egui_res_image_test_rgb565_4_bin.c" Condition="'$(EguiApp)'=='HelloResourceManager' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloResourceManager\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloResourceManager'" />
+    <ClCompile Include="..\..\example\HelloSVGSpec\uicode.c" Condition="'$(EguiApp)'=='HelloSVGSpec'" />
+    <ClCompile Include="..\..\example\HelloShowcase\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloShowcase' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloShowcase\resource\font\egui_res_font_materialicon_20_4.c" Condition="'$(EguiApp)'=='HelloShowcase' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloShowcase\resource\font\egui_res_font_notosanssc_14_4.c" Condition="'$(EguiApp)'=='HelloShowcase' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloShowcase\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloShowcase'" />
+    <ClCompile Include="..\..\example\HelloSimple\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloSimple' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloSimple\resource\font\egui_res_font_hello_simple_14_4.c" Condition="'$(EguiApp)'=='HelloSimple' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloSimple\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloSimple'" />
+    <ClCompile Include="..\..\example\HelloSizeAnalysis\canvas_path_probe\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloSizeAnalysis' And '$(EguiAppSub)'=='canvas_path_probe'" />
+    <ClCompile Include="..\..\example\HelloSizeAnalysis\hq_path_probe\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloSizeAnalysis' And '$(EguiAppSub)'=='hq_path_probe'" />
+    <ClCompile Include="..\..\example\HelloSizeAnalysis\preset_validation\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloSizeAnalysis' And '$(EguiAppSub)'=='preset_validation'" />
+    <ClCompile Include="..\..\example\HelloSizeAnalysis\widget_feature_probe\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloSizeAnalysis' And '$(EguiAppSub)'=='widget_feature_probe'" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloStyleDemo' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\resource\font\egui_res_font_materialsymbolsoutlined_regular_14_4.c" Condition="'$(EguiApp)'=='HelloStyleDemo' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\resource\font\egui_res_font_materialsymbolsoutlined_regular_20_4.c" Condition="'$(EguiApp)'=='HelloStyleDemo' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\resource\font\egui_res_font_materialsymbolsoutlined_regular_40_4.c" Condition="'$(EguiApp)'=='HelloStyleDemo' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\resource\font\egui_res_font_montserrat_medium_14_4.c" Condition="'$(EguiApp)'=='HelloStyleDemo' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\resource\font\egui_res_font_montserrat_medium_20_4.c" Condition="'$(EguiApp)'=='HelloStyleDemo' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\uicode_dashboard.c" Condition="'$(EguiApp)'=='HelloStyleDemo'" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloStyleDemo'" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\uicode_music.c" Condition="'$(EguiApp)'=='HelloStyleDemo'" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\uicode_smarthome.c" Condition="'$(EguiApp)'=='HelloStyleDemo'" />
+    <ClCompile Include="..\..\example\HelloStyleDemo\uicode_watch.c" Condition="'$(EguiApp)'=='HelloStyleDemo'" />
+    <ClCompile Include="..\..\example\HelloTest\egui_view_test.c" Condition="'$(EguiApp)'=='HelloTest'" />
+    <ClCompile Include="..\..\example\HelloTest\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloTest' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloTest\resource\font\egui_res_font_notosanssc_16_4.c" Condition="'$(EguiApp)'=='HelloTest' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloTest\resource\img\egui_res_image_star_rgb565_8.c" Condition="'$(EguiApp)'=='HelloTest' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloTest\resource\img\egui_res_image_test_rgb565_8.c" Condition="'$(EguiApp)'=='HelloTest' And '$(EguiAppSub)'==''" />
+    <ClCompile Include="..\..\example\HelloTest\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_activity_ring_dirty.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_animation.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_app_timer_helpers.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_basic_widget_dirty.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_canvas_active.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_canvas_panner.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_circular_widget_dirty.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_combobox.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_common.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_compact_text.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_deferred_image.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_dirty_passthrough_container.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_dirty_region.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_dlist.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_fixmath.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_focus_key_navigation.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_font_std.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_grid_view.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_image_file.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_image_svg.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_input.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_interpolator.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_invalidate_region.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_linearlayout.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_list_view.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_lyric_scroller.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_mask.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_menu.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_mini_calendar.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_notification_badge.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_number_picker.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_page_activity_lifecycle.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_region.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_ringbuffer.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_slist.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_tab_bar.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_textblock.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_toast.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_view.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_view_group.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_view_layer.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_virtual_stage.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_virtual_viewport.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_widget_timer_lifecycle.c" Condition="'$(EguiApp)'=='HelloUnitTest' And '$(EguiAppSub)'=='test'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloViewPageAndScroll\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloViewPageAndScroll'" />
+    <ClCompile Include="..\..\example\HelloViewPageAndScroll\uicode_scroll.c" Condition="'$(EguiApp)'=='HelloViewPageAndScroll'" />
+    <ClCompile Include="..\..\example\HelloViewPageAndScroll\uicode_viewpage.c" Condition="'$(EguiApp)'=='HelloViewPageAndScroll'" />
+    <ClCompile Include="..\..\example\HelloVirtual\grid_view\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='grid_view'" />
+    <ClCompile Include="..\..\example\HelloVirtual\grid_view_basic\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='grid_view_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\list_view\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='list_view'" />
+    <ClCompile Include="..\..\example\HelloVirtual\list_view_basic\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='list_view_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\uicode_disp0.c" Condition="'$(EguiApp)'=='HelloVirtual'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_grid\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_grid'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_grid_basic\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_grid_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_page\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_page'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_page_basic\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_page_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_section_list\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_section_list'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_section_list_basic\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_section_list_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_stage\demo_virtual_stage_adapter.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_stage'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_stage\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_stage'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_stage_basic\resource\app_egui_resource_generate.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_stage_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_stage_basic\resource\img\egui_res_image_star_alpha_4.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_stage_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_stage_basic\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_stage_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_stage_showcase\showcase_app_resource_generate.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_stage_showcase'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_stage_showcase\showcase_font_materialicon_20_4.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_stage_showcase'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_stage_showcase\showcase_font_notosanssc_14_4.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_stage_showcase'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_stage_showcase\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_stage_showcase'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_strip\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_strip'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_strip_basic\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_strip_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_tree\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_tree'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_tree_basic\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_tree_basic'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_viewport\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_viewport'" />
+    <ClCompile Include="..\..\example\HelloVirtual\virtual_viewport_basic\test.c" Condition="'$(EguiApp)'=='HelloVirtual' And '$(EguiAppSub)'=='virtual_viewport_basic'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_activity_ring_dirty.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_animation.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_app_timer_helpers.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_basic_widget_dirty.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_canvas_active.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_canvas_panner.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_circular_widget_dirty.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_combobox.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_common.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_compact_text.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_deferred_image.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_dirty_passthrough_container.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_dirty_region.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_dlist.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_fixmath.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_focus_key_navigation.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_font_std.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_grid_view.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_image_file.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_image_svg.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_input.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_interpolator.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_invalidate_region.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_linearlayout.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_list_view.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_lyric_scroller.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_mask.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_menu.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_mini_calendar.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_notification_badge.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_number_picker.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_page_activity_lifecycle.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_region.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_ringbuffer.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_slist.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_tab_bar.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_textblock.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_toast.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_view.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_view_group.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_view_layer.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_virtual_stage.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_virtual_viewport.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloUnitTest\test\test_widget_timer_lifecycle.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\src\test\egui_diag.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\src\test\egui_test.c" Condition="'$(EguiApp)'=='HelloUnitTest'" />
+    <ClCompile Include="..\..\example\HelloBasic\file_image\file_io_stdio.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='deferred_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\file_image\mount_router_template\file_io_mount_router_template.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='file_image'" />
+    <ClCompile Include="..\..\third_party\file_image\decoder_bmp_stream.c" Condition="('$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='file_image') Or ('$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='deferred_image')" />
+    <ClCompile Include="..\..\third_party\file_image\decoder_stb.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='file_image'" />
+    <ClCompile Include="..\..\third_party\file_image\decoder_tjpgd_stream.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='file_image'" />
+    <ClCompile Include="..\..\third_party\file_image\third_party_tjpgd.c" Condition="'$(EguiApp)'=='HelloBasic' And '$(EguiAppSub)'=='file_image'" />
+    <ClCompile Include="..\..\example\HelloBasic\file_image\decoder_registry.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+    <ClCompile Include="..\..\example\HelloBasic\file_image\file_image_stack.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+    <ClCompile Include="..\..\example\HelloBasic\file_image\mount_router_template\file_io_mount_router_template.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+    <ClCompile Include="..\..\third_party\file_image\decoder_bmp_stream.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+    <ClCompile Include="..\..\third_party\file_image\decoder_stb.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+    <ClCompile Include="..\..\third_party\file_image\decoder_tjpgd_stream.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+    <ClCompile Include="..\..\third_party\file_image\third_party_tjpgd.c" Condition="'$(EguiApp)'=='HelloPerformance'" />
+  </ItemGroup>
+  <ItemGroup Label="EmbeddedGUI Generated Headers">
+    <ClInclude Include="..\..\driver\lcd\egui_lcd.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch.h" />
+    <ClInclude Include="..\..\example\HelloAPP\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloAPP\egui_page_0.h" />
+    <ClInclude Include="..\..\example\HelloAPP\egui_page_1.h" />
+    <ClInclude Include="..\..\example\HelloAPP\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloAPP\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloActivity\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloActivity\egui_activity_test.h" />
+    <ClInclude Include="..\..\example\HelloActivity\egui_dialog_test.h" />
+    <ClInclude Include="..\..\example\HelloActivity\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloBasic\activity_ring\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\analog_clock\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\anim\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\animated_image\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\arc_slider\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\autocomplete\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\button\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\button_img\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\button_matrix\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\card\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\checkbox\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\chips\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\circular_progress_bar\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\combobox\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\compass\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\deferred_image\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\digital_clock\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\dirty_passthrough_activity\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\dirty_passthrough_container\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\dirty_passthrough_page\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\divider\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\enhanced_widgets\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\decoder_registry.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\fatfs_template\file_io_fatfs_template.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\file_image_stack.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\file_io_stdio.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\flash_map_template\file_io_flash_map_template.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\littlefs_template\file_io_littlefs_template.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\mount_router_template\file_io_mount_router_template.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\vendor_jpeg_template\decoder_jpeg_vendor_template.h" />
+    <ClInclude Include="..\..\example\HelloBasic\file_image\vendor_png_template\decoder_png_vendor_template.h" />
+    <ClInclude Include="..\..\example\HelloBasic\focus_navigation\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\gauge\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\gridlayout\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\heart_rate\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\image\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\image\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloBasic\image_button\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\label\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\led\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\line\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\linearlayout\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\list\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\lyric_scroller\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mask\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mask\egui_view_test_mask.h" />
+    <ClInclude Include="..\..\example\HelloBasic\menu\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mini_calendar\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mp4\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mp4\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mp4\resource\app_egui_resource_mp4_cmp_qoi.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mp4\resource\app_egui_resource_mp4_cmp_rle.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mp4\resource\app_egui_resource_mp4_cmp_std.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mp4\resource\app_egui_resource_mp4_test_std.h" />
+    <ClInclude Include="..\..\example\HelloBasic\mp4\resource\src\test\test.h" />
+    <ClInclude Include="..\..\example\HelloBasic\notification_badge\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\number_picker\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\page_indicator\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\pattern_lock\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\progress_bar\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\punch_region\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\radio_button\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\roller\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\rotation\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\scale\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\scroll\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\segmented_control\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\slider\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\spangroup\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\spinner\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\stepper\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\stopwatch\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\svg\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\switch\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\tab_bar\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\table\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\textblock\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\textinput\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\tileview\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\toggle_button\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloBasic\viewpage\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\viewpage_cache\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloBasic\viewpage_cache\egui_view_page_test.h" />
+    <ClInclude Include="..\..\example\HelloBasic\window\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloCanvas\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloCanvas\egui_view_canvas.h" />
+    <ClInclude Include="..\..\example\HelloCanvas\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloChart\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloChart\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloDirty\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloDirty\egui_view_dirty_demo.h" />
+    <ClInclude Include="..\..\example\HelloDirty\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloEasyPage\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloEasyPage\egui_page_0.h" />
+    <ClInclude Include="..\..\example\HelloEasyPage\egui_page_1.h" />
+    <ClInclude Include="..\..\example\HelloEasyPage\egui_page_2.h" />
+    <ClInclude Include="..\..\example\HelloEasyPage\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloGame\bouncy_ball\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloGame\brick_breaker\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloGame\game_2048\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloGame\game_app.h" />
+    <ClInclude Include="..\..\example\HelloGame\game_view.h" />
+    <ClInclude Include="..\..\example\HelloGame\link_match\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloGame\minesweeper\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloGame\snake\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloGame\sokoban\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloGame\tetris\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloGame\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloGradient\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloGradient\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloLayer\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloLayer\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloMultiDisplayHetero\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloMultiDisplayHetero\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloMultiDisplayHetero\uicode_disp1.h" />
+    <ClInclude Include="..\..\example\HelloMultiDisplay\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloMultiDisplay\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloMultiDisplay\uicode_disp1.h" />
+    <ClInclude Include="..\..\example\HelloMultiTouch\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloMultiTouch\egui_view_multitouch_canvas.h" />
+    <ClInclude Include="..\..\example\HelloMultiTouch\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloPFB\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloPFB\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloPerformance\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloPerformance\egui_view_test_performance.h" />
+    <ClInclude Include="..\..\example\HelloPerformance\file_image_port_io.h" />
+    <ClInclude Include="..\..\example\HelloPerformance\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloPerformance\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloResourceManager\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloResourceManager\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloResourceManager\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloSVGSpec\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSVGSpec\svg_spec_cases_gen.h" />
+    <ClInclude Include="..\..\example\HelloSVGSpec\uicode.h" />
+    <ClInclude Include="..\..\example\HelloSVGSpec\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloShowcase\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloShowcase\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloShowcase\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloSimple\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSimple\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloSimple\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\ConfigProfiles\basic_ui\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\ConfigProfiles\dashboard\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\ConfigProfiles\full_feature\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\ConfigProfiles\tiny_rom\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\canvas_path_probe\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\canvas_path_probe\size_analysis_app_config_override.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\canvas_path_probe\size_analysis_probe_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\canvas_path_probe\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\hq_path_probe\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\hq_path_probe\size_analysis_probe_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\hq_path_probe\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\preset_validation\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\preset_validation\size_analysis_app_config_override.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\preset_validation\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\widget_feature_probe\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\widget_feature_probe\size_analysis_probe_config.h" />
+    <ClInclude Include="..\..\example\HelloSizeAnalysis\widget_feature_probe\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloStyleDemo\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloStyleDemo\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloStyleDemo\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloTest\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloTest\egui_view_test.h" />
+    <ClInclude Include="..\..\example\HelloTest\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloTest\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_activity_ring_dirty.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_animation.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_app_timer_helpers.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_basic_widget_dirty.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_canvas_active.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_canvas_panner.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_circular_widget_dirty.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_combobox.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_common.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_compact_text.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_deferred_image.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_dirty_passthrough_container.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_dirty_region.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_dlist.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_fixmath.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_focus_key_navigation.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_font_std.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_grid_view.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_image_file.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_image_svg.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_input.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_interpolator.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_invalidate_region.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_linearlayout.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_list_view.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_lyric_scroller.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_mask.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_menu.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_mini_calendar.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_notification_badge.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_number_picker.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_page_activity_lifecycle.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_region.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_ringbuffer.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_slist.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_tab_bar.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_textblock.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_toast.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_view.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_view_group.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_view_layer.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_virtual_stage.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_virtual_viewport.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\test\test_widget_timer_lifecycle.h" />
+    <ClInclude Include="..\..\example\HelloUnitTest\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloViewPageAndScroll\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloViewPageAndScroll\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloViewPageAndScroll\uicode_scroll.h" />
+    <ClInclude Include="..\..\example\HelloViewPageAndScroll\uicode_viewpage.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\grid_view\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\grid_view_basic\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\list_view\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\list_view_basic\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\uicode_disp0.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_grid\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_grid_basic\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_page\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_page_basic\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_section_list\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_section_list_basic\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_stage\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_stage\demo_virtual_stage_internal.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_stage_basic\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_stage_basic\resource\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_stage_showcase\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_stage_showcase\app_egui_resource_generate.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_strip\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_strip_basic\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_tree\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_tree_basic\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_viewport\app_egui_config.h" />
+    <ClInclude Include="..\..\example\HelloVirtual\virtual_viewport_basic\app_egui_config.h" />
+    <ClInclude Include="egui_hal_sdl_sim.h" />
+    <ClInclude Include="sdl_port.h" />
+    <ClInclude Include="stb_image_write.h" />
+    <ClInclude Include="..\..\src\anim\egui_animation.h" />
+    <ClInclude Include="..\..\src\anim\egui_animation_alpha.h" />
+    <ClInclude Include="..\..\src\anim\egui_animation_color.h" />
+    <ClInclude Include="..\..\src\anim\egui_animation_resize.h" />
+    <ClInclude Include="..\..\src\anim\egui_animation_scale_size.h" />
+    <ClInclude Include="..\..\src\anim\egui_animation_set.h" />
+    <ClInclude Include="..\..\src\anim\egui_animation_translate.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator_accelerate.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator_accelerate_decelerate.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator_anticipate.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator_anticipate_overshoot.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator_bounce.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator_cycle.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator_decelerate.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator_linear.h" />
+    <ClInclude Include="..\..\src\anim\egui_interpolator_overshoot.h" />
+    <ClInclude Include="..\..\src\app\egui_activity.h" />
+    <ClInclude Include="..\..\src\app\egui_dialog.h" />
+    <ClInclude Include="..\..\src\app\egui_page_base.h" />
+    <ClInclude Include="..\..\src\app\egui_toast.h" />
+    <ClInclude Include="..\..\src\app\egui_toast_std.h" />
+    <ClInclude Include="..\..\src\background\egui_background.h" />
+    <ClInclude Include="..\..\src\background\egui_background_color.h" />
+    <ClInclude Include="..\..\src\background\egui_background_gradient.h" />
+    <ClInclude Include="..\..\src\background\egui_background_image.h" />
+    <ClInclude Include="..\..\src\canvas\egui_canvas.h" />
+    <ClInclude Include="..\..\src\canvas\egui_canvas_compact.h" />
+    <ClInclude Include="..\..\src\canvas\egui_canvas_fill_aa_internal.h" />
+    <ClInclude Include="..\..\src\canvas\egui_canvas_gradient.h" />
+    <ClInclude Include="..\..\src\canvas\egui_canvas_transform_cache.h" />
+    <ClInclude Include="..\..\src\config\egui_config.h" />
+    <ClInclude Include="..\..\src\config\egui_config_canvas_default.h" />
+    <ClInclude Include="..\..\src\config\egui_config_debug_default.h" />
+    <ClInclude Include="..\..\src\config\egui_config_default.h" />
+    <ClInclude Include="..\..\src\config\egui_config_fast_path_default.h" />
+    <ClInclude Include="..\..\src\config\egui_config_multi_default.h" />
+    <ClInclude Include="..\..\src\config\egui_config_theme_default.h" />
+    <ClInclude Include="..\..\src\config\egui_config_validate.h" />
+    <ClInclude Include="..\..\src\config\egui_config_widget_default.h" />
+    <ClInclude Include="..\..\src\core\egui_api.h" />
+    <ClInclude Include="..\..\src\core\egui_common.h" />
+    <ClInclude Include="..\..\src\core\egui_core.h" />
+    <ClInclude Include="..\..\src\core\egui_core_activity.h" />
+    <ClInclude Include="..\..\src\core\egui_core_dialog.h" />
+    <ClInclude Include="..\..\src\core\egui_core_internal.h" />
+    <ClInclude Include="..\..\src\core\egui_core_state.h" />
+    <ClInclude Include="..\..\src\core\egui_core_toast.h" />
+    <ClInclude Include="..\..\src\core\egui_core_touch.h" />
+    <ClInclude Include="..\..\src\core\egui_display_driver.h" />
+    <ClInclude Include="..\..\src\core\egui_focus.h" />
+    <ClInclude Include="..\..\src\core\egui_image_decode_cache.h" />
+    <ClInclude Include="..\..\src\core\egui_input.h" />
+    <ClInclude Include="..\..\src\core\egui_input_simulator.h" />
+    <ClInclude Include="..\..\src\core\egui_key_event.h" />
+    <ClInclude Include="..\..\src\core\egui_motion_event.h" />
+    <ClInclude Include="..\..\src\core\egui_oop.h" />
+    <ClInclude Include="..\..\src\core\egui_pfb_manager.h" />
+    <ClInclude Include="..\..\src\core\egui_platform.h" />
+    <ClInclude Include="..\..\src\core\egui_predefs.h" />
+    <ClInclude Include="..\..\src\core\egui_region.h" />
+    <ClInclude Include="..\..\src\core\egui_rotation.h" />
+    <ClInclude Include="..\..\src\core\egui_scroller.h" />
+    <ClInclude Include="..\..\src\core\egui_timer.h" />
+    <ClInclude Include="..\..\src\core\egui_touch_driver.h" />
+    <ClInclude Include="..\..\src\core\egui_trig_lut.h" />
+    <ClInclude Include="..\..\src\core\egui_typedef.h" />
+    <ClInclude Include="..\..\src\core\egui_velocity_tracker.h" />
+    <ClInclude Include="..\..\src\egui.h" />
+    <ClInclude Include="..\..\src\font\egui_font.h" />
+    <ClInclude Include="..\..\src\font\egui_font_lattice.h" />
+    <ClInclude Include="..\..\src\font\egui_font_std.h" />
+    <ClInclude Include="..\..\src\image\egui_image.h" />
+    <ClInclude Include="..\..\src\image\egui_image_decode_utils.h" />
+    <ClInclude Include="..\..\src\image\egui_image_file.h" />
+    <ClInclude Include="..\..\src\image\egui_image_qoi.h" />
+    <ClInclude Include="..\..\src\image\egui_image_rle.h" />
+    <ClInclude Include="..\..\src\image\egui_image_std.h" />
+    <ClInclude Include="..\..\src\image\egui_image_svg.h" />
+    <ClInclude Include="..\..\src\image\egui_image_svg_alloc.h" />
+    <ClInclude Include="..\..\src\mask\egui_mask.h" />
+    <ClInclude Include="..\..\src\mask\egui_mask_circle.h" />
+    <ClInclude Include="..\..\src\mask\egui_mask_gradient.h" />
+    <ClInclude Include="..\..\src\mask\egui_mask_image.h" />
+    <ClInclude Include="..\..\src\mask\egui_mask_round_rectangle.h" />
+    <ClInclude Include="..\..\src\resource\egui_i18n.h" />
+    <ClInclude Include="..\..\src\resource\egui_icon_material_symbols.h" />
+    <ClInclude Include="..\..\src\resource\egui_resource.h" />
+    <ClInclude Include="..\..\src\shadow\egui_shadow.h" />
+    <ClInclude Include="..\..\src\style\egui_style.h" />
+    <ClInclude Include="..\..\src\style\egui_style_transition.h" />
+    <ClInclude Include="..\..\src\style\egui_theme.h" />
+    <ClInclude Include="..\..\src\test\egui_diag.h" />
+    <ClInclude Include="..\..\src\test\egui_test.h" />
+    <ClInclude Include="..\..\src\utils\egui_dlist.h" />
+    <ClInclude Include="..\..\src\utils\egui_fixmath.h" />
+    <ClInclude Include="..\..\src\utils\egui_slist.h" />
+    <ClInclude Include="..\..\src\utils\egui_sprintf.h" />
+    <ClInclude Include="..\..\src\utils\egui_utils.h" />
+    <ClInclude Include="..\..\src\utils\simple_ringbuffer\simple_data_ringbuffer.h" />
+    <ClInclude Include="..\..\src\utils\simple_ringbuffer\simple_pool.h" />
+    <ClInclude Include="..\..\src\utils\simple_ringbuffer\simple_ringbuffer.h" />
+    <ClInclude Include="..\..\src\widget\egui_view.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_activity_ring.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_analog_clock.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_animated_image.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_arc_slider.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_autocomplete.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_button.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_button_matrix.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_canvas_panner.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_canvas_viewport.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_card.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_chart.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_chart_axis.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_chart_bar.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_chart_common.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_chart_line.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_chart_pie.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_chart_scatter.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_checkbox.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_chips.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_circle_dirty.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_circular_progress_bar.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_combobox.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_compass.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_deferred_image.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_digital_clock.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_divider.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_dynamic_label.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_gauge.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_grid_view.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_gridlayout.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_group.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_heart_rate.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_icon_font.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_image.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_image_button.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_keyboard.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_label.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_led.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_line.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_linear_value_helper.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_linearlayout.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_list.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_list_view.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_lyric_scroller.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_menu.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_mini_calendar.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_mp4.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_notification_badge.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_notification_badge_internal.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_number_picker.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_page_indicator.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_pattern_lock.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_progress_bar.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_radio_button.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_ring_text_basic.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_roller.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_scale.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_scroll.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_segmented_control.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_slider.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_spangroup.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_spinner.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_stepper.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_stopwatch.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_switch.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_tab_bar.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_table.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_textblock.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_textinput.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_tileview.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_toggle_button.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_viewpage.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_viewpage_cache.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_virtual_grid.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_virtual_list.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_virtual_page.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_virtual_section_list.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_virtual_stage.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_virtual_stage_bridge.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_virtual_strip.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_virtual_tree.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_virtual_viewport.h" />
+    <ClInclude Include="..\..\src\widget\egui_view_window.h" />
+    <ClInclude Include="..\..\third_party\file_image\decoder_bmp_stream.h" />
+    <ClInclude Include="..\..\third_party\file_image\decoder_stb.h" />
+    <ClInclude Include="..\..\third_party\file_image\decoder_tjpgd_stream.h" />
+    <ClInclude Include="..\..\third_party\file_image\third_party\stb_image.h" />
+    <ClInclude Include="..\..\third_party\file_image\third_party\tjpgd.h" />
+    <ClInclude Include="..\..\third_party\file_image\third_party\tjpgdcnf.h" />
+    <ClInclude Include="..\..\third_party\plutosvg\source\plutosvg-ft.h" />
+    <ClInclude Include="..\..\third_party\plutosvg\source\plutosvg.h" />
+    <ClInclude Include="..\..\third_party\plutovg\include\plutovg.h" />
+    <ClInclude Include="..\..\third_party\plutovg\source\plutovg-ft-math.h" />
+    <ClInclude Include="..\..\third_party\plutovg\source\plutovg-ft-raster.h" />
+    <ClInclude Include="..\..\third_party\plutovg\source\plutovg-ft-stroker.h" />
+    <ClInclude Include="..\..\third_party\plutovg\source\plutovg-ft-types.h" />
+    <ClInclude Include="..\..\third_party\plutovg\source\plutovg-private.h" />
+    <ClInclude Include="..\..\third_party\plutovg\source\plutovg-stb-image-write.h" />
+    <ClInclude Include="..\..\third_party\plutovg\source\plutovg-stb-image.h" />
+    <ClInclude Include="..\..\third_party\plutovg\source\plutovg-stb-truetype.h" />
+    <ClInclude Include="..\..\third_party\plutovg\source\plutovg-utils.h" />
+    <ClInclude Include="..\..\driver\bus\egui_bus.h" />
+    <ClInclude Include="..\..\driver\bus\egui_bus_8080.h" />
+    <ClInclude Include="..\..\driver\bus\egui_bus_gpio.h" />
+    <ClInclude Include="..\..\driver\bus\egui_bus_i2c.h" />
+    <ClInclude Include="..\..\driver\bus\egui_bus_spi.h" />
+    <ClInclude Include="..\..\driver\bus\egui_panel_io.h" />
+    <ClInclude Include="..\..\driver\bus\egui_panel_io_8080.h" />
+    <ClInclude Include="..\..\driver\bus\egui_panel_io_i2c.h" />
+    <ClInclude Include="..\..\driver\bus\egui_panel_io_spi.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_axs15231b.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_common.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_ek79007.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_ek9716b.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_gc9503.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_gc9a01.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_gc9b71.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_hx8399.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_ili9341.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_ili9881c.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_jd9165.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_jd9365.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_nv3007.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_nv3022b.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_sh8601.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_spd2010.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_ssd1306.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_st7262.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_st7701.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_st7703.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_st7735.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_st7789.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_st77903.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_st77916.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_st77922.h" />
+    <ClInclude Include="..\..\driver\lcd\egui_lcd_st7796.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_axs15231b.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_chsc6540.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_cst816s.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_cst820.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_ft5x06.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_ft6336.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_gt1151.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_gt911.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_spd2010.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_st1633.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_st7123.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_stmpe610.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_tt21100.h" />
+    <ClInclude Include="..\..\driver\touch\egui_touch_xpt2046.h" />
+  </ItemGroup>
+  <ItemGroup Label="EmbeddedGUI Generated Configuration Files">
+    <None Include="EmbeddedGUI.VisualStudio.props" />
+    <None Include="..\..\CMakePresets.json" />
+  </ItemGroup>
+  <!-- END EmbeddedGUI generated project items -->
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

@@ -52,7 +52,7 @@ typedef struct egui_view_keyboard egui_view_keyboard_t;
 struct egui_view_keyboard
 {
     egui_view_group_t base;
-    egui_view_api_t api; /* Instance API copy used to override keyboard key handling. */
+    egui_view_api_t api;     /* Instance API copy used to override keyboard key handling. */
     egui_view_api_t key_api; /* Shared key-button API copy used for directional focus navigation. */
 
     egui_view_linearlayout_t rows[EGUI_KEYBOARD_ROW_COUNT]; /* One horizontal layout per keyboard row. */
@@ -61,7 +61,7 @@ struct egui_view_keyboard
 
     uint8_t mode; /* Current label/output mode: lowercase, uppercase, or symbols. */
 
-    egui_view_t *target; /* Active textinput receiving characters, or NULL while hidden. */
+    egui_view_t *target;               /* Active textinput receiving characters, or NULL while hidden. */
     egui_view_t *suppress_show_target; /* Target whose immediate restore-focus show request should be ignored once. */
 
     const egui_font_t *font;      /* Font used by normal character labels. */

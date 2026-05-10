@@ -34,14 +34,16 @@ struct egui_view_button
 
 // ============== Button Params (reuse Label) ==============
 /** Reuse the full label parameter block when constructing a button. */
-#define EGUI_VIEW_BUTTON_PARAMS_INIT EGUI_VIEW_LABEL_PARAMS_INIT
+#define EGUI_VIEW_BUTTON_PARAMS_INIT       EGUI_VIEW_LABEL_PARAMS_INIT
+/** Reuse the full label parameter block when constructing a button with an explicit color initializer. */
+#define EGUI_VIEW_BUTTON_PARAMS_INIT_COLOR EGUI_VIEW_LABEL_PARAMS_INIT_COLOR
 /** Build a centered white-text button parameter block with the default font. */
 #define EGUI_VIEW_BUTTON_PARAMS_INIT_SIMPLE(_name, _x, _y, _w, _h, _text)                                                                                      \
     static const egui_view_label_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                                     \
                                                    .align_type = EGUI_ALIGN_CENTER,                                                                            \
                                                    .text = (_text),                                                                                            \
                                                    .font = NULL,                                                                                               \
-                                                   .color = EGUI_COLOR_WHITE,                                                                                  \
+                                                   .color = EGUI_COLOR_WHITE_INIT,                                                                             \
                                                    .alpha = EGUI_ALPHA_100}
 
 /** Apply label-style parameter fields to a button. */

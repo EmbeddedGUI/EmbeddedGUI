@@ -672,9 +672,8 @@ static int egui_view_scroll_on_key_event(egui_view_t *self, egui_key_event_t *ev
             step = 20;
         }
 
-        can_scroll = (event->key_code == EGUI_KEY_CODE_DOWN)
-                             ? ((container->region.location.y + container->region.size.height) > self->region.size.height)
-                             : (container->region.location.y < 0);
+        can_scroll = (event->key_code == EGUI_KEY_CODE_DOWN) ? ((container->region.location.y + container->region.size.height) > self->region.size.height)
+                                                             : (container->region.location.y < 0);
         if (!can_scroll)
         {
             return 0;

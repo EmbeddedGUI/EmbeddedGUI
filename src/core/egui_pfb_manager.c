@@ -54,7 +54,7 @@ void egui_pfb_manager_set_backup_buffer(egui_pfb_manager_t *mgr, egui_color_int_
 #if EGUI_TARGET_TC32
 #define EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH 0
 #elif defined(__GNUC__) || defined(__clang__)
-typedef uint32_t egui_pfb_manager_rgb565_pair_t __attribute__((__may_alias__));
+typedef uint32_t egui_pfb_manager_rgb565_pair_t __EGUI_MAY_ALIAS_ATTR__;
 #define EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH 1
 #else
 #define EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH 0

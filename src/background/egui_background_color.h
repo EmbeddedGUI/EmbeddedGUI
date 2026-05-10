@@ -18,7 +18,7 @@ extern "C" {
 #define EGUI_BACKGROUND_COLOR_TYPE_CIRCLE                  3
 
 /** Build one solid-color parameter block without a stroke. */
-#define EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(_name, _color, _alpha)                                                                                          \
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_COLOR(_name, _color, _alpha)                                                                                    \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_SOLID,                                                              \
                                                         .alpha = _alpha,                                                                                       \
                                                         .color = _color,                                                                                       \
@@ -26,9 +26,15 @@ extern "C" {
                                                         .stroke_alpha = 0,                                                                                     \
                                                         .stroke_color = {0},                                                                                   \
                                                         .shape.round_rectangle = {.radius = 0}}
+
+#if defined(_MSC_VER)
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(_name, _color, _alpha) EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_COLOR(_name, _color##_INIT, _alpha)
+#else
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(_name, _color, _alpha) EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_COLOR(_name, (_color), _alpha)
+#endif
 
 /** Build one rounded-rectangle parameter block without a stroke. */
-#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(_name, _color, _alpha, _radius)                                                                       \
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_COLOR(_name, _color, _alpha, _radius)                                                                 \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_ROUND_RECTANGLE,                                                    \
                                                         .alpha = _alpha,                                                                                       \
                                                         .color = _color,                                                                                       \
@@ -37,9 +43,17 @@ extern "C" {
                                                         .stroke_color = {0},                                                                                   \
                                                         .shape.round_rectangle = {.radius = _radius}}
 
+#if defined(_MSC_VER)
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(_name, _color, _alpha, _radius)                                                                       \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_COLOR(_name, _color##_INIT, _alpha, _radius)
+#else
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(_name, _color, _alpha, _radius)                                                                       \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_COLOR(_name, (_color), _alpha, _radius)
+#endif
+
 /** Build one per-corner rounded-rectangle parameter block without a stroke. */
-#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS(_name, _color, _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,              \
-                                                                 _radius_right_bottom)                                                                         \
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_COLOR(_name, _color, _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,        \
+                                                                       _radius_right_bottom)                                                                   \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_ROUND_RECTANGLE_CORNERS,                                            \
                                                         .alpha = _alpha,                                                                                       \
                                                         .color = _color,                                                                                       \
@@ -51,8 +65,20 @@ extern "C" {
                                                                                           .radius_right_top = _radius_right_top,                               \
                                                                                           .radius_right_bottom = _radius_right_bottom}}
 
+#if defined(_MSC_VER)
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS(_name, _color, _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,              \
+                                                                 _radius_right_bottom)                                                                         \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_COLOR(_name, _color##_INIT, _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,     \
+                                                                   _radius_right_bottom)
+#else
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS(_name, _color, _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,              \
+                                                                 _radius_right_bottom)                                                                         \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_COLOR(_name, (_color), _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,          \
+                                                                   _radius_right_bottom)
+#endif
+
 /** Build one circular parameter block without a stroke. */
-#define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE(_name, _color, _alpha, _radius)                                                                                \
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_COLOR(_name, _color, _alpha, _radius)                                                                          \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_CIRCLE,                                                             \
                                                         .alpha = _alpha,                                                                                       \
                                                         .color = _color,                                                                                       \
@@ -61,8 +87,15 @@ extern "C" {
                                                         .stroke_color = {0},                                                                                   \
                                                         .shape.circle = {.radius = _radius}}
 
+#if defined(_MSC_VER)
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE(_name, _color, _alpha, _radius)                                                                                \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_COLOR(_name, _color##_INIT, _alpha, _radius)
+#else
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE(_name, _color, _alpha, _radius) EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_COLOR(_name, (_color), _alpha, _radius)
+#endif
+
 /** Build one solid-color parameter block with an optional stroke. */
-#define EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_STROKE(_name, _color, _alpha, _stroke_width, _stroke_color, _stroke_alpha)                                      \
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_STROKE_COLOR(_name, _color, _alpha, _stroke_width, _stroke_color, _stroke_alpha)                                \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_SOLID,                                                              \
                                                         .alpha = _alpha,                                                                                       \
                                                         .color = _color,                                                                                       \
@@ -71,8 +104,16 @@ extern "C" {
                                                         .stroke_color = _stroke_color,                                                                         \
                                                         .shape.round_rectangle = {.radius = 0}}
 
+#if defined(_MSC_VER)
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_STROKE(_name, _color, _alpha, _stroke_width, _stroke_color, _stroke_alpha)                                      \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_STROKE_COLOR(_name, _color##_INIT, _alpha, _stroke_width, _stroke_color##_INIT, _stroke_alpha)
+#else
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_STROKE(_name, _color, _alpha, _stroke_width, _stroke_color, _stroke_alpha)                                      \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_STROKE_COLOR(_name, (_color), _alpha, _stroke_width, (_stroke_color), _stroke_alpha)
+#endif
+
 /** Build one rounded-rectangle parameter block with an optional stroke. */
-#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(_name, _color, _alpha, _radius, _stroke_width, _stroke_color, _stroke_alpha)                   \
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(_name, _color, _alpha, _radius, _stroke_width, _stroke_color, _stroke_alpha)             \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_ROUND_RECTANGLE,                                                    \
                                                         .alpha = _alpha,                                                                                       \
                                                         .color = _color,                                                                                       \
@@ -81,9 +122,17 @@ extern "C" {
                                                         .stroke_color = _stroke_color,                                                                         \
                                                         .shape.round_rectangle = {.radius = _radius}}
 
+#if defined(_MSC_VER)
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(_name, _color, _alpha, _radius, _stroke_width, _stroke_color, _stroke_alpha)                   \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(_name, _color##_INIT, _alpha, _radius, _stroke_width, _stroke_color##_INIT, _stroke_alpha)
+#else
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(_name, _color, _alpha, _radius, _stroke_width, _stroke_color, _stroke_alpha)                   \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE_COLOR(_name, (_color), _alpha, _radius, _stroke_width, (_stroke_color), _stroke_alpha)
+#endif
+
 /** Build one per-corner rounded-rectangle parameter block with an optional stroke. */
-#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_STROKE(_name, _color, _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,       \
-                                                                        _radius_right_bottom, _stroke_width, _stroke_color, _stroke_alpha)                     \
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_STROKE_COLOR(_name, _color, _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top, \
+                                                                              _radius_right_bottom, _stroke_width, _stroke_color, _stroke_alpha)               \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_ROUND_RECTANGLE_CORNERS,                                            \
                                                         .alpha = _alpha,                                                                                       \
                                                         .color = _color,                                                                                       \
@@ -95,8 +144,21 @@ extern "C" {
                                                                                           .radius_right_top = _radius_right_top,                               \
                                                                                           .radius_right_bottom = _radius_right_bottom}}
 
+#if defined(_MSC_VER)
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_STROKE(_name, _color, _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,       \
+                                                                        _radius_right_bottom, _stroke_width, _stroke_color, _stroke_alpha)                     \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_STROKE_COLOR(_name, _color##_INIT, _alpha, _radius_left_top, _radius_left_bottom,                 \
+                                                                          _radius_right_top, _radius_right_bottom, _stroke_width, _stroke_color##_INIT,        \
+                                                                          _stroke_alpha)
+#else
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_STROKE(_name, _color, _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,       \
+                                                                        _radius_right_bottom, _stroke_width, _stroke_color, _stroke_alpha)                     \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_STROKE_COLOR(_name, (_color), _alpha, _radius_left_top, _radius_left_bottom, _radius_right_top,   \
+                                                                          _radius_right_bottom, _stroke_width, (_stroke_color), _stroke_alpha)
+#endif
+
 /** Build one circular parameter block with an optional stroke. */
-#define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_STROKE(_name, _color, _alpha, _radius, _stroke_width, _stroke_color, _stroke_alpha)                            \
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_STROKE_COLOR(_name, _color, _alpha, _radius, _stroke_width, _stroke_color, _stroke_alpha)                      \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_CIRCLE,                                                             \
                                                         .alpha = _alpha,                                                                                       \
                                                         .color = _color,                                                                                       \
@@ -104,6 +166,14 @@ extern "C" {
                                                         .stroke_alpha = _stroke_alpha,                                                                         \
                                                         .stroke_color = _stroke_color,                                                                         \
                                                         .shape.circle = {.radius = _radius}}
+
+#if defined(_MSC_VER)
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_STROKE(_name, _color, _alpha, _radius, _stroke_width, _stroke_color, _stroke_alpha)                            \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_STROKE_COLOR(_name, _color##_INIT, _alpha, _radius, _stroke_width, _stroke_color##_INIT, _stroke_alpha)
+#else
+#define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_STROKE(_name, _color, _alpha, _radius, _stroke_width, _stroke_color, _stroke_alpha)                            \
+    EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_STROKE_COLOR(_name, (_color), _alpha, _radius, _stroke_width, (_stroke_color), _stroke_alpha)
+#endif
 
 extern const egui_background_api_t egui_background_color_t_api_table;
 

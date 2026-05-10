@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #include <stdbool.h>
+#include <stdarg.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
@@ -19,6 +20,11 @@
 
 #ifdef _WIN32
 #include <direct.h>
+#if EGUI_PC_LOG_TO_DEBUG_OUTPUT
+#include <fcntl.h>
+#include <io.h>
+#include <windows.h>
+#endif
 #define MKDIR(path) _mkdir(path)
 #else
 #include <sys/stat.h>
@@ -29,6 +35,151 @@
 
 #define monochrome_2_RGB888(color) (color ? 0x000000 : 0xffffff)
 #define GRAY8_2_RGB888(color)      (((color & 0xFF) << 16) + ((color & 0xFF) << 8) + ((color & 0xFF)))
+
+#if defined(_WIN32) && EGUI_PC_LOG_TO_DEBUG_OUTPUT
+static bool s_stdout_redirected_to_debug = false;
+
+static void egui_pc_output_debug_string(const char *buffer)
+{
+    char debug_buffer[2048];
+    size_t out_index = 0;
+
+    if (buffer == NULL)
+    {
+        return;
+    }
+
+    for (size_t index = 0; buffer[index] != '\0'; index++)
+    {
+        if (out_index >= sizeof(debug_buffer) - 3)
+        {
+            debug_buffer[out_index] = '\0';
+            OutputDebugStringA(debug_buffer);
+            out_index = 0;
+        }
+
+        if (buffer[index] == '\n' && (index == 0 || buffer[index - 1] != '\r'))
+        {
+            debug_buffer[out_index++] = '\r';
+        }
+        debug_buffer[out_index++] = buffer[index];
+    }
+
+    if (out_index > 0)
+    {
+        debug_buffer[out_index] = '\0';
+        OutputDebugStringA(debug_buffer);
+    }
+}
+
+static bool egui_pc_stdout_available(void)
+{
+    HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    if (stdout_handle == NULL || stdout_handle == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+
+    return GetFileType(stdout_handle) != FILE_TYPE_UNKNOWN;
+}
+
+static DWORD WINAPI egui_pc_stdout_debug_thread(LPVOID user_data)
+{
+    HANDLE read_pipe = (HANDLE)user_data;
+    char buffer[512];
+    DWORD bytes_read = 0;
+
+    while (ReadFile(read_pipe, buffer, sizeof(buffer) - 1, &bytes_read, NULL) && bytes_read > 0)
+    {
+        buffer[bytes_read] = '\0';
+        egui_pc_output_debug_string(buffer);
+    }
+
+    CloseHandle(read_pipe);
+    return 0;
+}
+#endif
+
+void egui_pc_log_init(void)
+{
+#if defined(_WIN32) && EGUI_PC_LOG_TO_DEBUG_OUTPUT
+    HANDLE read_pipe = NULL;
+    HANDLE write_pipe = NULL;
+    HANDLE thread = NULL;
+    SECURITY_ATTRIBUTES security_attr;
+    int write_fd;
+
+    if (s_stdout_redirected_to_debug || !IsDebuggerPresent())
+    {
+        return;
+    }
+
+    security_attr.nLength = sizeof(security_attr);
+    security_attr.lpSecurityDescriptor = NULL;
+    security_attr.bInheritHandle = FALSE;
+    if (!CreatePipe(&read_pipe, &write_pipe, &security_attr, 0))
+    {
+        return;
+    }
+
+    thread = CreateThread(NULL, 0, egui_pc_stdout_debug_thread, read_pipe, 0, NULL);
+    if (thread == NULL)
+    {
+        CloseHandle(read_pipe);
+        CloseHandle(write_pipe);
+        return;
+    }
+    CloseHandle(thread);
+
+    write_fd = _open_osfhandle((intptr_t)write_pipe, _O_TEXT);
+    if (write_fd < 0)
+    {
+        CloseHandle(write_pipe);
+        return;
+    }
+
+    if (_dup2(write_fd, _fileno(stdout)) != 0)
+    {
+        _close(write_fd);
+        return;
+    }
+    (void)_dup2(write_fd, _fileno(stderr));
+    _close(write_fd);
+
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
+    s_stdout_redirected_to_debug = true;
+#endif
+}
+
+void egui_pc_vlog(const char *format, va_list args)
+{
+#if defined(_WIN32) && EGUI_PC_LOG_TO_DEBUG_OUTPUT
+    char buffer[1024];
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    buffer[sizeof(buffer) - 1] = '\0';
+    egui_pc_output_debug_string(buffer);
+    if (!s_stdout_redirected_to_debug && egui_pc_stdout_available())
+    {
+        fputs(buffer, stdout);
+        fflush(stdout);
+    }
+#else
+    vprintf(format, args);
+    fflush(stdout);
+#endif
+}
+
+void egui_pc_log(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    egui_pc_vlog(format, args);
+    va_end(args);
+}
+
 static inline uint8_t rgb565_expand5(uint8_t value)
 {
     return (uint8_t)((value << 3) | (value >> 2));
@@ -135,7 +286,7 @@ static uint32_t sdl_present_fb[VT_WIDTH * VT_HEIGHT];
 
 static void sdl_log_core_task_caller_failure(const char *context, int display_id)
 {
-    printf("[PC_CORE_TASK_CALLER] context=%s display=%d reason=post_rejected\n", context != NULL ? context : "unknown", display_id);
+    egui_pc_log("[PC_CORE_TASK_CALLER] context=%s display=%d reason=post_rejected\n", context != NULL ? context : "unknown", display_id);
 }
 static SDL_atomic_t sdl_inited;
 static SDL_atomic_t sdl_refr_qry;
@@ -939,7 +1090,7 @@ static void monitor_sdl_clean_up(void)
         SDL_DestroyMutex(sdl_recording_mutex);
         sdl_recording_mutex = NULL;
     }
-    printf("%s sdl_cleanup primary_window=%d extra_windows=%d\n", SHUTDOWN_MARKER_PREFIX, primary_window_destroyed, extra_window_count);
+    egui_pc_log("%s sdl_cleanup primary_window=%d extra_windows=%d\n", SHUTDOWN_MARKER_PREFIX, primary_window_destroyed, extra_window_count);
     SDL_Quit();
 }
 
@@ -1096,12 +1247,18 @@ static void sdl_port_present_window_frame(uint32_t window_id)
     sdl_port_present_frame();
 }
 
+#if defined(_MSC_VER)
+void egui_port_hanlde_key_event(int key, int event);
+void egui_port_hanlde_key_event_default(int key, int event)
+#else
 __EGUI_WEAK__ void egui_port_hanlde_key_event(int key, int event)
+#endif
 {
     EGUI_UNUSED(event);
     EGUI_UNUSED(key);
     // printf("key event: %d, %d\n", key, event);
 }
+__EGUI_MSVC_ALTERNATE_NAME(egui_port_hanlde_key_event, egui_port_hanlde_key_event_default)
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
 typedef struct sdl_scroll_task_data
@@ -1673,7 +1830,7 @@ bool VT_is_request_quit(void)
 void VT_deinit(void)
 {
     monitor_sdl_clean_up();
-    printf("%s deinit_done\n", SHUTDOWN_MARKER_PREFIX);
+    egui_pc_log("%s deinit_done\n", SHUTDOWN_MARKER_PREFIX);
 }
 
 void VT_sdl_flush(int32_t nMS)
@@ -1710,7 +1867,7 @@ void VT_begin_shutdown(void)
 {
     sdl_atomic_flag_set(&sdl_quit_qry, true);
     sdl_atomic_flag_set(&sdl_refr_qry, false);
-    printf("%s begin_shutdown\n", SHUTDOWN_MARKER_PREFIX);
+    egui_pc_log("%s begin_shutdown\n", SHUTDOWN_MARKER_PREFIX);
 }
 
 void sdl_port_sleep(uint32_t nMS)
@@ -2061,7 +2218,7 @@ void recording_init(const char *output_dir, int fps, int duration_sec)
     recording_unlock();
 
     MKDIR(g_recording_output_dir);
-    printf("Recording enabled: dir=%s, fps=%d, duration=%ds\n", g_recording_output_dir, g_recording_fps, duration_sec);
+    egui_pc_log("Recording enabled: dir=%s, fps=%d, duration=%ds\n", g_recording_output_dir, g_recording_fps, duration_sec);
 }
 
 bool recording_is_enabled(void)
@@ -2185,7 +2342,11 @@ void egui_port_notify_frame_render_complete(void)
  * Override this function in your app to customize simulation behavior.
  * @return true if action is valid, false to stop simulation
  */
+#if defined(_MSC_VER)
+bool egui_port_get_recording_action_default(int action_index, egui_sim_action_t *p_action)
+#else
 __EGUI_WEAK__ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
+#endif
 {
     // Default: click at screen center once
     if (action_index >= 1)
@@ -2198,11 +2359,17 @@ __EGUI_WEAK__ bool egui_port_get_recording_action(int action_index, egui_sim_act
     p_action->interval_ms = 1000;
     return true;
 }
+__EGUI_MSVC_ALTERNATE_NAME(egui_port_get_recording_action, egui_port_get_recording_action_default)
 
+#if defined(_MSC_VER)
+const char *egui_port_get_recording_frame_label_default(void)
+#else
 __EGUI_WEAK__ const char *egui_port_get_recording_frame_label(void)
+#endif
 {
     return NULL;
 }
+__EGUI_MSVC_ALTERNATE_NAME(egui_port_get_recording_frame_label, egui_port_get_recording_frame_label_default)
 
 static uint32_t sdl_hash_bytes(uint32_t hash, const uint8_t *data, size_t len)
 {
@@ -2671,7 +2838,7 @@ static void recording_do_save_frame(void)
         const char *label = egui_port_get_recording_frame_label();
         if (label != NULL && label[0] != '\0')
         {
-            printf("PERF_FRAME:%s:%s\r\n", frame_name, label);
+            egui_pc_log("PERF_FRAME:%s:%s\r\n", frame_name, label);
         }
     }
 #endif
@@ -2717,7 +2884,7 @@ static void recording_save_frame(void)
         g_recording_enabled = false;
         recording_unlock();
         sdl_atomic_flag_set(&sdl_quit_qry, true);
-        printf("Recording finished (timeout): %d frames saved\n", g_recording_frame_count);
+        egui_pc_log("Recording finished (timeout): %d frames saved\n", g_recording_frame_count);
         return;
     }
 
@@ -2773,7 +2940,7 @@ static void recording_save_frame(void)
             g_recording_enabled = false;
             recording_unlock();
             sdl_atomic_flag_set(&sdl_quit_qry, true);
-            printf("Recording finished (all actions done): %d frames saved\n", g_recording_frame_count);
+            egui_pc_log("Recording finished (all actions done): %d frames saved\n", g_recording_frame_count);
             return;
         }
     }
@@ -2798,6 +2965,6 @@ static void recording_save_frame(void)
         g_recording_enabled = false;
         recording_unlock();
         sdl_atomic_flag_set(&sdl_quit_qry, true);
-        printf("Recording stopped: max frames reached (%d)\n", RECORDING_MAX_FRAMES);
+        egui_pc_log("Recording stopped: max frames reached (%d)\n", RECORDING_MAX_FRAMES);
     }
 }
