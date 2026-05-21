@@ -19,6 +19,92 @@
 /**
  * @brief Draw the configured image resource inside the current work region.
  */
+#if EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE || EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+static egui_dim_t egui_view_image_scale_dimension(egui_dim_t value, int16_t scale_q8)
+{
+    int32_t scaled;
+
+    if (value <= 0 || scale_q8 <= 0)
+    {
+        return 0;
+    }
+
+    scaled = ((int32_t)value * scale_q8 + 128) >> 8;
+    if (scaled <= 0)
+    {
+        return 1;
+    }
+    if (scaled > 32767)
+    {
+        return 32767;
+    }
+    return (egui_dim_t)scaled;
+}
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE || EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM */
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+static void egui_view_image_draw_transform(egui_view_image_t *local, egui_canvas_t *canvas, const egui_region_t *region)
+{
+    egui_dim_t source_w;
+    egui_dim_t source_h;
+    egui_dim_t draw_w;
+    egui_dim_t draw_h;
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+
+    if (!egui_image_get_size(local->image, &source_w, &source_h))
+    {
+        return;
+    }
+
+    draw_w = egui_view_image_scale_dimension(source_w, local->scale_q8);
+    draw_h = egui_view_image_scale_dimension(source_h, local->scale_q8);
+    if (draw_w <= 0 || draw_h <= 0)
+    {
+        return;
+    }
+
+    center_x = region->location.x + (draw_w >> 1);
+    center_y = region->location.y + (draw_h >> 1);
+    egui_canvas_draw_image_transform(canvas, local->image, center_x, center_y, local->angle_deg, local->scale_q8);
+}
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM */
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE && !EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+static void egui_view_image_draw_scale_lite(egui_view_image_t *local, egui_canvas_t *canvas, const egui_region_t *region)
+{
+    egui_dim_t base_w = region->size.width;
+    egui_dim_t base_h = region->size.height;
+    egui_dim_t draw_w;
+    egui_dim_t draw_h;
+
+    if (local->image_type == EGUI_VIEW_IMAGE_TYPE_NORMAL)
+    {
+        if (!egui_image_get_size(local->image, &base_w, &base_h))
+        {
+            return;
+        }
+    }
+
+    draw_w = egui_view_image_scale_dimension(base_w, local->scale_q8);
+    draw_h = egui_view_image_scale_dimension(base_h, local->scale_q8);
+    if (draw_w <= 0 || draw_h <= 0)
+    {
+        return;
+    }
+
+    if (local->image_color_alpha != 0)
+    {
+        egui_canvas_draw_image_resize_color(canvas, local->image, region->location.x, region->location.y, draw_w, draw_h, local->image_color,
+                                            local->image_color_alpha);
+    }
+    else
+    {
+        egui_canvas_draw_image_resize(canvas, local->image, region->location.x, region->location.y, draw_w, draw_h);
+    }
+}
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE && !EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM */
+
 void egui_view_image_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_image_t);
@@ -31,6 +117,23 @@ void egui_view_image_on_draw(egui_view_t *self)
     {
         return;
     }
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+    if (local->angle_deg != 0 || local->scale_q8 != 256)
+    {
+        egui_view_image_draw_transform(local, canvas, &region);
+        return;
+    }
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM */
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE && !EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+    if (local->scale_q8 != 256)
+    {
+        egui_view_image_draw_scale_lite(local, canvas, &region);
+        return;
+    }
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE && !EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM */
+
     if (local->image_color_alpha != 0)
     {
         // alpha-only color rendering path
@@ -68,6 +171,16 @@ void egui_view_image_set_image_type(egui_view_t *self, int image_type)
     egui_view_invalidate(self);
 }
 
+int egui_view_image_get_image_type(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_image_t);
+    return local->image_type;
+}
+
 /**
  * @brief Replace the borrowed image resource pointer.
  */
@@ -80,6 +193,16 @@ void egui_view_image_set_image(egui_view_t *self, egui_image_t *image)
     }
     local->image = image;
     egui_view_invalidate(self);
+}
+
+const egui_image_t *egui_view_image_get_image(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_image_t);
+    return local->image;
 }
 
 /**
@@ -97,6 +220,29 @@ void egui_view_image_set_image_color(egui_view_t *self, egui_color_t color, egui
     local->image_color = color;
     local->image_color_alpha = alpha;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_image_get_image_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_image_t);
+    return local->image_color;
+}
+
+egui_alpha_t egui_view_image_get_image_alpha(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_image_t);
+    return local->image_color_alpha;
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_image_t) = {
@@ -135,6 +281,12 @@ void egui_view_image_init(egui_view_t *self, egui_core_t *core)
     local->image = NULL;
     local->image_color.full = 0;
     local->image_color_alpha = 0;
+#if EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+    local->angle_deg = 0;
+#endif
+#if EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE || EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+    local->scale_q8 = 256;
+#endif
 }
 
 /**
@@ -159,3 +311,76 @@ void egui_view_image_init_with_params(egui_view_t *self, egui_core_t *core, cons
     egui_view_image_init(self, core);
     egui_view_image_apply_params(self, params);
 }
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE || EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+/**
+ * @brief Set the scale factor in Q8 format (256 = 1x). Triggers a full redraw.
+ */
+void egui_view_image_set_scale(egui_view_t *self, int16_t scale_q8)
+{
+    EGUI_LOCAL_INIT(egui_view_image_t);
+    if (local->scale_q8 == scale_q8)
+    {
+        return;
+    }
+    local->scale_q8 = scale_q8;
+    egui_view_invalidate(self);
+}
+
+/**
+ * @brief Return the current scale factor.
+ */
+int16_t egui_view_image_get_scale(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_image_t);
+    return local->scale_q8;
+}
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE || EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM */
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+/**
+ * @brief Set the rotation angle in degrees. Triggers a full redraw.
+ */
+void egui_view_image_set_angle(egui_view_t *self, int16_t angle_deg)
+{
+    EGUI_LOCAL_INIT(egui_view_image_t);
+    if (local->angle_deg == angle_deg)
+    {
+        return;
+    }
+    local->angle_deg = angle_deg;
+    egui_view_invalidate(self);
+}
+
+/**
+ * @brief Return the current rotation angle.
+ */
+int16_t egui_view_image_get_angle(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_image_t);
+    return local->angle_deg;
+}
+
+/**
+ * @brief Convenience setter that updates both angle and scale in one redraw.
+ */
+void egui_view_image_set_transform(egui_view_t *self, int16_t angle_deg, int16_t scale_q8)
+{
+    EGUI_LOCAL_INIT(egui_view_image_t);
+    if (local->angle_deg == angle_deg && local->scale_q8 == scale_q8)
+    {
+        return;
+    }
+    local->angle_deg = angle_deg;
+    local->scale_q8 = scale_q8;
+    egui_view_invalidate(self);
+}
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM */

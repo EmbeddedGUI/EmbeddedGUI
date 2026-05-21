@@ -76,18 +76,34 @@ int8_t egui_view_list_add_item(egui_view_t *self, const char *text);
 int8_t egui_view_list_add_item_with_icon(egui_view_t *self, const char *icon, const char *text);
 /** Remove all rows and reset the list content. */
 void egui_view_list_clear(egui_view_t *self);
+/** Return the number of active rows. */
+uint8_t egui_view_list_get_item_count(egui_view_t *self);
 /** Set the height used for every row and relayout the list. */
 void egui_view_list_set_item_height(egui_view_t *self, egui_dim_t height);
+/** Return the height used for every row. */
+egui_dim_t egui_view_list_get_item_height(egui_view_t *self);
 /** Replace the icon of one existing row. */
 void egui_view_list_set_item_icon(egui_view_t *self, uint8_t index, const char *icon);
+/** Return the borrowed icon string for one row. */
+const char *egui_view_list_get_item_icon(egui_view_t *self, uint8_t index);
+/** Return the borrowed text string for one row. */
+const char *egui_view_list_get_item_text(egui_view_t *self, uint8_t index);
 /** Override the icon font used by rows that have icons. */
 void egui_view_list_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the explicit icon font override, or NULL when auto-selection is used. */
+const egui_font_t *egui_view_list_get_icon_font(egui_view_t *self);
 /** Set the horizontal gap between a row icon and its text. */
 void egui_view_list_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Return the horizontal gap between a row icon and its text. */
+egui_dim_t egui_view_list_get_icon_text_gap(egui_view_t *self);
 /** Set the tint color used for all row icons. */
 void egui_view_list_set_icon_color(egui_view_t *self, egui_color_t color);
+/** Return the tint color used for all row icons. */
+egui_color_t egui_view_list_get_icon_color(egui_view_t *self);
 /** Register the callback fired when a row button is clicked. */
 void egui_view_list_set_on_item_click(egui_view_t *self, egui_view_list_item_click_cb_t callback);
+/** Return the callback fired when a row button is clicked. */
+egui_view_list_item_click_cb_t egui_view_list_get_on_item_click(egui_view_t *self);
 /** Select one row for keyboard navigation. Out-of-range indices are ignored. */
 void egui_view_list_set_selected_index(egui_view_t *self, uint8_t index);
 /** Return the keyboard-selected row index, or `EGUI_VIEW_LIST_SELECTED_NONE`. */

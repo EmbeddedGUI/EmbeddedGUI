@@ -18,6 +18,9 @@
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 #include "egui_focus.h"
 #endif
+#if EGUI_CONFIG_FUNCTION_ENCODER
+#include "egui_encoder_driver.h"
+#endif
 #include "widget/egui_view_group.h"
 
 /* Set up for C function definitions, even when using C++ */

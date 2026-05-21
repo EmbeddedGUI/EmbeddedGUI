@@ -135,6 +135,36 @@ void egui_view_analog_clock_set_time(egui_view_t *self, uint8_t h, uint8_t m, ui
     }
 }
 
+uint8_t egui_view_analog_clock_get_hour(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->hour;
+}
+
+uint8_t egui_view_analog_clock_get_minute(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->minute;
+}
+
+uint8_t egui_view_analog_clock_get_second(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->second;
+}
+
 void egui_view_analog_clock_show_second(egui_view_t *self, uint8_t show)
 {
     EGUI_LOCAL_INIT(egui_view_analog_clock_t);
@@ -145,6 +175,16 @@ void egui_view_analog_clock_show_second(egui_view_t *self, uint8_t show)
     }
 }
 
+uint8_t egui_view_analog_clock_get_show_second(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->show_second;
+}
+
 void egui_view_analog_clock_show_ticks(egui_view_t *self, uint8_t show)
 {
     EGUI_LOCAL_INIT(egui_view_analog_clock_t);
@@ -153,6 +193,191 @@ void egui_view_analog_clock_show_ticks(egui_view_t *self, uint8_t show)
         local->show_ticks = show;
         egui_view_invalidate(self);
     }
+}
+
+uint8_t egui_view_analog_clock_get_show_ticks(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->show_ticks;
+}
+
+void egui_view_analog_clock_set_hour_hand_width(egui_view_t *self, egui_dim_t width)
+{
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    if (width != local->hour_hand_width)
+    {
+        local->hour_hand_width = width;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_dim_t egui_view_analog_clock_get_hour_hand_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->hour_hand_width;
+}
+
+void egui_view_analog_clock_set_minute_hand_width(egui_view_t *self, egui_dim_t width)
+{
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    if (width != local->minute_hand_width)
+    {
+        local->minute_hand_width = width;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_dim_t egui_view_analog_clock_get_minute_hand_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->minute_hand_width;
+}
+
+void egui_view_analog_clock_set_second_hand_width(egui_view_t *self, egui_dim_t width)
+{
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    if (width != local->second_hand_width)
+    {
+        local->second_hand_width = width;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_dim_t egui_view_analog_clock_get_second_hand_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->second_hand_width;
+}
+
+void egui_view_analog_clock_set_dial_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    if (local->dial_color.full != color.full)
+    {
+        local->dial_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_analog_clock_get_dial_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->dial_color;
+}
+
+void egui_view_analog_clock_set_hour_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    if (local->hour_color.full != color.full)
+    {
+        local->hour_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_analog_clock_get_hour_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->hour_color;
+}
+
+void egui_view_analog_clock_set_minute_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    if (local->minute_color.full != color.full)
+    {
+        local->minute_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_analog_clock_get_minute_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->minute_color;
+}
+
+void egui_view_analog_clock_set_second_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    if (local->second_color.full != color.full)
+    {
+        local->second_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_analog_clock_get_second_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->second_color;
+}
+
+void egui_view_analog_clock_set_tick_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    if (local->tick_color.full != color.full)
+    {
+        local->tick_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_analog_clock_get_tick_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    return local->tick_color;
 }
 
 static void egui_view_analog_clock_draw_hand(egui_canvas_t *canvas, egui_dim_t cx, egui_dim_t cy, int16_t angle_deg, egui_dim_t length, egui_dim_t width,

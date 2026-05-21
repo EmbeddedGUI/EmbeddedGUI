@@ -32,7 +32,7 @@
  */
 
 /** Resolve the icon font, falling back to a size derived from the target row. */
-static const egui_font_t *egui_view_menu_get_icon_font(const egui_view_menu_t *local, egui_dim_t area_size)
+static const egui_font_t *egui_view_menu_resolve_icon_font(const egui_view_menu_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
     {
@@ -43,7 +43,7 @@ static const egui_font_t *egui_view_menu_get_icon_font(const egui_view_menu_t *l
 }
 
 /** Return the effective back icon glyph, using the default arrow when unset. */
-static const char *egui_view_menu_get_back_icon(const egui_view_menu_t *local)
+static const char *egui_view_menu_resolve_back_icon(const egui_view_menu_t *local)
 {
     if (local->back_icon != NULL)
     {
@@ -54,7 +54,7 @@ static const char *egui_view_menu_get_back_icon(const egui_view_menu_t *local)
 }
 
 /** Return the effective submenu icon glyph, using the default arrow when unset. */
-static const char *egui_view_menu_get_submenu_icon(const egui_view_menu_t *local)
+static const char *egui_view_menu_resolve_submenu_icon(const egui_view_menu_t *local)
 {
     if (local->submenu_icon != NULL)
     {
@@ -67,15 +67,15 @@ static const char *egui_view_menu_get_submenu_icon(const egui_view_menu_t *local
 /** Report whether the current page should render a clickable back icon. */
 static uint8_t egui_view_menu_has_back_icon(const egui_view_menu_t *local)
 {
-    const char *icon = egui_view_menu_get_back_icon(local);
-    return (local->stack_depth > 0 && icon != NULL && icon[0] != '\0' && egui_view_menu_get_icon_font(local, local->header_height) != NULL) ? 1U : 0U;
+    const char *icon = egui_view_menu_resolve_back_icon(local);
+    return (local->stack_depth > 0 && icon != NULL && icon[0] != '\0' && egui_view_menu_resolve_icon_font(local, local->header_height) != NULL) ? 1U : 0U;
 }
 
 /** Report whether submenu rows can draw their trailing arrow icon. */
 static uint8_t egui_view_menu_has_submenu_icon(const egui_view_menu_t *local)
 {
-    const char *icon = egui_view_menu_get_submenu_icon(local);
-    return (icon != NULL && icon[0] != '\0' && egui_view_menu_get_icon_font(local, local->item_height) != NULL) ? 1U : 0U;
+    const char *icon = egui_view_menu_resolve_submenu_icon(local);
+    return (icon != NULL && icon[0] != '\0' && egui_view_menu_resolve_icon_font(local, local->item_height) != NULL) ? 1U : 0U;
 }
 
 static uint8_t egui_view_menu_normalize_selected_index(egui_view_menu_t *local)
@@ -141,6 +141,20 @@ void egui_view_menu_set_pages(egui_view_t *self, const egui_view_menu_page_t *pa
     egui_view_invalidate(self);
 }
 
+const egui_view_menu_page_t *egui_view_menu_get_pages(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->pages;
+}
+
+uint8_t egui_view_menu_get_page_count(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->page_count;
+}
+
 /** Push the current page onto the back stack and switch to a submenu page. */
 void egui_view_menu_navigate_to(egui_view_t *self, uint8_t page_index)
 {
@@ -160,6 +174,27 @@ void egui_view_menu_navigate_to(egui_view_t *self, uint8_t page_index)
     egui_view_menu_normalize_selected_index(local);
     egui_view_set_pressed(self, false);
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_menu_get_current_page(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->current_page;
+}
+
+uint8_t egui_view_menu_get_stack_depth(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->stack_depth;
+}
+
+uint8_t egui_view_menu_get_selected_index(egui_view_t *self)
+{
+    if (self == NULL) { return EGUI_VIEW_MENU_SELECTED_NONE; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->selected_index;
 }
 
 /** Pop one previous page from the back stack, if history is available. */
@@ -185,12 +220,26 @@ void egui_view_menu_set_on_item_click(egui_view_t *self, egui_view_menu_item_cli
     local->on_item_click = callback;
 }
 
+egui_view_menu_item_click_cb_t egui_view_menu_get_on_item_click(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->on_item_click;
+}
+
 /** Override the header row height used for both draw and hit-testing. */
 void egui_view_menu_set_header_height(egui_view_t *self, egui_dim_t height)
 {
     EGUI_LOCAL_INIT(egui_view_menu_t);
     local->header_height = height;
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_menu_get_header_height(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->header_height;
 }
 
 /** Override the item row height used for layout and hit-testing. */
@@ -201,12 +250,37 @@ void egui_view_menu_set_item_height(egui_view_t *self, egui_dim_t height)
     egui_view_invalidate(self);
 }
 
+egui_dim_t egui_view_menu_get_item_height(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->item_height;
+}
+
+egui_color_t egui_view_menu_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->text_color;
+}
+
 /** Override the text color used in the header row. */
 void egui_view_menu_set_header_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_menu_t);
     local->header_text_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_menu_get_header_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->header_text_color;
 }
 
 /** Override the icon font used for row icons and navigation arrows. */
@@ -220,6 +294,13 @@ void egui_view_menu_set_icon_font(egui_view_t *self, const egui_font_t *font)
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_menu_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->icon_font;
 }
 
 /** Override the glyph strings used for back and submenu navigation icons. */
@@ -247,6 +328,20 @@ void egui_view_menu_set_navigation_icons(egui_view_t *self, const char *back_ico
     egui_view_invalidate(self);
 }
 
+const char *egui_view_menu_get_back_icon(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return egui_view_menu_resolve_back_icon(local);
+}
+
+const char *egui_view_menu_get_submenu_icon(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return egui_view_menu_resolve_submenu_icon(local);
+}
+
 /** Set the gap between a row's optional icon glyph and its text label. */
 void egui_view_menu_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
@@ -264,6 +359,13 @@ void egui_view_menu_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 
     local->icon_text_gap = gap;
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_menu_get_icon_text_gap(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    return local->icon_text_gap;
 }
 
 /** Draw the active page: widget background, header, rows, and separators. */
@@ -292,8 +394,8 @@ void egui_view_menu_on_draw(egui_view_t *self)
     egui_dim_t w = region.size.width;
     egui_dim_t hdr_h = local->header_height;
     egui_dim_t item_h = local->item_height;
-    const egui_font_t *header_icon_font = egui_view_menu_get_icon_font(local, hdr_h);
-    const egui_font_t *item_icon_font = egui_view_menu_get_icon_font(local, item_h);
+    const egui_font_t *header_icon_font = egui_view_menu_resolve_icon_font(local, hdr_h);
+    const egui_font_t *item_icon_font = egui_view_menu_resolve_icon_font(local, item_h);
     uint8_t has_back_icon = egui_view_menu_has_back_icon(local);
     uint8_t has_submenu_icon = egui_view_menu_has_submenu_icon(local);
 
@@ -324,7 +426,7 @@ void egui_view_menu_on_draw(egui_view_t *self)
     if (has_back_icon)
     {
         egui_region_t back_rect = {{x, y}, {hdr_h, hdr_h}};
-        egui_canvas_draw_text_in_rect(canvas, header_icon_font, egui_view_menu_get_back_icon(local), &back_rect, EGUI_ALIGN_CENTER, local->header_text_color,
+        egui_canvas_draw_text_in_rect(canvas, header_icon_font, egui_view_menu_resolve_back_icon(local), &back_rect, EGUI_ALIGN_CENTER, local->header_text_color,
                                       EGUI_ALPHA_100);
     }
 
@@ -395,7 +497,7 @@ void egui_view_menu_on_draw(egui_view_t *self)
         if (page->items[i].sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF && has_submenu_icon)
         {
             egui_region_t arrow_rect = {{x + w - item_h, item_y}, {item_h, item_h}};
-            egui_canvas_draw_text_in_rect(canvas, item_icon_font, egui_view_menu_get_submenu_icon(local), &arrow_rect, EGUI_ALIGN_CENTER, local->text_color,
+            egui_canvas_draw_text_in_rect(canvas, item_icon_font, egui_view_menu_resolve_submenu_icon(local), &arrow_rect, EGUI_ALIGN_CENTER, local->text_color,
                                           EGUI_ALPHA_100);
         }
 

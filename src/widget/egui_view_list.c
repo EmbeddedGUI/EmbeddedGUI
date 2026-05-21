@@ -34,7 +34,7 @@ void egui_view_scroll_draw(egui_view_t *self);
  */
 
 /** Resolve the icon font, falling back to an automatic size based on row height. */
-static const egui_font_t *egui_view_list_get_icon_font(egui_view_list_t *local)
+static const egui_font_t *egui_view_list_resolve_icon_font(egui_view_list_t *local)
 {
     if (local->icon_font != NULL)
     {
@@ -58,7 +58,7 @@ static void egui_view_list_clear_item_refs(egui_view_list_t *local)
 /** Measure the widest icon slot needed across all rows that currently show icons. */
 static egui_dim_t egui_view_list_get_icon_area_width(egui_view_list_t *local)
 {
-    const egui_font_t *icon_font = egui_view_list_get_icon_font(local);
+    const egui_font_t *icon_font = egui_view_list_resolve_icon_font(local);
     egui_dim_t width = 0;
     egui_dim_t height = 0;
     uint8_t has_icon = 0;
@@ -259,7 +259,7 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
 {
     egui_canvas_t *canvas = egui_view_get_canvas(self);
     EGUI_LOCAL_INIT(egui_view_list_t);
-    const egui_font_t *icon_font = egui_view_list_get_icon_font(local);
+    const egui_font_t *icon_font = egui_view_list_resolve_icon_font(local);
     const egui_region_t *prev_clip = egui_canvas_get_extra_clip(canvas);
     egui_dim_t icon_width = egui_view_list_get_icon_area_width(local);
     uint8_t i;
@@ -501,6 +501,16 @@ void egui_view_list_clear(egui_view_t *self)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_list_get_item_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    return local->item_count;
+}
+
 /** Update the shared row height and restyle all existing rows when it changes. */
 void egui_view_list_set_item_height(egui_view_t *self, egui_dim_t height)
 {
@@ -514,6 +524,16 @@ void egui_view_list_set_item_height(egui_view_t *self, egui_dim_t height)
     local->item_height = height;
     egui_view_list_update_all_items(self);
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_list_get_item_height(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    return local->item_height;
 }
 
 /** Replace the icon glyph for one row and refresh layout that depends on icon width. */
@@ -532,6 +552,34 @@ void egui_view_list_set_item_icon(egui_view_t *self, uint8_t index, const char *
     egui_view_invalidate(self);
 }
 
+const char *egui_view_list_get_item_icon(egui_view_t *self, uint8_t index)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    if (index >= local->item_count)
+    {
+        return NULL;
+    }
+    return local->item_icons[index];
+}
+
+const char *egui_view_list_get_item_text(egui_view_t *self, uint8_t index)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    if (index >= local->item_count)
+    {
+        return NULL;
+    }
+    return local->item_texts[index];
+}
+
 /** Override the icon font and restyle rows so icon-space measurement stays current. */
 void egui_view_list_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
@@ -545,6 +593,16 @@ void egui_view_list_set_icon_font(egui_view_t *self, const egui_font_t *font)
     local->icon_font = font;
     egui_view_list_update_all_items(self);
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_list_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    return local->icon_font;
 }
 
 /** Set the horizontal gap between an icon and its label, clamping negative values to zero. */
@@ -567,6 +625,16 @@ void egui_view_list_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
     egui_view_invalidate(self);
 }
 
+egui_dim_t egui_view_list_get_icon_text_gap(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    return local->icon_gap;
+}
+
 /** Set the tint color used for row icons. */
 void egui_view_list_set_icon_color(egui_view_t *self, egui_color_t color)
 {
@@ -581,11 +649,33 @@ void egui_view_list_set_icon_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_list_get_icon_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    return local->icon_color;
+}
+
 /** Store the callback fired when an internal row button is clicked. */
 void egui_view_list_set_on_item_click(egui_view_t *self, egui_view_list_item_click_cb_t callback)
 {
     EGUI_LOCAL_INIT(egui_view_list_t);
     local->on_item_click = callback;
+}
+
+egui_view_list_item_click_cb_t egui_view_list_get_on_item_click(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_list_t);
+    return local->on_item_click;
 }
 
 void egui_view_list_set_selected_index(egui_view_t *self, uint8_t index)
@@ -595,6 +685,10 @@ void egui_view_list_set_selected_index(egui_view_t *self, uint8_t index)
 
 uint8_t egui_view_list_get_selected_index(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return EGUI_VIEW_LIST_SELECTED_NONE;
+    }
     EGUI_LOCAL_INIT(egui_view_list_t);
     return local->selected_index;
 }

@@ -64,14 +64,24 @@ void egui_view_page_indicator_init_with_params(egui_view_t *self, egui_core_t *c
 
 /** Set how many page marks should be drawn. */
 void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_count);
+/** Return how many page marks are currently stored. */
+uint8_t egui_view_page_indicator_get_total_count(egui_view_t *self);
 /** Select the active page mark. Out-of-range values are clamped to the last page. */
 void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t current_index);
+/** Return the current active page mark index. */
+uint8_t egui_view_page_indicator_get_current_index(egui_view_t *self);
 /** Choose between simple dots and icon-font marks. */
 void egui_view_page_indicator_set_mark_style(egui_view_t *self, egui_view_page_indicator_mark_style_t style);
+/** Return the current page mark rendering style. */
+egui_view_page_indicator_mark_style_t egui_view_page_indicator_get_mark_style(egui_view_t *self);
 /** Set the icon array used when the mark style is `ICON`. */
 void egui_view_page_indicator_set_icons(egui_view_t *self, const char *const *icons);
+/** Return the borrowed icon array used by icon-style page marks. */
+const char *const *egui_view_page_indicator_get_icons(egui_view_t *self);
 /** Override the icon font used for icon-style page marks. */
 void egui_view_page_indicator_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the icon font override, or NULL when automatic icon-font resolution is used. */
+const egui_font_t *egui_view_page_indicator_get_icon_font(egui_view_t *self);
 /** Default draw hook used by the page-indicator API table. */
 void egui_view_page_indicator_on_draw(egui_view_t *self);
 /** Initialize the page-indicator widget. */

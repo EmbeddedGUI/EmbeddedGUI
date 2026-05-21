@@ -94,34 +94,64 @@ void egui_view_button_matrix_init_with_params(egui_view_t *self, egui_core_t *co
 
 /** Set the label array, button count, and column count. The count is clamped to the fixed maximum. */
 void egui_view_button_matrix_set_labels(egui_view_t *self, const char **labels, uint8_t count, uint8_t cols);
+/** Return the borrowed label array currently attached to the matrix. */
+const char **egui_view_button_matrix_get_labels(egui_view_t *self);
+/** Return the number of active button cells. */
+uint8_t egui_view_button_matrix_get_button_count(egui_view_t *self);
+/** Return the number of configured columns. */
+uint8_t egui_view_button_matrix_get_cols(egui_view_t *self);
 /** Register the callback fired when a cell is clicked. */
 void egui_view_button_matrix_set_on_click(egui_view_t *self, egui_view_button_matrix_click_cb_t callback);
+/** Return the callback fired when a cell is clicked. */
+egui_view_button_matrix_click_cb_t egui_view_button_matrix_get_on_click(egui_view_t *self);
 /** Enable or disable persistent single-selection highlighting. */
 void egui_view_button_matrix_set_selection_enabled(egui_view_t *self, uint8_t enabled);
+/** Return whether persistent single-selection highlighting is enabled. */
+uint8_t egui_view_button_matrix_get_selection_enabled(egui_view_t *self);
 /** Set the selected cell index. This only changes visible highlight when selection mode is enabled. */
 void egui_view_button_matrix_set_selected_index(egui_view_t *self, uint8_t index);
 /** Return the stored selected cell index, or `SELECTED_NONE`. */
 uint8_t egui_view_button_matrix_get_selected_index(egui_view_t *self);
 /** Set the normal background color used by each button cell. */
 void egui_view_button_matrix_set_btn_color(egui_view_t *self, egui_color_t color);
+/** Return the normal background color used by each button cell. */
+egui_color_t egui_view_button_matrix_get_btn_color(egui_view_t *self);
 /** Set the pressed or selected background color used by active cells. */
 void egui_view_button_matrix_set_btn_pressed_color(egui_view_t *self, egui_color_t color);
+/** Return the pressed or selected background color used by active cells. */
+egui_color_t egui_view_button_matrix_get_btn_pressed_color(egui_view_t *self);
 /** Set the text and icon tint color used inside each button cell. */
 void egui_view_button_matrix_set_text_color(egui_view_t *self, egui_color_t color);
+/** Return the text and icon tint color used inside each button cell. */
+egui_color_t egui_view_button_matrix_get_text_color(egui_view_t *self);
 /** Set the gap between button cells. */
 void egui_view_button_matrix_set_gap(egui_view_t *self, uint8_t gap);
+/** Return the gap between button cells. */
+uint8_t egui_view_button_matrix_get_gap(egui_view_t *self);
 /** Set the corner radius used for each button cell. */
 void egui_view_button_matrix_set_corner_radius(egui_view_t *self, uint8_t radius);
+/** Return the corner radius used for each button cell. */
+uint8_t egui_view_button_matrix_get_corner_radius(egui_view_t *self);
 /** Set the border color drawn around each button cell. */
 void egui_view_button_matrix_set_border_color(egui_view_t *self, egui_color_t color);
+/** Return the border color drawn around each button cell. */
+egui_color_t egui_view_button_matrix_get_border_color(egui_view_t *self);
 /** Override the font used for button labels. */
 void egui_view_button_matrix_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the font used for button labels. */
+const egui_font_t *egui_view_button_matrix_get_font(egui_view_t *self);
 /** Set the optional icon array that parallels the label array. */
 void egui_view_button_matrix_set_icons(egui_view_t *self, const char **icons);
+/** Return the optional icon array that parallels the label array. */
+const char **egui_view_button_matrix_get_icons(egui_view_t *self);
 /** Override the icon font used for per-cell icons. */
 void egui_view_button_matrix_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the icon font override, or NULL when automatic icon-font resolution is used. */
+const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_t *self);
 /** Set the vertical gap between icon and text when one cell shows both. */
 void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Return the vertical gap between icon and text when one cell shows both. */
+egui_dim_t egui_view_button_matrix_get_icon_text_gap(egui_view_t *self);
 /** Default draw hook used by the button-matrix API table. */
 void egui_view_button_matrix_on_draw(egui_view_t *self);
 /** Initialize the grid-style button matrix widget. */

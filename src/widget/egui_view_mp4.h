@@ -48,10 +48,24 @@ void egui_view_mp4_init_with_params(egui_view_t *self, egui_core_t *core, const 
 
 /** Set how the current frame is aligned inside the widget bounds. */
 void egui_view_mp4_set_align_type(egui_view_t *self, uint8_t align_type);
+/** Return how the current frame is aligned inside the widget bounds. Returns 0 when self is NULL. */
+uint8_t egui_view_mp4_get_align_type(egui_view_t *self);
 /** Register the callback fired when playback reaches the end of the frame list. */
 void egui_view_mp4_set_callback(egui_view_t *self, egui_view_mp4_callback_func callback);
+/** Return the callback fired when playback reaches the end of the frame list. */
+egui_view_mp4_callback_func egui_view_mp4_get_callback(egui_view_t *self);
 /** Borrow an external image-frame array. The widget does not copy the frame list or image objects. */
 void egui_view_mp4_set_mp4_image_list(egui_view_t *self, const egui_image_t **mp4_image_list, uint16_t mp4_image_count);
+/** Return the borrowed external image-frame array pointer. */
+const egui_image_t **egui_view_mp4_get_mp4_image_list(egui_view_t *self);
+/** Return the number of frames in the borrowed image-frame array. */
+uint16_t egui_view_mp4_get_mp4_image_count(egui_view_t *self);
+/** Return the current frame index. */
+uint16_t egui_view_mp4_get_mp4_image_index(egui_view_t *self);
+/** Return the configured playback interval in milliseconds. */
+uint16_t egui_view_mp4_get_frame_interval_ms(egui_view_t *self);
+/** Return whether timer-driven playback is currently marked active. */
+uint8_t egui_view_mp4_is_playing(egui_view_t *self);
 /** Start playback from frame 0 and schedule the internal timer when the widget is attached and the interval is valid. */
 void egui_view_mp4_start_work(egui_view_t *self, int interval_ms);
 /** Stop playback and cancel the internal frame timer. */

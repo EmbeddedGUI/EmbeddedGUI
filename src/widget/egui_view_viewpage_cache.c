@@ -35,6 +35,16 @@ void egui_view_viewpage_cache_set_on_page_changed_listener(egui_view_t *self, eg
     local->listener = listener;
 }
 
+egui_view_viewpage_cache_on_page_changed_listener_t egui_view_viewpage_cache_get_on_page_changed_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
+    return local->listener;
+}
+
 void egui_view_viewpage_cache_set_on_page_load_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_load_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
@@ -42,11 +52,31 @@ void egui_view_viewpage_cache_set_on_page_load_listener(egui_view_t *self, egui_
     local->load_listener = listener;
 }
 
+egui_view_viewpage_cache_on_page_load_listener_t egui_view_viewpage_cache_get_on_page_load_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
+    return local->load_listener;
+}
+
 void egui_view_viewpage_cache_set_on_page_free_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_free_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     local->free_listener = listener;
+}
+
+egui_view_viewpage_cache_on_page_free_listener_t egui_view_viewpage_cache_get_on_page_free_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
+    return local->free_listener;
 }
 
 void *egui_view_viewpage_cache_on_paged_load(egui_view_t *self, int index)
@@ -167,6 +197,16 @@ void egui_view_viewpage_cache_set_child_total_cnt(egui_view_t *self, int cnt)
 
     local->total_page_cnt = cnt;
     egui_view_viewpage_cache_layout_childs(self);
+}
+
+int egui_view_viewpage_cache_get_child_total_cnt(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
+    return (int)local->total_page_cnt;
 }
 
 void egui_view_viewpage_cache_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height)
@@ -354,6 +394,20 @@ void egui_view_viewpage_cache_set_current_page(egui_view_t *self, int page_index
     egui_view_viewpage_cache_on_paged_changed(self, page_index);
 
     egui_view_invalidate(self);
+}
+
+int egui_view_viewpage_cache_get_current_page(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
+    if (local->current_page_index == (uint8_t)-1)
+    {
+        return -1;
+    }
+    return (int)local->current_page_index;
 }
 
 void egui_view_viewpage_cache_compute_scroll(egui_view_t *self)

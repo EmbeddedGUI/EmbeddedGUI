@@ -91,18 +91,34 @@ void egui_view_deferred_image_init_with_params(egui_view_t *self, egui_core_t *c
 
 /** Copy a new source URI, reset back to the placeholder, and return to `IDLE`. Auto-start may schedule a new load. */
 void egui_view_deferred_image_set_source_uri(egui_view_t *self, const char *source_uri);
+/** Return the copied source URI string, or NULL when unset or self is NULL. */
+const char *egui_view_deferred_image_get_source_uri(const egui_view_t *self);
 /** Copy a new cache path, reset back to the placeholder, and return to `IDLE`. */
 void egui_view_deferred_image_set_cache_path(egui_view_t *self, const char *cache_path);
+/** Return the copied cache path string, or NULL when unset or self is NULL. */
+const char *egui_view_deferred_image_get_cache_path(const egui_view_t *self);
 /** Set the in-memory placeholder image shown while idle, delayed, loading, or failed before a real image is ready. */
 void egui_view_deferred_image_set_placeholder_image(egui_view_t *self, const egui_image_t *image);
+/** Return the in-memory placeholder image pointer, or NULL when unset or self is NULL. */
+const egui_image_t *egui_view_deferred_image_get_placeholder_image(const egui_view_t *self);
 /** Set the placeholder forwarded to the internal file-image loader for file decode fallback states. */
 void egui_view_deferred_image_set_file_placeholder(egui_view_t *self, const egui_image_t *image);
+/** Return the file-image placeholder pointer, or NULL when unset or self is NULL. */
+const egui_image_t *egui_view_deferred_image_get_file_placeholder(const egui_view_t *self);
 /** Borrow a loader vtable, reset the current state to the placeholder, and optionally auto-start a new request. */
 void egui_view_deferred_image_set_loader(egui_view_t *self, const egui_view_deferred_image_loader_t *loader);
+/** Return the borrowed loader vtable pointer, or NULL when unset or self is NULL. */
+const egui_view_deferred_image_loader_t *egui_view_deferred_image_get_loader(const egui_view_t *self);
 /** Enable or disable automatic loading when the view is attached. Enabling it may start loading immediately from `IDLE`. */
 void egui_view_deferred_image_set_auto_start_on_attach(egui_view_t *self, int auto_start_on_attach);
+/** Return whether loading is automatically scheduled on attach. Returns 0 when self is NULL. */
+uint8_t egui_view_deferred_image_get_auto_start_on_attach(const egui_view_t *self);
 /** Set the delay before the loader starts after scheduling. */
 void egui_view_deferred_image_set_load_delay_ms(egui_view_t *self, uint16_t delay_ms);
+/** Return the delay before the loader starts after scheduling. Returns 0 when self is NULL. */
+uint16_t egui_view_deferred_image_get_load_delay_ms(const egui_view_t *self);
+/** Return the image currently displayed by draw(), or NULL when the built-in placeholder is used or self is NULL. */
+const egui_image_t *egui_view_deferred_image_get_display_image(const egui_view_t *self);
 /** Reset to the placeholder, return to `IDLE`, and then schedule a fresh load attempt. */
 void egui_view_deferred_image_reload(egui_view_t *self);
 /** Cancel the active request, stop timers, and return to the placeholder `IDLE` state. */

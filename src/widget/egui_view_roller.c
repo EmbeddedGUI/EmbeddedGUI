@@ -19,6 +19,16 @@ void egui_view_roller_set_on_selected_listener(egui_view_t *self, egui_view_on_r
     local->on_selected = listener;
 }
 
+egui_view_on_roller_selected_listener_t egui_view_roller_get_on_selected_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    return local->on_selected;
+}
+
 void egui_view_roller_set_items(egui_view_t *self, const char **items, uint8_t count)
 {
     EGUI_LOCAL_INIT(egui_view_roller_t);
@@ -30,6 +40,16 @@ void egui_view_roller_set_items(egui_view_t *self, const char **items, uint8_t c
         local->current_index = 0;
     }
     egui_view_invalidate(self);
+}
+
+const char **egui_view_roller_get_items(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    return local->items;
 }
 
 void egui_view_roller_set_current_index(egui_view_t *self, uint8_t index)
@@ -64,8 +84,92 @@ static void egui_view_roller_select_index(egui_view_t *self, uint8_t index)
 
 uint8_t egui_view_roller_get_current_index(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_roller_t);
     return local->current_index;
+}
+
+const char *egui_view_roller_get_selected_text(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    if (local->items == NULL || local->item_count == 0)
+    {
+        return NULL;
+    }
+    return local->items[local->current_index];
+}
+
+uint8_t egui_view_roller_get_item_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    return local->item_count;
+}
+
+egui_color_t egui_view_roller_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    return local->text_color;
+}
+
+egui_color_t egui_view_roller_get_highlight_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    return local->highlight_color;
+}
+
+egui_color_t egui_view_roller_get_selected_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    return local->selected_text_color;
+}
+
+uint8_t egui_view_roller_get_visible_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    return local->visible_count;
+}
+
+const egui_font_t *egui_view_roller_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_roller_t);
+    return local->font;
 }
 
 void egui_view_roller_on_draw(egui_view_t *self)

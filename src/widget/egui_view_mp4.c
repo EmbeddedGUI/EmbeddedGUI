@@ -104,11 +104,31 @@ void egui_view_mp4_set_align_type(egui_view_t *self, uint8_t align_type)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_mp4_get_align_type(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    egui_view_mp4_t *local = (egui_view_mp4_t *)self;
+    return local->align_type;
+}
+
 void egui_view_mp4_set_callback(egui_view_t *self, egui_view_mp4_callback_func callback)
 {
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
 
     local->callback = callback;
+}
+
+egui_view_mp4_callback_func egui_view_mp4_get_callback(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    egui_view_mp4_t *local = (egui_view_mp4_t *)self;
+    return local->callback;
 }
 
 void egui_view_mp4_set_mp4_image_list(egui_view_t *self, const egui_image_t **mp4_image_list, uint16_t mp4_image_count)
@@ -118,6 +138,56 @@ void egui_view_mp4_set_mp4_image_list(egui_view_t *self, const egui_image_t **mp
     local->mp4_image_list = mp4_image_list;
     local->mp4_image_count = mp4_image_count;
     egui_view_invalidate(self);
+}
+
+const egui_image_t **egui_view_mp4_get_mp4_image_list(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    egui_view_mp4_t *local = (egui_view_mp4_t *)self;
+    return local->mp4_image_list;
+}
+
+uint16_t egui_view_mp4_get_mp4_image_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    egui_view_mp4_t *local = (egui_view_mp4_t *)self;
+    return local->mp4_image_count;
+}
+
+uint16_t egui_view_mp4_get_mp4_image_index(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    egui_view_mp4_t *local = (egui_view_mp4_t *)self;
+    return local->mp4_image_index;
+}
+
+uint16_t egui_view_mp4_get_frame_interval_ms(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    egui_view_mp4_t *local = (egui_view_mp4_t *)self;
+    return local->frame_interval_ms;
+}
+
+uint8_t egui_view_mp4_is_playing(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    egui_view_mp4_t *local = (egui_view_mp4_t *)self;
+    return local->is_playing;
 }
 
 void egui_view_mp4_start_work(egui_view_t *self, int interval_ms)

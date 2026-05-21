@@ -2,6 +2,9 @@
 #include <assert.h>
 
 #include "egui_view_slider.h"
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+#include "core/egui_event.h"
+#endif
 #include "core/egui_core.h"
 #include "egui_view_group.h"
 #include "egui_view_circle_dirty.h"
@@ -27,7 +30,7 @@
 /**
  * @brief Resolve the effective maximum value, falling back to `100`.
  */
-static uint8_t egui_view_slider_get_max_value(const egui_view_slider_t *local)
+static uint8_t egui_view_slider_resolve_max(const egui_view_slider_t *local)
 {
     if (local == NULL || local->max_value == 0u)
     {
@@ -42,7 +45,7 @@ static uint8_t egui_view_slider_get_max_value(const egui_view_slider_t *local)
  */
 static uint8_t egui_view_slider_clamp_value(const egui_view_slider_t *local, uint8_t value)
 {
-    uint8_t max_value = egui_view_slider_get_max_value(local);
+    uint8_t max_value = egui_view_slider_resolve_max(local);
 
     return value > max_value ? max_value : value;
 }
@@ -52,7 +55,7 @@ static uint8_t egui_view_slider_clamp_value(const egui_view_slider_t *local, uin
  */
 static uint8_t egui_view_slider_value_to_percent(const egui_view_slider_t *local, uint8_t value)
 {
-    uint8_t max_value = egui_view_slider_get_max_value(local);
+    uint8_t max_value = egui_view_slider_resolve_max(local);
 
     value = egui_view_slider_clamp_value(local, value);
     if (max_value >= 100u)
@@ -72,13 +75,23 @@ void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view
     local->on_value_changed = listener;
 }
 
+egui_view_on_value_changed_listener_t egui_view_slider_get_on_value_changed_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_slider_t);
+    return local->on_value_changed;
+}
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 /**
  * @brief Convert a percentage back into the slider's logical value range.
  */
 static uint8_t egui_view_slider_percent_to_value(const egui_view_slider_t *local, uint8_t percent)
 {
-    uint8_t max_value = egui_view_slider_get_max_value(local);
+    uint8_t max_value = egui_view_slider_resolve_max(local);
     uint8_t value;
 
     if (percent > 100u)
@@ -237,6 +250,9 @@ void egui_view_slider_set_value(egui_view_t *self, uint8_t value)
         {
             local->on_value_changed(self, value);
         }
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+        egui_view_send_event(self, EGUI_EVENT_VALUE_CHANGED, &local->value);
+#endif
 
         egui_view_slider_invalidate_value_change(self, local, old_value);
     }
@@ -247,8 +263,72 @@ void egui_view_slider_set_value(egui_view_t *self, uint8_t value)
  */
 uint8_t egui_view_slider_get_value(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_slider_t);
     return local->value;
+}
+
+uint8_t egui_view_slider_get_max_value(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 100u;
+    }
+    EGUI_LOCAL_INIT(egui_view_slider_t);
+    if (local->max_value == 0u)
+    {
+        return 100u;
+    }
+    return local->max_value;
+}
+
+int egui_view_slider_get_is_dragging(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_slider_t);
+    return (int)local->is_dragging;
+}
+
+egui_color_t egui_view_slider_get_track_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_slider_t);
+    return local->track_color;
+}
+
+egui_color_t egui_view_slider_get_active_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_slider_t);
+    return local->active_color;
+}
+
+egui_color_t egui_view_slider_get_thumb_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_slider_t);
+    return local->thumb_color;
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -457,7 +537,7 @@ static int egui_view_slider_on_key_event(egui_view_t *self, egui_key_event_t *ev
         }
         else
         {
-            if (local->value >= egui_view_slider_get_max_value(local))
+            if (local->value >= egui_view_slider_resolve_max(local))
             {
                 return 0;
             }

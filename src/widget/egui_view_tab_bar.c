@@ -21,7 +21,7 @@
  */
 
 /** Resolve the icon font, falling back to an automatic size for the tab cell. */
-static const egui_font_t *egui_view_tab_bar_get_icon_font(egui_view_tab_bar_t *local, egui_dim_t area_size)
+static const egui_font_t *egui_view_tab_bar_resolve_icon_font(egui_view_tab_bar_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
     {
@@ -64,11 +64,83 @@ void egui_view_tab_bar_set_current_index(egui_view_t *self, uint8_t index)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_tab_bar_get_current_index(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->current_index;
+}
+
+uint8_t egui_view_tab_bar_get_tab_count(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->tab_count;
+}
+
+const char **egui_view_tab_bar_get_tabs(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->tab_texts;
+}
+
+egui_color_t egui_view_tab_bar_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero; zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->text_color;
+}
+
+egui_color_t egui_view_tab_bar_get_active_text_color(egui_view_t *self)
+{
+    egui_color_t zero; zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->active_text_color;
+}
+
+egui_color_t egui_view_tab_bar_get_indicator_color(egui_view_t *self)
+{
+    egui_color_t zero; zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->indicator_color;
+}
+
+egui_alpha_t egui_view_tab_bar_get_alpha(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->alpha;
+}
+
+egui_dim_t egui_view_tab_bar_get_icon_text_gap(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->icon_text_gap;
+}
+
 /** Store the callback used to react to tab-selection changes. */
 void egui_view_tab_bar_set_on_tab_changed_listener(egui_view_t *self, egui_view_on_tab_changed_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
     local->on_tab_changed = listener;
+}
+
+egui_view_on_tab_changed_listener_t egui_view_tab_bar_get_on_tab_changed_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->on_tab_changed;
 }
 
 /** Override the label font used for tab text. */
@@ -77,6 +149,16 @@ void egui_view_tab_bar_set_font(egui_view_t *self, const egui_font_t *font)
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
     local->font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_tab_bar_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->font;
 }
 
 /** Attach an optional borrowed icon array that parallels the tab labels. */
@@ -92,6 +174,16 @@ void egui_view_tab_bar_set_tab_icons(egui_view_t *self, const char **tab_icons)
     egui_view_invalidate(self);
 }
 
+const char **egui_view_tab_bar_get_tab_icons(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->tab_icons;
+}
+
 /** Override the icon font used when tabs display glyphs. */
 void egui_view_tab_bar_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
@@ -103,6 +195,16 @@ void egui_view_tab_bar_set_icon_font(egui_view_t *self, const egui_font_t *font)
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_tab_bar_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    return local->icon_font;
 }
 
 /** Set the vertical spacing between an icon and label inside one tab. */
@@ -154,7 +256,7 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
         egui_color_t color = (i == local->current_index) ? local->active_text_color : local->text_color;
         if (tab_icon != NULL && tab_icon[0] != '\0')
         {
-            const egui_font_t *icon_font = egui_view_tab_bar_get_icon_font(local, tab_rect.size.height);
+            const egui_font_t *icon_font = egui_view_tab_bar_resolve_icon_font(local, tab_rect.size.height);
             if (tab_text != NULL && tab_text[0] != '\0')
             {
                 // Mixed tabs stack icon and text vertically inside the same cell.

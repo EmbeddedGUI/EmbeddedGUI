@@ -52,16 +52,30 @@ void egui_view_animated_image_init_with_params(egui_view_t *self, egui_core_t *c
 
 /** Borrow an external frame array. The widget does not copy the array or image objects. */
 void egui_view_animated_image_set_frames(egui_view_t *self, const egui_image_t **frames, uint8_t count);
+/** Return the borrowed frame array pointer, or NULL when no frame array is set. */
+const egui_image_t **egui_view_animated_image_get_frames(egui_view_t *self);
+/** Return the number of frames in the borrowed frame array. */
+uint8_t egui_view_animated_image_get_frame_count(egui_view_t *self);
 /** Set the per-frame interval used by `update()`. A value of 0 pauses frame advancement. */
 void egui_view_animated_image_set_interval(egui_view_t *self, uint16_t ms);
+/** Return the per-frame interval in milliseconds. */
+uint16_t egui_view_animated_image_get_interval(egui_view_t *self);
 /** Mark the animation as playing and reset accumulated time. Call `update()` periodically to advance frames. */
 void egui_view_animated_image_play(egui_view_t *self);
 /** Stop frame advancement while keeping the current frame visible. */
 void egui_view_animated_image_stop(egui_view_t *self);
+/** Return whether playback is currently enabled. */
+uint8_t egui_view_animated_image_is_playing(egui_view_t *self);
 /** Enable or disable looping when playback reaches the last frame. */
 void egui_view_animated_image_set_loop(egui_view_t *self, uint8_t enable);
+/** Return whether playback wraps back to the first frame. */
+uint8_t egui_view_animated_image_get_loop(egui_view_t *self);
 /** Switch to one frame immediately. Out-of-range indices are ignored. */
 void egui_view_animated_image_set_current_frame(egui_view_t *self, uint8_t index);
+/** Return the current frame index. */
+uint8_t egui_view_animated_image_get_current_frame(egui_view_t *self);
+/** Return the accumulated elapsed time since the last frame step. */
+uint16_t egui_view_animated_image_get_elapsed(egui_view_t *self);
 /** Advance playback by elapsed milliseconds. This widget has no internal timer, so callers must drive it externally. */
 void egui_view_animated_image_update(egui_view_t *self, uint16_t elapsed_ms);
 

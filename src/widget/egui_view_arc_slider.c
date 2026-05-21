@@ -60,6 +60,16 @@ void egui_view_arc_slider_set_on_value_changed_listener(egui_view_t *self, egui_
     local->on_value_changed = listener;
 }
 
+egui_view_on_arc_value_changed_listener_t egui_view_arc_slider_get_on_value_changed_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    return local->on_value_changed;
+}
+
 static void egui_view_arc_slider_invalidate_value_change(egui_view_t *self, egui_view_arc_slider_t *local, uint8_t old_value)
 {
     egui_region_t region;
@@ -168,8 +178,98 @@ void egui_view_arc_slider_set_value(egui_view_t *self, uint8_t value)
 
 uint8_t egui_view_arc_slider_get_value(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_arc_slider_t);
     return local->value;
+}
+
+int egui_view_arc_slider_get_is_dragging(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    return (int)local->is_dragging;
+}
+
+egui_color_t egui_view_arc_slider_get_track_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    return local->track_color;
+}
+
+egui_color_t egui_view_arc_slider_get_active_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    return local->active_color;
+}
+
+egui_color_t egui_view_arc_slider_get_thumb_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    return local->thumb_color;
+}
+
+egui_dim_t egui_view_arc_slider_get_stroke_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    return local->stroke_width;
+}
+
+egui_dim_t egui_view_arc_slider_get_thumb_radius(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    return local->thumb_radius;
+}
+
+int16_t egui_view_arc_slider_get_start_angle(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    return local->start_angle;
+}
+
+int16_t egui_view_arc_slider_get_sweep_angle(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    return local->sweep_angle;
 }
 
 void egui_view_arc_slider_on_draw(egui_view_t *self)

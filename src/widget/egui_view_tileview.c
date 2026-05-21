@@ -49,6 +49,16 @@ void egui_view_tileview_add_tile(egui_view_t *self, egui_view_t *tile_view, uint
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_tileview_get_tile_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_tileview_t);
+    return local->tile_count;
+}
+
 void egui_view_tileview_set_current(egui_view_t *self, uint8_t col, uint8_t row)
 {
     EGUI_LOCAL_INIT(egui_view_tileview_t);
@@ -80,10 +90,40 @@ void egui_view_tileview_set_current(egui_view_t *self, uint8_t col, uint8_t row)
     }
 }
 
+uint8_t egui_view_tileview_get_current_col(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_tileview_t);
+    return local->current_col;
+}
+
+uint8_t egui_view_tileview_get_current_row(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_tileview_t);
+    return local->current_row;
+}
+
 void egui_view_tileview_set_on_changed(egui_view_t *self, egui_view_tileview_changed_cb_t callback)
 {
     EGUI_LOCAL_INIT(egui_view_tileview_t);
     local->on_changed = callback;
+}
+
+egui_view_tileview_changed_cb_t egui_view_tileview_get_on_changed(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_tileview_t);
+    return local->on_changed;
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH

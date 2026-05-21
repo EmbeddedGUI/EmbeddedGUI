@@ -55,10 +55,18 @@ void egui_view_tileview_init_with_params(egui_view_t *self, egui_core_t *core, c
 
 /** Register one child tile at a logical `(col, row)` position in the swipe grid. Inactive tiles stay parked off-screen. */
 void egui_view_tileview_add_tile(egui_view_t *self, egui_view_t *tile_view, uint8_t col, uint8_t row);
+/** Return the number of registered tiles. Returns 0 when self is NULL. */
+uint8_t egui_view_tileview_get_tile_count(egui_view_t *self);
 /** Jump to an existing tile position immediately. Missing positions are ignored. */
 void egui_view_tileview_set_current(egui_view_t *self, uint8_t col, uint8_t row);
+/** Return the current tile column. Returns 0 when self is NULL. */
+uint8_t egui_view_tileview_get_current_col(egui_view_t *self);
+/** Return the current tile row. Returns 0 when self is NULL. */
+uint8_t egui_view_tileview_get_current_row(egui_view_t *self);
 /** Register the callback fired when the active tile changes. */
 void egui_view_tileview_set_on_changed(egui_view_t *self, egui_view_tileview_changed_cb_t callback);
+/** Return the registered tile-change callback, or NULL when unset or self is NULL. */
+egui_view_tileview_changed_cb_t egui_view_tileview_get_on_changed(egui_view_t *self);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 /** Intercept touch once movement grows into a swipe gesture that should not be handled by child widgets. */

@@ -12,7 +12,7 @@
  * increment button, current value, and decrement button.
  */
 
-static const egui_font_t *egui_view_number_picker_get_icon_font(egui_view_number_picker_t *local, egui_dim_t area_size)
+static const egui_font_t *egui_view_number_picker_resolve_icon_font(egui_view_number_picker_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
     {
@@ -76,6 +76,16 @@ void egui_view_number_picker_set_on_value_changed_listener(egui_view_t *self, eg
     local->on_value_changed = listener;
 }
 
+egui_view_on_number_changed_listener_t egui_view_number_picker_get_on_value_changed_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->on_value_changed;
+}
+
 void egui_view_number_picker_set_value(egui_view_t *self, int16_t value)
 {
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
@@ -101,6 +111,10 @@ void egui_view_number_picker_set_value(egui_view_t *self, int16_t value)
 
 int16_t egui_view_number_picker_get_value(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
     return local->value;
 }
@@ -122,10 +136,74 @@ void egui_view_number_picker_set_range(egui_view_t *self, int16_t min_value, int
     egui_view_invalidate(self);
 }
 
+int16_t egui_view_number_picker_get_min_value(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->min_value;
+}
+
+int16_t egui_view_number_picker_get_max_value(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->max_value;
+}
+
 void egui_view_number_picker_set_step(egui_view_t *self, int16_t step)
 {
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
     local->step = step;
+}
+
+int16_t egui_view_number_picker_get_step(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->step;
+}
+
+egui_color_t egui_view_number_picker_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->text_color;
+}
+
+egui_color_t egui_view_number_picker_get_button_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->button_color;
+}
+
+egui_alpha_t egui_view_number_picker_get_alpha(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->alpha;
 }
 
 void egui_view_number_picker_set_button_icons(egui_view_t *self, const char *icon_inc, const char *icon_dec)
@@ -142,6 +220,26 @@ void egui_view_number_picker_set_button_icons(egui_view_t *self, const char *ico
     egui_view_invalidate(self);
 }
 
+const char *egui_view_number_picker_get_button_icon_inc(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->icon_inc;
+}
+
+const char *egui_view_number_picker_get_button_icon_dec(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->icon_dec;
+}
+
 void egui_view_number_picker_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
@@ -153,6 +251,16 @@ void egui_view_number_picker_set_icon_font(egui_view_t *self, const egui_font_t 
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_number_picker_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->icon_font;
 }
 
 void egui_view_number_picker_on_draw(egui_view_t *self)
@@ -189,7 +297,7 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
         egui_view_number_picker_local_region_to_screen(self, &top_rect, &screen_rect);
         if (egui_canvas_is_region_active(canvas, &screen_rect))
         {
-            const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
+            const egui_font_t *icon_font = egui_view_number_picker_resolve_icon_font(local, EGUI_MIN(w, third_h) - 4);
 
             if (self->is_pressed && local->pressed_zone == 1)
             {
@@ -218,7 +326,7 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
         egui_view_number_picker_local_region_to_screen(self, &bottom_rect, &screen_rect);
         if (egui_canvas_is_region_active(canvas, &screen_rect))
         {
-            const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
+            const egui_font_t *icon_font = egui_view_number_picker_resolve_icon_font(local, EGUI_MIN(w, third_h) - 4);
 
             if (self->is_pressed && local->pressed_zone == -1)
             {

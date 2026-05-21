@@ -79,10 +79,18 @@ void egui_view_combobox_init_with_params(egui_view_t *self, egui_core_t *core, c
 
 /** Register the callback fired when the user commits a selection. */
 void egui_view_combobox_set_on_selected_listener(egui_view_t *self, egui_view_on_combobox_selected_listener_t listener);
+/** Return the registered selection callback. */
+egui_view_on_combobox_selected_listener_t egui_view_combobox_get_on_selected_listener(egui_view_t *self);
 /** Replace the item array and visible item count. The current index is clamped if needed. */
 void egui_view_combobox_set_items(egui_view_t *self, const char **items, uint8_t count);
+/** Return the borrowed item array. */
+const char **egui_view_combobox_get_items(egui_view_t *self);
+/** Return the number of items currently in the list. Returns 0 when self is NULL. */
+uint8_t egui_view_combobox_get_item_count(egui_view_t *self);
 /** Set the optional icon array that parallels the item text array. */
 void egui_view_combobox_set_item_icons(egui_view_t *self, const char **item_icons);
+/** Return the optional icon array that parallels the item text array. */
+const char **egui_view_combobox_get_item_icons(egui_view_t *self);
 /** Change the current selection programmatically without firing the selection listener. */
 void egui_view_combobox_set_current_index(egui_view_t *self, uint8_t index);
 /** Return the currently selected item index. */
@@ -91,14 +99,26 @@ uint8_t egui_view_combobox_get_current_index(egui_view_t *self);
 const char *egui_view_combobox_get_current_text(egui_view_t *self);
 /** Limit how many items may be shown when the dropdown expands. */
 void egui_view_combobox_set_max_visible_items(egui_view_t *self, uint8_t max_items);
+/** Return the configured maximum number of visible dropdown items. */
+uint8_t egui_view_combobox_get_max_visible_items(egui_view_t *self);
 /** Override the font used for item text and header text. */
 void egui_view_combobox_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the configured text font. */
+const egui_font_t *egui_view_combobox_get_font(egui_view_t *self);
 /** Override the icon font used for item icons and expand/collapse arrows. */
 void egui_view_combobox_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the configured icon font override, or NULL when auto font selection is used. */
+const egui_font_t *egui_view_combobox_get_icon_font(egui_view_t *self);
 /** Override the icons used for collapsed and expanded arrow states. Passing NULL restores defaults. */
 void egui_view_combobox_set_arrow_icons(egui_view_t *self, const char *expand_icon, const char *collapse_icon);
+/** Return the icon used when the combobox is collapsed. */
+const char *egui_view_combobox_get_expand_icon(egui_view_t *self);
+/** Return the icon used when the combobox is expanded. */
+const char *egui_view_combobox_get_collapse_icon(egui_view_t *self);
 /** Set the horizontal gap between an item icon and its text. */
 void egui_view_combobox_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Return the horizontal gap between an item icon and its text. */
+egui_dim_t egui_view_combobox_get_icon_text_gap(egui_view_t *self);
 /** Expand the dropdown if there is enough space to show at least one item. */
 void egui_view_combobox_expand(egui_view_t *self);
 /** Collapse the dropdown back to its header height. */

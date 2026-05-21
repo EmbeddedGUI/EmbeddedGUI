@@ -59,14 +59,14 @@ static egui_dim_t egui_view_canvas_panner_get_effective_canvas_height(egui_view_
 }
 
 /** Return the furthest valid horizontal pan offset. */
-static egui_dim_t egui_view_canvas_panner_get_max_offset_x(egui_view_t *self, egui_view_canvas_panner_t *local)
+static egui_dim_t egui_view_canvas_panner_calc_max_offset_x(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     egui_dim_t canvas_width = egui_view_canvas_panner_get_effective_canvas_width(self, local);
     return canvas_width > self->region.size.width ? (egui_dim_t)(canvas_width - self->region.size.width) : 0;
 }
 
 /** Return the furthest valid vertical pan offset. */
-static egui_dim_t egui_view_canvas_panner_get_max_offset_y(egui_view_t *self, egui_view_canvas_panner_t *local)
+static egui_dim_t egui_view_canvas_panner_calc_max_offset_y(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     egui_dim_t canvas_height = egui_view_canvas_panner_get_effective_canvas_height(self, local);
     return canvas_height > self->region.size.height ? (egui_dim_t)(canvas_height - self->region.size.height) : 0;
@@ -76,7 +76,7 @@ static egui_dim_t egui_view_canvas_panner_get_max_offset_y(egui_view_t *self, eg
 /** Check whether the logical canvas is currently scrollable on either axis. */
 static uint8_t egui_view_canvas_panner_can_pan(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
-    return egui_view_canvas_panner_get_max_offset_x(self, local) > 0 || egui_view_canvas_panner_get_max_offset_y(self, local) > 0;
+    return egui_view_canvas_panner_calc_max_offset_x(self, local) > 0 || egui_view_canvas_panner_calc_max_offset_y(self, local) > 0;
 }
 
 /** Detect containers that should be searched recursively during drag hit testing. */
@@ -89,8 +89,8 @@ static uint8_t egui_view_canvas_panner_is_group_like(egui_view_t *view)
 /** Clamp the stored pan offset to the current scrollable range. */
 static void egui_view_canvas_panner_clamp_offset(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
-    egui_dim_t max_offset_x = egui_view_canvas_panner_get_max_offset_x(self, local);
-    egui_dim_t max_offset_y = egui_view_canvas_panner_get_max_offset_y(self, local);
+    egui_dim_t max_offset_x = egui_view_canvas_panner_calc_max_offset_x(self, local);
+    egui_dim_t max_offset_y = egui_view_canvas_panner_calc_max_offset_y(self, local);
 
     if (local->offset_x < 0)
     {
@@ -143,11 +143,11 @@ static uint8_t egui_view_canvas_panner_get_self_drag_axis_mask(egui_view_t *self
 {
     uint8_t axis_mask = EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_NONE;
 
-    if (egui_view_canvas_panner_get_max_offset_x(self, local) > 0)
+    if (egui_view_canvas_panner_calc_max_offset_x(self, local) > 0)
     {
         axis_mask |= EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_HORIZONTAL;
     }
-    if (egui_view_canvas_panner_get_max_offset_y(self, local) > 0)
+    if (egui_view_canvas_panner_calc_max_offset_y(self, local) > 0)
     {
         axis_mask |= EGUI_VIEW_CANVAS_PANNER_DRAG_AXIS_VERTICAL;
     }
@@ -741,6 +741,28 @@ egui_dim_t egui_view_canvas_panner_get_offset_y(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
     return local->offset_y;
+}
+
+/** Return the maximum reachable horizontal pan offset. */
+egui_dim_t egui_view_canvas_panner_get_max_offset_x(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
+    return egui_view_canvas_panner_calc_max_offset_x(self, local);
+}
+
+/** Return the maximum reachable vertical pan offset. */
+egui_dim_t egui_view_canvas_panner_get_max_offset_y(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_canvas_panner_t);
+    return egui_view_canvas_panner_calc_max_offset_y(self, local);
 }
 
 /** Initialize the panner with zero offsets and stock drag-threshold state. */

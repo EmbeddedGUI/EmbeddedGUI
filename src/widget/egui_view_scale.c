@@ -58,6 +58,26 @@ void egui_view_scale_set_range(egui_view_t *self, int16_t min, int16_t max)
     }
 }
 
+int16_t egui_view_scale_get_range_min(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->range_min;
+}
+
+int16_t egui_view_scale_get_range_max(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->range_max;
+}
+
 void egui_view_scale_set_value(egui_view_t *self, int16_t value)
 {
     EGUI_LOCAL_INIT(egui_view_scale_t);
@@ -76,6 +96,16 @@ void egui_view_scale_set_value(egui_view_t *self, int16_t value)
     }
 }
 
+int16_t egui_view_scale_get_value(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->value;
+}
+
 void egui_view_scale_set_ticks(egui_view_t *self, uint8_t major_count, uint8_t minor_count)
 {
     EGUI_LOCAL_INIT(egui_view_scale_t);
@@ -85,6 +115,26 @@ void egui_view_scale_set_ticks(egui_view_t *self, uint8_t major_count, uint8_t m
         local->minor_tick_count = minor_count;
         egui_view_invalidate(self);
     }
+}
+
+uint8_t egui_view_scale_get_major_tick_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->major_tick_count;
+}
+
+uint8_t egui_view_scale_get_minor_tick_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->minor_tick_count;
 }
 
 void egui_view_scale_set_orientation(egui_view_t *self, uint8_t is_horizontal)
@@ -97,6 +147,16 @@ void egui_view_scale_set_orientation(egui_view_t *self, uint8_t is_horizontal)
     }
 }
 
+uint8_t egui_view_scale_get_is_horizontal(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->is_horizontal;
+}
+
 void egui_view_scale_set_tick_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_scale_t);
@@ -105,6 +165,19 @@ void egui_view_scale_set_tick_color(egui_view_t *self, egui_color_t color)
         local->tick_color = color;
         egui_view_invalidate(self);
     }
+}
+
+egui_color_t egui_view_scale_get_tick_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->tick_color;
 }
 
 void egui_view_scale_set_label_color(egui_view_t *self, egui_color_t color)
@@ -117,6 +190,19 @@ void egui_view_scale_set_label_color(egui_view_t *self, egui_color_t color)
     }
 }
 
+egui_color_t egui_view_scale_get_label_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->label_color;
+}
+
 void egui_view_scale_set_indicator_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_scale_t);
@@ -125,6 +211,19 @@ void egui_view_scale_set_indicator_color(egui_view_t *self, egui_color_t color)
         local->indicator_color = color;
         egui_view_invalidate(self);
     }
+}
+
+egui_color_t egui_view_scale_get_indicator_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->indicator_color;
 }
 
 void egui_view_scale_show_labels(egui_view_t *self, uint8_t show)
@@ -137,6 +236,16 @@ void egui_view_scale_show_labels(egui_view_t *self, uint8_t show)
     }
 }
 
+uint8_t egui_view_scale_get_show_labels(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->show_labels;
+}
+
 void egui_view_scale_show_indicator(egui_view_t *self, uint8_t show)
 {
     EGUI_LOCAL_INIT(egui_view_scale_t);
@@ -147,6 +256,16 @@ void egui_view_scale_show_indicator(egui_view_t *self, uint8_t show)
     }
 }
 
+uint8_t egui_view_scale_get_show_indicator(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->show_indicator;
+}
+
 void egui_view_scale_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_scale_t);
@@ -155,6 +274,16 @@ void egui_view_scale_set_font(egui_view_t *self, const egui_font_t *font)
         local->font = font;
         egui_view_invalidate(self);
     }
+}
+
+const egui_font_t *egui_view_scale_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_scale_t);
+    return local->font;
 }
 
 void egui_view_scale_on_draw(egui_view_t *self)

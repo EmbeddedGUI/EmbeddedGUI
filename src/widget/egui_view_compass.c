@@ -25,6 +25,16 @@ void egui_view_compass_set_heading(egui_view_t *self, int16_t heading)
     }
 }
 
+int16_t egui_view_compass_get_heading(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    return local->heading;
+}
+
 void egui_view_compass_set_show_degree(egui_view_t *self, uint8_t show)
 {
     EGUI_LOCAL_INIT(egui_view_compass_t);
@@ -33,6 +43,148 @@ void egui_view_compass_set_show_degree(egui_view_t *self, uint8_t show)
         local->show_degree = show;
         egui_view_invalidate(self);
     }
+}
+
+uint8_t egui_view_compass_get_show_degree(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    return local->show_degree;
+}
+
+void egui_view_compass_set_stroke_width(egui_view_t *self, egui_dim_t stroke_width)
+{
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    if (stroke_width != local->stroke_width)
+    {
+        local->stroke_width = stroke_width;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_dim_t egui_view_compass_get_stroke_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    return local->stroke_width;
+}
+
+void egui_view_compass_set_dial_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    if (local->dial_color.full != color.full)
+    {
+        local->dial_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_compass_get_dial_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    return local->dial_color;
+}
+
+void egui_view_compass_set_north_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    if (local->north_color.full != color.full)
+    {
+        local->north_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_compass_get_north_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    return local->north_color;
+}
+
+void egui_view_compass_set_needle_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    if (local->needle_color.full != color.full)
+    {
+        local->needle_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_compass_get_needle_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    return local->needle_color;
+}
+
+void egui_view_compass_set_text_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    if (local->text_color.full != color.full)
+    {
+        local->text_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_compass_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    return local->text_color;
+}
+
+void egui_view_compass_set_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    if (local->font != font)
+    {
+        local->font = font;
+        egui_view_invalidate(self);
+    }
+}
+
+const egui_font_t *egui_view_compass_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_compass_t);
+    return local->font;
 }
 
 void egui_view_compass_on_draw(egui_view_t *self)

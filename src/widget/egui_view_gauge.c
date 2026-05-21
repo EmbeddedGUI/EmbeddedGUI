@@ -297,6 +297,152 @@ void egui_view_gauge_set_value(egui_view_t *self, uint8_t value)
     }
 }
 
+uint8_t egui_view_gauge_get_value(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->value;
+}
+
+void egui_view_gauge_set_stroke_width(egui_view_t *self, egui_dim_t stroke_width)
+{
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    if (stroke_width != local->stroke_width)
+    {
+        local->stroke_width = stroke_width;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_dim_t egui_view_gauge_get_stroke_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->stroke_width;
+}
+
+void egui_view_gauge_set_needle_width(egui_view_t *self, egui_dim_t needle_width)
+{
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    if (needle_width != local->needle_width)
+    {
+        local->needle_width = needle_width;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_dim_t egui_view_gauge_get_needle_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->needle_width;
+}
+
+void egui_view_gauge_set_start_angle(egui_view_t *self, int16_t start_angle)
+{
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    if (start_angle != local->start_angle)
+    {
+        local->start_angle = start_angle;
+        egui_view_invalidate(self);
+    }
+}
+
+int16_t egui_view_gauge_get_start_angle(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->start_angle;
+}
+
+void egui_view_gauge_set_sweep_angle(egui_view_t *self, int16_t sweep_angle)
+{
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    if (sweep_angle != local->sweep_angle)
+    {
+        local->sweep_angle = sweep_angle;
+        egui_view_invalidate(self);
+    }
+}
+
+int16_t egui_view_gauge_get_sweep_angle(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->sweep_angle;
+}
+
+void egui_view_gauge_set_bk_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    if (local->bk_color.full != color.full)
+    {
+        local->bk_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_gauge_get_bk_color(egui_view_t *self)
+{
+    egui_color_t zero; zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->bk_color;
+}
+
+void egui_view_gauge_set_progress_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    if (local->progress_color.full != color.full)
+    {
+        local->progress_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_gauge_get_progress_color(egui_view_t *self)
+{
+    egui_color_t zero; zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->progress_color;
+}
+
+void egui_view_gauge_set_needle_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    if (local->needle_color.full != color.full)
+    {
+        local->needle_color = color;
+        egui_view_invalidate(self);
+    }
+}
+
+egui_color_t egui_view_gauge_get_needle_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->needle_color;
+}
+
 void egui_view_gauge_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_gauge_t);
@@ -305,11 +451,34 @@ void egui_view_gauge_set_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_gauge_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->font;
+}
+
 void egui_view_gauge_set_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_gauge_t);
     local->text_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_gauge_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_gauge_t);
+    return local->text_color;
 }
 
 void egui_view_gauge_on_draw(egui_view_t *self)

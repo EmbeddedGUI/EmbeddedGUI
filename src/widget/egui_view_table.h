@@ -76,18 +76,46 @@ void egui_view_table_init_with_params(egui_view_t *self, egui_core_t *core, cons
 
 /** Set one cell's text pointer. The widget borrows the string and ignores indices outside the fixed table capacity. */
 void egui_view_table_set_cell(egui_view_t *self, uint8_t row, uint8_t col, const char *text);
+/** Return one cell's borrowed text pointer, or NULL when the index is outside capacity. */
+const char *egui_view_table_get_cell(egui_view_t *self, uint8_t row, uint8_t col);
 /** Set the visible row and column counts. Values larger than the built-in maxima are clamped. */
 void egui_view_table_set_size(egui_view_t *self, uint8_t rows, uint8_t cols);
+/** Return the visible row count. */
+uint8_t egui_view_table_get_row_count(egui_view_t *self);
+/** Return the visible column count. */
+uint8_t egui_view_table_get_col_count(egui_view_t *self);
 /** Mark the first `count` rows as header rows so they use header colors. */
 void egui_view_table_set_header_rows(egui_view_t *self, uint8_t count);
+/** Return the number of leading rows styled as headers. */
+uint8_t egui_view_table_get_header_rows(egui_view_t *self);
 /** Set the height of each row in pixels. */
 void egui_view_table_set_row_height(egui_view_t *self, egui_dim_t height);
+/** Return the configured row height in pixels. */
+egui_dim_t egui_view_table_get_row_height(egui_view_t *self);
 /** Show or hide the grid lines around cells. */
 void egui_view_table_set_show_grid(egui_view_t *self, uint8_t show);
+/** Return whether grid lines are drawn. */
+uint8_t egui_view_table_get_show_grid(egui_view_t *self);
 /** Set the fill color used for header rows. */
 void egui_view_table_set_header_bg_color(egui_view_t *self, egui_color_t color);
+/** Return the fill color used for header rows. */
+egui_color_t egui_view_table_get_header_bg_color(egui_view_t *self);
+/** Set the text color used inside header cells. */
+void egui_view_table_set_header_text_color(egui_view_t *self, egui_color_t color);
+/** Return the text color used inside header cells. */
+egui_color_t egui_view_table_get_header_text_color(egui_view_t *self);
+/** Set the text color used inside body cells. */
+void egui_view_table_set_cell_text_color(egui_view_t *self, egui_color_t color);
+/** Return the text color used inside body cells. */
+egui_color_t egui_view_table_get_cell_text_color(egui_view_t *self);
 /** Set the color used for grid lines. */
 void egui_view_table_set_grid_color(egui_view_t *self, egui_color_t color);
+/** Return the color used for grid lines. */
+egui_color_t egui_view_table_get_grid_color(egui_view_t *self);
+/** Override the font used for both header and body text. Passing NULL restores the default font. */
+void egui_view_table_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the font used for both header and body text. */
+const egui_font_t *egui_view_table_get_font(egui_view_t *self);
 /** Default draw hook used by the table API table. */
 void egui_view_table_on_draw(egui_view_t *self);
 /** Initialize the fixed-capacity table widget with default font, colors, and grid rendering enabled. */

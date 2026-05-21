@@ -30,6 +30,13 @@ void egui_view_card_set_corner_radius(egui_view_t *self, egui_dim_t radius)
     egui_view_invalidate(self);
 }
 
+egui_dim_t egui_view_card_get_corner_radius(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_card_t);
+    return local->corner_radius;
+}
+
 /**
  * @brief Override the card border thickness and border color together.
  */
@@ -39,6 +46,22 @@ void egui_view_card_set_border(egui_view_t *self, egui_dim_t width, egui_color_t
     local->border_width = width;
     local->border_color = color;
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_card_get_border_width(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_card_t);
+    return local->border_width;
+}
+
+egui_color_t egui_view_card_get_border_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_card_t);
+    return local->border_color;
 }
 
 /**
@@ -54,6 +77,29 @@ void egui_view_card_set_bg_color(egui_view_t *self, egui_color_t color, egui_alp
     local->bg_alpha = alpha;
     local->bg_color_custom = 1;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_card_get_bg_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_card_t);
+    return local->bg_color;
+}
+
+egui_alpha_t egui_view_card_get_bg_alpha(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_card_t);
+    return local->bg_alpha;
+}
+
+uint8_t egui_view_card_get_bg_color_custom(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_card_t);
+    return local->bg_color_custom;
 }
 
 /**

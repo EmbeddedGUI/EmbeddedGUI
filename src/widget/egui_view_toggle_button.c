@@ -209,6 +209,16 @@ void egui_view_toggle_button_set_on_toggled_listener(egui_view_t *self, egui_vie
     local->on_toggled = listener;
 }
 
+egui_view_on_toggled_listener_t egui_view_toggle_button_get_on_toggled_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    return local->on_toggled;
+}
+
 /** Update the stored state, notify listeners, and redraw only when it really changes. */
 void egui_view_toggle_button_set_toggled(egui_view_t *self, uint8_t is_toggled)
 {
@@ -225,8 +235,18 @@ void egui_view_toggle_button_set_toggled(egui_view_t *self, uint8_t is_toggled)
 }
 
 /** Return whether the button is currently toggled on. */
+uint8_t egui_view_toggle_button_get_toggled(egui_view_t *self)
+{
+    return egui_view_toggle_button_is_toggled(self);
+}
+
+/** Return whether the button is currently toggled on. */
 uint8_t egui_view_toggle_button_is_toggled(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
     return local->is_toggled;
 }
@@ -245,12 +265,32 @@ void egui_view_toggle_button_set_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_toggle_button_get_icon(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    return local->icon;
+}
+
 /** Replace the borrowed label text shown by the button. */
 void egui_view_toggle_button_set_text(egui_view_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
     local->text = text;
     egui_view_invalidate(self);
+}
+
+const char *egui_view_toggle_button_get_text(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    return local->text;
 }
 
 /** Override the font used for label text. */
@@ -263,6 +303,16 @@ void egui_view_toggle_button_set_font(egui_view_t *self, const egui_font_t *font
     }
     local->font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_toggle_button_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    return local->font;
 }
 
 /** Override the icon font used when the button shows a glyph string. */
@@ -279,6 +329,16 @@ void egui_view_toggle_button_set_icon_font(egui_view_t *self, const egui_font_t 
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_toggle_button_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    return local->icon_font;
+}
+
 /** Change the horizontal spacing between icon and text when both exist. */
 void egui_view_toggle_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
@@ -293,12 +353,34 @@ void egui_view_toggle_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap
     egui_view_invalidate(self);
 }
 
+egui_dim_t egui_view_toggle_button_get_icon_text_gap(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    return local->icon_text_gap;
+}
+
 /** Override the content color used while the button is toggled on. */
 void egui_view_toggle_button_set_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
     local->text_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_toggle_button_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    return local->text_color;
 }
 
 /** Draw the frame first and then paint icon and text content on top. */

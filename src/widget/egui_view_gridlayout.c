@@ -23,11 +23,31 @@ void egui_view_gridlayout_set_col_count(egui_view_t *self, uint8_t col_count)
     local->col_count = col_count;
 }
 
+uint8_t egui_view_gridlayout_get_col_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_gridlayout_t);
+    return local->col_count;
+}
+
 /** Store an alignment hint for the grid layout. */
 void egui_view_gridlayout_set_align_type(egui_view_t *self, uint8_t align_type)
 {
     EGUI_LOCAL_INIT(egui_view_gridlayout_t);
     local->align_type = align_type;
+}
+
+uint8_t egui_view_gridlayout_get_align_type(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_gridlayout_t);
+    return local->align_type;
 }
 
 /** Place visible children into equal-width columns and row-height buckets. */

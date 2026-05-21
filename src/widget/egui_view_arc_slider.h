@@ -45,10 +45,28 @@ void egui_view_arc_slider_init_with_params(egui_view_t *self, egui_core_t *core,
 
 /** Register the callback fired whenever the slider value changes. */
 void egui_view_arc_slider_set_on_value_changed_listener(egui_view_t *self, egui_view_on_arc_value_changed_listener_t listener);
+/** Return the callback fired whenever the slider value changes. */
+egui_view_on_arc_value_changed_listener_t egui_view_arc_slider_get_on_value_changed_listener(egui_view_t *self);
 /** Set the slider value in the 0-100 range and fire the listener on real changes. */
 void egui_view_arc_slider_set_value(egui_view_t *self, uint8_t value);
 /** Read the current slider percentage. */
 uint8_t egui_view_arc_slider_get_value(egui_view_t *self);
+/** Return non-zero when the arc slider is currently being dragged. */
+int egui_view_arc_slider_get_is_dragging(egui_view_t *self);
+/** Return the background track color. */
+egui_color_t egui_view_arc_slider_get_track_color(egui_view_t *self);
+/** Return the filled progress arc color. */
+egui_color_t egui_view_arc_slider_get_active_color(egui_view_t *self);
+/** Return the thumb circle color. */
+egui_color_t egui_view_arc_slider_get_thumb_color(egui_view_t *self);
+/** Return the arc stroke width in pixels. */
+egui_dim_t egui_view_arc_slider_get_stroke_width(egui_view_t *self);
+/** Return the thumb circle radius in pixels. */
+egui_dim_t egui_view_arc_slider_get_thumb_radius(egui_view_t *self);
+/** Return the start angle of the arc in degrees. */
+int16_t egui_view_arc_slider_get_start_angle(egui_view_t *self);
+/** Return the sweep angle of the arc in degrees. */
+int16_t egui_view_arc_slider_get_sweep_angle(egui_view_t *self);
 /** Default draw hook used by the arc slider API table. */
 void egui_view_arc_slider_on_draw(egui_view_t *self);
 /** Initialize an interactive arc slider that updates continuously while dragged. */

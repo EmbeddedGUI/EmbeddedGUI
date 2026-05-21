@@ -142,6 +142,7 @@ void egui_view_notification_badge_set_count(egui_view_t *self, uint16_t count)
 
 uint16_t egui_view_notification_badge_get_count(egui_view_t *self)
 {
+    if (self == NULL) { return 0; }
     EGUI_LOCAL_INIT(egui_view_notification_badge_t);
     return local->count;
 }
@@ -160,6 +161,13 @@ void egui_view_notification_badge_set_max_display(egui_view_t *self, uint8_t max
     }
 }
 
+uint8_t egui_view_notification_badge_get_max_display(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_notification_badge_t);
+    return local->max_display;
+}
+
 void egui_view_notification_badge_set_badge_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_notification_badge_t);
@@ -167,11 +175,29 @@ void egui_view_notification_badge_set_badge_color(egui_view_t *self, egui_color_
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_notification_badge_get_badge_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_notification_badge_t);
+    return local->badge_color;
+}
+
 void egui_view_notification_badge_set_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_notification_badge_t);
     local->text_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_notification_badge_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_notification_badge_t);
+    return local->text_color;
 }
 
 void egui_view_notification_badge_set_font(egui_view_t *self, const egui_font_t *font)
@@ -186,6 +212,13 @@ void egui_view_notification_badge_set_font(egui_view_t *self, const egui_font_t 
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_notification_badge_get_font(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_notification_badge_t);
+    return local->font;
+}
+
 void egui_view_notification_badge_set_content_style(egui_view_t *self, egui_view_notification_badge_content_style_t style)
 {
     EGUI_LOCAL_INIT(egui_view_notification_badge_t);
@@ -196,6 +229,13 @@ void egui_view_notification_badge_set_content_style(egui_view_t *self, egui_view
 
     local->content_style = (uint8_t)style;
     egui_view_invalidate(self);
+}
+
+egui_view_notification_badge_content_style_t egui_view_notification_badge_get_content_style(egui_view_t *self)
+{
+    if (self == NULL) { return EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_COUNT; }
+    EGUI_LOCAL_INIT(egui_view_notification_badge_t);
+    return (egui_view_notification_badge_content_style_t)local->content_style;
 }
 
 void egui_view_notification_badge_set_icon(egui_view_t *self, const char *icon)
@@ -210,6 +250,13 @@ void egui_view_notification_badge_set_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_notification_badge_get_icon(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_notification_badge_t);
+    return local->icon;
+}
+
 void egui_view_notification_badge_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_notification_badge_t);
@@ -220,6 +267,13 @@ void egui_view_notification_badge_set_icon_font(egui_view_t *self, const egui_fo
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_notification_badge_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_notification_badge_t);
+    return local->icon_font;
 }
 
 void egui_view_notification_badge_on_draw(egui_view_t *self)

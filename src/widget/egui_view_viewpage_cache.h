@@ -69,13 +69,21 @@ void egui_view_viewpage_cache_init_with_params(egui_view_t *self, egui_core_t *c
 
 /** Set the logical page count and resize the internal strip so page bounds match the new count. */
 void egui_view_viewpage_cache_set_child_total_cnt(egui_view_t *self, int cnt);
+/** Return the logical page count. Returns 0 when self is NULL. */
+int egui_view_viewpage_cache_get_child_total_cnt(egui_view_t *self);
 
 /** Register the callback fired when the active logical page changes. */
 void egui_view_viewpage_cache_set_on_page_changed_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_changed_listener_t listener);
+/** Return the registered page-change callback, or NULL when unset or self is NULL. */
+egui_view_viewpage_cache_on_page_changed_listener_t egui_view_viewpage_cache_get_on_page_changed_listener(egui_view_t *self);
 /** Register the loader used to create nearby pages on demand. */
 void egui_view_viewpage_cache_set_on_page_load_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_load_listener_t listener);
+/** Return the registered page-load callback, or NULL when unset or self is NULL. */
+egui_view_viewpage_cache_on_page_load_listener_t egui_view_viewpage_cache_get_on_page_load_listener(egui_view_t *self);
 /** Register the cleanup callback for pages previously produced by the load listener. */
 void egui_view_viewpage_cache_set_on_page_free_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_free_listener_t listener);
+/** Return the registered page-free callback, or NULL when unset or self is NULL. */
+egui_view_viewpage_cache_on_page_free_listener_t egui_view_viewpage_cache_get_on_page_free_listener(egui_view_t *self);
 
 /** Release every page currently cached around the active center page. */
 void egui_view_viewpage_cache_on_paged_free_all(egui_view_t *self);
@@ -97,6 +105,8 @@ void egui_view_viewpage_cache_scroll_to_page(egui_view_t *self, int page_index);
 void egui_view_viewpage_cache_slow_scroll_to_page(egui_view_t *self);
 /** Jump to a logical page immediately, reload the nearby cache window, and notify listeners if the page changed. */
 void egui_view_viewpage_cache_set_current_page(egui_view_t *self, int page_index);
+/** Return the active logical page, or -1 when no page has been loaded yet. Returns 0 when self is NULL. */
+int egui_view_viewpage_cache_get_current_page(egui_view_t *self);
 /** Advance scrolling animation and trigger page reload once the strip settles on an exact page. */
 void egui_view_viewpage_cache_compute_scroll(egui_view_t *self);
 /** Promote the current gesture to a horizontal drag after movement exceeds touch slop. */

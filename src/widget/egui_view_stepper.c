@@ -45,6 +45,10 @@ void egui_view_stepper_set_total_steps(egui_view_t *self, uint8_t total_steps)
  */
 uint8_t egui_view_stepper_get_total_steps(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     return local->total_count;
 }
@@ -71,6 +75,10 @@ void egui_view_stepper_set_current_step(egui_view_t *self, uint8_t current_step)
  */
 uint8_t egui_view_stepper_get_current_step(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     return local->current_index;
 }
@@ -90,6 +98,16 @@ void egui_view_stepper_set_mark_style(egui_view_t *self, egui_view_stepper_mark_
     egui_view_invalidate(self);
 }
 
+egui_view_stepper_mark_style_t egui_view_stepper_get_mark_style(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return EGUI_VIEW_STEPPER_MARK_STYLE_DOT;
+    }
+    EGUI_LOCAL_INIT(egui_view_stepper_t);
+    return (egui_view_stepper_mark_style_t)local->mark_style;
+}
+
 /**
  * @brief Replace the icon glyph used for completed steps.
  */
@@ -105,6 +123,16 @@ void egui_view_stepper_set_completed_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_stepper_get_completed_icon(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_stepper_t);
+    return local->completed_icon;
+}
+
 /**
  * @brief Override the icon font used for completed-step badges.
  */
@@ -118,6 +146,16 @@ void egui_view_stepper_set_icon_font(egui_view_t *self, const egui_font_t *font)
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_stepper_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_stepper_t);
+    return local->icon_font;
 }
 
 /**

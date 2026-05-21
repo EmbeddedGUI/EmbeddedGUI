@@ -24,6 +24,20 @@ void egui_view_line_set_points(egui_view_t *self, const egui_view_line_point_t *
     egui_view_invalidate(self);
 }
 
+const egui_view_line_point_t *egui_view_line_get_points(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_line_t);
+    return local->points;
+}
+
+uint8_t egui_view_line_get_point_count(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_line_t);
+    return local->point_count;
+}
+
 /**
  * @brief Change the shared stroke width for all segments.
  */
@@ -36,6 +50,13 @@ void egui_view_line_set_line_width(egui_view_t *self, uint8_t width)
     }
     local->line_width = width;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_line_get_line_width(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_line_t);
+    return local->line_width;
 }
 
 /**
@@ -52,6 +73,15 @@ void egui_view_line_set_line_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_line_get_line_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_line_t);
+    return local->line_color;
+}
+
 /**
  * @brief Toggle rounded segment caps versus the basic line helper.
  */
@@ -64,6 +94,13 @@ void egui_view_line_set_use_round_cap(egui_view_t *self, uint8_t enable)
     }
     local->use_round_cap = enable;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_line_get_use_round_cap(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_line_t);
+    return local->use_round_cap;
 }
 
 /**

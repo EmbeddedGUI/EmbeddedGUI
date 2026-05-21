@@ -96,37 +96,69 @@ void egui_view_segmented_control_init_with_params(egui_view_t *self, egui_core_t
 
 /** Replace the segment text array. The segment count is clamped to the fixed maximum. */
 void egui_view_segmented_control_set_segments(egui_view_t *self, const char **segment_texts, uint8_t segment_count);
+/** Return the borrowed segment text array. */
+const char **egui_view_segmented_control_get_segments(egui_view_t *self);
+/** Return the active segment count after clamping to the fixed maximum. */
+uint8_t egui_view_segmented_control_get_segment_count(egui_view_t *self);
 /** Set the optional icon array that parallels the segment text array. */
 void egui_view_segmented_control_set_segment_icons(egui_view_t *self, const char **segment_icons);
+/** Return the optional borrowed icon array. */
+const char **egui_view_segmented_control_get_segment_icons(egui_view_t *self);
 /** Select the active segment and fire the change listener on real changes. */
 void egui_view_segmented_control_set_current_index(egui_view_t *self, uint8_t index);
 /** Return the current active segment index. */
 uint8_t egui_view_segmented_control_get_current_index(egui_view_t *self);
+/** Return the pointer-captured segment index, or `EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE`. */
+uint8_t egui_view_segmented_control_get_pressed_index(egui_view_t *self);
 /** Register the callback fired when the active segment changes. */
 void egui_view_segmented_control_set_on_segment_changed_listener(egui_view_t *self, egui_view_on_segment_changed_listener_t listener);
+/** Return the registered segment change callback. */
+egui_view_on_segment_changed_listener_t egui_view_segmented_control_get_on_segment_changed_listener(egui_view_t *self);
 
 /** Set the background color of the outer segmented-control track. */
 void egui_view_segmented_control_set_bg_color(egui_view_t *self, egui_color_t color);
+/** Return the background color of the outer segmented-control track. */
+egui_color_t egui_view_segmented_control_get_bg_color(egui_view_t *self);
 /** Set the background color of the selected segment. */
 void egui_view_segmented_control_set_selected_bg_color(egui_view_t *self, egui_color_t color);
+/** Return the background color of the selected segment. */
+egui_color_t egui_view_segmented_control_get_selected_bg_color(egui_view_t *self);
 /** Set the text and icon tint color used by unselected segments. */
 void egui_view_segmented_control_set_text_color(egui_view_t *self, egui_color_t color);
+/** Return the text and icon tint color used by unselected segments. */
+egui_color_t egui_view_segmented_control_get_text_color(egui_view_t *self);
 /** Set the text and icon tint color used by the selected segment. */
 void egui_view_segmented_control_set_selected_text_color(egui_view_t *self, egui_color_t color);
+/** Return the text and icon tint color used by the selected segment. */
+egui_color_t egui_view_segmented_control_get_selected_text_color(egui_view_t *self);
 /** Set the border color of the outer segmented-control frame. */
 void egui_view_segmented_control_set_border_color(egui_view_t *self, egui_color_t color);
+/** Return the border color of the outer segmented-control frame. */
+egui_color_t egui_view_segmented_control_get_border_color(egui_view_t *self);
 /** Set the corner radius of the outer frame and selected segment. */
 void egui_view_segmented_control_set_corner_radius(egui_view_t *self, uint8_t radius);
+/** Return the corner radius of the outer frame and selected segment. */
+uint8_t egui_view_segmented_control_get_corner_radius(egui_view_t *self);
 /** Set the gap inserted between segments. */
 void egui_view_segmented_control_set_segment_gap(egui_view_t *self, uint8_t gap);
+/** Return the gap inserted between segments. */
+uint8_t egui_view_segmented_control_get_segment_gap(egui_view_t *self);
 /** Set the horizontal padding between the outer frame and segment content area. */
 void egui_view_segmented_control_set_horizontal_padding(egui_view_t *self, uint8_t padding);
+/** Return the horizontal padding between the outer frame and segment content area. */
+uint8_t egui_view_segmented_control_get_horizontal_padding(egui_view_t *self);
 /** Override the font used for segment labels. */
 void egui_view_segmented_control_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the font used for segment labels. */
+const egui_font_t *egui_view_segmented_control_get_font(egui_view_t *self);
 /** Override the icon font used when segments show icons. */
 void egui_view_segmented_control_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the explicit icon font override, or NULL when auto-selection is used. */
+const egui_font_t *egui_view_segmented_control_get_icon_font(egui_view_t *self);
 /** Set the vertical gap between icon and text in mixed icon-text segments. */
 void egui_view_segmented_control_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Return the vertical gap between icon and text in mixed icon-text segments. */
+egui_dim_t egui_view_segmented_control_get_icon_text_gap(egui_view_t *self);
 
 /** Default draw hook used by the segmented-control API table. */
 void egui_view_segmented_control_on_draw(egui_view_t *self);

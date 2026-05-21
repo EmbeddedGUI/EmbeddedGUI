@@ -1,0 +1,6 @@
+#ifndef TEST_NUMBER_PICKER_GET_BUTTON_COLOR_H
+#define TEST_NUMBER_PICKER_GET_BUTTON_COLOR_H
+
+void test_number_picker_get_button_color_run(void);
+
+#endif

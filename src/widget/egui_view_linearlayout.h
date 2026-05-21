@@ -65,12 +65,20 @@ void egui_view_linearlayout_set_auto_height(egui_view_t *self, uint8_t is_auto_h
 void egui_view_linearlayout_set_orientation(egui_view_t *self, uint8_t is_horizontal);
 /** Return the currently configured alignment flags. */
 uint8_t egui_view_linearlayout_is_align_type(egui_view_t *self);
+/** Return the currently configured alignment flags. */
+uint8_t egui_view_linearlayout_get_align_type(egui_view_t *self);
 /** Return non-zero when auto width is enabled. */
 uint8_t egui_view_linearlayout_is_auto_width(egui_view_t *self);
+/** Return non-zero when auto width is enabled. */
+uint8_t egui_view_linearlayout_get_auto_width(egui_view_t *self);
 /** Return non-zero when auto height is enabled. */
 uint8_t egui_view_linearlayout_is_auto_height(egui_view_t *self);
+/** Return non-zero when auto height is enabled. */
+uint8_t egui_view_linearlayout_get_auto_height(egui_view_t *self);
 /** Return non-zero when the layout direction is horizontal. */
 uint8_t egui_view_linearlayout_is_orientation_horizontal(egui_view_t *self);
+/** Return non-zero when the layout direction is horizontal. */
+uint8_t egui_view_linearlayout_get_orientation(egui_view_t *self);
 /** Recalculate child positions using the current direction, alignment, and auto-size flags. */
 void egui_view_linearlayout_layout_childs(egui_view_t *self);
 /** Initialize the linearlayout container base. */

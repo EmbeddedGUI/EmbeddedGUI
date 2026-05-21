@@ -38,7 +38,14 @@ static egui_dim_t egui_view_textinput_get_text_width_to_pos(egui_view_textinput_
     {
         len = local->text_len;
     }
-    egui_api_memcpy(tmp, local->text, (int)len);
+    if (local->password_mode)
+    {
+        egui_api_memset(tmp, '*', len);
+    }
+    else
+    {
+        egui_api_memcpy(tmp, local->text, (int)len);
+    }
     tmp[len] = '\0';
 
     egui_dim_t width = 0;
@@ -404,12 +411,45 @@ void egui_view_textinput_set_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_textinput_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->font;
+}
+
 void egui_view_textinput_set_text_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha)
 {
     EGUI_LOCAL_INIT(egui_view_textinput_t);
     local->text_color = color;
     local->text_alpha = alpha;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_textinput_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->text_color;
+}
+
+egui_alpha_t egui_view_textinput_get_text_alpha(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->text_alpha;
 }
 
 void egui_view_textinput_set_placeholder(egui_view_t *self, const char *placeholder)
@@ -427,11 +467,47 @@ void egui_view_textinput_set_placeholder_color(egui_view_t *self, egui_color_t c
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_textinput_get_placeholder_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->placeholder_color;
+}
+
+egui_alpha_t egui_view_textinput_get_placeholder_alpha(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->placeholder_alpha;
+}
+
 void egui_view_textinput_set_cursor_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_textinput_t);
     local->cursor_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_textinput_get_cursor_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->cursor_color;
 }
 
 void egui_view_textinput_set_cursor_active(egui_view_t *self, int is_active)
@@ -456,6 +532,16 @@ void egui_view_textinput_set_cursor_active(egui_view_t *self, int is_active)
     }
 
     egui_view_invalidate(self);
+}
+
+int egui_view_textinput_get_cursor_active(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->cursor_active;
 }
 
 void egui_view_textinput_set_max_length(egui_view_t *self, uint8_t max_length)
@@ -487,10 +573,77 @@ void egui_view_textinput_set_on_text_changed(egui_view_t *self, egui_view_textin
     local->on_text_changed = listener;
 }
 
+egui_view_textinput_on_text_changed_t egui_view_textinput_get_on_text_changed(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->on_text_changed;
+}
+
 void egui_view_textinput_set_on_submit(egui_view_t *self, egui_view_textinput_on_submit_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_textinput_t);
     local->on_submit = listener;
+}
+
+egui_view_textinput_on_submit_t egui_view_textinput_get_on_submit(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->on_submit;
+}
+
+uint8_t egui_view_textinput_get_cursor_pos(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->cursor_pos;
+}
+
+uint8_t egui_view_textinput_get_max_length(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->max_length;
+}
+
+const char *egui_view_textinput_get_placeholder(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->placeholder;
+}
+
+void egui_view_textinput_set_password_mode(egui_view_t *self, int enabled)
+{
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    local->password_mode = enabled ? 1 : 0;
+    egui_view_invalidate(self);
+}
+
+int egui_view_textinput_get_password_mode(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textinput_t);
+    return local->password_mode;
 }
 
 void egui_view_textinput_on_draw(egui_view_t *self)
@@ -564,11 +717,22 @@ void egui_view_textinput_on_draw(egui_view_t *self)
         // Measure height so the baseline can stay vertically centered inside the input box.
         egui_dim_t text_width = 0;
         egui_dim_t text_height = 0;
-        local->font->api->get_str_size(local->font, local->text, 0, 0, &text_width, &text_height);
+
+        /* Build the display string (masked or real). */
+        const char *display_text = local->text;
+        char masked[EGUI_CONFIG_TEXTINPUT_MAX_LENGTH + 1];
+        if (local->password_mode)
+        {
+            egui_api_memset(masked, '*', local->text_len);
+            masked[local->text_len] = '\0';
+            display_text = masked;
+        }
+
+        local->font->api->get_str_size(local->font, display_text, 0, 0, &text_width, &text_height);
 
         text_y += (work_region.size.height - text_height) / 2;
 
-        egui_canvas_draw_text(canvas, local->font, local->text, text_x, text_y, local->text_color, local->text_alpha);
+        egui_canvas_draw_text(canvas, local->font, display_text, text_x, text_y, local->text_color, local->text_alpha);
     }
 
     // The caret is clipped independently so it can disappear cleanly when scrolled out of view.

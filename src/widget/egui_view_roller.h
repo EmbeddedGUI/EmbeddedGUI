@@ -54,12 +54,30 @@ void egui_view_roller_init_with_params(egui_view_t *self, egui_core_t *core, con
 
 /** Register the callback fired after drag selection completes. */
 void egui_view_roller_set_on_selected_listener(egui_view_t *self, egui_view_on_roller_selected_listener_t listener);
+/** Return the callback fired after drag selection completes. */
+egui_view_on_roller_selected_listener_t egui_view_roller_get_on_selected_listener(egui_view_t *self);
 /** Replace the item array. The current index is clamped if needed. */
 void egui_view_roller_set_items(egui_view_t *self, const char **items, uint8_t count);
+/** Return the item array currently used by the roller. */
+const char **egui_view_roller_get_items(egui_view_t *self);
 /** Set the current selection programmatically and reset any drag offset. */
 void egui_view_roller_set_current_index(egui_view_t *self, uint8_t index);
 /** Return the current selected item index. */
 uint8_t egui_view_roller_get_current_index(egui_view_t *self);
+/** Return the text of the currently selected item, or NULL when unset or self is NULL. */
+const char *egui_view_roller_get_selected_text(egui_view_t *self);
+/** Return the number of items in the roller. Returns 0 when self is NULL. */
+uint8_t egui_view_roller_get_item_count(egui_view_t *self);
+/** Return the color used for non-selected item text. */
+egui_color_t egui_view_roller_get_text_color(egui_view_t *self);
+/** Return the background color of the center highlight band. */
+egui_color_t egui_view_roller_get_highlight_color(egui_view_t *self);
+/** Return the color used for the selected (center) item text. */
+egui_color_t egui_view_roller_get_selected_text_color(egui_view_t *self);
+/** Return the number of visible rows drawn at once. */
+uint8_t egui_view_roller_get_visible_count(egui_view_t *self);
+/** Return the font used for all item rows. */
+const egui_font_t *egui_view_roller_get_font(egui_view_t *self);
 /** Default draw hook used by the roller API table. */
 void egui_view_roller_on_draw(egui_view_t *self);
 /** Initialize the touch-driven roller widget. */

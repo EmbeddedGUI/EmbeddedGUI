@@ -35,6 +35,8 @@ void egui_view_radio_group_init(egui_view_radio_group_t *group);
 void egui_view_radio_group_add(egui_view_radio_group_t *group, egui_view_t *button);
 /** Register the callback fired when a grouped button becomes checked. */
 void egui_view_radio_group_set_on_changed_listener(egui_view_radio_group_t *group, egui_view_on_radio_changed_listener_t listener);
+/** Return the callback fired when a grouped button becomes checked. */
+egui_view_on_radio_changed_listener_t egui_view_radio_group_get_on_changed_listener(egui_view_radio_group_t *group);
 
 // ============== Radio Button ==============
 typedef struct egui_view_radio_button egui_view_radio_button_t;
@@ -91,20 +93,38 @@ void egui_view_radio_button_init_with_params(egui_view_t *self, egui_core_t *cor
 
 /** Set the checked state. Checking a grouped button automatically clears its peers and notifies the group listener. */
 void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked);
+/** Return the current checked state. */
+uint8_t egui_view_radio_button_get_checked(egui_view_t *self);
+/** Return the radio group this button belongs to, or NULL for standalone buttons. */
+egui_view_radio_group_t *egui_view_radio_button_get_group(egui_view_t *self);
 /** Set the optional label text shown to the right of the indicator. */
 void egui_view_radio_button_set_text(egui_view_t *self, const char *text);
+/** Return the optional label text pointer. */
+const char *egui_view_radio_button_get_text(egui_view_t *self);
 /** Override the font used for the optional label text. */
 void egui_view_radio_button_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the optional label font override, or NULL when default font is used. */
+const egui_font_t *egui_view_radio_button_get_font(egui_view_t *self);
 /** Set the color used for the optional label text. */
 void egui_view_radio_button_set_text_color(egui_view_t *self, egui_color_t color);
+/** Return the color used for the optional label text. Returns zeroed color when self is NULL. */
+egui_color_t egui_view_radio_button_get_text_color(egui_view_t *self);
 /** Choose between the default filled-dot mark and an icon-font mark. */
 void egui_view_radio_button_set_mark_style(egui_view_t *self, egui_view_radio_button_mark_style_t style);
+/** Return the configured checked mark rendering style. */
+egui_view_radio_button_mark_style_t egui_view_radio_button_get_mark_style(egui_view_t *self);
 /** Set the icon glyph used when the mark style is `ICON`. */
 void egui_view_radio_button_set_mark_icon(egui_view_t *self, const char *icon);
+/** Return the icon glyph used when the mark style is `ICON`. */
+const char *egui_view_radio_button_get_mark_icon(egui_view_t *self);
 /** Override the font used for the icon-style checked mark. */
 void egui_view_radio_button_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the optional icon font override, or NULL when automatic icon font selection is used. */
+const egui_font_t *egui_view_radio_button_get_icon_font(egui_view_t *self);
 /** Set the horizontal gap between the indicator circle and label text. */
 void egui_view_radio_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Return the horizontal gap between the indicator circle and label text. */
+egui_dim_t egui_view_radio_button_get_icon_text_gap(egui_view_t *self);
 /** Default draw hook used by the radio-button API table. */
 void egui_view_radio_button_on_draw(egui_view_t *self);
 /** Initialize a clickable radio button widget. */

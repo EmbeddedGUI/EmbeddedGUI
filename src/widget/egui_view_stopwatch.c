@@ -223,8 +223,25 @@ void egui_view_stopwatch_set_elapsed(egui_view_t *self, uint32_t elapsed_ms)
  */
 uint32_t egui_view_stopwatch_get_elapsed(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_stopwatch_t);
     return local->elapsed_ms;
+}
+
+/**
+ * @brief Return the current formatted stopwatch text buffer.
+ */
+const char *egui_view_stopwatch_get_time_text(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_stopwatch_t);
+    return local->time_buffer;
 }
 
 /**
@@ -241,6 +258,10 @@ void egui_view_stopwatch_set_state(egui_view_t *self, uint8_t state)
  */
 uint8_t egui_view_stopwatch_get_state(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_stopwatch_t);
     return local->state;
 }
@@ -257,6 +278,19 @@ void egui_view_stopwatch_set_show_ms(egui_view_t *self, uint8_t show)
     }
     local->show_ms = show;
     format_elapsed(self);
+}
+
+/**
+ * @brief Return whether centiseconds are shown in the formatted label.
+ */
+uint8_t egui_view_stopwatch_get_show_ms(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_stopwatch_t);
+    return local->show_ms;
 }
 
 /**

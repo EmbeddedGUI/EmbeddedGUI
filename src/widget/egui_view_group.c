@@ -363,12 +363,122 @@ egui_view_t *egui_view_group_get_first_child(egui_view_t *self)
     return EGUI_DLIST_ENTRY(snode, egui_view_t, node);
 }
 
+egui_view_t *egui_view_group_get_last_child(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_group_t);
+    egui_dnode_t *snode = egui_dlist_peek_tail(&local->childs);
+    if (snode == NULL)
+    {
+        return NULL;
+    }
+    return EGUI_DLIST_ENTRY(snode, egui_view_t, node);
+}
+
+egui_view_t *egui_view_group_get_child_at(egui_view_t *self, int index)
+{
+    egui_dnode_t *p;
+    int i;
+
+    if (self == NULL || index < 0)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_group_t);
+    i = 0;
+    EGUI_DLIST_FOR_EACH_NODE(&local->childs, p)
+    {
+        if (i == index)
+        {
+            return EGUI_DLIST_ENTRY(p, egui_view_t, node);
+        }
+        i++;
+    }
+    return NULL;
+}
+
+int egui_view_group_get_child_index(egui_view_t *self, egui_view_t *child)
+{
+    egui_dnode_t *p;
+    int i;
+
+    if (self == NULL || child == NULL)
+    {
+        return -1;
+    }
+    EGUI_LOCAL_INIT(egui_view_group_t);
+    i = 0;
+    EGUI_DLIST_FOR_EACH_NODE(&local->childs, p)
+    {
+        if (EGUI_DLIST_ENTRY(p, egui_view_t, node) == child)
+        {
+            return i;
+        }
+        i++;
+    }
+    return -1;
+}
+
+void egui_view_group_move_child_to_index(egui_view_t *self, egui_view_t *child, int index)
+{
+    egui_dnode_t *p;
+    int i;
+    egui_view_t *successor;
+
+    if (self == NULL || child == NULL || index < 0)
+    {
+        return;
+    }
+    EGUI_LOCAL_INIT(egui_view_group_t);
+
+    /* Remove child from its current position. */
+    egui_dlist_remove(&child->node);
+
+    /* Walk the updated list to find the node currently at 'index'. */
+    i = 0;
+    successor = NULL;
+    EGUI_DLIST_FOR_EACH_NODE(&local->childs, p)
+    {
+        if (i == index)
+        {
+            successor = EGUI_DLIST_ENTRY(p, egui_view_t, node);
+            break;
+        }
+        i++;
+    }
+
+    if (successor == NULL)
+    {
+        /* index >= remaining count: append to end. */
+        egui_dlist_append(&local->childs, &child->node);
+    }
+    else
+    {
+        /* Insert before the successor node. */
+        egui_dlist_insert(&successor->node, &child->node);
+    }
+
+    egui_view_invalidate(self);
+}
+
 void egui_view_group_set_disallow_process_touch_event(egui_view_t *self, int disallow)
 {
     if (self != NULL && self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
     {
         EGUI_CAST_TO(egui_view_root_group_t, self)->is_disallow_process_touch_event = disallow;
     }
+}
+
+int egui_view_group_get_disallow_process_touch_event(egui_view_t *self)
+{
+    if (self != NULL && self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
+    {
+        return EGUI_CAST_TO(egui_view_root_group_t, self)->is_disallow_process_touch_event;
+    }
+    return 0;
 }
 
 void egui_view_group_calculate_all_child_width(egui_view_t *self, egui_dim_t *width)
@@ -659,7 +769,7 @@ static int egui_view_group_dispatch_touch_event_capture_internal(egui_view_t *se
                 continue;
             }
 
-            if (!egui_region_pt_in_rect(&tmp->region_screen, event->location.x, event->location.y))
+            if (!egui_view_hit_test(tmp, event->location.x, event->location.y))
             {
                 continue;
             }
@@ -847,7 +957,7 @@ static int egui_view_group_dispatch_touch_event_capture_simple(egui_view_t *self
                 continue;
             }
 
-            if (!egui_region_pt_in_rect(&tmp->region_screen, event->location.x, event->location.y))
+            if (!egui_view_hit_test(tmp, event->location.x, event->location.y))
             {
                 continue;
             }
@@ -950,7 +1060,7 @@ int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event
     }
 
     EGUI_LOCAL_INIT(egui_view_group_t);
-    is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
+    is_inside = egui_view_hit_test(self, event->location.x, event->location.y);
     if (self->is_clickable)
     {
         switch (event->type)

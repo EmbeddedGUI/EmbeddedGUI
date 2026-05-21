@@ -51,9 +51,14 @@ extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_chart_axis_t);
 #endif
 
 /** Return the furthest valid horizontal scroll offset. */
-static egui_dim_t egui_view_canvas_viewport_get_max_offset_x(egui_view_t *self, egui_view_canvas_viewport_t *local)
+static egui_dim_t egui_view_canvas_viewport_calc_max_offset_x(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
     egui_dim_t viewport_width = self->region_screen.size.width;
+
+    if (viewport_width <= 0)
+    {
+        viewport_width = self->region.size.width;
+    }
 
     if (local->canvas_width <= viewport_width)
     {
@@ -64,9 +69,14 @@ static egui_dim_t egui_view_canvas_viewport_get_max_offset_x(egui_view_t *self, 
 }
 
 /** Return the furthest valid vertical scroll offset. */
-static egui_dim_t egui_view_canvas_viewport_get_max_offset_y(egui_view_t *self, egui_view_canvas_viewport_t *local)
+static egui_dim_t egui_view_canvas_viewport_calc_max_offset_y(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
     egui_dim_t viewport_height = self->region_screen.size.height;
+
+    if (viewport_height <= 0)
+    {
+        viewport_height = self->region.size.height;
+    }
 
     if (local->canvas_height <= viewport_height)
     {
@@ -79,8 +89,8 @@ static egui_dim_t egui_view_canvas_viewport_get_max_offset_y(egui_view_t *self, 
 /** Clamp the stored offsets to the currently reachable canvas range. */
 static void egui_view_canvas_viewport_clamp_offset(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
-    egui_dim_t max_offset_x = egui_view_canvas_viewport_get_max_offset_x(self, local);
-    egui_dim_t max_offset_y = egui_view_canvas_viewport_get_max_offset_y(self, local);
+    egui_dim_t max_offset_x = egui_view_canvas_viewport_calc_max_offset_x(self, local);
+    egui_dim_t max_offset_y = egui_view_canvas_viewport_calc_max_offset_y(self, local);
 
     if (local->offset_x < 0)
     {
@@ -205,7 +215,7 @@ enum
 /** Check whether the logical canvas is currently scrollable on either axis. */
 static uint8_t egui_view_canvas_viewport_can_drag(egui_view_t *self, egui_view_canvas_viewport_t *local)
 {
-    return egui_view_canvas_viewport_get_max_offset_x(self, local) > 0 || egui_view_canvas_viewport_get_max_offset_y(self, local) > 0;
+    return egui_view_canvas_viewport_calc_max_offset_x(self, local) > 0 || egui_view_canvas_viewport_calc_max_offset_y(self, local) > 0;
 }
 
 /** Return the drag axes that the viewport itself can currently handle. */
@@ -213,11 +223,11 @@ static uint8_t egui_view_canvas_viewport_get_self_drag_axis_mask(egui_view_t *se
 {
     uint8_t axis_mask = EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
 
-    if (egui_view_canvas_viewport_get_max_offset_x(self, local) > 0)
+    if (egui_view_canvas_viewport_calc_max_offset_x(self, local) > 0)
     {
         axis_mask |= EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_HORIZONTAL;
     }
-    if (egui_view_canvas_viewport_get_max_offset_y(self, local) > 0)
+    if (egui_view_canvas_viewport_calc_max_offset_y(self, local) > 0)
     {
         axis_mask |= EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL;
     }
@@ -903,6 +913,28 @@ egui_dim_t egui_view_canvas_viewport_get_offset_y(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
     return local->offset_y;
+}
+
+/** Return the maximum reachable horizontal scroll offset. */
+egui_dim_t egui_view_canvas_viewport_get_max_offset_x(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
+    return egui_view_canvas_viewport_calc_max_offset_x(self, local);
+}
+
+/** Return the maximum reachable vertical scroll offset. */
+egui_dim_t egui_view_canvas_viewport_get_max_offset_y(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_canvas_viewport_t);
+    return egui_view_canvas_viewport_calc_max_offset_y(self, local);
 }
 
 /** Initialize the viewport, its internal content layer, and stock drag state. */

@@ -54,6 +54,20 @@ void egui_view_animated_image_set_frames(egui_view_t *self, const egui_image_t *
     egui_view_invalidate(self);
 }
 
+const egui_image_t **egui_view_animated_image_get_frames(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_animated_image_t);
+    return local->frames;
+}
+
+uint8_t egui_view_animated_image_get_frame_count(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_animated_image_t);
+    return local->frame_count;
+}
+
 /**
  * @brief Change the frame interval used by future `update()` calls.
  */
@@ -62,6 +76,13 @@ void egui_view_animated_image_set_interval(egui_view_t *self, uint16_t ms)
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
 
     local->frame_interval_ms = ms;
+}
+
+uint16_t egui_view_animated_image_get_interval(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_animated_image_t);
+    return local->frame_interval_ms;
 }
 
 /**
@@ -89,6 +110,13 @@ void egui_view_animated_image_stop(egui_view_t *self)
     local->is_playing = 0;
 }
 
+uint8_t egui_view_animated_image_is_playing(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_animated_image_t);
+    return local->is_playing;
+}
+
 /**
  * @brief Control whether playback wraps back to frame zero.
  */
@@ -97,6 +125,13 @@ void egui_view_animated_image_set_loop(egui_view_t *self, uint8_t enable)
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
 
     local->is_loop = enable ? 1 : 0;
+}
+
+uint8_t egui_view_animated_image_get_loop(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_animated_image_t);
+    return local->is_loop;
 }
 
 /**
@@ -116,6 +151,20 @@ void egui_view_animated_image_set_current_frame(egui_view_t *self, uint8_t index
     }
     local->current_frame = index;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_animated_image_get_current_frame(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_animated_image_t);
+    return local->current_frame;
+}
+
+uint16_t egui_view_animated_image_get_elapsed(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_animated_image_t);
+    return local->elapsed_ms;
 }
 
 /**

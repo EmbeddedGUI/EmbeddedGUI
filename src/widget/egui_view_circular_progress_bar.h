@@ -46,18 +46,32 @@ void egui_view_circular_progress_bar_init_with_params(egui_view_t *self, egui_co
 
 /** Register the callback fired when the displayed progress changes. */
 void egui_view_circular_progress_bar_set_on_progress_listener(egui_view_t *self, egui_view_on_progress_changed_listener_t listener);
+/** Return the callback fired when the displayed progress changes. */
+egui_view_on_progress_changed_listener_t egui_view_circular_progress_bar_get_on_progress_listener(egui_view_t *self);
 /** Set the progress in the 0-100 range and fire the listener on real changes. */
 void egui_view_circular_progress_bar_set_process(egui_view_t *self, uint8_t process);
+/** Return the current progress value (0-100). */
+uint8_t egui_view_circular_progress_bar_get_process(egui_view_t *self);
 /** Set the ring thickness used for both the track and progress arc. */
 void egui_view_circular_progress_bar_set_stroke_width(egui_view_t *self, egui_dim_t stroke_width);
+/** Return the current arc stroke width in pixels. */
+egui_dim_t egui_view_circular_progress_bar_get_stroke_width(egui_view_t *self);
 /** Set the color of the filled progress arc. */
 void egui_view_circular_progress_bar_set_progress_color(egui_view_t *self, egui_color_t color);
+/** Return the color of the filled progress arc. */
+egui_color_t egui_view_circular_progress_bar_get_progress_color(egui_view_t *self);
 /** Set the color of the background track arc. */
 void egui_view_circular_progress_bar_set_bk_color(egui_view_t *self, egui_color_t color);
+/** Return the color of the background track arc. */
+egui_color_t egui_view_circular_progress_bar_get_bk_color(egui_view_t *self);
 /** Set the color of the centered progress text. */
 void egui_view_circular_progress_bar_set_text_color(egui_view_t *self, egui_color_t color);
+/** Return the color of the centered progress text. */
+egui_color_t egui_view_circular_progress_bar_get_text_color(egui_view_t *self);
 /** Override the text font. Passing NULL restores the default percent renderer. */
 void egui_view_circular_progress_bar_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the optional text font override, or NULL when the basic renderer is used. */
+const egui_font_t *egui_view_circular_progress_bar_get_font(egui_view_t *self);
 /** Default draw hook used by the circular progress bar API table. */
 void egui_view_circular_progress_bar_on_draw(egui_view_t *self);
 /** Initialize a circular progress indicator with centered text. */

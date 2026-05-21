@@ -1,0 +1,303 @@
+﻿EmbeddedGUI Test Runner
+
+===== Suite: region =====
+  [PASS] test_region_init
+  [PASS] test_region_init_empty
+  [PASS] test_region_is_empty
+  [PASS] test_region_pt_in_rect
+  [PASS] test_region_equal
+  [PASS] test_region_copy
+  [PASS] test_region_intersect_overlap
+  [PASS] test_region_intersect_disjoint
+  [PASS] test_region_intersect_contain
+  [PASS] test_region_intersect_empty
+  [PASS] test_region_is_intersect
+  [PASS] test_region_union_basic
+  [PASS] test_region_union_disjoint
+  [PASS] test_region_is_same
+  [PASS] test_region_subtract_rect_center_punch
+  [PASS] test_region_subtract_rect_no_overlap_keeps_dirty
+----- Suite: region  [16/16 passed] -----
+
+===== Suite: dlist =====
+  [PASS] test_dlist_init_empty
+  [PASS] test_dlist_append_single
+  [PASS] test_dlist_append_multiple
+  [PASS] test_dlist_prepend
+  [PASS] test_dlist_remove
+  [PASS] test_dlist_get
+  [PASS] test_dlist_iteration
+  [PASS] test_dlist_has_multiple_nodes
+----- Suite: dlist  [8/8 passed] -----
+
+===== Suite: slist =====
+  [PASS] test_slist_init_empty
+  [PASS] test_slist_append_single
+  [PASS] test_slist_append_multiple
+  [PASS] test_slist_prepend
+  [PASS] test_slist_get
+  [PASS] test_slist_find_and_remove
+  [PASS] test_slist_iteration
+----- Suite: slist  [7/7 passed] -----
+
+===== Suite: ringbuffer =====
+  [PASS] test_rb_init
+  [PASS] test_rb_put_get_basic
+  [PASS] test_rb_full
+  [PASS] test_rb_reset
+  [PASS] test_rb_wrap_around
+----- Suite: ringbuffer  [5/5 passed] -----
+
+===== Suite: fixmath =====
+  [PASS] test_fx_itox
+  [PASS] test_fx_ftox
+  [PASS] test_fx_smul
+  [PASS] test_fx_divx
+  [PASS] test_float_value_int
+  [PASS] test_float_mult
+  [PASS] test_float_div
+----- Suite: fixmath  [7/7 passed] -----
+
+===== Suite: app_timer_helpers =====
+  [PASS] test_page_base_timer_helpers_use_init_core
+  [PASS] test_activity_timer_helpers_use_init_core
+  [PASS] test_dialog_timer_helpers_use_init_core
+  [PASS] test_app_timer_helpers_require_initialized_core
+----- Suite: app_timer_helpers  [4/4 passed] -----
+
+===== Suite: font_std =====
+  [PASS] test_font_std_compressed_draw_matches_raw
+  [PASS] test_font_std_odd_width_compressed_draw_matches_raw
+  [PASS] test_font_std_compressed_size_matches_raw
+  [PASS] test_font_std_offscreen_compressed_glyph_skips_decode
+  [PASS] test_font_std_repeated_compressed_draw_in_rect_matches_raw
+  [PASS] test_font_std_fast_4_draws_fallback_box_for_unsupported_char
+----- Suite: font_std  [6/6 passed] -----
+
+===== Suite: focus_key_navigation =====
+  [PASS] test_focus_direction_selects_spatial_neighbor
+  [PASS] test_focus_direction_prefers_beam_candidate
+  [PASS] test_focus_direction_enters_first_focusable_when_empty
+  [PASS] test_focus_direction_skips_unavailable_candidates
+  [PASS] test_focus_rejects_direct_unavailable_targets
+  [PASS] test_focus_clears_when_focused_view_becomes_unavailable
+  [PASS] test_focus_clears_when_focused_descendant_parent_becomes_unavailable
+  [PASS] test_escape_exits_focus_mode
+  [PASS] test_enter_invokes_click_without_touch_path
+  [PASS] test_space_invokes_click_with_pressed_lifecycle
+  [PASS] test_progress_bar_key_press_repeat_and_long_press
+  [PASS] test_pressed_state_clears_on_focus_loss
+  [PASS] test_core_widget_key_handlers
+  [PASS] test_combobox_closed_direction_moves_focus
+  [PASS] test_list_key_navigation_scrolls_without_leaving_focus
+  [PASS] test_keyboard_keys_support_focus_navigation_and_hide
+----- Suite: focus_key_navigation  [16/16 passed] -----
+
+===== Suite: image_file =====
+  [PASS] test_image_file_resize_get_size_uses_intrinsic_dimensions
+  [PASS] test_image_file_resize_get_point_maps_to_source
+  [PASS] test_image_file_get_point_resize_uses_call_dimensions
+  [PASS] test_image_file_draw_adjacent_tiles_reuses_stream_band_rows
+  [PASS] test_image_file_draw_resize_adjacent_tiles_reuses_stream_band_rows
+----- Suite: image_file  [5/5 passed] -----
+
+===== Suite: deferred_image =====
+  [PASS] test_deferred_image_attach_starts_delay_timer
+  [PASS] test_deferred_image_delay_callback_starts_loader_and_polling
+  [PASS] test_deferred_image_success_reaches_ready_and_uses_loaded_image
+  [PASS] test_deferred_image_fail_reaches_failed_and_keeps_placeholder
+  [PASS] test_deferred_image_detach_cancels_loading_request
+  [PASS] test_deferred_image_detach_cancels_pending_delay
+----- Suite: deferred_image  [6/6 passed] -----
+
+===== Suite: mask =====
+  [PASS] test_image_mask_null_point_passthrough
+  [PASS] test_image_mask_null_row_queries_passthrough
+  [PASS] test_image_mask_row_block_matches_row_segment
+  [PASS] test_round_rectangle_init_resets_radius
+  [PASS] test_round_rectangle_radius_is_clamped
+  [PASS] test_round_rectangle_row_range_outside_when_no_overlap
+  [PASS] test_circle_corner_fixed_row_matches_general_lookup
+  [PASS] test_circle_mask_visible_range_center_row_without_row_range_cache
+  [PASS] test_circle_mask_row_metrics_match_corner_alpha_scan
+  [PASS] test_circle_mask_row_queries_match_point_sampling
+----- Suite: mask  [10/10 passed] -----
+
+===== Suite: common =====
+  [PASS] test_align_center
+  [PASS] test_align_left_top
+  [PASS] test_align_right_bottom
+  [PASS] test_align_hcenter_top
+  [PASS] test_alpha_mix_full
+  [PASS] test_alpha_mix_zero
+  [PASS] test_alpha_mix_partial
+  [PASS] test_alpha_make
+  [PASS] test_max_min_abs
+----- Suite: common  [9/9 passed] -----
+
+===== Suite: view =====
+  [PASS] test_view_init_defaults
+  [PASS] test_view_set_position
+  [PASS] test_view_set_size
+  [PASS] test_view_visibility
+  [PASS] test_view_gone
+  [PASS] test_view_enable
+  [PASS] test_view_clickable
+  [PASS] test_view_alpha
+  [PASS] test_view_padding
+  [PASS] test_view_margin
+  [PASS] test_view_set_pressed_same_state_skips_dirty
+  [PASS] test_view_set_pressed_with_region_respects_background_pressed_state
+  [PASS] test_core_add_user_root_view_accepts_matching_core_view
+  [PASS] test_core_add_root_view_accepts_matching_core_view
+  [PASS] test_core_add_user_root_view_moves_existing_parent_to_target_root
+  [PASS] test_core_add_root_view_moves_existing_parent_to_target_root
+  [PASS] test_view_add_to_root_uses_bound_core_when_active_is_null
+  [PASS] test_view_get_core_requires_self_bound_core
+  [PASS] test_view_remove_from_user_root_uses_bound_core_when_active_is_null
+  [PASS] test_view_get_canvas_uses_bound_core_when_active_is_null
+  [PASS] test_view_dirty_epoch_uses_bound_core_when_active_is_null
+  [PASS] test_view_update_region_dirty_uses_bound_core_when_active_is_null
+  [PASS] test_view_has_pending_dirty_uses_bound_core_when_active_is_null
+  [PASS] test_view_has_pending_dirty_requires_self_bound_core
+  [PASS] test_view_invalidate_sub_region_uses_bound_core_when_active_is_null
+  [PASS] test_view_invalidate_sub_region_requires_self_bound_core
+  [PASS] test_view_set_theme_uses_bound_core_when_active_is_null
+  [PASS] test_view_layout_user_root_uses_bound_core_when_active_is_null
+  [PASS] test_view_timer_helpers_use_bound_core_when_active_is_null
+  [PASS] test_view_pfb_scan_helpers_use_bound_core_when_active_is_null
+  [PASS] test_view_get_activity_uses_bound_core_when_active_is_null
+  [PASS] test_view_get_dialog_uses_bound_core_when_active_is_null
+  [PASS] test_view_get_toast_uses_bound_core_when_active_is_null
+  [PASS] test_view_velocity_helpers_use_bound_core_when_active_is_null
+  [PASS] test_init_display_sets_canvas_core
+  [PASS] test_setup_display_registers_driver_platform_and_hooks
+  [PASS] test_setup_display_applies_render_config_override
+  [PASS] test_core_set_render_config_updates_runtime_flags_and_forces_full_refresh
+  [PASS] test_display_get_size_without_driver_uses_core_dimensions
+  [PASS] test_core_set_render_config_updates_logical_size_for_rotated_software_rotation
+  [PASS] test_view_focus_helpers_bridge_core_focus_manager
+  [PASS] test_view_request_focus_uses_bound_core_when_active_is_null
+  [PASS] test_view_focus_frame_region_expands_body
+  [PASS] test_view_focus_frame_style_expands_custom_region
+  [PASS] test_view_focus_frame_hidden_or_zero_stroke_has_empty_region
+  [PASS] test_view_focus_change_invalidates_body_and_frame
+  [PASS] test_view_focus_change_without_common_frame_invalidates_body_only
+  [PASS] test_view_focus_frame_draw_callback_can_override_default_frame
+  [PASS] test_view_focus_frame_invalidation_clips_to_parent
+  [PASS] test_view_hide_focused_view_invalidates_focus_frame_before_clear
+  [PASS] test_view_request_focus_without_bound_core_is_noop
+  [PASS] test_view_click_requires_release_inside
+----- Suite: view  [52/52 passed] -----
+
+===== Suite: view_group =====
+  [PASS] test_vg_init_defaults
+  [PASS] test_vg_add_child
+  [PASS] test_vg_add_multiple
+  [PASS] test_vg_parent_link
+  [PASS] test_vg_remove_child
+  [PASS] test_vg_clear_childs
+  [PASS] test_vg_child_added_after_parent_attach_gets_lifecycle_callbacks
+  [PASS] test_vg_parent_attach_propagates_to_existing_children
+  [PASS] test_vg_attached_parent_propagates_lifecycle_to_inserted_subtree
+  [PASS] test_vg_release_over_sibling_does_not_trigger_click
+  [PASS] test_vg_return_to_original_target_restores_click
+  [PASS] test_vg_touch_listener_capture_path_sticks_to_original_target
+  [PASS] test_vg_invisible_top_child_does_not_capture_touch
+----- Suite: view_group  [13/13 passed] -----
+
+===== Suite: canvas_panner =====
+  [PASS] test_canvas_panner_offset_clamps_and_shifts_child_layout
+  [PASS] test_canvas_panner_blank_drag_scrolls_canvas
+  [PASS] test_canvas_panner_non_draggable_child_drag_can_pan_canvas
+  [PASS] test_canvas_panner_scroll_child_keeps_vertical_drag
+----- Suite: canvas_panner  [4/4 passed] -----
+
+===== Suite: linearlayout =====
+  [PASS] test_ll_init_defaults
+  [PASS] test_ll_set_orientation
+  [PASS] test_ll_vertical_layout
+  [PASS] test_ll_horizontal_layout
+  [PASS] test_ll_center_align
+  [PASS] test_ll_vertical_with_margin
+  [PASS] test_ll_center_with_padding
+  [PASS] test_ll_vertical_center_with_padding
+  [PASS] test_ll_gone_child_skipped
+  [PASS] test_ll_auto_size_with_padding
+----- Suite: linearlayout  [10/10 passed] -----
+
+===== Suite: list_view =====
+  [PASS] test_list_view_bridge_and_lookup_helpers
+  [PASS] test_list_view_resize_helpers_bridge_virtual_list
+  [PASS] test_list_view_idle_layout_does_not_emit_dirty
+----- Suite: list_view  [3/3 passed] -----
+
+===== Suite: interpolator =====
+  [PASS] test_interp_linear
+  [PASS] test_interp_accelerate
+  [PASS] test_interp_decelerate
+  [PASS] test_interp_accelerate_decelerate
+  [PASS] test_interp_anticipate
+  [PASS] test_interp_overshoot
+  [PASS] test_interp_anticipate_overshoot
+  [PASS] test_interp_bounce
+  [PASS] test_interp_cycle
+----- Suite: interpolator  [9/9 passed] -----
+
+===== Suite: animation =====
+  [PASS] test_anim_translate_init
+  [PASS] test_anim_alpha_init
+  [PASS] test_anim_duration_set
+  [PASS] test_anim_repeat_set
+  [PASS] test_anim_interpolator_set
+  [PASS] test_anim_target_view_set
+  [PASS] test_anim_start_uses_target_init_core_when_active_is_null
+  [PASS] test_anim_start_without_bound_core_is_noop
+  [PASS] test_anim_restart_reuses_single_queue_node
+  [PASS] test_anim_complete_settles_translate_and_notifies_end
+----- Suite: animation  [10/10 passed] -----
+
+===== Suite: dirty_region =====
+  [PASS] test_dirty_single_basic
+  [PASS] test_dirty_single_fullscreen
+  [PASS] test_dirty_single_clamp_overflow
+  [PASS] test_dirty_single_clamp_offset
+  [PASS] test_dirty_single_outside_rb
+  [PASS] test_dirty_single_outside_right
+  [PASS] test_dirty_single_outside_bottom
+  [PASS] test_dirty_two_separate
+  [PASS] test_dirty_two_contain
+  [PASS] test_dirty_two_overflow_contain
+  [PASS] test_dirty_two_second_outside
+  [PASS] test_dirty_two_three_fullscreen
+  [PASS] test_dirty_two_three_overlap_merge
+  [PASS] test_dirty_three_exceed_merge
+----- Suite: dirty_region  [14/14 passed] -----
+
+===== Suite: dirty_passthrough_container =====
+  [PASS] test_dirty_passthrough_group_translation_emits_per_child_swept
+  [PASS] test_dirty_passthrough_group_size_change_cascades_to_children
+  [PASS] test_dirty_passthrough_group_background_change_still_self_full_rect
+  [PASS] test_dirty_passthrough_group_background_translation_marks_self_swept
+  [PASS] test_dirty_passthrough_group_background_size_change_marks_self_swept
+  [PASS] test_dirty_passthrough_nested_background_group_translation_marks_child_self_swept
+  [PASS] test_dirty_passthrough_group_empty_container_no_op
+  [PASS] test_dirty_passthrough_group_visibility_change_emits_child_regions
+  [PASS] test_dirty_passthrough_linearlayout_translation_emits_leaf_sweeps
+  [PASS] test_dirty_passthrough_scroll_inner_drag_emits_per_child_swept
+  [PASS] test_dirty_passthrough_scroll_viewport_clips_inner_drag_sweeps
+  [PASS] test_dirty_passthrough_scroll_first_attach_cascades
+  [PASS] test_dirty_passthrough_scroll_background_change_self_full_rect
+  [PASS] test_dirty_passthrough_scroll_with_background_stable_drag_emits_child_sweeps
+  [PASS] test_dirty_passthrough_scroll_empty_no_op
+  [PASS] test_dirty_passthrough_scrollbar_thumb_dirty_tracks_scroll
+  [PASS] test_dirty_passthrough_viewpage_page_animation_emits_per_child_swept
+  [PASS] test_dirty_passthrough_viewpage_empty_no_op
+  [PASS] test_dirty_passthrough_viewpage_linear_page_drag_emits_leaf_sweeps
+  [PASS] test_dirty_passthrough_mixed_viewpage_scroll_linearlayout_drag_emits_leaf_regions
+  [PASS] test_dirty_passthrough_virtual_viewport_background_scroll_emits_leaf_regions
+  [PASS] test_dirty_passthrough_list_view_scroll_emits_holder_leaf_regions
+  [PASS] test_dirty_passthrough_grid_view_scroll_emits_cell_leaf_regions
+  [PASS] test_dirty_passthrough_page_base_content_translation_emits_per_child_swept
+  [PASS] test_dirty_passthrough_page_base_size_change_cascades
+  [PASS] test_dirty_passthrough_user_root_remove_emits_child_regions

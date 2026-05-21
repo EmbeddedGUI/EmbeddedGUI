@@ -97,6 +97,30 @@ int egui_view_spangroup_add_span(egui_view_t *self, const char *text, const egui
     return local->span_count - 1;
 }
 
+uint8_t egui_view_spangroup_get_span_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_spangroup_t);
+    return local->span_count;
+}
+
+const egui_view_span_t *egui_view_spangroup_get_span(egui_view_t *self, uint8_t index)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_spangroup_t);
+    if (index >= local->span_count)
+    {
+        return NULL;
+    }
+    return &local->spans[index];
+}
+
 /**
  * @brief Remove all stored spans and redraw the widget as empty.
  */
@@ -123,6 +147,16 @@ void egui_view_spangroup_set_align(egui_view_t *self, uint8_t align)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_spangroup_get_align(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_spangroup_t);
+    return local->align;
+}
+
 /**
  * @brief Change the vertical gap inserted between wrapped span rows.
  */
@@ -136,6 +170,16 @@ void egui_view_spangroup_set_line_spacing(egui_view_t *self, uint8_t spacing)
     }
     local->line_spacing = spacing;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_spangroup_get_line_spacing(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_spangroup_t);
+    return local->line_spacing;
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_spangroup_t) = {

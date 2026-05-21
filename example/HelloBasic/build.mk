@@ -34,6 +34,10 @@ APP_SUB ?= button
 # APP_SUB ?= segmented_control
 # APP_SUB ?= pattern_lock
 # APP_SUB ?= gridlayout
+# APP_SUB ?= flexlayout
+# APP_SUB ?= style_cascade
+# APP_SUB ?= subject_observer
+# APP_SUB ?= font_ttf
 # APP_SUB ?= led
 # APP_SUB ?= toggle_button
 # APP_SUB ?= spinner
@@ -69,6 +73,7 @@ APP_SUB ?= button
 # APP_SUB ?= dirty_passthrough_container
 # APP_SUB ?= dirty_passthrough_page
 # APP_SUB ?= dirty_passthrough_activity
+# APP_SUB ?= encoder
 
 EGUI_APP_SUB_PATH := $(EGUI_APP_PATH)/$(APP_SUB)
 

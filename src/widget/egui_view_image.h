@@ -31,6 +31,13 @@ struct egui_view_image
 
     egui_color_t image_color;
     egui_alpha_t image_color_alpha;
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+    int16_t angle_deg; /* Rotation angle in degrees, 0 = no rotation. */
+#endif
+#if EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE || EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+    int16_t scale_q8; /* Scale factor Q8 (256 = 1x, 512 = 2x, 128 = 0.5x). */
+#endif
 };
 
 // ============== Image Params ==============
@@ -57,13 +64,37 @@ void egui_view_image_init_with_params(egui_view_t *self, egui_core_t *core, cons
 void egui_view_image_on_draw(egui_view_t *self);
 /** Choose original-size drawing or stretched drawing. */
 void egui_view_image_set_image_type(egui_view_t *self, int image_type);
+/** Return the current image draw mode. Returns 0 when self is NULL. */
+int egui_view_image_get_image_type(egui_view_t *self);
 /** Set the image resource rendered by this view. */
 void egui_view_image_set_image(egui_view_t *self, egui_image_t *image);
+/** Return the current image resource pointer, or NULL when none is set. */
+const egui_image_t *egui_view_image_get_image(egui_view_t *self);
 /** Apply a tint color. Use alpha `0` to disable the tint path entirely. */
 void egui_view_image_set_image_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha);
+/** Return the configured tint color. Returns zero when self is NULL. */
+egui_color_t egui_view_image_get_image_color(egui_view_t *self);
+/** Return the configured tint alpha. Returns 0 when self is NULL. */
+egui_alpha_t egui_view_image_get_image_alpha(egui_view_t *self);
 
 /** Initialize the base image widget. */
 void egui_view_image_init(egui_view_t *self, egui_core_t *core);
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE || EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+/** Set the scale factor in Q8 format (256 = 1x, 512 = 2x, 128 = 0.5x). Triggers a redraw. */
+void egui_view_image_set_scale(egui_view_t *self, int16_t scale_q8);
+/** Return the current scale factor. */
+int16_t egui_view_image_get_scale(egui_view_t *self);
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE || EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM */
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+/** Set the rotation angle in degrees (0-359). Triggers a redraw. */
+void egui_view_image_set_angle(egui_view_t *self, int16_t angle_deg);
+/** Return the current rotation angle. */
+int16_t egui_view_image_get_angle(egui_view_t *self);
+/** Convenience setter for both angle and scale in one call. */
+void egui_view_image_set_transform(egui_view_t *self, int16_t angle_deg, int16_t scale_q8);
+#endif /* EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM */
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

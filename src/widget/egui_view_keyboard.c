@@ -213,7 +213,7 @@ static const char *egui_view_keyboard_get_char_table(uint8_t mode)
     }
 }
 
-static const egui_font_t *egui_view_keyboard_get_icon_font(const egui_view_keyboard_t *keyboard)
+static const egui_font_t *egui_view_keyboard_resolve_icon_font(const egui_view_keyboard_t *keyboard)
 {
     if (keyboard->icon_font != NULL)
     {
@@ -279,7 +279,7 @@ static const egui_font_t *egui_view_keyboard_get_label_font(const egui_view_keyb
     // Icon-bearing keys can use a separate font from normal text keys.
     if (egui_view_keyboard_key_uses_icon(keyboard, key_idx))
     {
-        return egui_view_keyboard_get_icon_font(keyboard);
+        return egui_view_keyboard_resolve_icon_font(keyboard);
     }
 
     if (keyboard->font != NULL)
@@ -680,6 +680,16 @@ void egui_view_keyboard_set_mode(egui_view_t *self, uint8_t mode)
     }
 }
 
+uint8_t egui_view_keyboard_get_mode(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return EGUI_KEYBOARD_MODE_LOWERCASE;
+    }
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    return local->mode;
+}
+
 void egui_view_keyboard_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
@@ -692,6 +702,16 @@ void egui_view_keyboard_set_font(egui_view_t *self, const egui_font_t *font)
     {
         egui_view_label_set_font(EGUI_VIEW_OF(&local->keys[i]), egui_view_keyboard_get_label_font(local, i));
     }
+}
+
+const egui_font_t *egui_view_keyboard_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    return local->font;
 }
 
 void egui_view_keyboard_set_icon_font(egui_view_t *self, const egui_font_t *font)
@@ -715,6 +735,16 @@ void egui_view_keyboard_set_icon_font(egui_view_t *self, const egui_font_t *font
         }
         egui_view_label_set_font(EGUI_VIEW_OF(&local->keys[i]), egui_view_keyboard_get_label_font(local, i));
     }
+}
+
+const egui_font_t *egui_view_keyboard_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    return local->icon_font;
 }
 
 void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shift_icon, const char *backspace_icon, const char *enter_icon)
@@ -746,6 +776,46 @@ void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shi
 
     // Re-enter the current mode so any visible special-key labels are refreshed together.
     egui_view_keyboard_set_mode(self, local->mode);
+}
+
+const char *egui_view_keyboard_get_shift_icon(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    return local->shift_icon;
+}
+
+const char *egui_view_keyboard_get_backspace_icon(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    return local->backspace_icon;
+}
+
+const char *egui_view_keyboard_get_enter_icon(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    return local->enter_icon;
+}
+
+egui_view_t *egui_view_keyboard_get_target(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    return local->target;
 }
 
 void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)

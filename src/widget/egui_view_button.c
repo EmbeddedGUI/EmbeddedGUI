@@ -409,6 +409,13 @@ void egui_view_button_set_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_button_get_icon(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_button_t);
+    return local->icon;
+}
+
 /** Override the font used when the button draws an icon string. */
 void egui_view_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
@@ -423,6 +430,13 @@ void egui_view_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_button_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_button_t);
+    return local->icon_font;
+}
+
 /** Set the horizontal gap between the icon and main text when both are present. */
 void egui_view_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
@@ -435,4 +449,11 @@ void egui_view_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 
     local->icon_text_gap = gap;
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_button_get_icon_text_gap(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_button_t);
+    return local->icon_text_gap;
 }

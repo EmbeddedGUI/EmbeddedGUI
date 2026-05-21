@@ -56,18 +56,32 @@ void egui_view_notification_badge_set_count(egui_view_t *self, uint16_t count);
 uint16_t egui_view_notification_badge_get_count(egui_view_t *self);
 /** Set the largest numeric value rendered directly. Values below 1 clamp to 1. */
 void egui_view_notification_badge_set_max_display(egui_view_t *self, uint8_t max);
+/** Return the largest numeric value rendered directly. */
+uint8_t egui_view_notification_badge_get_max_display(egui_view_t *self);
 /** Set the badge background color. */
 void egui_view_notification_badge_set_badge_color(egui_view_t *self, egui_color_t color);
+/** Return the badge background color. */
+egui_color_t egui_view_notification_badge_get_badge_color(egui_view_t *self);
 /** Set the text or icon tint color drawn inside the badge. */
 void egui_view_notification_badge_set_text_color(egui_view_t *self, egui_color_t color);
+/** Return the text or icon tint color drawn inside the badge. */
+egui_color_t egui_view_notification_badge_get_text_color(egui_view_t *self);
 /** Override the font used for numeric-count rendering. */
 void egui_view_notification_badge_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the numeric-count font override, or NULL when default font is used. */
+const egui_font_t *egui_view_notification_badge_get_font(egui_view_t *self);
 /** Switch between count mode and icon mode. */
 void egui_view_notification_badge_set_content_style(egui_view_t *self, egui_view_notification_badge_content_style_t style);
+/** Return the current badge content mode. */
+egui_view_notification_badge_content_style_t egui_view_notification_badge_get_content_style(egui_view_t *self);
 /** Borrow the icon glyph string used when content style is `ICON`. */
 void egui_view_notification_badge_set_icon(egui_view_t *self, const char *icon);
+/** Return the borrowed icon glyph string used in `ICON` mode. */
+const char *egui_view_notification_badge_get_icon(egui_view_t *self);
 /** Override the icon font used in `ICON` mode. */
 void egui_view_notification_badge_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the icon font override, or NULL when automatic icon-font resolution is used. */
+const egui_font_t *egui_view_notification_badge_get_icon_font(egui_view_t *self);
 /** Default draw hook used by the notification-badge API table. */
 void egui_view_notification_badge_on_draw(egui_view_t *self);
 /** Initialize the badge widget with count mode, a default notifications icon, and `max_display = 99`. */

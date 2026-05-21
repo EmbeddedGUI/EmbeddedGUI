@@ -268,6 +268,16 @@ void egui_view_circular_progress_bar_set_on_progress_listener(egui_view_t *self,
     local->on_progress_changed = listener;
 }
 
+egui_view_on_progress_changed_listener_t egui_view_circular_progress_bar_get_on_progress_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    return local->on_progress_changed;
+}
+
 void egui_view_circular_progress_bar_set_process(egui_view_t *self, uint8_t process)
 {
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
@@ -289,6 +299,13 @@ void egui_view_circular_progress_bar_set_process(egui_view_t *self, uint8_t proc
     }
 }
 
+uint8_t egui_view_circular_progress_bar_get_process(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    return local->process;
+}
+
 void egui_view_circular_progress_bar_set_stroke_width(egui_view_t *self, egui_dim_t stroke_width)
 {
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
@@ -299,11 +316,27 @@ void egui_view_circular_progress_bar_set_stroke_width(egui_view_t *self, egui_di
     }
 }
 
+egui_dim_t egui_view_circular_progress_bar_get_stroke_width(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    return local->stroke_width;
+}
+
 void egui_view_circular_progress_bar_set_progress_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
     local->progress_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_circular_progress_bar_get_progress_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    return local->progress_color;
 }
 
 void egui_view_circular_progress_bar_set_bk_color(egui_view_t *self, egui_color_t color)
@@ -313,11 +346,29 @@ void egui_view_circular_progress_bar_set_bk_color(egui_view_t *self, egui_color_
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_circular_progress_bar_get_bk_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    return local->bk_color;
+}
+
 void egui_view_circular_progress_bar_set_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
     local->text_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_circular_progress_bar_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    return local->text_color;
 }
 
 void egui_view_circular_progress_bar_set_font(egui_view_t *self, const egui_font_t *font)
@@ -326,6 +377,16 @@ void egui_view_circular_progress_bar_set_font(egui_view_t *self, const egui_font
     local->font = font;
     local->text_ops = (font == NULL) ? &egui_view_circular_progress_bar_basic_text_ops : &egui_view_circular_progress_bar_rich_text_ops;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_circular_progress_bar_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    return local->font;
 }
 
 void egui_view_circular_progress_bar_on_draw(egui_view_t *self)

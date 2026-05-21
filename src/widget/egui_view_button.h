@@ -54,10 +54,16 @@ void egui_view_button_init(egui_view_t *self, egui_core_t *core);
 void egui_view_button_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params);
 /** Set the icon text rendered before the button label text when icon support is enabled. */
 void egui_view_button_set_icon(egui_view_t *self, const char *icon);
+/** Return the icon text rendered before the button label text. */
+const char *egui_view_button_get_icon(egui_view_t *self);
 /** Override the font used to draw the icon text. */
 void egui_view_button_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the font override used to draw the icon text. */
+const egui_font_t *egui_view_button_get_icon_font(egui_view_t *self);
 /** Set the horizontal gap between icon and label text. */
 void egui_view_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Return the horizontal gap between icon and label text. */
+egui_dim_t egui_view_button_get_icon_text_gap(egui_view_t *self);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

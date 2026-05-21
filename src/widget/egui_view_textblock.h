@@ -129,22 +129,48 @@ void egui_view_textblock_init_with_params(egui_view_t *self, egui_core_t *core, 
 void egui_view_textblock_on_draw(egui_view_t *self);
 /** Set extra spacing inserted between rendered lines. */
 void egui_view_textblock_set_line_space(egui_view_t *self, egui_dim_t line_space);
+/** Return extra spacing inserted between rendered lines. Returns 0 when self is NULL. */
+egui_dim_t egui_view_textblock_get_line_space(egui_view_t *self);
 /** Limit how many lines are rendered. Use 0 for no explicit line limit. */
 void egui_view_textblock_set_max_lines(egui_view_t *self, egui_dim_t max_lines);
+/** Return the configured maximum rendered line count. Returns 0 when self is NULL. */
+egui_dim_t egui_view_textblock_get_max_lines(egui_view_t *self);
 /** Resize the view height to fit measured text content automatically. */
 void egui_view_textblock_set_auto_height(egui_view_t *self, uint8_t is_auto_height);
+/** Return whether auto-height mode is enabled. Returns 0 when self is NULL. */
+uint8_t egui_view_textblock_get_auto_height(egui_view_t *self);
 /** Enable or disable automatic line wrapping to the work-region width. */
 void egui_view_textblock_set_auto_wrap(egui_view_t *self, uint8_t enabled);
+/** Return whether automatic line wrapping is enabled. Returns 0 when self is NULL. */
+uint8_t egui_view_textblock_get_auto_wrap(egui_view_t *self);
 /** Enable or disable drag scrolling when content is larger than the viewport. */
 void egui_view_textblock_set_scroll_enabled(egui_view_t *self, uint8_t enabled);
+/** Return whether drag scrolling is enabled. Returns 0 when self is NULL. */
+uint8_t egui_view_textblock_get_scroll_enabled(egui_view_t *self);
 /** Override the font used to measure and draw the text. */
 void egui_view_textblock_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the configured text font, or NULL when unset or self is NULL. */
+const egui_font_t *egui_view_textblock_get_font(egui_view_t *self);
 /** Set the text color and alpha. */
 void egui_view_textblock_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha);
+/** Return the configured text color. Returns zero color when self is NULL. */
+egui_color_t egui_view_textblock_get_font_color(egui_view_t *self);
+/** Return the configured text alpha. Returns 0 when self is NULL. */
+egui_alpha_t egui_view_textblock_get_font_alpha(egui_view_t *self);
 /** Set horizontal and vertical alignment flags used when content does not need scrolling. */
 void egui_view_textblock_set_align_type(egui_view_t *self, uint8_t align_type);
+/** Return the stored horizontal and vertical alignment flags. Returns 0 when self is NULL. */
+uint8_t egui_view_textblock_get_align_type(egui_view_t *self);
 /** Replace the current text content and recompute layout metrics. */
 void egui_view_textblock_set_text(egui_view_t *self, const char *text);
+/** Return the current borrowed text pointer, or NULL when unset or self is NULL. */
+const char *egui_view_textblock_get_text(egui_view_t *self);
+/** Return the measured content width. Returns 0 when self is NULL. */
+egui_dim_t egui_view_textblock_get_content_width(egui_view_t *self);
+/** Return the measured content height. Returns 0 when self is NULL. */
+egui_dim_t egui_view_textblock_get_content_height(egui_view_t *self);
+/** Return the measured content line count. Returns 0 when self is NULL. */
+egui_dim_t egui_view_textblock_get_content_line_count(egui_view_t *self);
 /** Measure arbitrary text using the current font and wrapping settings. Returns 0 when no font is set. */
 int egui_view_textblock_get_text_size(egui_view_t *self, const char *text, egui_dim_t max_width, egui_dim_t *width, egui_dim_t *height);
 /** Initialize the multi-line textblock widget. */
@@ -153,14 +179,22 @@ void egui_view_textblock_init(egui_view_t *self, egui_core_t *core);
 // Border API
 /** Enable or disable the optional rounded border frame. */
 void egui_view_textblock_set_border_enabled(egui_view_t *self, uint8_t enabled);
+/** Return whether the optional rounded border frame is enabled. Returns 0 when self is NULL. */
+uint8_t egui_view_textblock_get_border_enabled(egui_view_t *self);
 /** Set the corner radius of the optional border frame. */
 void egui_view_textblock_set_border_radius(egui_view_t *self, egui_dim_t radius);
+/** Return the optional border frame corner radius. Returns 0 when self is NULL. */
+egui_dim_t egui_view_textblock_get_border_radius(egui_view_t *self);
 /** Set the color of the optional border frame. */
 void egui_view_textblock_set_border_color(egui_view_t *self, egui_color_t color);
+/** Return the optional border frame color. Returns zero color when self is NULL. */
+egui_color_t egui_view_textblock_get_border_color(egui_view_t *self);
 
 // Scrollbar API
 /** Enable or disable built-in scrollbars when scrollbar support is compiled in. */
 void egui_view_textblock_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled);
+/** Return whether built-in scrollbars are enabled. Returns 0 when self is NULL or scrollbar support is compiled out. */
+uint8_t egui_view_textblock_get_scrollbar_enabled(egui_view_t *self);
 
 // Edit mode API
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
@@ -174,8 +208,12 @@ void egui_view_textblock_insert_char(egui_view_t *self, char c);
 void egui_view_textblock_delete_char(egui_view_t *self);
 /** Move the cursor by byte index. Values past the end are clamped. */
 void egui_view_textblock_set_cursor_pos(egui_view_t *self, uint16_t pos);
+/** Return the current cursor byte index. Returns 0 when self is NULL. */
+uint16_t egui_view_textblock_get_cursor_pos(egui_view_t *self);
 /** Set the caret color used in editable mode. */
 void egui_view_textblock_set_cursor_color(egui_view_t *self, egui_color_t color);
+/** Return the caret color used in editable mode. Returns zero color when self is NULL. */
+egui_color_t egui_view_textblock_get_cursor_color(egui_view_t *self);
 /** Return the current internal edit buffer. */
 const char *egui_view_textblock_get_edit_text(egui_view_t *self);
 #endif

@@ -54,12 +54,20 @@ struct egui_view_spangroup_params
 
 /** Append one span entry. Returns the new index, or -1 when the fixed span array is full. */
 int egui_view_spangroup_add_span(egui_view_t *self, const char *text, const egui_font_t *font, egui_color_t color);
+/** Return the number of stored spans. Returns 0 when self is NULL. */
+uint8_t egui_view_spangroup_get_span_count(egui_view_t *self);
+/** Return one stored span by index, or NULL when out of range or self is NULL. */
+const egui_view_span_t *egui_view_spangroup_get_span(egui_view_t *self, uint8_t index);
 /** Remove every stored span. */
 void egui_view_spangroup_clear(egui_view_t *self);
 /** Store an alignment hint for the span group. The current built-in renderer still draws from the left edge. */
 void egui_view_spangroup_set_align(egui_view_t *self, uint8_t align);
+/** Return the stored alignment hint. Returns 0 when self is NULL. */
+uint8_t egui_view_spangroup_get_align(egui_view_t *self);
 /** Set the extra vertical spacing inserted when text wraps onto a new line. */
 void egui_view_spangroup_set_line_spacing(egui_view_t *self, uint8_t spacing);
+/** Return the extra vertical spacing inserted between wrapped rows. Returns 0 when self is NULL. */
+uint8_t egui_view_spangroup_get_line_spacing(egui_view_t *self);
 
 /** Apply a span-group parameter block after initialization. */
 void egui_view_spangroup_apply_params(egui_view_t *self, const egui_view_spangroup_params_t *params);

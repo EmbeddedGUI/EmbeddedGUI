@@ -343,6 +343,17 @@ void egui_view_deferred_image_set_source_uri(egui_view_t *self, const char *sour
     }
 }
 
+const char *egui_view_deferred_image_get_source_uri(const egui_view_t *self)
+{
+    const egui_view_deferred_image_t *local = (const egui_view_deferred_image_t *)self;
+
+    if (local == NULL)
+    {
+        return NULL;
+    }
+    return local->source_uri;
+}
+
 void egui_view_deferred_image_set_cache_path(egui_view_t *self, const char *cache_path)
 {
     EGUI_LOCAL_INIT(egui_view_deferred_image_t);
@@ -370,6 +381,17 @@ void egui_view_deferred_image_set_cache_path(egui_view_t *self, const char *cach
     }
 }
 
+const char *egui_view_deferred_image_get_cache_path(const egui_view_t *self)
+{
+    const egui_view_deferred_image_t *local = (const egui_view_deferred_image_t *)self;
+
+    if (local == NULL)
+    {
+        return NULL;
+    }
+    return local->cache_path;
+}
+
 void egui_view_deferred_image_set_placeholder_image(egui_view_t *self, const egui_image_t *image)
 {
     EGUI_LOCAL_INIT(egui_view_deferred_image_t);
@@ -387,6 +409,17 @@ void egui_view_deferred_image_set_placeholder_image(egui_view_t *self, const egu
     }
 }
 
+const egui_image_t *egui_view_deferred_image_get_placeholder_image(const egui_view_t *self)
+{
+    const egui_view_deferred_image_t *local = (const egui_view_deferred_image_t *)self;
+
+    if (local == NULL)
+    {
+        return NULL;
+    }
+    return local->placeholder_image;
+}
+
 void egui_view_deferred_image_set_file_placeholder(egui_view_t *self, const egui_image_t *image)
 {
     EGUI_LOCAL_INIT(egui_view_deferred_image_t);
@@ -398,6 +431,17 @@ void egui_view_deferred_image_set_file_placeholder(egui_view_t *self, const egui
 
     local->file_placeholder = image;
     egui_image_file_set_placeholder(&local->loaded_image, image);
+}
+
+const egui_image_t *egui_view_deferred_image_get_file_placeholder(const egui_view_t *self)
+{
+    const egui_view_deferred_image_t *local = (const egui_view_deferred_image_t *)self;
+
+    if (local == NULL)
+    {
+        return NULL;
+    }
+    return local->file_placeholder;
 }
 
 void egui_view_deferred_image_set_loader(egui_view_t *self, const egui_view_deferred_image_loader_t *loader)
@@ -422,6 +466,17 @@ void egui_view_deferred_image_set_loader(egui_view_t *self, const egui_view_defe
     }
 }
 
+const egui_view_deferred_image_loader_t *egui_view_deferred_image_get_loader(const egui_view_t *self)
+{
+    const egui_view_deferred_image_t *local = (const egui_view_deferred_image_t *)self;
+
+    if (local == NULL)
+    {
+        return NULL;
+    }
+    return local->loader;
+}
+
 void egui_view_deferred_image_set_auto_start_on_attach(egui_view_t *self, int auto_start_on_attach)
 {
     EGUI_LOCAL_INIT(egui_view_deferred_image_t);
@@ -439,11 +494,44 @@ void egui_view_deferred_image_set_auto_start_on_attach(egui_view_t *self, int au
     }
 }
 
+uint8_t egui_view_deferred_image_get_auto_start_on_attach(const egui_view_t *self)
+{
+    const egui_view_deferred_image_t *local = (const egui_view_deferred_image_t *)self;
+
+    if (local == NULL)
+    {
+        return 0;
+    }
+    return local->auto_start_on_attach;
+}
+
 void egui_view_deferred_image_set_load_delay_ms(egui_view_t *self, uint16_t delay_ms)
 {
     EGUI_LOCAL_INIT(egui_view_deferred_image_t);
 
     local->load_delay_ms = delay_ms;
+}
+
+uint16_t egui_view_deferred_image_get_load_delay_ms(const egui_view_t *self)
+{
+    const egui_view_deferred_image_t *local = (const egui_view_deferred_image_t *)self;
+
+    if (local == NULL)
+    {
+        return 0;
+    }
+    return local->load_delay_ms;
+}
+
+const egui_image_t *egui_view_deferred_image_get_display_image(const egui_view_t *self)
+{
+    const egui_view_deferred_image_t *local = (const egui_view_deferred_image_t *)self;
+
+    if (local == NULL)
+    {
+        return NULL;
+    }
+    return local->display_image;
 }
 
 void egui_view_deferred_image_reload(egui_view_t *self)

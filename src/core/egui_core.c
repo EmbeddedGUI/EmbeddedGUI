@@ -514,13 +514,35 @@ void egui_core_stop_auto_refresh_screen(egui_core_t *core)
     egui_timer_stop_timer(core, &core->system.refresh_timer);
 }
 
-/** Poll timers plus touch/key input once for polling-mode ports. */
+/** Poll timers plus touch/key/encoder input once for polling-mode ports. */
 void egui_polling_work(egui_core_t *core)
 {
     egui_timer_polling_work(core);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     egui_input_polling_work(core);
+#endif
+
+#if EGUI_CONFIG_FUNCTION_LONG_PRESS && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    /* Long-press detection: fire the listener once after the threshold has elapsed. */
+    if (core != NULL && core->touch.prev_pressed)
+    {
+        egui_view_t *pressed_view;
+
+#if EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH
+        pressed_view = (core->touch.view_group_touch_state.path_len > 0)
+                           ? core->touch.view_group_touch_state.path[core->touch.view_group_touch_state.path_len - 1]
+                           : NULL;
+#else
+        pressed_view = core->touch.view_group_touch_state.captured_view;
+#endif
+
+        egui_view_poll_long_press(pressed_view);
+    }
+#endif /* EGUI_CONFIG_FUNCTION_LONG_PRESS */
+
+#if EGUI_CONFIG_FUNCTION_ENCODER
+    egui_encoder_polling_work(core);
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY

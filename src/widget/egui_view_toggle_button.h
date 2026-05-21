@@ -63,22 +63,38 @@ void egui_view_toggle_button_init_with_params(egui_view_t *self, egui_core_t *co
 
 /** Register the callback fired when the toggle state changes. */
 void egui_view_toggle_button_set_on_toggled_listener(egui_view_t *self, egui_view_on_toggled_listener_t listener);
+/** Return the callback fired when the toggle state changes. */
+egui_view_on_toggled_listener_t egui_view_toggle_button_get_on_toggled_listener(egui_view_t *self);
 /** Set the toggle state programmatically. This also fires the toggle listener on real changes. */
 void egui_view_toggle_button_set_toggled(egui_view_t *self, uint8_t is_toggled);
+/** Return whether the button is currently toggled on. */
+uint8_t egui_view_toggle_button_get_toggled(egui_view_t *self);
 /** Return whether the button is currently toggled on. */
 uint8_t egui_view_toggle_button_is_toggled(egui_view_t *self);
 /** Set the optional icon shown before or instead of the button text. */
 void egui_view_toggle_button_set_icon(egui_view_t *self, const char *icon);
+/** Return the optional icon pointer shown by the button. */
+const char *egui_view_toggle_button_get_icon(egui_view_t *self);
 /** Set the button text. */
 void egui_view_toggle_button_set_text(egui_view_t *self, const char *text);
+/** Return the current button text pointer. */
+const char *egui_view_toggle_button_get_text(egui_view_t *self);
 /** Override the font used for the button text. */
 void egui_view_toggle_button_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the text font override, or NULL when default font is used. */
+const egui_font_t *egui_view_toggle_button_get_font(egui_view_t *self);
 /** Override the icon font used by the optional icon. */
 void egui_view_toggle_button_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the icon font override, or NULL when automatic icon-font resolution is used. */
+const egui_font_t *egui_view_toggle_button_get_icon_font(egui_view_t *self);
 /** Set the horizontal gap between icon and text. */
 void egui_view_toggle_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Return the horizontal gap between icon and text. */
+egui_dim_t egui_view_toggle_button_get_icon_text_gap(egui_view_t *self);
 /** Set the content color used when the button is toggled on. */
 void egui_view_toggle_button_set_text_color(egui_view_t *self, egui_color_t color);
+/** Return the content color used when the button is toggled on. */
+egui_color_t egui_view_toggle_button_get_text_color(egui_view_t *self);
 /** Default draw hook used by the toggle-button API table. */
 void egui_view_toggle_button_on_draw(egui_view_t *self);
 /** Initialize the tap-to-toggle button widget. */

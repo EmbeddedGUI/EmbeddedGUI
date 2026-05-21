@@ -61,6 +61,20 @@ void egui_view_led_toggle(egui_view_t *self);
 void egui_view_led_set_blink(egui_view_t *self, uint16_t period_ms);
 /** Stop blinking and keep the current on or off state. */
 void egui_view_led_stop_blink(egui_view_t *self);
+/** Return whether the indicator is currently lit. */
+int egui_view_led_get_is_on(egui_view_t *self);
+/** Return whether the indicator is currently blinking. */
+int egui_view_led_get_is_blinking(egui_view_t *self);
+/** Return the blink period in milliseconds (default 500). */
+uint16_t egui_view_led_get_blink_period(egui_view_t *self);
+/** Return the color used when the LED is on. */
+egui_color_t egui_view_led_get_on_color(egui_view_t *self);
+/** Return the color used when the LED is off. */
+egui_color_t egui_view_led_get_off_color(egui_view_t *self);
+/** Return the border color of the LED circle. */
+egui_color_t egui_view_led_get_border_color(egui_view_t *self);
+/** Return the border width of the LED circle in pixels. */
+egui_dim_t egui_view_led_get_border_width(egui_view_t *self);
 /** Set the colors used for lit and unlit states. */
 void egui_view_led_set_colors(egui_view_t *self, egui_color_t on_color, egui_color_t off_color);
 /** Default draw hook used by the LED API table. */

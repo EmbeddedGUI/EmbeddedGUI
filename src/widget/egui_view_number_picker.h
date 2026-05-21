@@ -55,18 +55,38 @@ void egui_view_number_picker_init_with_params(egui_view_t *self, egui_core_t *co
 
 /** Register the callback fired when the current value changes. */
 void egui_view_number_picker_set_on_value_changed_listener(egui_view_t *self, egui_view_on_number_changed_listener_t listener);
+/** Return the callback fired when the current value changes. */
+egui_view_on_number_changed_listener_t egui_view_number_picker_get_on_value_changed_listener(egui_view_t *self);
 /** Set the current value. The value is clamped to the active min/max range and notifies the change listener on real changes. */
 void egui_view_number_picker_set_value(egui_view_t *self, int16_t value);
 /** Return the current picker value. */
 int16_t egui_view_number_picker_get_value(egui_view_t *self);
 /** Update the allowed range and clamp the current value if needed. */
 void egui_view_number_picker_set_range(egui_view_t *self, int16_t min_value, int16_t max_value);
+/** Return the configured minimum value. */
+int16_t egui_view_number_picker_get_min_value(egui_view_t *self);
+/** Return the configured maximum value. */
+int16_t egui_view_number_picker_get_max_value(egui_view_t *self);
 /** Set the increment/decrement step used by the top and bottom buttons. */
 void egui_view_number_picker_set_step(egui_view_t *self, int16_t step);
+/** Return the configured step. */
+int16_t egui_view_number_picker_get_step(egui_view_t *self);
+/** Return the value text color. */
+egui_color_t egui_view_number_picker_get_text_color(egui_view_t *self);
+/** Return the button divider and arrow icon color. */
+egui_color_t egui_view_number_picker_get_button_color(egui_view_t *self);
+/** Return the shared alpha value. */
+egui_alpha_t egui_view_number_picker_get_alpha(egui_view_t *self);
 /** Override the icon glyphs shown in the increment and decrement areas. */
 void egui_view_number_picker_set_button_icons(egui_view_t *self, const char *icon_inc, const char *icon_dec);
+/** Return the icon glyph shown in the increment area. */
+const char *egui_view_number_picker_get_button_icon_inc(egui_view_t *self);
+/** Return the icon glyph shown in the decrement area. */
+const char *egui_view_number_picker_get_button_icon_dec(egui_view_t *self);
 /** Override the icon font used for the increment and decrement glyphs. */
 void egui_view_number_picker_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the explicit icon font override, or NULL when auto icon font selection is used. */
+const egui_font_t *egui_view_number_picker_get_icon_font(egui_view_t *self);
 /** Default draw hook used by the number-picker API table. */
 void egui_view_number_picker_on_draw(egui_view_t *self);
 /** Initialize the three-zone number-picker widget. */

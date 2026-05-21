@@ -28,26 +28,26 @@
  */
 
 /** Choose an icon font size that fits one square header control area. */
-static const egui_font_t *egui_view_window_get_icon_font(egui_dim_t area_size)
+static const egui_font_t *egui_view_window_get_auto_icon_font(egui_dim_t area_size)
 {
     return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 /** Resolve the effective close-icon font, falling back to an automatic size from the header height. */
-static const egui_font_t *egui_view_window_get_close_icon_font(const egui_view_window_t *local)
+static const egui_font_t *egui_view_window_resolve_close_icon_font(const egui_view_window_t *local)
 {
     if (local->close_icon_font != NULL)
     {
         return local->close_icon_font;
     }
 
-    return egui_view_window_get_icon_font(local->header_height);
+    return egui_view_window_get_auto_icon_font(local->header_height);
 }
 
 /** Report whether the close control currently has both glyph text and a font to draw with. */
 static uint8_t egui_view_window_has_close_icon(const egui_view_window_t *local)
 {
-    const egui_font_t *icon_font = egui_view_window_get_close_icon_font(local);
+    const egui_font_t *icon_font = egui_view_window_resolve_close_icon_font(local);
     return (icon_font != NULL && local->close_icon != NULL && local->close_icon[0] != '\0') ? 1U : 0U;
 }
 
@@ -85,7 +85,7 @@ static void egui_view_window_update_layout(egui_view_t *self)
 
     egui_view_set_position(EGUI_VIEW_OF(&local->close_label), window_width - close_width, 0);
     egui_view_set_size(EGUI_VIEW_OF(&local->close_label), close_width, header_height);
-    egui_view_label_set_font(EGUI_VIEW_OF(&local->close_label), egui_view_window_get_close_icon_font(local));
+    egui_view_label_set_font(EGUI_VIEW_OF(&local->close_label), egui_view_window_resolve_close_icon_font(local));
 
     egui_view_set_position(EGUI_VIEW_OF(&local->content), 0, header_height);
     egui_view_set_size(EGUI_VIEW_OF(&local->content), window_width, content_height);
@@ -120,6 +120,13 @@ void egui_view_window_set_title(egui_view_t *self, const char *title)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_window_get_title(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    return egui_view_label_get_text(EGUI_VIEW_OF(&local->title_label));
+}
+
 /** Change the header height, then relayout the title, close control, and content area. */
 void egui_view_window_set_header_height(egui_view_t *self, egui_dim_t height)
 {
@@ -130,6 +137,55 @@ void egui_view_window_set_header_height(egui_view_t *self, egui_dim_t height)
         egui_view_window_update_layout(self);
         egui_view_invalidate(self);
     }
+}
+
+egui_dim_t egui_view_window_get_header_height(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    return local->header_height;
+}
+
+void egui_view_window_set_header_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    if (local->header_color.full == color.full)
+    {
+        return;
+    }
+
+    local->header_color = color;
+    egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_window_get_header_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    return local->header_color;
+}
+
+void egui_view_window_set_content_bg_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    if (local->content_bg_color.full == color.full)
+    {
+        return;
+    }
+
+    local->content_bg_color = color;
+    egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_window_get_content_bg_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    return local->content_bg_color;
 }
 
 /** Replace the close glyph string and update layout because icon presence changes reserved header space. */
@@ -148,6 +204,13 @@ void egui_view_window_set_close_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_window_get_close_icon(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    return local->close_icon;
+}
+
 /** Override the close-icon font and recompute layout because icon visibility may change. */
 void egui_view_window_set_close_icon_font(egui_view_t *self, const egui_font_t *font)
 {
@@ -163,6 +226,20 @@ void egui_view_window_set_close_icon_font(egui_view_t *self, const egui_font_t *
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_window_get_close_icon_font(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    return local->close_icon_font;
+}
+
+egui_view_t *egui_view_window_get_content(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    return EGUI_VIEW_OF(&local->content);
+}
+
 /** Add one child into the window's content group instead of the outer chrome container. */
 void egui_view_window_add_content(egui_view_t *self, egui_view_t *child)
 {
@@ -176,6 +253,16 @@ void egui_view_window_set_on_close(egui_view_t *self, egui_view_window_close_cb_
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
     local->on_close = callback;
+}
+
+egui_view_window_close_cb_t egui_view_window_get_on_close(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_window_t);
+    return local->on_close;
 }
 
 /** Draw window chrome: header background, close-button press feedback, and content background. */
@@ -272,7 +359,7 @@ void egui_view_window_init(egui_view_t *self, egui_core_t *core)
     // Init close icon label
     egui_view_label_init(EGUI_VIEW_OF(&local->close_label), core);
     egui_view_label_set_text(EGUI_VIEW_OF(&local->close_label), local->close_icon);
-    egui_view_label_set_font(EGUI_VIEW_OF(&local->close_label), egui_view_window_get_close_icon_font(local));
+    egui_view_label_set_font(EGUI_VIEW_OF(&local->close_label), egui_view_window_resolve_close_icon_font(local));
     egui_view_label_set_font_color(EGUI_VIEW_OF(&local->close_label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&local->close_label), EGUI_ALIGN_CENTER);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&local->close_label), egui_view_window_on_close_click);

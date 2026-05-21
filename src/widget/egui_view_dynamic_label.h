@@ -30,11 +30,13 @@ struct egui_view_dynamic_label
 #define EGUI_VIEW_DYNAMIC_LABEL_PARAMS_INIT        EGUI_VIEW_LABEL_PARAMS_INIT
 /** Reuse the simplified label-style parameter macro for dynamic-label construction. */
 #define EGUI_VIEW_DYNAMIC_LABEL_PARAMS_INIT_SIMPLE EGUI_VIEW_LABEL_PARAMS_INIT_SIMPLE
-/** Reuse the label parameter application helper directly. */
-#define egui_view_dynamic_label_apply_params       egui_view_label_apply_params
 
+/** Apply label-style parameters while copying the text into owned storage. */
+void egui_view_dynamic_label_apply_params(egui_view_t *self, const egui_view_label_params_t *params);
 /** Copy text into the fixed internal buffer. Longer strings are truncated to `MAX_SIZE`. */
 void egui_view_dynamic_label_set_text(egui_view_t *self, const char *text);
+/** Return the owned dynamic-label text buffer, or NULL when self is NULL. */
+const char *egui_view_dynamic_label_get_text(egui_view_t *self);
 /** Initialize a label whose text storage lives inside the widget instance. */
 void egui_view_dynamic_label_init(egui_view_t *self, egui_core_t *core);
 /** Initialize a dynamic label and apply the same parameter block used by label widgets. */

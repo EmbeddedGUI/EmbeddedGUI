@@ -42,8 +42,36 @@ void egui_view_compass_init_with_params(egui_view_t *self, egui_core_t *core, co
 
 /** Set the heading in degrees. Negative and overflow values are normalized into 0-359. */
 void egui_view_compass_set_heading(egui_view_t *self, int16_t heading);
+/** Return the stored heading in degrees. */
+int16_t egui_view_compass_get_heading(egui_view_t *self);
 /** Show or hide the numeric degree label drawn in the center. */
 void egui_view_compass_set_show_degree(egui_view_t *self, uint8_t show);
+/** Return whether the numeric degree label is shown in the center. */
+uint8_t egui_view_compass_get_show_degree(egui_view_t *self);
+/** Set the dial circle stroke width. */
+void egui_view_compass_set_stroke_width(egui_view_t *self, egui_dim_t stroke_width);
+/** Return the dial circle stroke width. */
+egui_dim_t egui_view_compass_get_stroke_width(egui_view_t *self);
+/** Set the dial and non-north tick color. */
+void egui_view_compass_set_dial_color(egui_view_t *self, egui_color_t color);
+/** Return the dial and non-north tick color. */
+egui_color_t egui_view_compass_get_dial_color(egui_view_t *self);
+/** Set the north needle and north tick color. */
+void egui_view_compass_set_north_color(egui_view_t *self, egui_color_t color);
+/** Return the north needle and north tick color. */
+egui_color_t egui_view_compass_get_north_color(egui_view_t *self);
+/** Set the south needle color. */
+void egui_view_compass_set_needle_color(egui_view_t *self, egui_color_t color);
+/** Return the south needle color. */
+egui_color_t egui_view_compass_get_needle_color(egui_view_t *self);
+/** Set the numeric degree label color. */
+void egui_view_compass_set_text_color(egui_view_t *self, egui_color_t color);
+/** Return the numeric degree label color. */
+egui_color_t egui_view_compass_get_text_color(egui_view_t *self);
+/** Set the font used for the numeric degree label. */
+void egui_view_compass_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the font used for the numeric degree label. */
+const egui_font_t *egui_view_compass_get_font(egui_view_t *self);
 /** Default draw hook used by the compass API table. */
 void egui_view_compass_on_draw(egui_view_t *self);
 /** Initialize a compass widget with numeric heading display enabled. */

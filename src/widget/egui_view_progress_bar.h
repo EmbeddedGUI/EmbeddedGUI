@@ -53,8 +53,20 @@ void egui_view_progress_bar_init_with_params(egui_view_t *self, egui_core_t *cor
 
 /** Register the callback fired when the progress changes. */
 void egui_view_progress_bar_set_on_progress_listener(egui_view_t *self, egui_view_on_progress_changed_listener_t listener);
+/** Return the callback fired when the progress changes. */
+egui_view_on_progress_changed_listener_t egui_view_progress_bar_get_on_progress_listener(egui_view_t *self);
 /** Set the progress percentage in the range `0..100`. */
 void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process);
+/** Return the current progress percentage (0..100). */
+uint8_t egui_view_progress_bar_get_process(egui_view_t *self);
+/** Return the background track color. */
+egui_color_t egui_view_progress_bar_get_bk_color(egui_view_t *self);
+/** Return the fill color used for the completed portion of the track. */
+egui_color_t egui_view_progress_bar_get_progress_color(egui_view_t *self);
+/** Return the color of the optional control knob. */
+egui_color_t egui_view_progress_bar_get_control_color(egui_view_t *self);
+/** Return 1 when the control knob is shown, 0 otherwise. */
+uint8_t egui_view_progress_bar_get_is_show_control(egui_view_t *self);
 /** Default draw hook used by the progress-bar API table. */
 void egui_view_progress_bar_on_draw(egui_view_t *self);
 /** Initialize the base progress bar widget. */

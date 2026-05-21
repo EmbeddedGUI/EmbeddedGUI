@@ -5,6 +5,9 @@
 #include "egui_key_event.h"
 #include "widget/egui_view.h"
 #include "widget/egui_view_group.h"
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+#include "egui_event.h"
+#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
@@ -34,6 +37,9 @@ static void egui_focus_set_view_focused(egui_view_t *view, int is_focused)
     {
         view->api->on_focus_changed(view, is_focused);
     }
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+    egui_view_send_event(view, is_focused ? EGUI_EVENT_FOCUSED : EGUI_EVENT_DEFOCUSED, NULL);
+#endif
     egui_view_invalidate(view);
     egui_view_invalidate_focus_region(view);
 }

@@ -39,14 +39,30 @@ struct egui_view_digital_clock
 
 /** Set the raw time fields and immediately refresh the rendered label text. */
 void egui_view_digital_clock_set_time(egui_view_t *self, uint8_t hour, uint8_t minute, uint8_t second);
+/** Return the stored hour field. */
+uint8_t egui_view_digital_clock_get_hour(egui_view_t *self);
+/** Return the stored minute field. */
+uint8_t egui_view_digital_clock_get_minute(egui_view_t *self);
+/** Return the stored second field. */
+uint8_t egui_view_digital_clock_get_second(egui_view_t *self);
+/** Return the current formatted time text buffer. */
+const char *egui_view_digital_clock_get_time_text(egui_view_t *self);
 /** Switch between 24-hour and 12-hour text formatting. */
 void egui_view_digital_clock_set_format(egui_view_t *self, uint8_t format_24h);
+/** Return non-zero when 24-hour formatting is enabled. */
+uint8_t egui_view_digital_clock_get_format_24h(egui_view_t *self);
 /** Enable colon replacement when `colon_visible` is false. This API does not create a timer by itself. */
 void egui_view_digital_clock_set_colon_blink(egui_view_t *self, uint8_t enable);
+/** Return whether colon replacement blink behavior is enabled. */
+uint8_t egui_view_digital_clock_get_colon_blink(egui_view_t *self);
 /** Control whether colons render as ':' or spaces when colon blink mode is enabled. */
 void egui_view_digital_clock_set_colon_visible(egui_view_t *self, uint8_t visible);
+/** Return whether blink-enabled colons are currently visible. */
+uint8_t egui_view_digital_clock_get_colon_visible(egui_view_t *self);
 /** Show or hide seconds in 24-hour mode. 12-hour mode always renders `HH:MM AM/PM`. */
 void egui_view_digital_clock_set_show_second(egui_view_t *self, uint8_t show);
+/** Return whether seconds are shown in 24-hour mode. */
+uint8_t egui_view_digital_clock_get_show_second(egui_view_t *self);
 /** Initialize a digital clock label in 24-hour mode with seconds shown. */
 void egui_view_digital_clock_init(egui_view_t *self, egui_core_t *core);
 /** Initialize a digital clock and apply the same parameter block used by label widgets. */

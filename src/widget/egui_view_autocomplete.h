@@ -48,6 +48,8 @@ void egui_view_autocomplete_init_with_params(egui_view_t *self, egui_core_t *cor
 
 /** Borrow the suggestion array from caller storage. The current index is clamped through the underlying combobox logic. */
 void egui_view_autocomplete_set_suggestions(egui_view_t *self, const char **suggestions, uint8_t count);
+/** Return the borrowed suggestion array currently exposed by the wrapped combobox. */
+const char **egui_view_autocomplete_get_suggestions(egui_view_t *self);
 /** Return the number of suggestions currently exposed by the wrapped combobox. */
 uint8_t egui_view_autocomplete_get_suggestion_count(egui_view_t *self);
 /** Change the selected suggestion programmatically. Out-of-range indices are ignored and no listener is fired. */
@@ -58,8 +60,12 @@ uint8_t egui_view_autocomplete_get_current_index(egui_view_t *self);
 const char *egui_view_autocomplete_get_current_text(egui_view_t *self);
 /** Limit how many suggestions may be visible when expanded. Values below 1 clamp to 1. */
 void egui_view_autocomplete_set_max_visible_items(egui_view_t *self, uint8_t max_items);
+/** Return the configured maximum number of visible suggestions. */
+uint8_t egui_view_autocomplete_get_max_visible_items(egui_view_t *self);
 /** Override the text font used by the wrapped combobox. Passing NULL is ignored by this wrapper. */
 void egui_view_autocomplete_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the font used by the wrapped combobox. */
+const egui_font_t *egui_view_autocomplete_get_font(egui_view_t *self);
 /** Expand the suggestion dropdown. */
 void egui_view_autocomplete_expand(egui_view_t *self);
 /** Collapse the suggestion dropdown back to its header row. */
@@ -68,6 +74,8 @@ void egui_view_autocomplete_collapse(egui_view_t *self);
 uint8_t egui_view_autocomplete_is_expanded(egui_view_t *self);
 /** Register the listener fired when the user selects one suggestion. */
 void egui_view_autocomplete_set_on_selected_listener(egui_view_t *self, egui_view_on_autocomplete_selected_listener_t listener);
+/** Return the registered selection listener. */
+egui_view_on_autocomplete_selected_listener_t egui_view_autocomplete_get_on_selected_listener(egui_view_t *self);
 /** Initialize the autocomplete view as a thin combobox-based wrapper. */
 void egui_view_autocomplete_init(egui_view_t *self, egui_core_t *core);
 

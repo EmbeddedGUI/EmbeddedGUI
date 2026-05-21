@@ -77,6 +77,14 @@ void egui_view_group_clear_childs(egui_view_t *self);
 int egui_view_group_get_child_count(egui_view_t *self);
 /** Return the first child in draw/layout order, or NULL when the container is empty. */
 egui_view_t *egui_view_group_get_first_child(egui_view_t *self);
+/** Return the last child in draw/layout order, or NULL when the container is empty. */
+egui_view_t *egui_view_group_get_last_child(egui_view_t *self);
+/** Return the child at position @p index (0-based), or NULL if out of range. */
+egui_view_t *egui_view_group_get_child_at(egui_view_t *self, int index);
+/** Return the 0-based index of @p child inside this container, or -1 if not found. */
+int egui_view_group_get_child_index(egui_view_t *self, egui_view_t *child);
+/** Move @p child to @p index (0-based) in draw/layout order; clamps to end when index >= count. */
+void egui_view_group_move_child_to_index(egui_view_t *self, egui_view_t *child, int index);
 
 /* Layout helpers for groups that position children manually. */
 /** Sum all non-gone child widths plus horizontal margins. */
@@ -92,6 +100,8 @@ void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_hor
 
 /** Enable or disable touch processing on a root group. */
 void egui_view_group_set_disallow_process_touch_event(egui_view_t *self, int disallow);
+/** Return whether touch processing is disabled on a root group. */
+int egui_view_group_get_disallow_process_touch_event(egui_view_t *self);
 /** Ask ancestor groups not to intercept the current touch sequence. */
 void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, int disallow);
 /** Swap the current touch-capture state with a snapshot. Useful for nested modal flows. */

@@ -70,16 +70,36 @@ void egui_view_window_init_with_params(egui_view_t *self, egui_core_t *core, con
 
 /** Set the title string shown in the header. The title pointer is borrowed through the internal label. */
 void egui_view_window_set_title(egui_view_t *self, const char *title);
+/** Return the borrowed title string shown in the header. */
+const char *egui_view_window_get_title(egui_view_t *self);
 /** Set the header height and relayout the title, close control, and content area. */
 void egui_view_window_set_header_height(egui_view_t *self, egui_dim_t height);
+/** Return the header height in pixels. */
+egui_dim_t egui_view_window_get_header_height(egui_view_t *self);
+/** Set the title-bar background color. */
+void egui_view_window_set_header_color(egui_view_t *self, egui_color_t color);
+/** Return the title-bar background color. */
+egui_color_t egui_view_window_get_header_color(egui_view_t *self);
+/** Set the client-area background color. */
+void egui_view_window_set_content_bg_color(egui_view_t *self, egui_color_t color);
+/** Return the client-area background color. */
+egui_color_t egui_view_window_get_content_bg_color(egui_view_t *self);
 /** Set the close glyph string. Passing NULL or an empty string hides the close control even if a font is available. */
 void egui_view_window_set_close_icon(egui_view_t *self, const char *icon);
+/** Return the borrowed close glyph string. */
+const char *egui_view_window_get_close_icon(egui_view_t *self);
 /** Override the font used for the close glyph. Passing NULL restores the auto-selected icon font. A close icon is shown only when both font and text exist. */
 void egui_view_window_set_close_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the close glyph font override, or NULL when automatic icon-font resolution is used. */
+const egui_font_t *egui_view_window_get_close_icon_font(egui_view_t *self);
+/** Return the internal content group where application children are attached. */
+egui_view_t *egui_view_window_get_content(egui_view_t *self);
 /** Add one child to the internal content group below the header instead of attaching it directly to the outer window. */
 void egui_view_window_add_content(egui_view_t *self, egui_view_t *child);
 /** Register the callback fired when the close control is clicked. */
 void egui_view_window_set_on_close(egui_view_t *self, egui_view_window_close_cb_t callback);
+/** Return the callback fired when the close control is clicked. */
+egui_view_window_close_cb_t egui_view_window_get_on_close(egui_view_t *self);
 /** Draw the window chrome, including header background, close hotspot feedback, and content background. */
 void egui_view_window_on_draw(egui_view_t *self);
 /** Initialize the grouped window widget with title label, close control, and content container. */

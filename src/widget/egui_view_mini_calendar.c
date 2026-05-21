@@ -216,6 +216,36 @@ void egui_view_mini_calendar_set_date(egui_view_t *self, uint16_t year, uint8_t 
     egui_view_invalidate(self);
 }
 
+uint16_t egui_view_mini_calendar_get_year(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    return local->year;
+}
+
+uint8_t egui_view_mini_calendar_get_month(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    return local->month;
+}
+
+uint8_t egui_view_mini_calendar_get_day(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    return local->day;
+}
+
 void egui_view_mini_calendar_set_today(egui_view_t *self, uint8_t day)
 {
     EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
@@ -223,11 +253,51 @@ void egui_view_mini_calendar_set_today(egui_view_t *self, uint8_t day)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_mini_calendar_get_today(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    return local->today_day;
+}
+
+uint8_t egui_view_mini_calendar_get_pressed_day(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    return local->pressed_day;
+}
+
+uint8_t egui_view_mini_calendar_get_focused_day(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    return local->focused_day;
+}
+
 void egui_view_mini_calendar_set_first_day_of_week(egui_view_t *self, uint8_t day)
 {
     EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
     local->first_day_of_week = day;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_mini_calendar_get_first_day_of_week(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    return local->first_day_of_week;
 }
 
 void egui_view_mini_calendar_set_weekday_labels(egui_view_t *self, const char *const *labels)
@@ -251,10 +321,33 @@ void egui_view_mini_calendar_set_weekday_labels(egui_view_t *self, const char *c
     egui_view_invalidate(self);
 }
 
+const char *egui_view_mini_calendar_get_weekday_label(egui_view_t *self, uint8_t index)
+{
+    const char *const *labels;
+
+    if (self == NULL || index >= 7)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    labels = egui_view_mini_calendar_get_weekday_labels(local);
+    return labels[index];
+}
+
 void egui_view_mini_calendar_set_on_date_selected_listener(egui_view_t *self, egui_view_on_date_selected_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
     local->on_date_selected = listener;
+}
+
+egui_view_on_date_selected_listener_t egui_view_mini_calendar_get_on_date_selected_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    return local->on_date_selected;
 }
 
 void egui_view_mini_calendar_on_draw(egui_view_t *self)

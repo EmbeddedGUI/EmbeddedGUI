@@ -101,6 +101,10 @@ void egui_view_canvas_viewport_scroll_by(egui_view_t *self, egui_dim_t delta_x, 
 egui_dim_t egui_view_canvas_viewport_get_offset_x(egui_view_t *self);
 /** Return the current vertical scroll offset. */
 egui_dim_t egui_view_canvas_viewport_get_offset_y(egui_view_t *self);
+/** Return the maximum reachable horizontal scroll offset. */
+egui_dim_t egui_view_canvas_viewport_get_max_offset_x(egui_view_t *self);
+/** Return the maximum reachable vertical scroll offset. */
+egui_dim_t egui_view_canvas_viewport_get_max_offset_y(egui_view_t *self);
 
 /** Initialize the clipping viewport and its internal content layer. */
 void egui_view_canvas_viewport_init(egui_view_t *self, egui_core_t *core);

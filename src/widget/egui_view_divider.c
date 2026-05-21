@@ -28,6 +28,33 @@ void egui_view_divider_set_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_divider_get_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_divider_t);
+    return local->color;
+}
+
+void egui_view_divider_set_alpha(egui_view_t *self, egui_alpha_t alpha)
+{
+    EGUI_LOCAL_INIT(egui_view_divider_t);
+    if (local->alpha == alpha)
+    {
+        return;
+    }
+    local->alpha = alpha;
+    egui_view_invalidate(self);
+}
+
+egui_alpha_t egui_view_divider_get_alpha(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_divider_t);
+    return local->alpha;
+}
+
 /**
  * @brief Draw the divider strip inside the current work region.
  */

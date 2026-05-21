@@ -55,12 +55,22 @@ void egui_view_line_init_with_params(egui_view_t *self, egui_core_t *core, const
 
 /** Set the polyline point array. The view keeps the pointer, so the caller must keep the data alive. */
 void egui_view_line_set_points(egui_view_t *self, const egui_view_line_point_t *points, uint8_t count);
+/** Return the borrowed polyline point array. */
+const egui_view_line_point_t *egui_view_line_get_points(egui_view_t *self);
+/** Return the current number of points in the borrowed polyline array. */
+uint8_t egui_view_line_get_point_count(egui_view_t *self);
 /** Set the stroke width used for every segment. */
 void egui_view_line_set_line_width(egui_view_t *self, uint8_t width);
+/** Return the stroke width used for every segment. */
+uint8_t egui_view_line_get_line_width(egui_view_t *self);
 /** Set the stroke color used for every segment. */
 void egui_view_line_set_line_color(egui_view_t *self, egui_color_t color);
+/** Return the stroke color used for every segment. */
+egui_color_t egui_view_line_get_line_color(egui_view_t *self);
 /** Toggle rounded end caps for each line segment. */
 void egui_view_line_set_use_round_cap(egui_view_t *self, uint8_t enable);
+/** Return whether rounded end caps are enabled for line segments. */
+uint8_t egui_view_line_get_use_round_cap(egui_view_t *self);
 /** Default draw hook used by the line API table. */
 void egui_view_line_on_draw(egui_view_t *self);
 /** Initialize an empty polyline view. Nothing is drawn until at least two points are provided. */

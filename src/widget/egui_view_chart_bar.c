@@ -274,3 +274,13 @@ void egui_view_chart_bar_set_bar_gap(egui_view_t *self, uint8_t gap)
     local->axis_base.clip_margin = gap + 2;
     egui_view_invalidate(self);
 }
+
+uint8_t egui_view_chart_bar_get_bar_gap(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_chart_bar_t);
+    return local->bar_gap;
+}

@@ -58,12 +58,32 @@ void egui_view_switch_init_with_params(egui_view_t *self, egui_core_t *core, con
 
 /** Register the callback fired when the checked state changes. */
 void egui_view_switch_set_on_checked_listener(egui_view_t *self, egui_view_on_checked_listener_t listener);
+/** Return the callback fired when the checked state changes. */
+egui_view_on_checked_listener_t egui_view_switch_get_on_checked_listener(egui_view_t *self);
 /** Set the checked state programmatically. This also fires the change listener on real changes. */
 void egui_view_switch_set_checked(egui_view_t *self, uint8_t is_checked);
+/** Return the current checked state (1 = on, 0 = off). */
+uint8_t egui_view_switch_get_checked(egui_view_t *self);
+/** Return the track (background capsule) color in the on state. */
+egui_color_t egui_view_switch_get_bk_color_on(egui_view_t *self);
+/** Return the track (background capsule) color in the off state. */
+egui_color_t egui_view_switch_get_bk_color_off(egui_view_t *self);
+/** Return the thumb knob color in the on state. */
+egui_color_t egui_view_switch_get_switch_color_on(egui_view_t *self);
+/** Return the thumb knob color in the off state. */
+egui_color_t egui_view_switch_get_switch_color_off(egui_view_t *self);
+/** Return the shared alpha of the switch widget. */
+egui_alpha_t egui_view_switch_get_alpha(egui_view_t *self);
 /** Set optional icon glyphs drawn inside the thumb for the on/off states. */
 void egui_view_switch_set_state_icons(egui_view_t *self, const char *icon_on, const char *icon_off);
+/** Return the optional icon glyph drawn in the on state. */
+const char *egui_view_switch_get_icon_on(egui_view_t *self);
+/** Return the optional icon glyph drawn in the off state. */
+const char *egui_view_switch_get_icon_off(egui_view_t *self);
 /** Override the icon font used for the optional state glyphs. */
 void egui_view_switch_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the optional icon font override. */
+const egui_font_t *egui_view_switch_get_icon_font(egui_view_t *self);
 /** Default draw hook used by the switch API table. */
 void egui_view_switch_on_draw(egui_view_t *self);
 /** Initialize the switch widget with clickable toggle behavior. */

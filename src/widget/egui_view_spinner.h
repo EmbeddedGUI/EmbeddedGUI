@@ -50,8 +50,12 @@ void egui_view_spinner_init_with_params(egui_view_t *self, egui_core_t *core, co
 void egui_view_spinner_start(egui_view_t *self);
 /** Stop the rotation timer and freeze the current angle. */
 void egui_view_spinner_stop(egui_view_t *self);
+/** Return whether the rotation timer is currently active. */
+int egui_view_spinner_is_spinning(egui_view_t *self);
 /** Set the color of the rotating arc. */
 void egui_view_spinner_set_color(egui_view_t *self, egui_color_t color);
+/** Return the color of the rotating arc. */
+egui_color_t egui_view_spinner_get_color(egui_view_t *self);
 /** Default draw hook used by the spinner API table. */
 void egui_view_spinner_on_draw(egui_view_t *self);
 /** Initialize a spinner that is idle by default. */

@@ -21,8 +21,16 @@
 void egui_view_dynamic_label_set_text(egui_view_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_dynamic_label_t);
-    size_t len = strlen(text);
+    egui_view_label_t *label = &local->base;
+    size_t len;
     size_t copy_len;
+
+    if (text == NULL)
+    {
+        text = "";
+    }
+
+    len = strlen(text);
 
     // Leave room for the terminator so the embedded label always points to valid storage.
     if (len >= EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE)
@@ -32,15 +40,37 @@ void egui_view_dynamic_label_set_text(egui_view_t *self, const char *text)
     copy_len = len;
 
     // Skip invalidation when the copied text would be byte-for-byte identical.
-    if (strncmp(local->text_buffer, text, copy_len) == 0 && local->text_buffer[copy_len] == '\0')
+    if (label->text == local->text_buffer && strncmp(local->text_buffer, text, copy_len) == 0 && local->text_buffer[copy_len] == '\0')
     {
         return;
     }
 
     egui_api_memcpy(local->text_buffer, text, (int)copy_len);
     local->text_buffer[copy_len] = '\0';
+    label->text = local->text_buffer;
 
     egui_view_invalidate(self);
+}
+
+const char *egui_view_dynamic_label_get_text(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_dynamic_label_t);
+    return local->text_buffer;
+}
+
+void egui_view_dynamic_label_apply_params(egui_view_t *self, const egui_view_label_params_t *params)
+{
+    if (params == NULL)
+    {
+        return;
+    }
+
+    egui_view_label_apply_params(self, params);
+    egui_view_dynamic_label_set_text(self, params->text);
 }
 
 /**
@@ -64,5 +94,5 @@ void egui_view_dynamic_label_init(egui_view_t *self, egui_core_t *core)
 void egui_view_dynamic_label_init_with_params(egui_view_t *self, egui_core_t *core, const egui_view_label_params_t *params)
 {
     egui_view_dynamic_label_init(self, core);
-    egui_view_label_apply_params(self, params);
+    egui_view_dynamic_label_apply_params(self, params);
 }

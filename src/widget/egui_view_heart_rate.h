@@ -46,12 +46,20 @@ void egui_view_heart_rate_init_with_params(egui_view_t *self, egui_core_t *core,
 
 /** Set beats per minute. A value of 0 also stops the timer-driven pulse animation. */
 void egui_view_heart_rate_set_bpm(egui_view_t *self, uint8_t bpm);
+/** Return the stored beats-per-minute value. */
+uint8_t egui_view_heart_rate_get_bpm(egui_view_t *self);
 /** Enable or disable the internal ECG and heart pulse animation timer. */
 void egui_view_heart_rate_set_animate(egui_view_t *self, uint8_t enable);
+/** Return whether the internal ECG and heart pulse animation timer is enabled. */
+uint8_t egui_view_heart_rate_get_animate(egui_view_t *self);
 /** Set the color shared by the heart icon and ECG waveform. */
 void egui_view_heart_rate_set_heart_color(egui_view_t *self, egui_color_t color);
+/** Return the color shared by the heart icon and ECG waveform. */
+egui_color_t egui_view_heart_rate_get_heart_color(egui_view_t *self);
 /** Set the initial ECG scroll phase for deterministic previews or synchronized demos. */
 void egui_view_heart_rate_set_pulse_phase(egui_view_t *self, uint8_t phase);
+/** Return the current ECG template offset in the 0-31 range. */
+uint8_t egui_view_heart_rate_get_ecg_offset(egui_view_t *self);
 /** Default draw hook used by the heart rate API table. */
 void egui_view_heart_rate_on_draw(egui_view_t *self);
 /** Initialize a heart rate indicator with animation disabled by default. */

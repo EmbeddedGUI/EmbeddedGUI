@@ -62,10 +62,16 @@ void egui_view_stepper_set_current_step(egui_view_t *self, uint8_t current_step)
 uint8_t egui_view_stepper_get_current_step(egui_view_t *self);
 /** Choose between plain dots and icon-enhanced completed-step marks. */
 void egui_view_stepper_set_mark_style(egui_view_t *self, egui_view_stepper_mark_style_t style);
+/** Return the current completed-step mark rendering style. */
+egui_view_stepper_mark_style_t egui_view_stepper_get_mark_style(egui_view_t *self);
 /** Set the icon glyph drawn for completed steps when using icon mark style. */
 void egui_view_stepper_set_completed_icon(egui_view_t *self, const char *icon);
+/** Return the borrowed icon glyph drawn for completed steps. */
+const char *egui_view_stepper_get_completed_icon(egui_view_t *self);
 /** Override the icon font used for completed-step marks. */
 void egui_view_stepper_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the icon font override, or NULL when automatic icon-font resolution is used. */
+const egui_font_t *egui_view_stepper_get_icon_font(egui_view_t *self);
 /** Initialize the page-indicator-based stepper widget. */
 void egui_view_stepper_init(egui_view_t *self, egui_core_t *core);
 

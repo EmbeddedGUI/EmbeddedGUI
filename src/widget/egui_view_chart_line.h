@@ -52,8 +52,12 @@ void egui_view_chart_line_init_with_params(egui_view_t *self, egui_core_t *core,
 // line chart specific setters
 /** Set the stroke width used for line segments. */
 void egui_view_chart_line_set_line_width(egui_view_t *self, uint8_t width);
+/** Return the stroke width used for line segments. */
+uint8_t egui_view_chart_line_get_line_width(egui_view_t *self);
 /** Set the radius used when drawing each data point marker. */
 void egui_view_chart_line_set_point_radius(egui_view_t *self, uint8_t radius);
+/** Return the radius used when drawing each data point marker. */
+uint8_t egui_view_chart_line_get_point_radius(egui_view_t *self);
 
 // ============== Backward-compatible macros (delegate to axis base) ==============
 

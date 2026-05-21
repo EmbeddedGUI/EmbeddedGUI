@@ -135,6 +135,10 @@ void egui_view_activity_ring_set_value(egui_view_t *self, uint8_t ring_index, ui
 
 uint8_t egui_view_activity_ring_get_value(egui_view_t *self, uint8_t ring_index)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_activity_ring_t);
     if (ring_index >= EGUI_VIEW_ACTIVITY_RING_MAX_RINGS)
     {
@@ -157,6 +161,16 @@ void egui_view_activity_ring_set_ring_count(egui_view_t *self, uint8_t count)
     }
 }
 
+uint8_t egui_view_activity_ring_get_ring_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_activity_ring_t);
+    return local->ring_count;
+}
+
 void egui_view_activity_ring_set_ring_color(egui_view_t *self, uint8_t ring_index, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_activity_ring_t);
@@ -166,6 +180,19 @@ void egui_view_activity_ring_set_ring_color(egui_view_t *self, uint8_t ring_inde
     }
     local->ring_colors[ring_index] = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_activity_ring_get_ring_color(egui_view_t *self, uint8_t ring_index)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL || ring_index >= EGUI_VIEW_ACTIVITY_RING_MAX_RINGS)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_activity_ring_t);
+    return local->ring_colors[ring_index];
 }
 
 void egui_view_activity_ring_set_ring_bg_color(egui_view_t *self, uint8_t ring_index, egui_color_t color)
@@ -179,6 +206,19 @@ void egui_view_activity_ring_set_ring_bg_color(egui_view_t *self, uint8_t ring_i
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_activity_ring_get_ring_bg_color(egui_view_t *self, uint8_t ring_index)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL || ring_index >= EGUI_VIEW_ACTIVITY_RING_MAX_RINGS)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_activity_ring_t);
+    return local->ring_bg_colors[ring_index];
+}
+
 void egui_view_activity_ring_set_stroke_width(egui_view_t *self, egui_dim_t stroke_width)
 {
     EGUI_LOCAL_INIT(egui_view_activity_ring_t);
@@ -187,6 +227,16 @@ void egui_view_activity_ring_set_stroke_width(egui_view_t *self, egui_dim_t stro
         local->stroke_width = stroke_width;
         egui_view_invalidate(self);
     }
+}
+
+egui_dim_t egui_view_activity_ring_get_stroke_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_activity_ring_t);
+    return local->stroke_width;
 }
 
 void egui_view_activity_ring_set_ring_gap(egui_view_t *self, egui_dim_t ring_gap)
@@ -199,6 +249,16 @@ void egui_view_activity_ring_set_ring_gap(egui_view_t *self, egui_dim_t ring_gap
     }
 }
 
+egui_dim_t egui_view_activity_ring_get_ring_gap(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_activity_ring_t);
+    return local->ring_gap;
+}
+
 void egui_view_activity_ring_set_start_angle(egui_view_t *self, int16_t start_angle)
 {
     EGUI_LOCAL_INIT(egui_view_activity_ring_t);
@@ -209,6 +269,16 @@ void egui_view_activity_ring_set_start_angle(egui_view_t *self, int16_t start_an
     }
 }
 
+int16_t egui_view_activity_ring_get_start_angle(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_activity_ring_t);
+    return local->start_angle;
+}
+
 void egui_view_activity_ring_set_show_round_cap(egui_view_t *self, uint8_t show)
 {
     EGUI_LOCAL_INIT(egui_view_activity_ring_t);
@@ -217,6 +287,16 @@ void egui_view_activity_ring_set_show_round_cap(egui_view_t *self, uint8_t show)
         local->show_round_cap = show;
         egui_view_invalidate(self);
     }
+}
+
+uint8_t egui_view_activity_ring_get_show_round_cap(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_activity_ring_t);
+    return local->show_round_cap;
 }
 
 void egui_view_activity_ring_on_draw(egui_view_t *self)

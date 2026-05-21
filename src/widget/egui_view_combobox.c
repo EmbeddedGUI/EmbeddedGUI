@@ -27,7 +27,7 @@
 /**
  * @brief Pick a default icon font for the arrow area from the available height.
  */
-static const egui_font_t *egui_view_combobox_get_icon_font(egui_dim_t area_size)
+static const egui_font_t *egui_view_combobox_select_icon_font(egui_dim_t area_size)
 {
     return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
@@ -46,7 +46,7 @@ static const egui_font_t *egui_view_combobox_get_item_icon_font(egui_view_combob
         return local->icon_font;
     }
 
-    return egui_view_combobox_get_icon_font(area_size);
+    return egui_view_combobox_select_icon_font(area_size);
 }
 
 /**
@@ -411,6 +411,16 @@ void egui_view_combobox_set_on_selected_listener(egui_view_t *self, egui_view_on
     local->on_selected = listener;
 }
 
+egui_view_on_combobox_selected_listener_t egui_view_combobox_get_on_selected_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->on_selected;
+}
+
 void egui_view_combobox_set_items(egui_view_t *self, const char **items, uint8_t count)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -421,6 +431,16 @@ void egui_view_combobox_set_items(egui_view_t *self, const char **items, uint8_t
         local->current_index = 0;
     }
     egui_view_invalidate(self);
+}
+
+const char **egui_view_combobox_get_items(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->items;
 }
 
 void egui_view_combobox_set_item_icons(egui_view_t *self, const char **item_icons)
@@ -434,6 +454,16 @@ void egui_view_combobox_set_item_icons(egui_view_t *self, const char **item_icon
 
     local->item_icons = item_icons;
     egui_view_invalidate(self);
+}
+
+const char **egui_view_combobox_get_item_icons(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->item_icons;
 }
 
 void egui_view_combobox_set_current_index(egui_view_t *self, uint8_t index)
@@ -452,14 +482,32 @@ void egui_view_combobox_set_current_index(egui_view_t *self, uint8_t index)
 
 uint8_t egui_view_combobox_get_current_index(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_combobox_t);
     return local->current_index;
 }
 
+uint8_t egui_view_combobox_get_item_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->item_count;
+}
+
 const char *egui_view_combobox_get_current_text(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_combobox_t);
-    if (local->items == NULL || local->item_count == 0)
+    if (local->items == NULL || local->item_count == 0 || local->current_index >= local->item_count)
     {
         return NULL;
     }
@@ -477,11 +525,31 @@ void egui_view_combobox_set_max_visible_items(egui_view_t *self, uint8_t max_ite
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_combobox_get_max_visible_items(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->max_visible_items;
+}
+
 void egui_view_combobox_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
     local->font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_combobox_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->font;
 }
 
 void egui_view_combobox_set_icon_font(egui_view_t *self, const egui_font_t *font)
@@ -495,6 +563,16 @@ void egui_view_combobox_set_icon_font(egui_view_t *self, const egui_font_t *font
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_combobox_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->icon_font;
 }
 
 void egui_view_combobox_set_arrow_icons(egui_view_t *self, const char *expand_icon, const char *collapse_icon)
@@ -521,6 +599,26 @@ void egui_view_combobox_set_arrow_icons(egui_view_t *self, const char *expand_ic
     egui_view_invalidate(self);
 }
 
+const char *egui_view_combobox_get_expand_icon(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->expand_icon;
+}
+
+const char *egui_view_combobox_get_collapse_icon(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->collapse_icon;
+}
+
 void egui_view_combobox_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -532,6 +630,16 @@ void egui_view_combobox_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 
     local->icon_text_gap = gap;
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_combobox_get_icon_text_gap(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->icon_text_gap;
 }
 
 void egui_view_combobox_expand(egui_view_t *self)
@@ -593,6 +701,10 @@ void egui_view_combobox_collapse(egui_view_t *self)
 
 uint8_t egui_view_combobox_is_expanded(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_combobox_t);
     return local->is_expanded;
 }

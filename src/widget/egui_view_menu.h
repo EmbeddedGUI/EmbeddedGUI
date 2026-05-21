@@ -114,24 +114,52 @@ struct egui_view_menu_params
 
 /** Borrow the page array, reset navigation to page 0, and clear the back stack. */
 void egui_view_menu_set_pages(egui_view_t *self, const egui_view_menu_page_t *pages, uint8_t page_count);
+/** Return the borrowed page array currently attached to the menu. */
+const egui_view_menu_page_t *egui_view_menu_get_pages(egui_view_t *self);
+/** Return the number of pages currently attached to the menu. */
+uint8_t egui_view_menu_get_page_count(egui_view_t *self);
 /** Navigate to a page programmatically. The previous page is pushed to the back stack while capacity remains. */
 void egui_view_menu_navigate_to(egui_view_t *self, uint8_t page_index);
+/** Return the currently visible page index. */
+uint8_t egui_view_menu_get_current_page(egui_view_t *self);
+/** Return the current back-stack depth. */
+uint8_t egui_view_menu_get_stack_depth(egui_view_t *self);
+/** Return the currently selected row index, or `EGUI_VIEW_MENU_SELECTED_NONE`. */
+uint8_t egui_view_menu_get_selected_index(egui_view_t *self);
 /** Pop one page from the back stack. This is a no-op when there is no history. */
 void egui_view_menu_go_back(egui_view_t *self);
 /** Register the callback fired when a leaf item is released successfully. Submenu items navigate instead of calling this. */
 void egui_view_menu_set_on_item_click(egui_view_t *self, egui_view_menu_item_click_cb_t callback);
+/** Return the callback fired when a leaf item is released successfully. */
+egui_view_menu_item_click_cb_t egui_view_menu_get_on_item_click(egui_view_t *self);
 /** Set the header row height in pixels. */
 void egui_view_menu_set_header_height(egui_view_t *self, egui_dim_t height);
+/** Return the header row height in pixels. */
+egui_dim_t egui_view_menu_get_header_height(egui_view_t *self);
 /** Set the height of each menu item row in pixels. */
 void egui_view_menu_set_item_height(egui_view_t *self, egui_dim_t height);
+/** Return the item row height in pixels. */
+egui_dim_t egui_view_menu_get_item_height(egui_view_t *self);
+/** Return the text and icon color used by item rows. */
+egui_color_t egui_view_menu_get_text_color(egui_view_t *self);
 /** Set the text color used by the page title row. */
 void egui_view_menu_set_header_text_color(egui_view_t *self, egui_color_t color);
+/** Return the text color used by the page title row. */
+egui_color_t egui_view_menu_get_header_text_color(egui_view_t *self);
 /** Override the icon font used for optional item icons and navigation glyphs. */
 void egui_view_menu_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the icon font override, or NULL when automatic icon-font resolution is used. */
+const egui_font_t *egui_view_menu_get_icon_font(egui_view_t *self);
 /** Override the Back and submenu glyph strings. Passing NULL resets each one to the default icon. */
 void egui_view_menu_set_navigation_icons(egui_view_t *self, const char *back_icon, const char *submenu_icon);
+/** Return the effective Back glyph string. */
+const char *egui_view_menu_get_back_icon(egui_view_t *self);
+/** Return the effective submenu glyph string. */
+const char *egui_view_menu_get_submenu_icon(egui_view_t *self);
 /** Set the horizontal gap between an item icon and its label text. Negative values clamp to 0. */
 void egui_view_menu_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Return the horizontal gap between an item icon and its label text. */
+egui_dim_t egui_view_menu_get_icon_text_gap(egui_view_t *self);
 /** Default draw hook used by the menu API table. */
 void egui_view_menu_on_draw(egui_view_t *self);
 /** Initialize the stacked menu widget with default colors, icons, and a bounded back stack. */

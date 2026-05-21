@@ -115,6 +115,16 @@ void egui_view_heart_rate_set_bpm(egui_view_t *self, uint8_t bpm)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_heart_rate_get_bpm(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_heart_rate_t);
+    return local->bpm;
+}
+
 void egui_view_heart_rate_set_animate(egui_view_t *self, uint8_t enable)
 {
     EGUI_LOCAL_INIT(egui_view_heart_rate_t);
@@ -128,11 +138,34 @@ void egui_view_heart_rate_set_animate(egui_view_t *self, uint8_t enable)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_heart_rate_get_animate(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_heart_rate_t);
+    return local->animate;
+}
+
 void egui_view_heart_rate_set_heart_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_heart_rate_t);
     local->heart_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_heart_rate_get_heart_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_heart_rate_t);
+    return local->heart_color;
 }
 
 // Set initial ECG scroll phase (0-255 maps to 0-31)
@@ -141,6 +174,16 @@ void egui_view_heart_rate_set_pulse_phase(egui_view_t *self, uint8_t phase)
     EGUI_LOCAL_INIT(egui_view_heart_rate_t);
     local->ecg_offset = (uint8_t)((uint16_t)phase * 32u / 256u);
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_heart_rate_get_ecg_offset(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_heart_rate_t);
+    return local->ecg_offset;
 }
 
 // ---------------------------------------------------------------------------

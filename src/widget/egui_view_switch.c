@@ -2,6 +2,9 @@
 #include <assert.h>
 
 #include "egui_view_switch.h"
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+#include "core/egui_event.h"
+#endif
 #include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
@@ -208,6 +211,16 @@ void egui_view_switch_set_on_checked_listener(egui_view_t *self, egui_view_on_ch
     local->on_checked_changed = listener;
 }
 
+egui_view_on_checked_listener_t egui_view_switch_get_on_checked_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->on_checked_changed;
+}
+
 /**
  * @brief Update the checked state, notify listeners, and redraw on real changes.
  */
@@ -221,9 +234,80 @@ void egui_view_switch_set_checked(egui_view_t *self, uint8_t is_checked)
         {
             local->on_checked_changed(self, is_checked);
         }
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+        egui_view_send_event(self, EGUI_EVENT_VALUE_CHANGED, &local->is_checked);
+#endif
 
         egui_view_invalidate(self);
     }
+}
+
+uint8_t egui_view_switch_get_checked(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->is_checked;
+}
+
+egui_color_t egui_view_switch_get_bk_color_on(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->bk_color_on;
+}
+
+egui_color_t egui_view_switch_get_bk_color_off(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->bk_color_off;
+}
+
+egui_color_t egui_view_switch_get_switch_color_on(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->switch_color_on;
+}
+
+egui_color_t egui_view_switch_get_switch_color_off(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->switch_color_off;
+}
+
+egui_alpha_t egui_view_switch_get_alpha(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->alpha;
 }
 
 /**
@@ -242,6 +326,26 @@ void egui_view_switch_set_state_icons(egui_view_t *self, const char *icon_on, co
     egui_view_invalidate(self);
 }
 
+const char *egui_view_switch_get_icon_on(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->icon_on;
+}
+
+const char *egui_view_switch_get_icon_off(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->icon_off;
+}
+
 /**
  * @brief Override the icon font used by optional state glyphs.
  */
@@ -255,6 +359,16 @@ void egui_view_switch_set_icon_font(egui_view_t *self, const egui_font_t *font)
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_switch_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    return local->icon_font;
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY

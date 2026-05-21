@@ -2,6 +2,9 @@
 #include <assert.h>
 
 #include "egui_view_checkbox.h"
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+#include "core/egui_event.h"
+#endif
 #include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "egui_view_circle_dirty.h"
@@ -85,12 +88,32 @@ void egui_view_checkbox_set_text(egui_view_t *self, const char *text)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_checkbox_get_text(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->text;
+}
+
 /** Override the label font used when drawing optional checkbox text. */
 void egui_view_checkbox_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_checkbox_t);
     local->font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_checkbox_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->font;
 }
 
 /** Set the text color used for the optional label while enabled. */
@@ -101,12 +124,90 @@ void egui_view_checkbox_set_text_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_checkbox_get_text_color(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        egui_color_t zero;
+        zero.full = 0;
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->text_color;
+}
+
+egui_color_t egui_view_checkbox_get_box_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->box_color;
+}
+
+egui_color_t egui_view_checkbox_get_check_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->check_color;
+}
+
+egui_color_t egui_view_checkbox_get_box_fill_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->box_fill_color;
+}
+
+egui_alpha_t egui_view_checkbox_get_alpha(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->alpha;
+}
+
+egui_dim_t egui_view_checkbox_get_text_gap(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->text_gap;
+}
+
 /** Switch between vector check-mark rendering and icon-font rendering. */
 void egui_view_checkbox_set_mark_style(egui_view_t *self, egui_view_checkbox_mark_style_t style)
 {
     EGUI_LOCAL_INIT(egui_view_checkbox_t);
     local->mark_style = (uint8_t)style;
     egui_view_invalidate(self);
+}
+
+egui_view_checkbox_mark_style_t egui_view_checkbox_get_mark_style(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return EGUI_VIEW_CHECKBOX_MARK_STYLE_VECTOR;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return (egui_view_checkbox_mark_style_t)local->mark_style;
 }
 
 /** Replace the icon glyph used when the checked mark style is `ICON`. */
@@ -123,6 +224,16 @@ void egui_view_checkbox_set_mark_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_checkbox_get_mark_icon(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->mark_icon;
+}
+
 /** Override the icon font used for icon-style checked marks. */
 void egui_view_checkbox_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
@@ -135,6 +246,16 @@ void egui_view_checkbox_set_icon_font(egui_view_t *self, const egui_font_t *font
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_checkbox_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->icon_font;
 }
 
 /** Set the gap between the indicator box and the optional label text. */
@@ -156,11 +277,26 @@ void egui_view_checkbox_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
     egui_view_invalidate(self);
 }
 
+egui_dim_t egui_view_checkbox_get_icon_text_gap(egui_view_t *self)
+{
+    return egui_view_checkbox_get_text_gap(self);
+}
+
 /** Register the callback fired after checked-state changes. */
 void egui_view_checkbox_set_on_checked_listener(egui_view_t *self, egui_view_on_checked_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_checkbox_t);
     local->on_checked_changed = listener;
+}
+
+egui_view_on_checked_listener_t egui_view_checkbox_get_on_checked_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->on_checked_changed;
 }
 
 /** Toggle the stored checked state, notify listeners, and invalidate the indicator region. */
@@ -175,6 +311,9 @@ void egui_view_checkbox_set_checked(egui_view_t *self, uint8_t is_checked)
         {
             local->on_checked_changed(self, is_checked);
         }
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+        egui_view_send_event(self, EGUI_EVENT_VALUE_CHANGED, &local->is_checked);
+#endif
 
         // The label does not change here, so try to invalidate only the indicator footprint.
         if (egui_view_checkbox_get_indicator_dirty_region(self, local, &dirty_region))
@@ -186,6 +325,16 @@ void egui_view_checkbox_set_checked(egui_view_t *self, uint8_t is_checked)
             egui_view_invalidate(self);
         }
     }
+}
+
+uint8_t egui_view_checkbox_get_checked(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    return local->is_checked;
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY

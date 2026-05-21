@@ -2,6 +2,9 @@
 #include <assert.h>
 
 #include "egui_view_progress_bar.h"
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+#include "core/egui_event.h"
+#endif
 #include "core/egui_core.h"
 #include "egui_view_circle_dirty.h"
 #include "egui_view_linear_value_helper.h"
@@ -30,6 +33,16 @@ void egui_view_progress_bar_set_on_progress_listener(egui_view_t *self, egui_vie
 {
     EGUI_LOCAL_INIT(egui_view_progress_bar_t);
     local->on_progress_changed = listener;
+}
+
+egui_view_on_progress_changed_listener_t egui_view_progress_bar_get_on_progress_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_progress_bar_t);
+    return local->on_progress_changed;
 }
 
 /**
@@ -107,9 +120,68 @@ void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process)
         {
             local->on_progress_changed(self, process);
         }
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+        egui_view_send_event(self, EGUI_EVENT_VALUE_CHANGED, &local->process);
+#endif
 
         egui_view_progress_bar_invalidate_process_change(self, local, old_process);
     }
+}
+
+uint8_t egui_view_progress_bar_get_process(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_progress_bar_t);
+    return local->process;
+}
+
+egui_color_t egui_view_progress_bar_get_bk_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_progress_bar_t);
+    return local->bk_color;
+}
+
+egui_color_t egui_view_progress_bar_get_progress_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_progress_bar_t);
+    return local->progress_color;
+}
+
+egui_color_t egui_view_progress_bar_get_control_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_progress_bar_t);
+    return local->control_color;
+}
+
+uint8_t egui_view_progress_bar_get_is_show_control(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_progress_bar_t);
+    return local->is_show_control;
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY

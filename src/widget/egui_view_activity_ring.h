@@ -46,18 +46,32 @@ void egui_view_activity_ring_set_value(egui_view_t *self, uint8_t ring_index, ui
 uint8_t egui_view_activity_ring_get_value(egui_view_t *self, uint8_t ring_index);
 /** Choose how many concentric rings are drawn. The count is clamped to the widget maximum. */
 void egui_view_activity_ring_set_ring_count(egui_view_t *self, uint8_t count);
+/** Return how many concentric rings are drawn. */
+uint8_t egui_view_activity_ring_get_ring_count(egui_view_t *self);
 /** Set the foreground color for one ring slot. */
 void egui_view_activity_ring_set_ring_color(egui_view_t *self, uint8_t ring_index, egui_color_t color);
+/** Return the foreground color for one ring slot. Invalid indexes return 0. */
+egui_color_t egui_view_activity_ring_get_ring_color(egui_view_t *self, uint8_t ring_index);
 /** Set the background track color for one ring slot. */
 void egui_view_activity_ring_set_ring_bg_color(egui_view_t *self, uint8_t ring_index, egui_color_t color);
+/** Return the background track color for one ring slot. Invalid indexes return 0. */
+egui_color_t egui_view_activity_ring_get_ring_bg_color(egui_view_t *self, uint8_t ring_index);
 /** Set the stroke width shared by every visible ring. */
 void egui_view_activity_ring_set_stroke_width(egui_view_t *self, egui_dim_t stroke_width);
+/** Return the stroke width shared by every visible ring. */
+egui_dim_t egui_view_activity_ring_get_stroke_width(egui_view_t *self);
 /** Set the spacing between neighboring rings. */
 void egui_view_activity_ring_set_ring_gap(egui_view_t *self, egui_dim_t ring_gap);
+/** Return the spacing between neighboring rings. */
+egui_dim_t egui_view_activity_ring_get_ring_gap(egui_view_t *self);
 /** Rotate the start angle used by every ring. */
 void egui_view_activity_ring_set_start_angle(egui_view_t *self, int16_t start_angle);
+/** Return the start angle used by every ring. */
+int16_t egui_view_activity_ring_get_start_angle(egui_view_t *self);
 /** Toggle rounded caps on the active arc ends. */
 void egui_view_activity_ring_set_show_round_cap(egui_view_t *self, uint8_t show);
+/** Return whether rounded caps are enabled on the active arc ends. */
+uint8_t egui_view_activity_ring_get_show_round_cap(egui_view_t *self);
 /** Default draw hook used by the activity ring API table. */
 void egui_view_activity_ring_on_draw(egui_view_t *self);
 /** Initialize a multi-ring activity indicator with themed defaults. */

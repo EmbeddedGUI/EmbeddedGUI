@@ -78,16 +78,30 @@ struct egui_view_keyboard
 void egui_view_keyboard_init(egui_view_t *self, egui_core_t *core);
 /** Set the font used by normal character keys and refresh all key labels. */
 void egui_view_keyboard_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the font used by normal character keys. */
+const egui_font_t *egui_view_keyboard_get_font(egui_view_t *self);
 /** Set the font used by special-key icons and refresh icon-based keys. */
 void egui_view_keyboard_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the explicit special-key icon font override, or NULL when automatic resolution is used. */
+const egui_font_t *egui_view_keyboard_get_icon_font(egui_view_t *self);
 /** Override the Shift, Backspace, and Enter glyph strings, then refresh labels for the current mode. */
 void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shift_icon, const char *backspace_icon, const char *enter_icon);
+/** Return the effective Shift glyph string. */
+const char *egui_view_keyboard_get_shift_icon(egui_view_t *self);
+/** Return the effective Backspace glyph string. */
+const char *egui_view_keyboard_get_backspace_icon(egui_view_t *self);
+/** Return the effective Enter glyph string. */
+const char *egui_view_keyboard_get_enter_icon(egui_view_t *self);
 /** Show the keyboard for one target text input and move the target's root view upward if the keyboard would cover it. */
 void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput);
 /** Hide the keyboard, clear the target, and restore any root-view position adjusted by `show()`. */
 void egui_view_keyboard_hide(egui_view_t *self);
 /** Switch between lowercase, uppercase, and symbol layouts. Invalid modes fall back to lowercase. */
 void egui_view_keyboard_set_mode(egui_view_t *self, uint8_t mode);
+/** Return the current keyboard mode. */
+uint8_t egui_view_keyboard_get_mode(egui_view_t *self);
+/** Return the active textinput receiving keyboard input, or NULL while hidden. */
+egui_view_t *egui_view_keyboard_get_target(egui_view_t *self);
 
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 

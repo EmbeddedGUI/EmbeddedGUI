@@ -59,6 +59,9 @@ typedef struct egui_key_event egui_key_event_t;
 
 /* Input, platform, and display backends */
 typedef struct egui_focus_manager egui_focus_manager_t;
+typedef struct egui_event egui_event_t;
+typedef struct egui_event_listener egui_event_listener_t;
+typedef struct egui_focus_group egui_focus_group_t;
 
 typedef struct egui_display_driver egui_display_driver_t;
 typedef struct egui_display_driver_ops egui_display_driver_ops_t;

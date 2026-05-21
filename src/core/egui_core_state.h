@@ -153,11 +153,14 @@ typedef struct egui_core_text_state
 /** Core-wide timer, suspend, and focus state not tied to one scene or render pass. */
 typedef struct egui_core_system_state
 {
-    egui_timer_t refresh_timer; // periodic timer that drives frame refresh scheduling
-    egui_timer_t *timer_root;   // head of the sorted timer queue managed by the core
-    uint8_t is_suspended;       // non-zero when rendering/input work should stay paused
+    egui_timer_t refresh_timer; /* periodic timer that drives frame refresh scheduling */
+    egui_timer_t *timer_root;   /* head of the sorted timer queue managed by the core */
+    uint8_t is_suspended;       /* non-zero when rendering/input work should stay paused */
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    egui_focus_manager_t focus_manager; // currently focused view inside this core
+    egui_focus_manager_t focus_manager; /* currently focused view inside this core */
+#endif
+#if EGUI_CONFIG_FUNCTION_ENCODER
+    egui_encoder_driver_t *encoder_driver; /* registered rotary encoder driver, or NULL */
 #endif
 } egui_core_system_state_t;
 

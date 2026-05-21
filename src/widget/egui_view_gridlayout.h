@@ -47,8 +47,12 @@ void egui_view_gridlayout_init_with_params(egui_view_t *self, egui_core_t *core,
 
 /** Set the number of columns. A value of 0 is normalized to 1. */
 void egui_view_gridlayout_set_col_count(egui_view_t *self, uint8_t col_count);
+/** Return the configured number of grid columns. */
+uint8_t egui_view_gridlayout_get_col_count(egui_view_t *self);
 /** Store an alignment hint for the grid. The current built-in layout helper still centers each child inside its cell. */
 void egui_view_gridlayout_set_align_type(egui_view_t *self, uint8_t align_type);
+/** Return the stored alignment hint. */
+uint8_t egui_view_gridlayout_get_align_type(egui_view_t *self);
 /** Position visible children into rows and columns using the current container width. */
 void egui_view_gridlayout_layout_childs(egui_view_t *self);
 /** Initialize a group container with a default two-column grid configuration. */

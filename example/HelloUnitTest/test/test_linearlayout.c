@@ -19,9 +19,13 @@ static egui_core_t *test_linearlayout_get_core(void)
 static void test_ll_init_defaults(void)
 {
     egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), test_linearlayout_get_core());
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_get_align_type(EGUI_VIEW_OF(&test_layout)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_orientation_horizontal(EGUI_VIEW_OF(&test_layout)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_get_orientation(EGUI_VIEW_OF(&test_layout)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_auto_width(EGUI_VIEW_OF(&test_layout)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_get_auto_width(EGUI_VIEW_OF(&test_layout)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_auto_height(EGUI_VIEW_OF(&test_layout)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_get_auto_height(EGUI_VIEW_OF(&test_layout)));
 }
 
 static void test_ll_set_orientation(void)
@@ -30,9 +34,38 @@ static void test_ll_set_orientation(void)
 
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&test_layout), 1);
     EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_linearlayout_is_orientation_horizontal(EGUI_VIEW_OF(&test_layout)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_linearlayout_get_orientation(EGUI_VIEW_OF(&test_layout)));
 
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&test_layout), 0);
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_orientation_horizontal(EGUI_VIEW_OF(&test_layout)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_get_orientation(EGUI_VIEW_OF(&test_layout)));
+}
+
+static void test_ll_get_state_after_setters(void)
+{
+    egui_view_linearlayout_init(EGUI_VIEW_OF(&test_layout), test_linearlayout_get_core());
+
+    egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&test_layout), EGUI_ALIGN_CENTER);
+    egui_view_linearlayout_set_auto_width(EGUI_VIEW_OF(&test_layout), 1);
+    egui_view_linearlayout_set_auto_height(EGUI_VIEW_OF(&test_layout), 1);
+    egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&test_layout), 1);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALIGN_CENTER, egui_view_linearlayout_get_align_type(EGUI_VIEW_OF(&test_layout)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_linearlayout_get_auto_width(EGUI_VIEW_OF(&test_layout)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_linearlayout_get_auto_height(EGUI_VIEW_OF(&test_layout)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_linearlayout_get_orientation(EGUI_VIEW_OF(&test_layout)));
+}
+
+static void test_ll_get_state_null_self(void)
+{
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_align_type(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_get_align_type(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_auto_width(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_get_auto_width(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_auto_height(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_get_auto_height(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_is_orientation_horizontal(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_linearlayout_get_orientation(NULL));
 }
 
 static void test_ll_vertical_layout(void)
@@ -270,6 +303,8 @@ void test_linearlayout_run(void)
 
     EGUI_TEST_RUN(test_ll_init_defaults);
     EGUI_TEST_RUN(test_ll_set_orientation);
+    EGUI_TEST_RUN(test_ll_get_state_after_setters);
+    EGUI_TEST_RUN(test_ll_get_state_null_self);
     EGUI_TEST_RUN(test_ll_vertical_layout);
     EGUI_TEST_RUN(test_ll_horizontal_layout);
     EGUI_TEST_RUN(test_ll_center_align);

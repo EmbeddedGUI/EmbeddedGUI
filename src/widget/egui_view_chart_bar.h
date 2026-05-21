@@ -50,6 +50,8 @@ void egui_view_chart_bar_init_with_params(egui_view_t *self, egui_core_t *core, 
 // style
 /** Set the gap in pixels between adjacent bars. */
 void egui_view_chart_bar_set_bar_gap(egui_view_t *self, uint8_t gap);
+/** Return the gap in pixels between adjacent bars. */
+uint8_t egui_view_chart_bar_get_bar_gap(egui_view_t *self);
 
 // ============== Backward-compatible macros (delegate to axis base) ==============
 

@@ -1,0 +1,6 @@
+#ifndef TEST_PROGRESS_BAR_GET_IS_SHOW_CONTROL_H
+#define TEST_PROGRESS_BAR_GET_IS_SHOW_CONTROL_H
+
+void test_progress_bar_get_is_show_control_run(void);
+
+#endif

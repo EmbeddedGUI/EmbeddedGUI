@@ -44,12 +44,16 @@ struct egui_view_stopwatch
 void egui_view_stopwatch_set_elapsed(egui_view_t *self, uint32_t elapsed_ms);
 /** Read the stored elapsed time in milliseconds. */
 uint32_t egui_view_stopwatch_get_elapsed(egui_view_t *self);
+/** Return the current formatted stopwatch text buffer. */
+const char *egui_view_stopwatch_get_time_text(egui_view_t *self);
 /** Store the logical stopwatch state. This API does not start or stop a timer by itself. */
 void egui_view_stopwatch_set_state(egui_view_t *self, uint8_t state);
 /** Read the logical stopwatch state flag. */
 uint8_t egui_view_stopwatch_get_state(egui_view_t *self);
 /** Show or hide the millisecond field in the formatted label text. */
 void egui_view_stopwatch_set_show_ms(egui_view_t *self, uint8_t show);
+/** Return whether the millisecond field is shown in the formatted label text. */
+uint8_t egui_view_stopwatch_get_show_ms(egui_view_t *self);
 /** Initialize a stopwatch label with millisecond output enabled. */
 void egui_view_stopwatch_init(egui_view_t *self, egui_core_t *core);
 /** Initialize a stopwatch and apply the same parameter block used by label widgets. */

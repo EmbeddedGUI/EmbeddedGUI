@@ -1,0 +1,6 @@
+#ifndef TEST_PROGRESS_BAR_GET_CONTROL_COLOR_H
+#define TEST_PROGRESS_BAR_GET_CONTROL_COLOR_H
+
+void test_progress_bar_get_control_color_run(void);
+
+#endif

@@ -81,6 +81,16 @@ void egui_view_radio_button_set_text(egui_view_t *self, const char *text)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_radio_button_get_text(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    return local->text;
+}
+
 /** Override the label font used when drawing optional radio-button text. */
 void egui_view_radio_button_set_font(egui_view_t *self, const egui_font_t *font)
 {
@@ -89,12 +99,34 @@ void egui_view_radio_button_set_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_radio_button_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    return local->font;
+}
+
 /** Set the text color used for the optional label while enabled. */
 void egui_view_radio_button_set_text_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
     local->text_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_radio_button_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    return local->text_color;
 }
 
 /** Switch between inner-dot rendering and icon-font rendering for checked state. */
@@ -110,6 +142,16 @@ void egui_view_radio_button_set_mark_style(egui_view_t *self, egui_view_radio_bu
     egui_view_invalidate(self);
 }
 
+egui_view_radio_button_mark_style_t egui_view_radio_button_get_mark_style(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_DOT;
+    }
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    return (egui_view_radio_button_mark_style_t)local->mark_style;
+}
+
 /** Replace the icon glyph used when the checked mark style is `ICON`. */
 void egui_view_radio_button_set_mark_icon(egui_view_t *self, const char *icon)
 {
@@ -123,6 +165,16 @@ void egui_view_radio_button_set_mark_icon(egui_view_t *self, const char *icon)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_radio_button_get_mark_icon(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    return local->mark_icon;
+}
+
 /** Override the icon font used for icon-style checked marks. */
 void egui_view_radio_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
@@ -134,6 +186,16 @@ void egui_view_radio_button_set_icon_font(egui_view_t *self, const egui_font_t *
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_radio_button_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    return local->icon_font;
 }
 
 /** Set the gap between the indicator ring and the optional label text. */
@@ -153,6 +215,16 @@ void egui_view_radio_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 
     local->text_gap = gap;
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_radio_button_get_icon_text_gap(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    return local->text_gap;
 }
 
 // ============== Radio Group ==============
@@ -177,6 +249,15 @@ void egui_view_radio_group_add(egui_view_radio_group_t *group, egui_view_t *butt
 void egui_view_radio_group_set_on_changed_listener(egui_view_radio_group_t *group, egui_view_on_radio_changed_listener_t listener)
 {
     group->on_changed = listener;
+}
+
+egui_view_on_radio_changed_listener_t egui_view_radio_group_get_on_changed_listener(egui_view_radio_group_t *group)
+{
+    if (group == NULL)
+    {
+        return NULL;
+    }
+    return group->on_changed;
 }
 
 // ============== Radio Button ==============
@@ -237,6 +318,26 @@ void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
     {
         egui_view_invalidate(self);
     }
+}
+
+uint8_t egui_view_radio_button_get_checked(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    return local->is_checked;
+}
+
+egui_view_radio_group_t *egui_view_radio_button_get_group(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    return local->group;
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY

@@ -1280,6 +1280,16 @@ void egui_view_textblock_set_line_space(egui_view_t *self, egui_dim_t line_space
     egui_view_invalidate(self);
 }
 
+egui_dim_t egui_view_textblock_get_line_space(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->line_space;
+}
+
 void egui_view_textblock_set_max_lines(egui_view_t *self, egui_dim_t max_lines)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
@@ -1298,6 +1308,16 @@ void egui_view_textblock_set_max_lines(egui_view_t *self, egui_dim_t max_lines)
     egui_view_invalidate(self);
 }
 
+egui_dim_t egui_view_textblock_get_max_lines(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->max_lines;
+}
+
 void egui_view_textblock_set_auto_height(egui_view_t *self, uint8_t is_auto_height)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
@@ -1306,6 +1326,16 @@ void egui_view_textblock_set_auto_height(egui_view_t *self, uint8_t is_auto_heig
     egui_view_textblock_apply_auto_height(self);
     egui_view_textblock_clamp_scroll(self);
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_textblock_get_auto_height(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->is_auto_height;
 }
 
 void egui_view_textblock_set_auto_wrap(egui_view_t *self, uint8_t enabled)
@@ -1321,6 +1351,16 @@ void egui_view_textblock_set_auto_wrap(egui_view_t *self, uint8_t enabled)
     egui_view_textblock_clamp_scroll(self);
     egui_view_textblock_apply_auto_height(self);
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_textblock_get_auto_wrap(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->is_auto_wrap_enabled;
 }
 
 void egui_view_textblock_set_scroll_enabled(egui_view_t *self, uint8_t enabled)
@@ -1344,6 +1384,16 @@ void egui_view_textblock_set_scroll_enabled(egui_view_t *self, uint8_t enabled)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_textblock_get_scroll_enabled(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->is_scroll_enabled;
+}
+
 void egui_view_textblock_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
@@ -1358,6 +1408,16 @@ void egui_view_textblock_set_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_textblock_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->font;
+}
+
 void egui_view_textblock_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
@@ -1366,11 +1426,43 @@ void egui_view_textblock_set_font_color(egui_view_t *self, egui_color_t color, e
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_textblock_get_font_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->color;
+}
+
+egui_alpha_t egui_view_textblock_get_font_alpha(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->alpha;
+}
+
 void egui_view_textblock_set_align_type(egui_view_t *self, uint8_t align_type)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
     local->align_type = align_type;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_textblock_get_align_type(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->align_type;
 }
 
 void egui_view_textblock_set_text(egui_view_t *self, const char *text)
@@ -1408,6 +1500,46 @@ void egui_view_textblock_set_text(egui_view_t *self, const char *text)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_textblock_get_text(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->text;
+}
+
+egui_dim_t egui_view_textblock_get_content_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->content_width;
+}
+
+egui_dim_t egui_view_textblock_get_content_height(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->content_height;
+}
+
+egui_dim_t egui_view_textblock_get_content_line_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->content_line_count;
+}
+
 int egui_view_textblock_get_text_size(egui_view_t *self, const char *text, egui_dim_t max_width, egui_dim_t *width, egui_dim_t *height)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
@@ -1441,6 +1573,16 @@ void egui_view_textblock_set_border_enabled(egui_view_t *self, uint8_t enabled)
     }
 }
 
+uint8_t egui_view_textblock_get_border_enabled(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->is_border_enabled;
+}
+
 void egui_view_textblock_set_border_radius(egui_view_t *self, egui_dim_t radius)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
@@ -1448,11 +1590,33 @@ void egui_view_textblock_set_border_radius(egui_view_t *self, egui_dim_t radius)
     egui_view_invalidate(self);
 }
 
+egui_dim_t egui_view_textblock_get_border_radius(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->border_radius;
+}
+
 void egui_view_textblock_set_border_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
     local->border_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_textblock_get_border_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->border_color;
 }
 
 // ========================= Scrollbar API =========================
@@ -1474,6 +1638,21 @@ void egui_view_textblock_set_scrollbar_enabled(egui_view_t *self, uint8_t enable
     (void)enabled;
 }
 #endif
+
+uint8_t egui_view_textblock_get_scrollbar_enabled(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->is_scrollbar_enabled;
+#else
+    (void)self;
+    return 0;
+#endif
+}
 
 // ========================= Edit mode API =========================
 
@@ -1516,6 +1695,10 @@ void egui_view_textblock_set_editable(egui_view_t *self, uint8_t is_editable)
 
 uint8_t egui_view_textblock_get_editable(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_textblock_t);
     return local->is_editable;
 }
@@ -1604,6 +1787,16 @@ void egui_view_textblock_set_cursor_pos(egui_view_t *self, uint16_t pos)
     egui_view_invalidate(self);
 }
 
+uint16_t egui_view_textblock_get_cursor_pos(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->cursor_pos;
+}
+
 void egui_view_textblock_set_cursor_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
@@ -1611,8 +1804,24 @@ void egui_view_textblock_set_cursor_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_textblock_get_cursor_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    return local->cursor_color;
+}
+
 const char *egui_view_textblock_get_edit_text(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_textblock_t);
     return local->edit_buf;
 }

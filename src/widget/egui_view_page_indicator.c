@@ -40,6 +40,13 @@ void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_c
     egui_view_invalidate_full(self);
 }
 
+uint8_t egui_view_page_indicator_get_total_count(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_page_indicator_t);
+    return local->total_count;
+}
+
 /**
  * @brief Update the active mark index and clamp it into the valid range.
  */
@@ -58,6 +65,13 @@ void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t curre
     egui_view_invalidate_full(self);
 }
 
+uint8_t egui_view_page_indicator_get_current_index(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_page_indicator_t);
+    return local->current_index;
+}
+
 /**
  * @brief Switch between dot rendering and icon rendering.
  */
@@ -71,6 +85,13 @@ void egui_view_page_indicator_set_mark_style(egui_view_t *self, egui_view_page_i
 
     local->mark_style = (uint8_t)style;
     egui_view_invalidate(self);
+}
+
+egui_view_page_indicator_mark_style_t egui_view_page_indicator_get_mark_style(egui_view_t *self)
+{
+    if (self == NULL) { return EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_DOT; }
+    EGUI_LOCAL_INIT(egui_view_page_indicator_t);
+    return (egui_view_page_indicator_mark_style_t)local->mark_style;
 }
 
 /**
@@ -88,6 +109,13 @@ void egui_view_page_indicator_set_icons(egui_view_t *self, const char *const *ic
     egui_view_invalidate(self);
 }
 
+const char *const *egui_view_page_indicator_get_icons(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_page_indicator_t);
+    return local->icons;
+}
+
 /**
  * @brief Override the icon font used when the mark style is icon-based.
  */
@@ -101,6 +129,13 @@ void egui_view_page_indicator_set_icon_font(egui_view_t *self, const egui_font_t
 
     local->icon_font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_page_indicator_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_page_indicator_t);
+    return local->icon_font;
 }
 
 /**

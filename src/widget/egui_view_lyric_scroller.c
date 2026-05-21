@@ -227,6 +227,16 @@ void egui_view_lyric_scroller_set_text(egui_view_t *self, const char *text)
     egui_view_invalidate(self);
 }
 
+const char *egui_view_lyric_scroller_get_text(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return egui_view_label_get_text(EGUI_VIEW_OF(&local->label));
+}
+
 void egui_view_lyric_scroller_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
@@ -240,12 +250,44 @@ void egui_view_lyric_scroller_set_font(egui_view_t *self, const egui_font_t *fon
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_lyric_scroller_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return egui_view_label_get_font(EGUI_VIEW_OF(&local->label));
+}
+
 void egui_view_lyric_scroller_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha)
 {
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
 
     egui_view_label_set_font_color(EGUI_VIEW_OF(&local->label), color, alpha);
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_lyric_scroller_get_font_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return egui_view_label_get_font_color(EGUI_VIEW_OF(&local->label));
+}
+
+egui_alpha_t egui_view_lyric_scroller_get_font_alpha(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return egui_view_label_get_alpha(EGUI_VIEW_OF(&local->label));
 }
 
 void egui_view_lyric_scroller_set_scroll_step(egui_view_t *self, egui_dim_t scroll_step)
@@ -262,6 +304,16 @@ void egui_view_lyric_scroller_set_scroll_step(egui_view_t *self, egui_dim_t scro
     }
     local->scroll_step = scroll_step;
     egui_view_lyric_scroller_update_timer_state(self);
+}
+
+egui_dim_t egui_view_lyric_scroller_get_scroll_step(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return local->scroll_step;
 }
 
 void egui_view_lyric_scroller_set_interval_ms(egui_view_t *self, uint16_t interval_ms)
@@ -281,11 +333,71 @@ void egui_view_lyric_scroller_set_interval_ms(egui_view_t *self, uint16_t interv
     egui_view_lyric_scroller_update_timer_state(self);
 }
 
+uint16_t egui_view_lyric_scroller_get_interval_ms(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return local->interval_ms;
+}
+
 void egui_view_lyric_scroller_set_pause_duration_ms(egui_view_t *self, uint16_t pause_duration_ms)
 {
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
 
     local->pause_duration_ms = pause_duration_ms;
+}
+
+uint16_t egui_view_lyric_scroller_get_pause_duration_ms(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return local->pause_duration_ms;
+}
+
+egui_dim_t egui_view_lyric_scroller_get_text_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return local->text_width;
+}
+
+egui_dim_t egui_view_lyric_scroller_get_text_height(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return local->text_height;
+}
+
+egui_dim_t egui_view_lyric_scroller_get_scroll_offset_x(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return local->scroll_offset_x;
+}
+
+egui_dim_t egui_view_lyric_scroller_get_max_scroll_offset(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return local->max_scroll_offset;
 }
 
 void egui_view_lyric_scroller_restart(egui_view_t *self)
@@ -310,6 +422,16 @@ void egui_view_lyric_scroller_stop(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
 
     egui_view_lyric_scroller_stop_internal(local);
+}
+
+uint8_t egui_view_lyric_scroller_is_scrolling(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_lyric_scroller_t);
+    return (uint8_t)(egui_view_check_timer_start(self, &local->scroll_timer) ? 1 : 0);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_lyric_scroller_t) = {

@@ -82,6 +82,10 @@ void egui_view_canvas_panner_scroll_by(egui_view_t *self, egui_dim_t delta_x, eg
 egui_dim_t egui_view_canvas_panner_get_offset_x(egui_view_t *self);
 /** Return the current vertical pan offset. */
 egui_dim_t egui_view_canvas_panner_get_offset_y(egui_view_t *self);
+/** Return the maximum reachable horizontal pan offset. */
+egui_dim_t egui_view_canvas_panner_get_max_offset_x(egui_view_t *self);
+/** Return the maximum reachable vertical pan offset. */
+egui_dim_t egui_view_canvas_panner_get_max_offset_y(egui_view_t *self);
 
 /** Initialize the group-based panner. Add child views directly to this widget and drag it to pan the larger canvas. */
 void egui_view_canvas_panner_init(egui_view_t *self, egui_core_t *core);

@@ -51,6 +51,9 @@ typedef struct egui_test_state
         egui_test_case_end();                                                                                                                                  \
     } while (0)
 
+/** Alias for EGUI_TEST_RUN — preferred in new test suites. */
+#define EGUI_TEST_CASE EGUI_TEST_RUN
+
 // ============================================================================
 // Assertion Macros
 // On failure: log error, mark test as failed, return from test function.

@@ -110,6 +110,108 @@ static void get_back_center(egui_dim_t *x, egui_dim_t *y)
     *y = EGUI_VIEW_OF(&test_menu)->region_screen.location.y + test_menu.header_height / 2;
 }
 
+static void test_menu_get_state_default(void)
+{
+    egui_view_menu_init(EGUI_VIEW_OF(&test_menu), test_menu_get_core());
+
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_pages(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_page_count(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_MENU_SELECTED_NONE, (int)egui_view_menu_get_selected_index(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(30, (int)egui_view_menu_get_header_height(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(30, (int)egui_view_menu_get_item_height(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_TEXT_PRIMARY.full, (int)egui_view_menu_get_text_color(EGUI_VIEW_OF(&test_menu)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_WHITE.full, (int)egui_view_menu_get_header_text_color(EGUI_VIEW_OF(&test_menu)).full);
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_on_item_click(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_icon_font(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, strcmp(egui_view_menu_get_back_icon(EGUI_VIEW_OF(&test_menu)), EGUI_ICON_MS_ARROW_BACK));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, strcmp(egui_view_menu_get_submenu_icon(EGUI_VIEW_OF(&test_menu)), EGUI_ICON_MS_ARROW_FORWARD));
+    EGUI_TEST_ASSERT_EQUAL_INT(6, (int)egui_view_menu_get_icon_text_gap(EGUI_VIEW_OF(&test_menu)));
+}
+
+static void test_menu_get_state_after_setters(void)
+{
+    egui_color_t color = {.full = 0x2468};
+    const char *back_icon = "b";
+    const char *submenu_icon = "s";
+
+    setup_menu();
+    egui_view_menu_set_header_height(EGUI_VIEW_OF(&test_menu), 24);
+    egui_view_menu_set_item_height(EGUI_VIEW_OF(&test_menu), 28);
+    egui_view_menu_set_header_text_color(EGUI_VIEW_OF(&test_menu), color);
+    egui_view_menu_set_icon_font(EGUI_VIEW_OF(&test_menu), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    egui_view_menu_set_navigation_icons(EGUI_VIEW_OF(&test_menu), back_icon, submenu_icon);
+    egui_view_menu_set_icon_text_gap(EGUI_VIEW_OF(&test_menu), 9);
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_menu_get_pages(EGUI_VIEW_OF(&test_menu)) == g_pages);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, (int)egui_view_menu_get_page_count(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_selected_index(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(24, (int)egui_view_menu_get_header_height(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(28, (int)egui_view_menu_get_item_height(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_TEXT_PRIMARY.full, (int)egui_view_menu_get_text_color(EGUI_VIEW_OF(&test_menu)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)color.full, (int)egui_view_menu_get_header_text_color(EGUI_VIEW_OF(&test_menu)).full);
+    EGUI_TEST_ASSERT_TRUE(egui_view_menu_get_on_item_click(EGUI_VIEW_OF(&test_menu)) == on_item_click);
+    EGUI_TEST_ASSERT_TRUE(egui_view_menu_get_icon_font(EGUI_VIEW_OF(&test_menu)) == (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    EGUI_TEST_ASSERT_TRUE(egui_view_menu_get_back_icon(EGUI_VIEW_OF(&test_menu)) == back_icon);
+    EGUI_TEST_ASSERT_TRUE(egui_view_menu_get_submenu_icon(EGUI_VIEW_OF(&test_menu)) == submenu_icon);
+    EGUI_TEST_ASSERT_EQUAL_INT(9, (int)egui_view_menu_get_icon_text_gap(EGUI_VIEW_OF(&test_menu)));
+
+    egui_view_menu_set_navigation_icons(EGUI_VIEW_OF(&test_menu), NULL, NULL);
+    egui_view_menu_set_on_item_click(EGUI_VIEW_OF(&test_menu), NULL);
+    egui_view_menu_set_icon_font(EGUI_VIEW_OF(&test_menu), NULL);
+    egui_view_menu_set_icon_text_gap(EGUI_VIEW_OF(&test_menu), -3);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, strcmp(egui_view_menu_get_back_icon(EGUI_VIEW_OF(&test_menu)), EGUI_ICON_MS_ARROW_BACK));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, strcmp(egui_view_menu_get_submenu_icon(EGUI_VIEW_OF(&test_menu)), EGUI_ICON_MS_ARROW_FORWARD));
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_on_item_click(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_icon_font(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_icon_text_gap(EGUI_VIEW_OF(&test_menu)));
+}
+
+static void test_menu_get_state_tracks_navigation(void)
+{
+    setup_menu();
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_selected_index(EGUI_VIEW_OF(&test_menu)));
+
+    egui_view_menu_navigate_to(EGUI_VIEW_OF(&test_menu), 1);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_selected_index(EGUI_VIEW_OF(&test_menu)));
+
+    egui_view_menu_navigate_to(EGUI_VIEW_OF(&test_menu), 9);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
+
+    egui_view_menu_go_back(EGUI_VIEW_OF(&test_menu));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_selected_index(EGUI_VIEW_OF(&test_menu)));
+}
+
+static void test_menu_get_state_null_self(void)
+{
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_pages(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_page_count(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_current_page(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_stack_depth(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_MENU_SELECTED_NONE, (int)egui_view_menu_get_selected_index(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_header_height(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_item_height(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_text_color(NULL).full);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_header_text_color(NULL).full);
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_on_item_click(NULL));
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_icon_font(NULL));
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_back_icon(NULL));
+    EGUI_TEST_ASSERT_NULL(egui_view_menu_get_submenu_icon(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_icon_text_gap(NULL));
+}
+
 static void test_menu_release_requires_same_hit_target(void)
 {
     egui_dim_t x_settings = 0;
@@ -147,7 +249,9 @@ static void test_menu_release_requires_same_hit_target(void)
     EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_menu)->is_pressed);
     EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_UP, x_settings, y_settings));
     EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.current_page);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
     EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.stack_depth);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_click_count);
 
     get_back_center(&x_back, &y_back);
@@ -172,7 +276,9 @@ static void test_menu_release_requires_same_hit_target(void)
     EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_menu)->is_pressed);
     EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_UP, x_back, y_back));
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.current_page);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.stack_depth);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_click_count);
     EGUI_TEST_ASSERT_EQUAL_INT(TEST_MENU_PRESSED_NONE, test_menu.pressed_index);
     EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&test_menu)->is_pressed);
@@ -189,12 +295,16 @@ static void test_menu_key_navigation_opens_submenu_and_selects_child(void)
 
     send_key_click(EGUI_KEY_CODE_ENTER);
     EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.current_page);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
     EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.stack_depth);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.selected_index);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_selected_index(EGUI_VIEW_OF(&test_menu)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_click_count);
 
     EGUI_TEST_ASSERT_TRUE(send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_DOWN));
     EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.selected_index);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, (int)egui_view_menu_get_selected_index(EGUI_VIEW_OF(&test_menu)));
 
     send_key_click(EGUI_KEY_CODE_ENTER);
     EGUI_TEST_ASSERT_EQUAL_INT(1, test_menu.current_page);
@@ -204,14 +314,21 @@ static void test_menu_key_navigation_opens_submenu_and_selects_child(void)
 
     send_key_click(EGUI_KEY_CODE_LEFT);
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.current_page);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_current_page(EGUI_VIEW_OF(&test_menu)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.stack_depth);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_stack_depth(EGUI_VIEW_OF(&test_menu)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_menu.selected_index);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_menu_get_selected_index(EGUI_VIEW_OF(&test_menu)));
 }
 #endif
 
 void test_menu_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(menu);
+    EGUI_TEST_RUN(test_menu_get_state_default);
+    EGUI_TEST_RUN(test_menu_get_state_after_setters);
+    EGUI_TEST_RUN(test_menu_get_state_tracks_navigation);
+    EGUI_TEST_RUN(test_menu_get_state_null_self);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_menu_release_requires_same_hit_target);
 #endif

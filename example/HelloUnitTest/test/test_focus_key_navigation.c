@@ -617,7 +617,7 @@ static void test_keyboard_keys_support_focus_navigation_and_hide(void)
     g_keyboard_submit_count = 0;
     egui_view_keyboard_show(EGUI_VIEW_OF(&keyboard_view), EGUI_VIEW_OF(&keyboard_textinput));
     EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&keyboard_view)->is_visible);
-    EGUI_TEST_ASSERT_TRUE(keyboard_view.target == EGUI_VIEW_OF(&keyboard_textinput));
+    EGUI_TEST_ASSERT_TRUE(egui_view_keyboard_get_target(EGUI_VIEW_OF(&keyboard_view)) == EGUI_VIEW_OF(&keyboard_textinput));
     EGUI_TEST_ASSERT_TRUE(egui_focus_manager_get_focused_view(core) == EGUI_VIEW_OF(&keyboard_view.keys[0]));
 
     test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_DOWN);
@@ -643,14 +643,14 @@ static void test_keyboard_keys_support_focus_navigation_and_hide(void)
     EGUI_TEST_ASSERT_EQUAL_INT(1, g_keyboard_submit_count);
     EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&keyboard_view)->is_visible);
     EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&keyboard_view)->is_gone);
-    EGUI_TEST_ASSERT_NULL(keyboard_view.target);
+    EGUI_TEST_ASSERT_NULL(egui_view_keyboard_get_target(EGUI_VIEW_OF(&keyboard_view)));
     EGUI_TEST_ASSERT_TRUE(egui_focus_manager_get_focused_view(core) == EGUI_VIEW_OF(&keyboard_textinput));
 
     egui_view_keyboard_show(EGUI_VIEW_OF(&keyboard_view), EGUI_VIEW_OF(&keyboard_textinput));
     EGUI_TEST_ASSERT_TRUE(egui_focus_manager_get_focused_view(core) == EGUI_VIEW_OF(&keyboard_view.keys[0]));
     test_focus_key_send_key(EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_ESCAPE);
     EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&keyboard_view)->is_visible);
-    EGUI_TEST_ASSERT_NULL(keyboard_view.target);
+    EGUI_TEST_ASSERT_NULL(egui_view_keyboard_get_target(EGUI_VIEW_OF(&keyboard_view)));
     EGUI_TEST_ASSERT_TRUE(egui_focus_manager_get_focused_view(core) == EGUI_VIEW_OF(&keyboard_textinput));
 
     test_focus_key_teardown_root();

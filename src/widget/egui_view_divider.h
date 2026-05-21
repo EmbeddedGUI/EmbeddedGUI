@@ -42,6 +42,12 @@ void egui_view_divider_init_with_params(egui_view_t *self, egui_core_t *core, co
 
 /** Set the divider fill color. */
 void egui_view_divider_set_color(egui_view_t *self, egui_color_t color);
+/** Return the divider fill color. */
+egui_color_t egui_view_divider_get_color(egui_view_t *self);
+/** Set the divider fill alpha. */
+void egui_view_divider_set_alpha(egui_view_t *self, egui_alpha_t alpha);
+/** Return the divider fill alpha. */
+egui_alpha_t egui_view_divider_get_alpha(egui_view_t *self);
 /** Default draw hook used by the divider API table. */
 void egui_view_divider_on_draw(egui_view_t *self);
 /** Initialize a simple divider rectangle with the theme border color. */

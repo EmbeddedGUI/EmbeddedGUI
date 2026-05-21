@@ -36,6 +36,21 @@ void egui_view_chips_set_chips(egui_view_t *self, const char **labels, uint8_t c
     egui_view_button_matrix_set_labels(self, labels, count, egui_view_chips_resolve_cols(count, cols));
 }
 
+const char **egui_view_chips_get_chips(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_labels(self);
+}
+
+uint8_t egui_view_chips_get_chip_count(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_button_count(self);
+}
+
+uint8_t egui_view_chips_get_cols(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_cols(self);
+}
+
 /**
  * @brief Forward the optional chip icon array to the button-matrix backend.
  */
@@ -44,12 +59,22 @@ void egui_view_chips_set_chip_icons(egui_view_t *self, const char **icons)
     egui_view_button_matrix_set_icons(self, icons);
 }
 
+const char **egui_view_chips_get_chip_icons(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_icons(self);
+}
+
 /**
  * @brief Register the callback fired when a chip is chosen by the user.
  */
 void egui_view_chips_set_on_selected_listener(egui_view_t *self, egui_view_on_chip_selected_listener_t listener)
 {
     egui_view_button_matrix_set_on_click(self, listener);
+}
+
+egui_view_on_chip_selected_listener_t egui_view_chips_get_on_selected_listener(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_on_click(self);
 }
 
 /**
@@ -63,6 +88,11 @@ void egui_view_chips_set_gap(egui_view_t *self, uint8_t gap)
         return;
     }
     egui_view_button_matrix_set_gap(self, gap);
+}
+
+uint8_t egui_view_chips_get_gap(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_gap(self);
 }
 
 /**
@@ -102,6 +132,11 @@ void egui_view_chips_set_corner_radius(egui_view_t *self, uint8_t radius)
     egui_view_button_matrix_set_corner_radius(self, radius);
 }
 
+uint8_t egui_view_chips_get_corner_radius(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_corner_radius(self);
+}
+
 /**
  * @brief Override the normal background color for unselected chips.
  */
@@ -113,6 +148,11 @@ void egui_view_chips_set_bg_color(egui_view_t *self, egui_color_t color)
         return;
     }
     egui_view_button_matrix_set_btn_color(self, color);
+}
+
+egui_color_t egui_view_chips_get_bg_color(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_btn_color(self);
 }
 
 /**
@@ -128,6 +168,11 @@ void egui_view_chips_set_selected_bg_color(egui_view_t *self, egui_color_t color
     egui_view_button_matrix_set_btn_pressed_color(self, color);
 }
 
+egui_color_t egui_view_chips_get_selected_bg_color(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_btn_pressed_color(self);
+}
+
 /**
  * @brief Override the shared label color used by all chip cells.
  */
@@ -139,6 +184,11 @@ void egui_view_chips_set_text_color(egui_view_t *self, egui_color_t color)
         return;
     }
     egui_view_button_matrix_set_text_color(self, color);
+}
+
+egui_color_t egui_view_chips_get_text_color(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_text_color(self);
 }
 
 /**
@@ -154,6 +204,11 @@ void egui_view_chips_set_border_color(egui_view_t *self, egui_color_t color)
     egui_view_button_matrix_set_border_color(self, color);
 }
 
+egui_color_t egui_view_chips_get_border_color(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_border_color(self);
+}
+
 /**
  * @brief Override the font used for chip labels.
  */
@@ -165,6 +220,11 @@ void egui_view_chips_set_font(egui_view_t *self, const egui_font_t *font)
         return;
     }
     egui_view_button_matrix_set_font(self, font);
+}
+
+const egui_font_t *egui_view_chips_get_font(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_font(self);
 }
 
 /**
@@ -180,6 +240,11 @@ void egui_view_chips_set_icon_font(egui_view_t *self, const egui_font_t *font)
     egui_view_button_matrix_set_icon_font(self, font);
 }
 
+const egui_font_t *egui_view_chips_get_icon_font(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_icon_font(self);
+}
+
 /**
  * @brief Override the spacing between one chip icon and its text.
  */
@@ -191,6 +256,11 @@ void egui_view_chips_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
         return;
     }
     egui_view_button_matrix_set_icon_text_gap(self, gap);
+}
+
+egui_dim_t egui_view_chips_get_icon_text_gap(egui_view_t *self)
+{
+    return egui_view_button_matrix_get_icon_text_gap(self);
 }
 
 /**

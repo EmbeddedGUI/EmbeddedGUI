@@ -138,6 +138,20 @@ static void test_canvas_panner_offset_clamps_and_shifts_child_layout(void)
     EGUI_TEST_ASSERT_EQUAL_INT(40, test_child.region_screen.location.y);
 }
 
+static void test_canvas_panner_get_max_offsets(void)
+{
+    test_canvas_panner_setup(100, 80, 180, 140);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(80, egui_view_canvas_panner_get_max_offset_x(EGUI_VIEW_OF(&test_panner)));
+    EGUI_TEST_ASSERT_EQUAL_INT(60, egui_view_canvas_panner_get_max_offset_y(EGUI_VIEW_OF(&test_panner)));
+
+    egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&test_panner), 40, 20);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_canvas_panner_get_max_offset_x(EGUI_VIEW_OF(&test_panner)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_canvas_panner_get_max_offset_y(EGUI_VIEW_OF(&test_panner)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_canvas_panner_get_max_offset_x(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_canvas_panner_get_max_offset_y(NULL));
+}
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void test_canvas_panner_blank_drag_scrolls_canvas(void)
 {
@@ -214,6 +228,7 @@ void test_canvas_panner_run(void)
     EGUI_TEST_SUITE_BEGIN(canvas_panner);
 
     EGUI_TEST_RUN(test_canvas_panner_offset_clamps_and_shifts_child_layout);
+    EGUI_TEST_RUN(test_canvas_panner_get_max_offsets);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_canvas_panner_blank_drag_scrolls_canvas);
     EGUI_TEST_RUN(test_canvas_panner_non_draggable_child_drag_can_pan_canvas);

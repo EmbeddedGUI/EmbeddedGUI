@@ -33,6 +33,16 @@ void egui_view_table_set_cell(egui_view_t *self, uint8_t row, uint8_t col, const
     egui_view_invalidate(self);
 }
 
+const char *egui_view_table_get_cell(egui_view_t *self, uint8_t row, uint8_t col)
+{
+    if (self == NULL || row >= EGUI_VIEW_TABLE_MAX_ROWS || col >= EGUI_VIEW_TABLE_MAX_COLS)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->cells[row][col];
+}
+
 static void egui_view_table_clear_cells(egui_view_table_t *local)
 {
     uint8_t row;
@@ -64,12 +74,42 @@ void egui_view_table_set_size(egui_view_t *self, uint8_t rows, uint8_t cols)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_table_get_row_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->row_count;
+}
+
+uint8_t egui_view_table_get_col_count(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->col_count;
+}
+
 /** Mark the first `count` visible rows as header rows. */
 void egui_view_table_set_header_rows(egui_view_t *self, uint8_t count)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
     local->header_rows = count;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_table_get_header_rows(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->header_rows;
 }
 
 /** Change the uniform row height used by every table row. */
@@ -80,12 +120,32 @@ void egui_view_table_set_row_height(egui_view_t *self, egui_dim_t height)
     egui_view_invalidate(self);
 }
 
+egui_dim_t egui_view_table_get_row_height(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->row_height;
+}
+
 /** Show or hide the grid lines drawn between cells. */
 void egui_view_table_set_show_grid(egui_view_t *self, uint8_t show)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
     local->show_grid = show;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_table_get_show_grid(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->show_grid;
 }
 
 /** Override the background color used for header rows. */
@@ -96,12 +156,95 @@ void egui_view_table_set_header_bg_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_table_get_header_bg_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->header_bg_color;
+}
+
+void egui_view_table_set_header_text_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    local->header_text_color = color;
+    egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_table_get_header_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->header_text_color;
+}
+
+void egui_view_table_set_cell_text_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    local->cell_text_color = color;
+    egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_table_get_cell_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->cell_text_color;
+}
+
 /** Override the stroke color used for the optional grid. */
 void egui_view_table_set_grid_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_table_t);
     local->grid_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_table_get_grid_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->grid_color;
+}
+
+void egui_view_table_set_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    local->font = font != NULL ? font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_table_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_table_t);
+    return local->font;
 }
 
 /** Draw header fills, cell text, and the optional grid for the current visible table slice. */

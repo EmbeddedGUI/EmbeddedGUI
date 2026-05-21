@@ -49,10 +49,22 @@ void egui_view_card_init_with_params(egui_view_t *self, egui_core_t *core, const
 
 /** Set the corner radius used by the card background and border. */
 void egui_view_card_set_corner_radius(egui_view_t *self, egui_dim_t radius);
+/** Return the locally stored card corner radius. */
+egui_dim_t egui_view_card_get_corner_radius(egui_view_t *self);
 /** Set the border width and border color around the card. */
 void egui_view_card_set_border(egui_view_t *self, egui_dim_t width, egui_color_t color);
+/** Return the locally stored card border width. */
+egui_dim_t egui_view_card_get_border_width(egui_view_t *self);
+/** Return the locally stored card border color. */
+egui_color_t egui_view_card_get_border_color(egui_view_t *self);
 /** Override the themed fill color and remember it as a custom background. */
 void egui_view_card_set_bg_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha);
+/** Return the locally stored card background color. */
+egui_color_t egui_view_card_get_bg_color(egui_view_t *self);
+/** Return the locally stored card background alpha. */
+egui_alpha_t egui_view_card_get_bg_alpha(egui_view_t *self);
+/** Return whether the background color has been explicitly overridden. */
+uint8_t egui_view_card_get_bg_color_custom(egui_view_t *self);
 /** Add one child view to the internal group container. */
 void egui_view_card_add_child(egui_view_t *self, egui_view_t *child);
 /** Run the group layout helper for current children using a simple horizontal or vertical flow. */

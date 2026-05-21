@@ -6,7 +6,11 @@
 #include "core/egui_core.h"
 #include "core/egui_core_internal.h"
 #include "core/egui_api.h"
+#include "core/egui_timer.h"
 #include "style/egui_theme.h"
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+#include "core/egui_event.h"
+#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
 #include "core/egui_core_activity.h"
 #endif
@@ -562,8 +566,20 @@ void egui_view_set_background(egui_view_t *self, egui_background_t *background)
 void egui_view_draw_background(egui_view_t *self)
 {
     egui_canvas_t *canvas;
+    const egui_background_t *bg;
 
-    if (self == NULL || self->background == NULL || self->background->api == NULL || self->background->api->draw == NULL)
+    if (self == NULL)
+    {
+        return;
+    }
+
+#if EGUI_CONFIG_FUNCTION_STYLE_CASCADE
+    bg = egui_view_get_effective_background(self);
+#else
+    bg = self->background;
+#endif
+
+    if (bg == NULL || bg->api == NULL || bg->api->draw == NULL)
     {
         return;
     }
@@ -574,8 +590,206 @@ void egui_view_draw_background(egui_view_t *self)
         return;
     }
 
-    self->background->api->draw(self->background, canvas, self);
+    bg->api->draw((egui_background_t *)(uintptr_t)bg, canvas, self);
 }
+
+/* ---- Style cascade API (compiled only when the feature is enabled) ---- */
+
+#if EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES
+/* Forward declaration — implementation follows after the cascade section. */
+uint8_t egui_view_get_computed_state(const egui_view_t *self);
+#endif
+
+#if EGUI_CONFIG_FUNCTION_STYLE_CASCADE
+
+int egui_view_add_style(egui_view_t *self, const egui_view_style_t *style)
+{
+    if (self == NULL || style == NULL)
+    {
+        return -1;
+    }
+    if (self->style_count >= EGUI_CONFIG_STYLE_MAX_PER_VIEW)
+    {
+        return -1;
+    }
+    self->styles[self->style_count] = style;
+    self->style_count++;
+    egui_view_invalidate_visual_region(self);
+    return 0;
+}
+
+int egui_view_remove_style(egui_view_t *self, const egui_view_style_t *style)
+{
+    uint8_t i;
+    uint8_t found = 0;
+
+    if (self == NULL || style == NULL)
+    {
+        return -1;
+    }
+    for (i = 0; i < self->style_count; i++)
+    {
+        if (self->styles[i] == style)
+        {
+            found = 1;
+        }
+        if (found && i + 1 < self->style_count)
+        {
+            self->styles[i] = self->styles[i + 1];
+        }
+    }
+    if (!found)
+    {
+        return -1;
+    }
+    self->style_count--;
+    self->styles[self->style_count] = NULL;
+    egui_view_invalidate_visual_region(self);
+    return 0;
+}
+
+void egui_view_clear_styles(egui_view_t *self)
+{
+    uint8_t i;
+
+    if (self == NULL)
+    {
+        return;
+    }
+    for (i = 0; i < self->style_count; i++)
+    {
+        self->styles[i] = NULL;
+    }
+    self->style_count = 0;
+    egui_view_invalidate_visual_region(self);
+}
+
+const egui_background_t *egui_view_get_effective_background(egui_view_t *self)
+{
+    int i;
+
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    /* Inline background has the highest priority. */
+    if (self->background != NULL)
+    {
+        return self->background;
+    }
+    /* Walk styles from highest to lowest priority. */
+    for (i = (int)self->style_count - 1; i >= 0; i--)
+    {
+        const egui_view_style_t *s = self->styles[i];
+        if (s == NULL || s->background == NULL)
+        {
+            continue;
+        }
+#if EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES
+        if (s->state_mask != 0)
+        {
+            uint8_t cur = egui_view_get_computed_state(self);
+            if ((cur & s->state_mask) != s->state_mask)
+            {
+                continue;
+            }
+        }
+#endif
+        return s->background;
+    }
+    return NULL;
+}
+
+egui_alpha_t egui_view_get_effective_alpha(egui_view_t *self)
+{
+    int i;
+
+    if (self == NULL)
+    {
+        return EGUI_ALPHA_100;
+    }
+    /* If alpha was explicitly set on this view, it takes priority. */
+    if (self->has_own_alpha)
+    {
+        return self->alpha;
+    }
+    /* Walk styles from highest to lowest priority. */
+    for (i = (int)self->style_count - 1; i >= 0; i--)
+    {
+        const egui_view_style_t *s = self->styles[i];
+        if (s == NULL || !s->has_alpha)
+        {
+            continue;
+        }
+#if EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES
+        if (s->state_mask != 0)
+        {
+            uint8_t cur = egui_view_get_computed_state(self);
+            if ((cur & s->state_mask) != s->state_mask)
+            {
+                continue;
+            }
+        }
+#endif
+        return s->alpha;
+    }
+    return self->alpha; /* default EGUI_ALPHA_100 set in init */
+}
+
+#endif /* EGUI_CONFIG_FUNCTION_STYLE_CASCADE */
+
+#if EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES
+uint8_t egui_view_get_computed_state(const egui_view_t *self)
+{
+    uint8_t state = 0;
+    if (self == NULL)
+    {
+        return 0;
+    }
+    if (self->is_pressed)
+    {
+        state |= (uint8_t)EGUI_VIEW_STATE_PRESSED;
+    }
+    if (!self->is_enable)
+    {
+        state |= (uint8_t)EGUI_VIEW_STATE_DISABLED;
+    }
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (self->is_focused)
+    {
+        state |= (uint8_t)EGUI_VIEW_STATE_FOCUSED;
+    }
+#endif
+    state |= self->view_state; /* user-settable bits (e.g. CHECKED) */
+    return state;
+}
+
+void egui_view_set_state_checked(egui_view_t *self, int checked)
+{
+    if (self == NULL)
+    {
+        return;
+    }
+    if (checked)
+    {
+        self->view_state |= (uint8_t)EGUI_VIEW_STATE_CHECKED;
+    }
+    else
+    {
+        self->view_state &= (uint8_t)(~EGUI_VIEW_STATE_CHECKED);
+    }
+    egui_view_invalidate_full(self);
+}
+
+int egui_view_get_state_checked(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return (self->view_state & (uint8_t)EGUI_VIEW_STATE_CHECKED) != 0;
+}
+#endif /* EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES */
 
 void egui_view_set_parent(egui_view_t *self, egui_view_group_t *parent)
 {
@@ -585,6 +799,15 @@ void egui_view_set_parent(egui_view_t *self, egui_view_group_t *parent)
     }
 
     self->parent = parent;
+}
+
+egui_view_group_t *egui_view_get_parent(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    return self->parent;
 }
 
 void egui_view_set_alpha(egui_view_t *self, egui_alpha_t alpha)
@@ -597,9 +820,27 @@ void egui_view_set_alpha(egui_view_t *self, egui_alpha_t alpha)
     if (alpha != self->alpha)
     {
         self->alpha = alpha;
-
+#if EGUI_CONFIG_FUNCTION_STYLE_CASCADE
+        self->has_own_alpha = 1;
+#endif
         egui_view_invalidate_visual_region(self);
     }
+#if EGUI_CONFIG_FUNCTION_STYLE_CASCADE
+    else
+    {
+        /* Mark even when value unchanged so cascade knows the field was set. */
+        self->has_own_alpha = 1;
+    }
+#endif
+}
+
+egui_alpha_t egui_view_get_alpha(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return EGUI_ALPHA_100;
+    }
+    return self->alpha;
 }
 
 // TODO: need get raw pos static.
@@ -759,7 +1000,13 @@ static void egui_view_invalidate_visible_tree_internal(egui_view_t *self)
     }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIRTY_PASSTHROUGH
-    if (egui_view_is_dirty_passthrough_group(self) && self->background == NULL)
+    if (egui_view_is_dirty_passthrough_group(self) &&
+#if EGUI_CONFIG_FUNCTION_STYLE_CASCADE
+        egui_view_get_effective_background(self) == NULL
+#else
+        self->background == NULL
+#endif
+    )
     {
         egui_view_group_t *group = (egui_view_group_t *)self;
         egui_dnode_t *p_head;
@@ -786,10 +1033,14 @@ void egui_view_invalidate_visible_tree(egui_view_t *self)
 
 void egui_view_layout(egui_view_t *self, egui_region_t *region)
 {
+    int changed;
+
     if (self == NULL || region == NULL)
     {
         return;
     }
+
+    changed = !egui_region_equal(&self->region, region);
 
     /* The view's old region_screen may extend outside the visible viewport
      * (e.g. a scrolled container with negative top). Clip it against every
@@ -807,6 +1058,13 @@ void egui_view_layout(egui_view_t *self, egui_region_t *region)
 
     // update region
     egui_region_copy(&self->region, region);
+
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+    if (changed)
+    {
+        egui_view_send_event(self, EGUI_EVENT_LAYOUT_CHANGED, &self->region);
+    }
+#endif
 
     // EGUI_LOG_DBG("region_dirty new: %d %d %d %d\n", self->region_dirty.location.x, self->region_dirty.location.y, self->region_dirty.size.width,
     // self->region_dirty.size.height);
@@ -924,6 +1182,63 @@ egui_view_on_click_listener_t egui_view_get_on_click_listener(egui_view_t *self)
 #endif
 }
 
+#if EGUI_CONFIG_FUNCTION_LONG_PRESS && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+void egui_view_set_on_long_press_listener(egui_view_t *self, egui_view_on_long_press_listener_t listener)
+{
+    if (self == NULL)
+    {
+        return;
+    }
+    self->on_long_press_listener = listener;
+}
+
+egui_view_on_long_press_listener_t egui_view_get_on_long_press_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    return self->on_long_press_listener;
+}
+
+void egui_view_poll_long_press(egui_view_t *self)
+{
+    uint32_t elapsed;
+
+    if (self == NULL || !self->is_pressed || self->on_long_press_listener == NULL || !self->_lp_active || self->_lp_fired)
+    {
+        return;
+    }
+    elapsed = egui_timer_get_current_time() - self->_lp_press_tick;
+    if (elapsed >= EGUI_CONFIG_LONG_PRESS_DURATION_MS)
+    {
+        self->_lp_fired = 1;
+        self->on_long_press_listener(self);
+    }
+}
+#endif /* EGUI_CONFIG_FUNCTION_LONG_PRESS */
+
+#if EGUI_CONFIG_FUNCTION_SWIPE_LISTENER && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+void egui_view_set_on_swipe_listener(egui_view_t *self, egui_view_on_swipe_listener_t listener)
+{
+    if (self == NULL)
+    {
+        return;
+    }
+    self->on_swipe_listener = listener;
+    self->is_clickable = (listener != NULL) || (self->on_click_listener != NULL);
+}
+
+egui_view_on_swipe_listener_t egui_view_get_on_swipe_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    return self->on_swipe_listener;
+}
+#endif /* EGUI_CONFIG_FUNCTION_SWIPE_LISTENER */
+
 void egui_view_set_enable(egui_view_t *self, int is_enable)
 {
     if (self == NULL)
@@ -987,7 +1302,29 @@ void egui_view_set_position(egui_view_t *self, egui_dim_t x, egui_dim_t y)
     self->region.location.x = x;
     self->region.location.y = y;
 
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+    egui_view_send_event(self, EGUI_EVENT_LAYOUT_CHANGED, &self->region);
+#endif
+
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_get_x(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return self->region.location.x;
+}
+
+egui_dim_t egui_view_get_y(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return self->region.location.y;
 }
 
 void egui_view_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height)
@@ -1005,7 +1342,75 @@ void egui_view_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height)
     self->region.size.width = width;
     self->region.size.height = height;
 
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+    egui_view_send_event(self, EGUI_EVENT_SIZE_CHANGED, &self->region.size);
+#endif
+
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_get_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return self->region.size.width;
+}
+
+egui_dim_t egui_view_get_height(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return self->region.size.height;
+}
+
+egui_dim_t egui_view_get_content_width(egui_view_t *self)
+{
+    egui_dim_t w;
+    egui_dim_t pad;
+
+    if (self == NULL)
+    {
+        return 0;
+    }
+    w = self->region.size.width;
+    pad = (egui_dim_t)(self->padding.left + self->padding.right);
+    return (w > pad) ? (egui_dim_t)(w - pad) : 0;
+}
+
+egui_dim_t egui_view_get_content_height(egui_view_t *self)
+{
+    egui_dim_t h;
+    egui_dim_t pad;
+
+    if (self == NULL)
+    {
+        return 0;
+    }
+    h = self->region.size.height;
+    pad = (egui_dim_t)(self->padding.top + self->padding.bottom);
+    return (h > pad) ? (egui_dim_t)(h - pad) : 0;
+}
+
+egui_dim_t egui_view_get_screen_x(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return self->region_screen.location.x;
+}
+
+egui_dim_t egui_view_get_screen_y(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return self->region_screen.location.y;
 }
 
 void egui_view_set_pressed(egui_view_t *self, int is_pressed)
@@ -1021,6 +1426,10 @@ void egui_view_set_pressed(egui_view_t *self, int is_pressed)
     }
 
     self->is_pressed = is_pressed;
+
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+    egui_view_send_event(self, is_pressed ? EGUI_EVENT_PRESSED : EGUI_EVENT_RELEASED, NULL);
+#endif
 
     egui_view_invalidate_full_region(self);
 }
@@ -1038,6 +1447,10 @@ int egui_view_set_pressed_with_region(egui_view_t *self, int is_pressed, const e
     }
 
     self->is_pressed = is_pressed;
+
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+    egui_view_send_event(self, is_pressed ? EGUI_EVENT_PRESSED : EGUI_EVENT_RELEASED, NULL);
+#endif
 
     if (egui_view_background_has_pressed_param(self))
     {
@@ -1188,6 +1601,46 @@ int egui_view_get_gone(egui_view_t *self)
     return self->is_gone;
 }
 
+#if EGUI_CONFIG_FUNCTION_EXT_CLICK_AREA
+void egui_view_set_ext_click_area(egui_view_t *self, uint8_t extra_px)
+{
+    if (self == NULL)
+    {
+        return;
+    }
+    self->ext_click_area = extra_px;
+}
+
+uint8_t egui_view_get_ext_click_area(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return self->ext_click_area;
+}
+#endif /* EGUI_CONFIG_FUNCTION_EXT_CLICK_AREA */
+
+#if EGUI_CONFIG_FUNCTION_DRAGGABLE_VIEW && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+void egui_view_set_draggable(egui_view_t *self, int is_draggable)
+{
+    if (self == NULL)
+    {
+        return;
+    }
+    self->is_draggable = is_draggable ? 1 : 0;
+}
+
+int egui_view_get_draggable(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return self->is_draggable;
+}
+#endif /* EGUI_CONFIG_FUNCTION_DRAGGABLE_VIEW */
+
 void egui_view_set_padding(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top,
                            egui_dim_margin_padding_t bottom)
 {
@@ -1215,6 +1668,46 @@ void egui_view_set_padding(egui_view_t *self, egui_dim_margin_padding_t left, eg
 void egui_view_set_padding_all(egui_view_t *self, egui_dim_margin_padding_t padding)
 {
     egui_view_set_padding(self, padding, padding, padding, padding);
+}
+
+egui_dim_margin_padding_t egui_view_get_padding_left(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    return (self != NULL) ? self->padding.left : 0;
+#else
+    EGUI_UNUSED(self);
+    return 0;
+#endif
+}
+
+egui_dim_margin_padding_t egui_view_get_padding_right(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    return (self != NULL) ? self->padding.right : 0;
+#else
+    EGUI_UNUSED(self);
+    return 0;
+#endif
+}
+
+egui_dim_margin_padding_t egui_view_get_padding_top(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    return (self != NULL) ? self->padding.top : 0;
+#else
+    EGUI_UNUSED(self);
+    return 0;
+#endif
+}
+
+egui_dim_margin_padding_t egui_view_get_padding_bottom(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    return (self != NULL) ? self->padding.bottom : 0;
+#else
+    EGUI_UNUSED(self);
+    return 0;
+#endif
 }
 
 void egui_view_set_margin(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top,
@@ -1245,6 +1738,100 @@ void egui_view_set_margin_all(egui_view_t *self, egui_dim_margin_padding_t margi
 {
     egui_view_set_margin(self, margin, margin, margin, margin);
 }
+
+egui_dim_margin_padding_t egui_view_get_margin_left(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    return (self != NULL) ? self->margin.left : 0;
+#else
+    EGUI_UNUSED(self);
+    return 0;
+#endif
+}
+
+egui_dim_margin_padding_t egui_view_get_margin_right(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    return (self != NULL) ? self->margin.right : 0;
+#else
+    EGUI_UNUSED(self);
+    return 0;
+#endif
+}
+
+egui_dim_margin_padding_t egui_view_get_margin_top(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    return (self != NULL) ? self->margin.top : 0;
+#else
+    EGUI_UNUSED(self);
+    return 0;
+#endif
+}
+
+egui_dim_margin_padding_t egui_view_get_margin_bottom(egui_view_t *self)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+    return (self != NULL) ? self->margin.bottom : 0;
+#else
+    EGUI_UNUSED(self);
+    return 0;
+#endif
+}
+
+void egui_view_align_to_parent(egui_view_t *self, uint8_t align_type, egui_dim_t offset_x, egui_dim_t offset_y)
+{
+    egui_view_t *parent;
+    egui_dim_t parent_width;
+    egui_dim_t parent_height;
+    egui_dim_t x;
+    egui_dim_t y;
+
+    if (self == NULL)
+    {
+        return;
+    }
+
+    parent = (egui_view_t *)self->parent;
+    if (parent != NULL)
+    {
+        parent_width = egui_view_get_content_width(parent);
+        parent_height = egui_view_get_content_height(parent);
+    }
+    else if (self->core != NULL)
+    {
+        parent_width = self->core->screen_width;
+        parent_height = self->core->screen_height;
+    }
+    else
+    {
+        parent_width = self->region.size.width;
+        parent_height = self->region.size.height;
+    }
+
+    egui_common_align_get_x_y(parent_width, parent_height, self->region.size.width, self->region.size.height, align_type, &x, &y);
+    egui_view_set_position(self, (egui_dim_t)(x + offset_x), (egui_dim_t)(y + offset_y));
+}
+
+#if EGUI_CONFIG_FUNCTION_FLEXLAYOUT
+void egui_view_set_flex_grow(egui_view_t *self, uint8_t grow)
+{
+    if (self == NULL)
+    {
+        return;
+    }
+    self->flex_grow = grow;
+}
+
+uint8_t egui_view_get_flex_grow(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    return self->flex_grow;
+}
+#endif
 
 void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow)
 {
@@ -1373,6 +1960,10 @@ int egui_view_perform_click(egui_view_t *self)
         is_handled = 1;
     }
 
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+    egui_view_send_event(self, EGUI_EVENT_CLICKED, NULL);
+#endif
+
     return is_handled;
 }
 #else
@@ -1421,7 +2012,7 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
         return 0;
     }
 
-    is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
+    is_inside = egui_view_hit_test(self, event->location.x, event->location.y);
 
     if (self->is_enable == false)
     {
@@ -1434,6 +2025,47 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
         return (self->is_clickable);
     }
 
+#if EGUI_CONFIG_FUNCTION_DRAGGABLE_VIEW
+    if (self->is_draggable)
+    {
+        switch (event->type)
+        {
+        case EGUI_MOTION_EVENT_ACTION_DOWN:
+            if (is_inside)
+            {
+                self->_drag_last_x = event->location.x;
+                self->_drag_last_y = event->location.y;
+                self->_drag_tracking = 1;
+            }
+            return is_inside;
+        case EGUI_MOTION_EVENT_ACTION_MOVE:
+            if (self->_drag_tracking)
+            {
+                egui_dim_t dx = (egui_dim_t)(event->location.x - self->_drag_last_x);
+                egui_dim_t dy = (egui_dim_t)(event->location.y - self->_drag_last_y);
+                self->_drag_last_x = event->location.x;
+                self->_drag_last_y = event->location.y;
+                if (dx != 0 || dy != 0)
+                {
+                    egui_region_t new_region;
+                    egui_region_copy(&new_region, &self->region);
+                    new_region.location.x = (egui_dim_t)(new_region.location.x + dx);
+                    new_region.location.y = (egui_dim_t)(new_region.location.y + dy);
+                    egui_view_layout(self, &new_region);
+                }
+                return 1;
+            }
+            return 0;
+        case EGUI_MOTION_EVENT_ACTION_UP:
+        case EGUI_MOTION_EVENT_ACTION_CANCEL:
+            self->_drag_tracking = 0;
+            return 1;
+        default:
+            break;
+        }
+    }
+#endif /* EGUI_CONFIG_FUNCTION_DRAGGABLE_VIEW */
+
     if (self->is_clickable)
     {
         switch (event->type)
@@ -1442,15 +2074,61 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
         {
             int should_click = self->is_pressed && is_inside;
 
+#if EGUI_CONFIG_FUNCTION_LONG_PRESS
+            if (self->_lp_fired)
+            {
+                should_click = 0; /* long-press already dispatched; suppress the click */
+            }
+            self->_lp_active = 0;
+            self->_lp_fired = 0;
+#endif
             egui_view_set_pressed(self, false);
             if (should_click)
             {
                 egui_view_perform_click(self);
             }
+#if EGUI_CONFIG_FUNCTION_SWIPE_LISTENER
+            if (self->on_swipe_listener != NULL)
+            {
+                egui_dim_t dx = (egui_dim_t)(event->location.x - self->_swipe_down_x);
+                egui_dim_t dy = (egui_dim_t)(event->location.y - self->_swipe_down_y);
+                egui_dim_t abs_dx = dx < 0 ? (egui_dim_t)(-dx) : dx;
+                egui_dim_t abs_dy = dy < 0 ? (egui_dim_t)(-dy) : dy;
+
+                if (abs_dx >= EGUI_CONFIG_SWIPE_MIN_DISPLACEMENT_PX || abs_dy >= EGUI_CONFIG_SWIPE_MIN_DISPLACEMENT_PX)
+                {
+                    egui_swipe_dir_t dir;
+                    if (abs_dx >= abs_dy)
+                    {
+                        dir = dx < 0 ? EGUI_SWIPE_DIR_LEFT : EGUI_SWIPE_DIR_RIGHT;
+                    }
+                    else
+                    {
+                        dir = dy < 0 ? EGUI_SWIPE_DIR_UP : EGUI_SWIPE_DIR_DOWN;
+                    }
+                    self->on_swipe_listener(self, dir);
+                }
+            }
+#endif /* EGUI_CONFIG_FUNCTION_SWIPE_LISTENER */
             break;
         }
         case EGUI_MOTION_EVENT_ACTION_DOWN:
             egui_view_set_pressed(self, is_inside);
+#if EGUI_CONFIG_FUNCTION_LONG_PRESS
+            if (is_inside)
+            {
+                self->_lp_press_tick = egui_timer_get_current_time();
+                self->_lp_fired = 0;
+                self->_lp_active = 1;
+            }
+#endif
+#if EGUI_CONFIG_FUNCTION_SWIPE_LISTENER
+            if (is_inside)
+            {
+                self->_swipe_down_x = event->location.x;
+                self->_swipe_down_y = event->location.y;
+            }
+#endif /* EGUI_CONFIG_FUNCTION_SWIPE_LISTENER */
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
             if (is_inside && self->is_focusable)
             {
@@ -1469,10 +2147,22 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
             if (self->is_pressed != is_inside)
             {
                 egui_view_set_pressed(self, is_inside);
+#if EGUI_CONFIG_FUNCTION_LONG_PRESS
+                if (!is_inside)
+                {
+                    /* Finger slid out — cancel the pending long-press. */
+                    self->_lp_active = 0;
+                    self->_lp_fired = 0;
+                }
+#endif
             }
             break;
         case EGUI_MOTION_EVENT_ACTION_CANCEL:
             egui_view_set_pressed(self, false);
+#if EGUI_CONFIG_FUNCTION_LONG_PRESS
+            self->_lp_active = 0;
+            self->_lp_fired = 0;
+#endif
             break;
         default:
             break;
@@ -1633,7 +2323,11 @@ void egui_view_draw(egui_view_t *self)
     // clear canvas mask
     egui_canvas_clear_mask(canvas);
     // set canvase alpha
+#if EGUI_CONFIG_FUNCTION_STYLE_CASCADE
+    egui_canvas_mix_alpha(canvas, egui_view_get_effective_alpha(self));
+#else
     egui_canvas_mix_alpha(canvas, self->alpha);
+#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
     // draw shadow with expanded work region (shadow extends beyond view bounds)
@@ -2305,10 +2999,109 @@ void egui_view_init(egui_view_t *self, egui_core_t *core)
     self->layer = EGUI_VIEW_LAYER_DEFAULT;
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
 
+#if EGUI_CONFIG_FUNCTION_FLEXLAYOUT
+    self->flex_grow = 0;
+#endif
+
+#if EGUI_CONFIG_FUNCTION_VIEW_USER_DATA
+    self->user_data = NULL;
+#endif
+
     self->alpha = EGUI_ALPHA_100;
+
+#if EGUI_CONFIG_FUNCTION_EXT_CLICK_AREA
+    self->ext_click_area = 0;
+#endif
+
+#if EGUI_CONFIG_FUNCTION_DRAGGABLE_VIEW && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    self->is_draggable = 0;
+    self->_drag_tracking = 0;
+    self->_drag_last_x = 0;
+    self->_drag_last_y = 0;
+#endif
+
+#if EGUI_CONFIG_FUNCTION_STYLE_CASCADE
+    {
+        uint8_t _si;
+        for (_si = 0; _si < EGUI_CONFIG_STYLE_MAX_PER_VIEW; _si++)
+        {
+            self->styles[_si] = NULL;
+        }
+        self->style_count = 0;
+        self->has_own_alpha = 0;
+    }
+#endif
+
+#if EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES
+    self->view_state = 0;
+#endif
+
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+    {
+        uint8_t _ei;
+        for (_ei = 0; _ei < EGUI_CONFIG_EVENT_MAX_LISTENERS_PER_VIEW; _ei++)
+        {
+            self->event_listeners[_ei].code = EGUI_EVENT_ALL;
+            self->event_listeners[_ei].cb = NULL;
+            self->event_listeners[_ei].user_data = NULL;
+        }
+        self->event_listener_count = 0;
+    }
+#endif
 
     // init api
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_t);
 
     egui_view_set_view_name(self, "egui_view");
 }
+
+void egui_view_start_periodic(egui_view_t *view, egui_timer_t *timer, void *user_data, egui_timer_callback_func callback, uint32_t period_ms)
+{
+    egui_core_t *core;
+    if (view == NULL || timer == NULL || callback == NULL)
+    {
+        return;
+    }
+    core = egui_view_get_core(view);
+    if (core == NULL)
+    {
+        return;
+    }
+    egui_timer_init_timer(timer, user_data, callback);
+    egui_timer_start_timer(core, timer, period_ms, period_ms);
+}
+
+void egui_view_stop_periodic(egui_view_t *view, egui_timer_t *timer)
+{
+    egui_core_t *core;
+    if (view == NULL || timer == NULL)
+    {
+        return;
+    }
+    core = egui_view_get_core(view);
+    if (core == NULL)
+    {
+        return;
+    }
+    egui_timer_stop_timer(core, timer);
+}
+
+#if EGUI_CONFIG_FUNCTION_VIEW_USER_DATA
+void egui_view_set_user_data(egui_view_t *self, void *user_data)
+{
+    if (self == NULL)
+    {
+        return;
+    }
+    self->user_data = user_data;
+}
+
+void *egui_view_get_user_data(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    return self->user_data;
+}
+#endif /* EGUI_CONFIG_FUNCTION_VIEW_USER_DATA */

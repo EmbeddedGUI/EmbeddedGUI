@@ -278,6 +278,26 @@ static void test_vg_attached_parent_propagates_lifecycle_to_inserted_subtree(voi
     EGUI_TEST_ASSERT_FALSE(test_child1.is_attached_to_window);
 }
 
+static void test_vg_disallow_process_touch_event_getter(void)
+{
+    egui_core_t *core = test_view_group_get_core();
+    egui_view_root_group_t root_group;
+
+    egui_view_group_init(EGUI_VIEW_OF(&test_group), core);
+    egui_view_root_group_init(EGUI_VIEW_OF(&root_group), core);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_group_get_disallow_process_touch_event(NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_group_get_disallow_process_touch_event(EGUI_VIEW_OF(&test_group)));
+    egui_view_group_set_disallow_process_touch_event(EGUI_VIEW_OF(&test_group), 1);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_group_get_disallow_process_touch_event(EGUI_VIEW_OF(&test_group)));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_group_get_disallow_process_touch_event(EGUI_VIEW_OF(&root_group)));
+    egui_view_group_set_disallow_process_touch_event(EGUI_VIEW_OF(&root_group), 1);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_group_get_disallow_process_touch_event(EGUI_VIEW_OF(&root_group)));
+    egui_view_group_set_disallow_process_touch_event(EGUI_VIEW_OF(&root_group), 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_group_get_disallow_process_touch_event(EGUI_VIEW_OF(&root_group)));
+}
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void test_vg_release_over_sibling_does_not_trigger_click(void)
 {
@@ -379,6 +399,7 @@ void test_view_group_run(void)
     EGUI_TEST_RUN(test_vg_child_added_after_parent_attach_gets_lifecycle_callbacks);
     EGUI_TEST_RUN(test_vg_parent_attach_propagates_to_existing_children);
     EGUI_TEST_RUN(test_vg_attached_parent_propagates_lifecycle_to_inserted_subtree);
+    EGUI_TEST_RUN(test_vg_disallow_process_touch_event_getter);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_vg_release_over_sibling_does_not_trigger_click);
     EGUI_TEST_RUN(test_vg_return_to_original_target_restores_click);

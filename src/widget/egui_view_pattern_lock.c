@@ -188,20 +188,82 @@ void egui_view_pattern_lock_set_min_nodes(egui_view_t *self, uint8_t min_nodes)
 
 uint8_t egui_view_pattern_lock_get_min_nodes(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
     return local->min_nodes;
 }
 
 uint8_t egui_view_pattern_lock_get_node_count(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
     return local->node_count;
 }
 
 const uint8_t *egui_view_pattern_lock_get_nodes(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
     return local->nodes;
+}
+
+uint8_t egui_view_pattern_lock_get_node(egui_view_t *self, uint8_t index)
+{
+    if (self == NULL || index >= EGUI_VIEW_PATTERN_LOCK_MAX_NODES)
+    {
+        return EGUI_VIEW_PATTERN_LOCK_NODE_NONE;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->nodes[index];
+}
+
+uint8_t egui_view_pattern_lock_get_selected(egui_view_t *self, uint8_t node)
+{
+    if (self == NULL || node >= EGUI_VIEW_PATTERN_LOCK_MAX_NODES)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->selected[node];
+}
+
+uint8_t egui_view_pattern_lock_get_is_tracking(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->is_tracking;
+}
+
+uint8_t egui_view_pattern_lock_get_is_completed(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->is_completed;
+}
+
+uint8_t egui_view_pattern_lock_get_show_error(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->show_error;
 }
 
 void egui_view_pattern_lock_clear_pattern(egui_view_t *self)
@@ -230,6 +292,10 @@ void egui_view_pattern_lock_set_touch_expand(egui_view_t *self, uint8_t touch_ex
 
 uint8_t egui_view_pattern_lock_get_touch_expand(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
     return local->touch_expand;
 }
@@ -244,6 +310,16 @@ void egui_view_pattern_lock_set_on_pattern_complete_listener(egui_view_t *self, 
     local->on_pattern_complete = listener;
 }
 
+egui_view_on_pattern_complete_listener_t egui_view_pattern_lock_get_on_pattern_complete_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->on_pattern_complete;
+}
+
 void egui_view_pattern_lock_set_on_pattern_finish_listener(egui_view_t *self, egui_view_on_pattern_finish_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
@@ -252,6 +328,16 @@ void egui_view_pattern_lock_set_on_pattern_finish_listener(egui_view_t *self, eg
         return;
     }
     local->on_pattern_finish = listener;
+}
+
+egui_view_on_pattern_finish_listener_t egui_view_pattern_lock_get_on_pattern_finish_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->on_pattern_finish;
 }
 
 void egui_view_pattern_lock_set_bg_color(egui_view_t *self, egui_color_t color)
@@ -265,6 +351,19 @@ void egui_view_pattern_lock_set_bg_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_pattern_lock_get_bg_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->bg_color;
+}
+
 void egui_view_pattern_lock_set_border_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
@@ -274,6 +373,19 @@ void egui_view_pattern_lock_set_border_color(egui_view_t *self, egui_color_t col
     }
     local->border_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_pattern_lock_get_border_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->border_color;
 }
 
 void egui_view_pattern_lock_set_node_color(egui_view_t *self, egui_color_t color)
@@ -287,6 +399,19 @@ void egui_view_pattern_lock_set_node_color(egui_view_t *self, egui_color_t color
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_pattern_lock_get_node_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->node_color;
+}
+
 void egui_view_pattern_lock_set_active_node_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
@@ -296,6 +421,19 @@ void egui_view_pattern_lock_set_active_node_color(egui_view_t *self, egui_color_
     }
     local->active_node_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_pattern_lock_get_active_node_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->active_node_color;
 }
 
 void egui_view_pattern_lock_set_line_color(egui_view_t *self, egui_color_t color)
@@ -309,6 +447,19 @@ void egui_view_pattern_lock_set_line_color(egui_view_t *self, egui_color_t color
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_pattern_lock_get_line_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->line_color;
+}
+
 void egui_view_pattern_lock_set_error_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
@@ -318,6 +469,19 @@ void egui_view_pattern_lock_set_error_color(egui_view_t *self, egui_color_t colo
     }
     local->error_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_pattern_lock_get_error_color(egui_view_t *self)
+{
+    egui_color_t zero;
+
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
+    EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
+    return local->error_color;
 }
 
 void egui_view_pattern_lock_on_draw(egui_view_t *self)

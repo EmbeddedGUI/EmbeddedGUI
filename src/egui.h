@@ -5,6 +5,9 @@
 
 #include "app/egui_activity.h"
 #include "app/egui_dialog.h"
+#if EGUI_CONFIG_FUNCTION_MSGBOX
+#include "app/egui_msgbox.h"
+#endif
 #include "app/egui_toast.h"
 #include "app/egui_toast_std.h"
 #include "app/egui_page_base.h"
@@ -16,6 +19,7 @@
 #include "anim/egui_animation_translate.h"
 #include "anim/egui_animation_resize.h"
 #include "anim/egui_animation_color.h"
+#include "anim/egui_animation_value.h"
 #include "anim/egui_interpolator.h"
 #include "anim/egui_interpolator_accelerate.h"
 #include "anim/egui_interpolator_accelerate_decelerate.h"
@@ -53,6 +57,14 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 #include "core/egui_focus.h"
+#endif
+
+#if EGUI_CONFIG_FUNCTION_EVENT_LITE
+#include "core/egui_event.h"
+#endif
+
+#if EGUI_CONFIG_FUNCTION_FOCUS_GROUP
+#include "core/egui_focus_group.h"
 #endif
 
 #if EGUI_CONFIG_FUNCTION_RECORDING_TEST
@@ -170,6 +182,11 @@
 #include "widget/egui_view_tileview.h"
 #include "widget/egui_view_window.h"
 #include "widget/egui_view_menu.h"
+#include "widget/egui_view_flexlayout.h"
+
+#if EGUI_CONFIG_FUNCTION_PROPERTY_LITE
+#include "widget/egui_property.h"
+#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 #include "widget/egui_view_textinput.h"

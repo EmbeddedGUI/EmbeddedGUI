@@ -21,11 +21,25 @@ void egui_view_autocomplete_set_suggestions(egui_view_t *self, const char **sugg
     egui_view_combobox_set_items(self, suggestions, count);
 }
 
+const char **egui_view_autocomplete_get_suggestions(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->items;
+}
+
 /**
  * @brief Return how many suggestions are currently available.
  */
 uint8_t egui_view_autocomplete_get_suggestion_count(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_combobox_t);
     return local->item_count;
 }
@@ -48,6 +62,10 @@ void egui_view_autocomplete_set_current_index(egui_view_t *self, uint8_t index)
  */
 uint8_t egui_view_autocomplete_get_current_index(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     return egui_view_combobox_get_current_index(self);
 }
 
@@ -56,6 +74,10 @@ uint8_t egui_view_autocomplete_get_current_index(egui_view_t *self)
  */
 const char *egui_view_autocomplete_get_current_text(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return NULL;
+    }
     return egui_view_combobox_get_current_text(self);
 }
 
@@ -76,6 +98,16 @@ void egui_view_autocomplete_set_max_visible_items(egui_view_t *self, uint8_t max
     egui_view_combobox_set_max_visible_items(self, max_items);
 }
 
+uint8_t egui_view_autocomplete_get_max_visible_items(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->max_visible_items;
+}
+
 /**
  * @brief Override the font used to render suggestions and the header value.
  */
@@ -87,6 +119,16 @@ void egui_view_autocomplete_set_font(egui_view_t *self, const egui_font_t *font)
         return;
     }
     egui_view_combobox_set_font(self, font);
+}
+
+const egui_font_t *egui_view_autocomplete_get_font(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->font;
 }
 
 /**
@@ -120,6 +162,10 @@ void egui_view_autocomplete_collapse(egui_view_t *self)
  */
 uint8_t egui_view_autocomplete_is_expanded(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
     return egui_view_combobox_is_expanded(self);
 }
 
@@ -134,6 +180,16 @@ void egui_view_autocomplete_set_on_selected_listener(egui_view_t *self, egui_vie
         return;
     }
     egui_view_combobox_set_on_selected_listener(self, listener);
+}
+
+egui_view_on_autocomplete_selected_listener_t egui_view_autocomplete_get_on_selected_listener(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_combobox_t);
+    return local->on_selected;
 }
 
 /**

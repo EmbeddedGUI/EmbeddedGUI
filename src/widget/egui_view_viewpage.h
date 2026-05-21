@@ -70,6 +70,10 @@ void egui_view_viewpage_scroll_to_page(egui_view_t *self, int page_index);
 void egui_view_viewpage_slow_scroll_to_page(egui_view_t *self);
 /** Jump to the specified page immediately without scroll animation. */
 void egui_view_viewpage_set_current_page(egui_view_t *self, int page_index);
+/** Return the index of the currently visible page. */
+int egui_view_viewpage_get_current_page(egui_view_t *self);
+/** Return the total number of pages (child views) in the container. */
+int egui_view_viewpage_get_page_count(egui_view_t *self);
 /** Advance any active scrolling animation. Usually called by the framework. */
 void egui_view_viewpage_compute_scroll(egui_view_t *self);
 /** Promote the current gesture to a horizontal drag when movement exceeds touch slop. */
@@ -80,11 +84,15 @@ int egui_view_viewpage_on_intercept_touch_event(egui_view_t *self, egui_motion_e
 int egui_view_viewpage_on_touch_event(egui_view_t *self, egui_motion_event_t *event);
 /** Register the callback fired when the current page changes. */
 void egui_view_viewpage_set_on_page_changed(egui_view_t *self, egui_view_viewpage_on_page_changed_t callback);
+/** Return the registered page-change callback, or NULL when unset or self is NULL. */
+egui_view_viewpage_on_page_changed_t egui_view_viewpage_get_on_page_changed(egui_view_t *self);
 /** Initialize the horizontal page container widget. */
 void egui_view_viewpage_init(egui_view_t *self, egui_core_t *core);
 
 /** Enable or disable the built-in horizontal scrollbar overlay drawn along the bottom edge. */
 void egui_view_viewpage_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled);
+/** Return non-zero when the horizontal scrollbar overlay is currently enabled. */
+uint8_t egui_view_viewpage_get_scrollbar_enabled(egui_view_t *self);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

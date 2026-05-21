@@ -71,22 +71,50 @@ void egui_view_checkbox_init_with_params(egui_view_t *self, egui_core_t *core, c
 
 /** Register the callback fired when the checked state changes. */
 void egui_view_checkbox_set_on_checked_listener(egui_view_t *self, egui_view_on_checked_listener_t listener);
+/** Return the callback fired when the checked state changes. */
+egui_view_on_checked_listener_t egui_view_checkbox_get_on_checked_listener(egui_view_t *self);
 /** Set the checked state programmatically. */
 void egui_view_checkbox_set_checked(egui_view_t *self, uint8_t is_checked);
+/** Return the optional label text pointer, or NULL when unset or self is NULL. */
+const char *egui_view_checkbox_get_text(egui_view_t *self);
+/** Return the current checked state (1 = checked, 0 = unchecked). */
+uint8_t egui_view_checkbox_get_checked(egui_view_t *self);
 /** Set the optional label text shown to the right of the box. */
 void egui_view_checkbox_set_text(egui_view_t *self, const char *text);
 /** Override the font used for the optional label text. */
 void egui_view_checkbox_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the optional label font override, or NULL when default font is used. */
+const egui_font_t *egui_view_checkbox_get_font(egui_view_t *self);
 /** Set the color used for the optional label text. */
 void egui_view_checkbox_set_text_color(egui_view_t *self, egui_color_t color);
+/** Return the color used for the optional label text. Returns zeroed color when self is NULL. */
+egui_color_t egui_view_checkbox_get_text_color(egui_view_t *self);
+/** Return the outline color used when unchecked. */
+egui_color_t egui_view_checkbox_get_box_color(egui_view_t *self);
+/** Return the check mark color shown when checked. */
+egui_color_t egui_view_checkbox_get_check_color(egui_view_t *self);
+/** Return the fill color of the indicator box when checked. */
+egui_color_t egui_view_checkbox_get_box_fill_color(egui_view_t *self);
+/** Return the shared alpha of the checkbox indicator and label. */
+egui_alpha_t egui_view_checkbox_get_alpha(egui_view_t *self);
+/** Return the horizontal gap between the indicator box and the label. */
+egui_dim_t egui_view_checkbox_get_text_gap(egui_view_t *self);
 /** Choose a vector check mark or an icon-font check mark. */
 void egui_view_checkbox_set_mark_style(egui_view_t *self, egui_view_checkbox_mark_style_t style);
+/** Return the configured check mark rendering style. */
+egui_view_checkbox_mark_style_t egui_view_checkbox_get_mark_style(egui_view_t *self);
 /** Set the icon glyph used when the mark style is `ICON`. */
 void egui_view_checkbox_set_mark_icon(egui_view_t *self, const char *icon);
+/** Return the icon glyph used when the mark style is `ICON`. */
+const char *egui_view_checkbox_get_mark_icon(egui_view_t *self);
 /** Override the font used for the icon-style check mark. */
 void egui_view_checkbox_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the optional icon font override, or NULL when automatic icon font selection is used. */
+const egui_font_t *egui_view_checkbox_get_icon_font(egui_view_t *self);
 /** Set the horizontal gap between the indicator box and label text. */
 void egui_view_checkbox_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+/** Return the horizontal gap between the indicator box and label text. */
+egui_dim_t egui_view_checkbox_get_icon_text_gap(egui_view_t *self);
 /** Default draw hook used by the checkbox API table. */
 void egui_view_checkbox_on_draw(egui_view_t *self);
 /** Initialize the checkbox widget with clickable toggle behavior. */

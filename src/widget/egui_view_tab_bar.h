@@ -75,16 +75,40 @@ void egui_view_tab_bar_init_with_params(egui_view_t *self, egui_core_t *core, co
 
 /** Replace the tab text array and tab count. */
 void egui_view_tab_bar_set_tabs(egui_view_t *self, const char **tab_texts, uint8_t tab_count);
+/** Return the borrowed tab text array. */
+const char **egui_view_tab_bar_get_tabs(egui_view_t *self);
 /** Select the active tab. This fires the change listener on real changes. */
 void egui_view_tab_bar_set_current_index(egui_view_t *self, uint8_t index);
+/** Return the index of the currently selected tab. */
+uint8_t egui_view_tab_bar_get_current_index(egui_view_t *self);
+/** Return the number of tabs in the bar. */
+uint8_t egui_view_tab_bar_get_tab_count(egui_view_t *self);
+/** Return the text color used for inactive tabs. */
+egui_color_t egui_view_tab_bar_get_text_color(egui_view_t *self);
+/** Return the text color used for the active tab. */
+egui_color_t egui_view_tab_bar_get_active_text_color(egui_view_t *self);
+/** Return the underline indicator color. */
+egui_color_t egui_view_tab_bar_get_indicator_color(egui_view_t *self);
+/** Return the shared alpha value. */
+egui_alpha_t egui_view_tab_bar_get_alpha(egui_view_t *self);
+/** Return the vertical gap between icon and text in mixed tabs. */
+egui_dim_t egui_view_tab_bar_get_icon_text_gap(egui_view_t *self);
 /** Register the callback fired when the active tab changes. */
 void egui_view_tab_bar_set_on_tab_changed_listener(egui_view_t *self, egui_view_on_tab_changed_listener_t listener);
+/** Return the callback fired when the active tab changes. */
+egui_view_on_tab_changed_listener_t egui_view_tab_bar_get_on_tab_changed_listener(egui_view_t *self);
 /** Override the font used for tab labels. */
 void egui_view_tab_bar_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the font used for tab labels. */
+const egui_font_t *egui_view_tab_bar_get_font(egui_view_t *self);
 /** Set the optional icon array that parallels the tab text array. */
 void egui_view_tab_bar_set_tab_icons(egui_view_t *self, const char **tab_icons);
+/** Return the optional borrowed icon array. */
+const char **egui_view_tab_bar_get_tab_icons(egui_view_t *self);
 /** Override the icon font used when tabs show icons. */
 void egui_view_tab_bar_set_icon_font(egui_view_t *self, const egui_font_t *font);
+/** Return the explicit icon font override, or NULL when auto-selection is used. */
+const egui_font_t *egui_view_tab_bar_get_icon_font(egui_view_t *self);
 /** Set the vertical gap between the icon and text in mixed icon-text tabs. */
 void egui_view_tab_bar_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 /** Default draw hook used by the tab-bar API table. */

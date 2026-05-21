@@ -46,10 +46,44 @@ void egui_view_gauge_init_with_params(egui_view_t *self, egui_core_t *core, cons
 
 /** Set the gauge percentage in the 0-100 range. */
 void egui_view_gauge_set_value(egui_view_t *self, uint8_t value);
+/** Return the current gauge percentage. */
+uint8_t egui_view_gauge_get_value(egui_view_t *self);
+/** Set the arc stroke width. */
+void egui_view_gauge_set_stroke_width(egui_view_t *self, egui_dim_t stroke_width);
+/** Return the arc stroke width. */
+egui_dim_t egui_view_gauge_get_stroke_width(egui_view_t *self);
+/** Set the needle line width. */
+void egui_view_gauge_set_needle_width(egui_view_t *self, egui_dim_t needle_width);
+/** Return the needle line width. */
+egui_dim_t egui_view_gauge_get_needle_width(egui_view_t *self);
+/** Set the start angle in degrees. */
+void egui_view_gauge_set_start_angle(egui_view_t *self, int16_t start_angle);
+/** Return the start angle in degrees. */
+int16_t egui_view_gauge_get_start_angle(egui_view_t *self);
+/** Set the sweep angle in degrees. */
+void egui_view_gauge_set_sweep_angle(egui_view_t *self, int16_t sweep_angle);
+/** Return the sweep angle in degrees. */
+int16_t egui_view_gauge_get_sweep_angle(egui_view_t *self);
+/** Set the background track color. */
+void egui_view_gauge_set_bk_color(egui_view_t *self, egui_color_t color);
+/** Return the background track color. */
+egui_color_t egui_view_gauge_get_bk_color(egui_view_t *self);
+/** Set the progress arc fill color. */
+void egui_view_gauge_set_progress_color(egui_view_t *self, egui_color_t color);
+/** Return the progress arc fill color. */
+egui_color_t egui_view_gauge_get_progress_color(egui_view_t *self);
+/** Set the needle and tick color. */
+void egui_view_gauge_set_needle_color(egui_view_t *self, egui_color_t color);
+/** Return the needle and tick color. */
+egui_color_t egui_view_gauge_get_needle_color(egui_view_t *self);
 /** Override the font used for the centered value text. Passing NULL restores the default renderer. */
 void egui_view_gauge_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the explicit centered value text font, or NULL when the compact default renderer is used. */
+const egui_font_t *egui_view_gauge_get_font(egui_view_t *self);
 /** Set the color used for the centered value text. */
 void egui_view_gauge_set_text_color(egui_view_t *self, egui_color_t color);
+/** Return the color used for the centered value text. */
+egui_color_t egui_view_gauge_get_text_color(egui_view_t *self);
 /** Default draw hook used by the gauge API table. */
 void egui_view_gauge_on_draw(egui_view_t *self);
 /** Initialize a gauge with a needle, tick marks, and centered value text. */

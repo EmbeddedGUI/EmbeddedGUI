@@ -209,6 +209,20 @@ void egui_view_viewpage_set_current_page(egui_view_t *self, int page_index)
     }
 }
 
+int egui_view_viewpage_get_current_page(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_viewpage_t);
+    return (int)local->current_page_index;
+}
+
+int egui_view_viewpage_get_page_count(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_viewpage_t);
+    return egui_view_group_get_child_count((egui_view_t *)&local->container);
+}
+
 void egui_view_viewpage_compute_scroll(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_viewpage_t);
@@ -563,6 +577,21 @@ void egui_view_viewpage_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
 
+uint8_t egui_view_viewpage_get_scrollbar_enabled(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_viewpage_t);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+    return local->is_scrollbar_enabled;
+#else
+    (void)local;
+    return 0;
+#endif
+}
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_viewpage_t) = {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
         .dispatch_touch_event = egui_view_group_dispatch_touch_event,
@@ -594,6 +623,16 @@ void egui_view_viewpage_set_on_page_changed(egui_view_t *self, egui_view_viewpag
 {
     EGUI_LOCAL_INIT(egui_view_viewpage_t);
     local->on_page_changed = callback;
+}
+
+egui_view_viewpage_on_page_changed_t egui_view_viewpage_get_on_page_changed(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_viewpage_t);
+    return local->on_page_changed;
 }
 
 void egui_view_viewpage_init(egui_view_t *self, egui_core_t *core)

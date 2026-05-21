@@ -81,22 +81,46 @@ void egui_view_lyric_scroller_init_with_params(egui_view_t *self, egui_core_t *c
 
 /** Set the text shown by the internal label, reset the scroll position, and recalculate overflow. The string pointer is borrowed. */
 void egui_view_lyric_scroller_set_text(egui_view_t *self, const char *text);
+/** Return the borrowed text pointer shown by the internal label, or NULL when unset or self is NULL. */
+const char *egui_view_lyric_scroller_get_text(egui_view_t *self);
 /** Set the internal label font, reset the scroll position, and recalculate overflow. */
 void egui_view_lyric_scroller_set_font(egui_view_t *self, const egui_font_t *font);
+/** Return the internal label font pointer, or NULL when unset or self is NULL. */
+const egui_font_t *egui_view_lyric_scroller_get_font(egui_view_t *self);
 /** Set the internal label text color and alpha. */
 void egui_view_lyric_scroller_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha);
+/** Return the internal label text color. Returns zero color when self is NULL. */
+egui_color_t egui_view_lyric_scroller_get_font_color(egui_view_t *self);
+/** Return the internal label text alpha. Returns 0 when self is NULL. */
+egui_alpha_t egui_view_lyric_scroller_get_font_alpha(egui_view_t *self);
 /** Set how many pixels the text moves per tick. Values below 1 clamp to 1. */
 void egui_view_lyric_scroller_set_scroll_step(egui_view_t *self, egui_dim_t scroll_step);
+/** Return how many pixels the text moves per timer tick. Returns 0 when self is NULL. */
+egui_dim_t egui_view_lyric_scroller_get_scroll_step(egui_view_t *self);
 /** Set the timer interval between scroll steps. Values of 0 clamp to 1 ms. */
 void egui_view_lyric_scroller_set_interval_ms(egui_view_t *self, uint16_t interval_ms);
+/** Return the timer interval between scroll steps in milliseconds. Returns 0 when self is NULL. */
+uint16_t egui_view_lyric_scroller_get_interval_ms(egui_view_t *self);
 /** Set how long the text pauses at each end before reversing direction. */
 void egui_view_lyric_scroller_set_pause_duration_ms(egui_view_t *self, uint16_t pause_duration_ms);
+/** Return how long the text pauses at each end before reversing direction. Returns 0 when self is NULL. */
+uint16_t egui_view_lyric_scroller_get_pause_duration_ms(egui_view_t *self);
+/** Return the measured text width. Returns 0 when self is NULL. */
+egui_dim_t egui_view_lyric_scroller_get_text_width(egui_view_t *self);
+/** Return the measured text height. Returns 0 when self is NULL. */
+egui_dim_t egui_view_lyric_scroller_get_text_height(egui_view_t *self);
+/** Return the current horizontal scroll offset applied to the internal label. Returns 0 when self is NULL. */
+egui_dim_t egui_view_lyric_scroller_get_scroll_offset_x(egui_view_t *self);
+/** Return the maximum horizontal scroll offset for the current text and viewport. Returns 0 when self is NULL. */
+egui_dim_t egui_view_lyric_scroller_get_max_scroll_offset(egui_view_t *self);
 /** Reset the scroll offset to the start without changing text or style. */
 void egui_view_lyric_scroller_restart(egui_view_t *self);
 /** Start scrolling when the widget is attached and the text actually overflows the viewport. */
 void egui_view_lyric_scroller_start(egui_view_t *self);
 /** Stop the scrolling timer while keeping the current offset. */
 void egui_view_lyric_scroller_stop(egui_view_t *self);
+/** Return whether the internal scroll timer is currently running. Returns 0 when self is NULL. */
+uint8_t egui_view_lyric_scroller_is_scrolling(egui_view_t *self);
 /** Initialize the clipping group and its internal label child. */
 void egui_view_lyric_scroller_init(egui_view_t *self, egui_core_t *core);
 

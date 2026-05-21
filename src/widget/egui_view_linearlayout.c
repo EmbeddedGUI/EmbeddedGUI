@@ -44,6 +44,20 @@ void egui_view_linearlayout_set_orientation(egui_view_t *self, uint8_t is_horizo
 /** Return the currently stored alignment flags. */
 uint8_t egui_view_linearlayout_is_align_type(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_linearlayout_t);
+    return local->align_type;
+}
+
+uint8_t egui_view_linearlayout_get_align_type(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_linearlayout_t);
     return local->align_type;
 }
@@ -51,6 +65,20 @@ uint8_t egui_view_linearlayout_is_align_type(egui_view_t *self)
 /** Report whether automatic width growth is enabled. */
 uint8_t egui_view_linearlayout_is_auto_width(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_linearlayout_t);
+    return local->is_auto_width;
+}
+
+uint8_t egui_view_linearlayout_get_auto_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_linearlayout_t);
     return local->is_auto_width;
 }
@@ -58,6 +86,20 @@ uint8_t egui_view_linearlayout_is_auto_width(egui_view_t *self)
 /** Report whether automatic height growth is enabled. */
 uint8_t egui_view_linearlayout_is_auto_height(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_linearlayout_t);
+    return local->is_auto_height;
+}
+
+uint8_t egui_view_linearlayout_get_auto_height(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_linearlayout_t);
     return local->is_auto_height;
 }
@@ -65,6 +107,20 @@ uint8_t egui_view_linearlayout_is_auto_height(egui_view_t *self)
 /** Report whether child flow is currently horizontal. */
 uint8_t egui_view_linearlayout_is_orientation_horizontal(egui_view_t *self)
 {
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_linearlayout_t);
+    return local->is_orientation_horizontal;
+}
+
+uint8_t egui_view_linearlayout_get_orientation(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_linearlayout_t);
     return local->is_orientation_horizontal;
 }

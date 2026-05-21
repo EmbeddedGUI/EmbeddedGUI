@@ -516,6 +516,16 @@ void egui_view_chart_line_set_line_width(egui_view_t *self, uint8_t width)
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_chart_line_get_line_width(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_chart_line_t);
+    return local->line_width;
+}
+
 /** Update the marker radius and keep the clip-margin hint in sync. */
 void egui_view_chart_line_set_point_radius(egui_view_t *self, uint8_t radius)
 {
@@ -523,4 +533,14 @@ void egui_view_chart_line_set_point_radius(egui_view_t *self, uint8_t radius)
     local->point_radius = radius;
     local->axis_base.clip_margin = local->point_radius + local->line_width;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_chart_line_get_point_radius(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_chart_line_t);
+    return local->point_radius;
 }

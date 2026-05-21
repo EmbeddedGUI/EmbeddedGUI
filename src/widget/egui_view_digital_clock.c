@@ -80,6 +80,46 @@ void egui_view_digital_clock_set_time(egui_view_t *self, uint8_t hour, uint8_t m
     format_time(self);
 }
 
+uint8_t egui_view_digital_clock_get_hour(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_digital_clock_t);
+    return local->hour;
+}
+
+uint8_t egui_view_digital_clock_get_minute(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_digital_clock_t);
+    return local->minute;
+}
+
+uint8_t egui_view_digital_clock_get_second(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_digital_clock_t);
+    return local->second;
+}
+
+const char *egui_view_digital_clock_get_time_text(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_digital_clock_t);
+    return local->time_buffer;
+}
+
 /**
  * @brief Switch between 24-hour and 12-hour text formatting modes.
  */
@@ -88,6 +128,16 @@ void egui_view_digital_clock_set_format(egui_view_t *self, uint8_t format_24h)
     EGUI_LOCAL_INIT(egui_view_digital_clock_t);
     local->format_24h = format_24h;
     format_time(self);
+}
+
+uint8_t egui_view_digital_clock_get_format_24h(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_digital_clock_t);
+    return local->format_24h;
 }
 
 /**
@@ -100,6 +150,16 @@ void egui_view_digital_clock_set_colon_blink(egui_view_t *self, uint8_t enable)
     format_time(self);
 }
 
+uint8_t egui_view_digital_clock_get_colon_blink(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_digital_clock_t);
+    return local->colon_blink;
+}
+
 /**
  * @brief Control whether blink-enabled colons currently appear visible.
  */
@@ -110,6 +170,16 @@ void egui_view_digital_clock_set_colon_visible(egui_view_t *self, uint8_t visibl
     format_time(self);
 }
 
+uint8_t egui_view_digital_clock_get_colon_visible(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_digital_clock_t);
+    return local->colon_visible;
+}
+
 /**
  * @brief Show or hide the seconds field when 24-hour formatting is active.
  */
@@ -118,6 +188,16 @@ void egui_view_digital_clock_set_show_second(egui_view_t *self, uint8_t show)
     EGUI_LOCAL_INIT(egui_view_digital_clock_t);
     local->show_second = show;
     format_time(self);
+}
+
+uint8_t egui_view_digital_clock_get_show_second(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+    EGUI_LOCAL_INIT(egui_view_digital_clock_t);
+    return local->show_second;
 }
 
 /**

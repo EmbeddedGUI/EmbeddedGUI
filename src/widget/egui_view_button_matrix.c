@@ -29,7 +29,7 @@
 #define EGUI_VIEW_BUTTON_MATRIX_DIRTY_PAD 2
 
 /** Resolve the icon font, falling back to an automatically sized built-in font. */
-static const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_button_matrix_t *local, egui_dim_t area_size)
+static const egui_font_t *egui_view_button_matrix_resolve_icon_font(egui_view_button_matrix_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
     {
@@ -216,11 +216,42 @@ void egui_view_button_matrix_set_labels(egui_view_t *self, const char **labels, 
     egui_view_invalidate(self);
 }
 
+const char **egui_view_button_matrix_get_labels(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->labels;
+}
+
+uint8_t egui_view_button_matrix_get_button_count(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->btn_count;
+}
+
+uint8_t egui_view_button_matrix_get_cols(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->cols;
+}
+
 /** Store the callback fired when a touch-up completes inside the same cell. */
 void egui_view_button_matrix_set_on_click(egui_view_t *self, egui_view_button_matrix_click_cb_t callback)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     local->on_click = callback;
+}
+
+egui_view_button_matrix_click_cb_t egui_view_button_matrix_get_on_click(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return NULL;
+    }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->on_click;
 }
 
 /** Toggle persistent single selection and redraw only cells whose highlight changes. */
@@ -252,6 +283,13 @@ void egui_view_button_matrix_set_selection_enabled(egui_view_t *self, uint8_t en
     }
 
     egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, dirty_count);
+}
+
+uint8_t egui_view_button_matrix_get_selection_enabled(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->selection_enabled;
 }
 
 /** Update the stored selection, clamping invalid input and redrawing old and new cells. */
@@ -289,6 +327,7 @@ void egui_view_button_matrix_set_selected_index(egui_view_t *self, uint8_t index
 /** Return the stored selected cell index, or `SELECTED_NONE`. */
 uint8_t egui_view_button_matrix_get_selected_index(egui_view_t *self)
 {
+    if (self == NULL) { return EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE; }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->selected_index;
 }
@@ -301,12 +340,30 @@ void egui_view_button_matrix_set_btn_color(egui_view_t *self, egui_color_t color
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_button_matrix_get_btn_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->btn_color;
+}
+
 /** Override the highlight color used for pressed and selected cells. */
 void egui_view_button_matrix_set_btn_pressed_color(egui_view_t *self, egui_color_t color)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     local->btn_pressed_color = color;
     egui_view_invalidate(self);
+}
+
+egui_color_t egui_view_button_matrix_get_btn_pressed_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->btn_pressed_color;
 }
 
 /** Override the shared text and icon tint color. */
@@ -317,12 +374,28 @@ void egui_view_button_matrix_set_text_color(egui_view_t *self, egui_color_t colo
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_button_matrix_get_text_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->text_color;
+}
+
 /** Change the spacing between neighboring cells. */
 void egui_view_button_matrix_set_gap(egui_view_t *self, uint8_t gap)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     local->gap = gap;
     egui_view_invalidate(self);
+}
+
+uint8_t egui_view_button_matrix_get_gap(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->gap;
 }
 
 /** Change the rounded corner radius shared by all cells. */
@@ -333,6 +406,13 @@ void egui_view_button_matrix_set_corner_radius(egui_view_t *self, uint8_t radius
     egui_view_invalidate(self);
 }
 
+uint8_t egui_view_button_matrix_get_corner_radius(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->corner_radius;
+}
+
 /** Override the border color used by idle cells. */
 void egui_view_button_matrix_set_border_color(egui_view_t *self, egui_color_t color)
 {
@@ -341,12 +421,28 @@ void egui_view_button_matrix_set_border_color(egui_view_t *self, egui_color_t co
     egui_view_invalidate(self);
 }
 
+egui_color_t egui_view_button_matrix_get_border_color(egui_view_t *self)
+{
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL) { return zero; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->border_color;
+}
+
 /** Override the font used for button labels. */
 void egui_view_button_matrix_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     local->font = font;
     egui_view_invalidate(self);
+}
+
+const egui_font_t *egui_view_button_matrix_get_font(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->font;
 }
 
 /** Borrow an optional icon array parallel to the current label array. */
@@ -362,6 +458,13 @@ void egui_view_button_matrix_set_icons(egui_view_t *self, const char **icons)
     egui_view_invalidate(self);
 }
 
+const char **egui_view_button_matrix_get_icons(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->icons;
+}
+
 /** Override the icon font used by cells that show glyph strings. */
 void egui_view_button_matrix_set_icon_font(egui_view_t *self, const egui_font_t *font)
 {
@@ -375,6 +478,13 @@ void egui_view_button_matrix_set_icon_font(egui_view_t *self, const egui_font_t 
     egui_view_invalidate(self);
 }
 
+const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_t *self)
+{
+    if (self == NULL) { return NULL; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->icon_font;
+}
+
 /** Change the vertical spacing between one icon and one label inside the same cell. */
 void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 {
@@ -386,6 +496,13 @@ void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap
 
     local->icon_text_gap = gap;
     egui_view_invalidate(self);
+}
+
+egui_dim_t egui_view_button_matrix_get_icon_text_gap(egui_view_t *self)
+{
+    if (self == NULL) { return 0; }
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->icon_text_gap;
 }
 
 /** Draw every visible cell by recomputing equal-width geometry from the work region. */
@@ -486,7 +603,7 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
             if (label != NULL && label[0] != '\0')
             {
                 /* Stack icon above text and keep the combined block centered vertically. */
-                const egui_font_t *icon_font = egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
+                const egui_font_t *icon_font = egui_view_button_matrix_resolve_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
                 if (icon_font == NULL)
                 {
                     egui_view_button_matrix_draw_text_clipped(canvas, font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
@@ -553,7 +670,7 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
             }
             else
             {
-                const egui_font_t *icon_font = egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
+                const egui_font_t *icon_font = egui_view_button_matrix_resolve_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
                 if (icon_font != NULL)
                 {
                     egui_view_button_matrix_draw_text_clipped(canvas, icon_font, icon, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
