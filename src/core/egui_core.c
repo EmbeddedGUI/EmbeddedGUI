@@ -531,8 +531,8 @@ void egui_polling_work(egui_core_t *core)
 
 #if EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH
         pressed_view = (core->touch.view_group_touch_state.path_len > 0)
-                           ? core->touch.view_group_touch_state.path[core->touch.view_group_touch_state.path_len - 1]
-                           : NULL;
+                               ? core->touch.view_group_touch_state.path[core->touch.view_group_touch_state.path_len - 1]
+                               : NULL;
 #else
         pressed_view = core->touch.view_group_touch_state.captured_view;
 #endif

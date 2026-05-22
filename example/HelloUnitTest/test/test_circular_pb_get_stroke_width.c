@@ -35,8 +35,7 @@ static void test_circular_pb_get_stroke_width_update(void)
 static void test_circular_pb_get_stroke_width_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_THEME_TRACK_THICKNESS,
-                               (int)egui_view_circular_progress_bar_get_stroke_width(EGUI_VIEW_OF(&s_cpb)));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_THEME_TRACK_THICKNESS, (int)egui_view_circular_progress_bar_get_stroke_width(EGUI_VIEW_OF(&s_cpb)));
 }
 
 /* NULL self returns 0 without crash. */

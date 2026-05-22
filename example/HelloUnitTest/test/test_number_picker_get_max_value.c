@@ -35,8 +35,7 @@ static void test_number_picker_get_max_value_gt_min(void)
 {
     setup();
     egui_view_number_picker_set_range(EGUI_VIEW_OF(&s_picker), -100, 0);
-    EGUI_TEST_ASSERT_TRUE(egui_view_number_picker_get_max_value(EGUI_VIEW_OF(&s_picker)) >
-                          egui_view_number_picker_get_min_value(EGUI_VIEW_OF(&s_picker)));
+    EGUI_TEST_ASSERT_TRUE(egui_view_number_picker_get_max_value(EGUI_VIEW_OF(&s_picker)) > egui_view_number_picker_get_min_value(EGUI_VIEW_OF(&s_picker)));
 }
 
 /* NULL self returns 0 without crash. */

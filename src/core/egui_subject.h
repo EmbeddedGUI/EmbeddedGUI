@@ -51,7 +51,7 @@ extern "C" {
 
 /* Forward declaration */
 typedef struct egui_observer egui_observer_t;
-typedef struct egui_subject  egui_subject_t;
+typedef struct egui_subject egui_subject_t;
 
 /**
  * Observer callback.
@@ -59,8 +59,7 @@ typedef struct egui_subject  egui_subject_t;
  * @param data      Opaque pointer to the new value, as passed to egui_subject_notify().
  * @param user_data Context pointer stored when subscribing.
  */
-typedef void (*egui_observer_callback_t)(egui_subject_t *subject, const void *data,
-                                         void *user_data);
+typedef void (*egui_observer_callback_t)(egui_subject_t *subject, const void *data, void *user_data);
 
 /**
  * Observer node.  Allocate one per subscriber with static or struct lifetime.
@@ -68,8 +67,8 @@ typedef void (*egui_observer_callback_t)(egui_subject_t *subject, const void *da
  */
 struct egui_observer
 {
-    egui_observer_callback_t callback;  /**< notification callback         */
-    void                    *user_data; /**< caller context pointer         */
+    egui_observer_callback_t callback; /**< notification callback         */
+    void *user_data;                   /**< caller context pointer         */
 };
 
 /**
@@ -79,7 +78,7 @@ struct egui_observer
 struct egui_subject
 {
     egui_observer_t *observers[EGUI_CONFIG_SUBJECT_MAX_OBSERVERS];
-    uint8_t          count; /**< number of active observers */
+    uint8_t count; /**< number of active observers */
 };
 
 /* ----------------------------- API ------------------------------------ */
@@ -102,8 +101,7 @@ void egui_subject_init(egui_subject_t *subject);
  *         -1 if the observer is already subscribed to this subject.
  *         -1 if the subject's observer array is full.
  */
-int egui_subject_subscribe(egui_subject_t *subject, egui_observer_t *observer,
-                           egui_observer_callback_t callback, void *user_data);
+int egui_subject_subscribe(egui_subject_t *subject, egui_observer_t *observer, egui_observer_callback_t callback, void *user_data);
 
 /**
  * Unsubscribe an observer from a subject.

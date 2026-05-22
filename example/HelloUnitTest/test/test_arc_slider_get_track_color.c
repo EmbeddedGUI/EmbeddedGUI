@@ -18,8 +18,7 @@ static void setup(void)
 static void test_arc_slider_get_track_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_DARK_GREY.full,
-                               (int)egui_view_arc_slider_get_track_color(EGUI_VIEW_OF(&s_arc)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_COLOR_DARK_GREY.full, (int)egui_view_arc_slider_get_track_color(EGUI_VIEW_OF(&s_arc)).full);
 }
 
 /* After assigning track_color, getter returns the same color. */
@@ -29,8 +28,7 @@ static void test_arc_slider_get_track_color_after_set(void)
     c.full = 0x112233u;
     setup();
     s_arc.track_color = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_arc_slider_get_track_color(EGUI_VIEW_OF(&s_arc)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_arc_slider_get_track_color(EGUI_VIEW_OF(&s_arc)).full);
 }
 
 /* Updating the color reflects in the getter. */
@@ -41,11 +39,9 @@ static void test_arc_slider_get_track_color_update(void)
     c2.full = 0x445566u;
     setup();
     s_arc.track_color = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_arc_slider_get_track_color(EGUI_VIEW_OF(&s_arc)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_arc_slider_get_track_color(EGUI_VIEW_OF(&s_arc)).full);
     s_arc.track_color = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_arc_slider_get_track_color(EGUI_VIEW_OF(&s_arc)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_arc_slider_get_track_color(EGUI_VIEW_OF(&s_arc)).full);
 }
 
 /* NULL self returns zeroed color without crash. */

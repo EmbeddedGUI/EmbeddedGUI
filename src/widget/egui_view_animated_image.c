@@ -56,14 +56,20 @@ void egui_view_animated_image_set_frames(egui_view_t *self, const egui_image_t *
 
 const egui_image_t **egui_view_animated_image_get_frames(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
     return local->frames;
 }
 
 uint8_t egui_view_animated_image_get_frame_count(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
     return local->frame_count;
 }
@@ -80,7 +86,10 @@ void egui_view_animated_image_set_interval(egui_view_t *self, uint16_t ms)
 
 uint16_t egui_view_animated_image_get_interval(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
     return local->frame_interval_ms;
 }
@@ -112,7 +121,10 @@ void egui_view_animated_image_stop(egui_view_t *self)
 
 uint8_t egui_view_animated_image_is_playing(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
     return local->is_playing;
 }
@@ -129,7 +141,10 @@ void egui_view_animated_image_set_loop(egui_view_t *self, uint8_t enable)
 
 uint8_t egui_view_animated_image_get_loop(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
     return local->is_loop;
 }
@@ -155,14 +170,20 @@ void egui_view_animated_image_set_current_frame(egui_view_t *self, uint8_t index
 
 uint8_t egui_view_animated_image_get_current_frame(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
     return local->current_frame;
 }
 
 uint16_t egui_view_animated_image_get_elapsed(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_animated_image_t);
     return local->elapsed_ms;
 }
@@ -170,7 +191,8 @@ uint16_t egui_view_animated_image_get_elapsed(egui_view_t *self)
 /**
  * @brief Advance playback state using externally supplied elapsed milliseconds.
  *
- * This helper intentionally contains no platform timer logic, so examples can
+ * This helper intentionally contains no platform timer logic, so
+ * examples can
  * drive it from app loops, widget timers, or any custom animation scheduler.
  */
 void egui_view_animated_image_update(egui_view_t *self, uint16_t elapsed_ms)

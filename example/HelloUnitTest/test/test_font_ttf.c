@@ -28,38 +28,45 @@
 static int s_stub_draw_called;
 static int s_stub_measure_called;
 
-static int stub_draw_string(const egui_font_t *self, egui_canvas_t *canvas,
-                             const void *string, egui_dim_t x, egui_dim_t y,
-                             egui_color_t color, egui_alpha_t alpha)
+static int stub_draw_string(const egui_font_t *self, egui_canvas_t *canvas, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                            egui_alpha_t alpha)
 {
-    (void)self; (void)canvas; (void)string;
-    (void)x; (void)y; (void)color; (void)alpha;
+    (void)self;
+    (void)canvas;
+    (void)string;
+    (void)x;
+    (void)y;
+    (void)color;
+    (void)alpha;
     s_stub_draw_called++;
     return 1;
 }
 
-static int stub_get_str_size(const egui_font_t *self, const void *string,
-                              uint8_t multi, egui_dim_t ls,
-                              egui_dim_t *w, egui_dim_t *h)
+static int stub_get_str_size(const egui_font_t *self, const void *string, uint8_t multi, egui_dim_t ls, egui_dim_t *w, egui_dim_t *h)
 {
-    (void)self; (void)string; (void)multi; (void)ls;
-    if (w) *w = 8;
-    if (h) *h = 12;
+    (void)self;
+    (void)string;
+    (void)multi;
+    (void)ls;
+    if (w)
+        *w = 8;
+    if (h)
+        *h = 12;
     s_stub_measure_called++;
     return 0;
 }
 
 static const egui_font_api_t s_stub_api = {
-    .draw_string  = stub_draw_string,
-    .get_str_size = stub_get_str_size,
+        .draw_string = stub_draw_string,
+        .get_str_size = stub_get_str_size,
 };
-static egui_font_t s_stub_font = { .api = &s_stub_api, .res = NULL };
+static egui_font_t s_stub_font = {.api = &s_stub_api, .res = NULL};
 
 /* ------------------------------------------------------------------ */
 /* TTF file loader helper (PC only)                                    */
 /* ------------------------------------------------------------------ */
 
-static uint8_t *s_ttf_buf  = NULL;
+static uint8_t *s_ttf_buf = NULL;
 static uint32_t s_ttf_size = 0;
 
 /** Attempt to load the built-in DejaVuSans.ttf into a heap buffer. */
@@ -94,7 +101,7 @@ static int load_dejavu_font(void)
     {
         fclose(f);
         free(s_ttf_buf);
-        s_ttf_buf  = NULL;
+        s_ttf_buf = NULL;
         s_ttf_size = 0;
         return 0;
     }
@@ -107,13 +114,13 @@ static int load_dejavu_font(void)
 /* ------------------------------------------------------------------ */
 
 static egui_color_int_t s_pfb[32 * 32];
-static egui_canvas_t    s_canvas;
+static egui_canvas_t s_canvas;
 
 static void setup_canvas(void)
 {
     egui_core_t *core = uicode_get_core();
     memset(s_pfb, 0, sizeof(s_pfb));
-    egui_region_t pfb_region = { { 0, 0 }, { 32, 32 } };
+    egui_region_t pfb_region = {{0, 0}, {32, 32}};
     egui_canvas_init(&s_canvas, core, s_pfb, &pfb_region);
 }
 
@@ -250,9 +257,7 @@ static void test_font_ttf_draw_string_does_not_crash(void)
     egui_font_ttf_init(&font, s_ttf_buf, s_ttf_size, 16);
     setup_canvas();
 
-    int r = font.base.api->draw_string(&font.base, &s_canvas,
-                                       "Hi", 0, 0,
-                                       EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    int r = font.base.api->draw_string(&font.base, &s_canvas, "Hi", 0, 0, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     EGUI_TEST_ASSERT_TRUE(r >= 0);
 }
 
@@ -266,9 +271,7 @@ static void test_font_ttf_draw_null_canvas_returns_zero(void)
     egui_font_ttf_t font;
     egui_font_ttf_init(&font, s_ttf_buf, s_ttf_size, 16);
 
-    int r = font.base.api->draw_string(&font.base, NULL,
-                                       "Hi", 0, 0,
-                                       EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    int r = font.base.api->draw_string(&font.base, NULL, "Hi", 0, 0, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     EGUI_TEST_ASSERT_EQUAL_INT(0, r);
 }
 
@@ -316,9 +319,7 @@ static void test_font_ttf_draw_uninit_is_safe(void)
     font.base.api = &egui_font_ttf_t_api_table;
 
     setup_canvas();
-    int r = egui_font_ttf_t_api_table.draw_string(&font.base, &s_canvas,
-                                                   "X", 0, 0,
-                                                   EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    int r = egui_font_ttf_t_api_table.draw_string(&font.base, &s_canvas, "X", 0, 0, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     EGUI_TEST_ASSERT_EQUAL_INT(0, r);
 }
 
@@ -364,7 +365,7 @@ void test_font_ttf_run(void)
     if (s_ttf_buf != NULL)
     {
         free(s_ttf_buf);
-        s_ttf_buf  = NULL;
+        s_ttf_buf = NULL;
         s_ttf_size = 0;
     }
 }

@@ -7,7 +7,7 @@
 
 #if EGUI_CONFIG_FUNCTION_VIEW_USER_DATA
 
-static egui_view_t       s_view;
+static egui_view_t s_view;
 static egui_view_group_t s_parent;
 
 static void setup(void)

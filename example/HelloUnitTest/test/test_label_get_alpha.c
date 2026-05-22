@@ -21,8 +21,7 @@ static void test_label_get_alpha_after_set(void)
     c.full = 0;
     setup();
     egui_view_label_set_font_color(EGUI_VIEW_OF(&s_label), c, EGUI_ALPHA_50);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_ALPHA_50,
-                               (int)egui_view_label_get_alpha(EGUI_VIEW_OF(&s_label)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_ALPHA_50, (int)egui_view_label_get_alpha(EGUI_VIEW_OF(&s_label)));
 }
 
 /* Updating alpha reflects in the getter. */
@@ -33,8 +32,7 @@ static void test_label_get_alpha_update(void)
     setup();
     egui_view_label_set_font_color(EGUI_VIEW_OF(&s_label), c, EGUI_ALPHA_50);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&s_label), c, EGUI_ALPHA_100);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_ALPHA_100,
-                               (int)egui_view_label_get_alpha(EGUI_VIEW_OF(&s_label)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_ALPHA_100, (int)egui_view_label_get_alpha(EGUI_VIEW_OF(&s_label)));
 }
 
 /* Default alpha after plain init is EGUI_ALPHA_100. */

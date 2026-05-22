@@ -10,7 +10,7 @@
 /* ---- Test fixture ---- */
 
 static egui_view_scroll_t s_scroll;
-static egui_view_label_t  s_item;
+static egui_view_label_t s_item;
 
 static egui_core_t *get_core(void)
 {
@@ -25,7 +25,7 @@ static void setup(void)
     egui_core_t *core = get_core();
 
     memset(&s_scroll, 0, sizeof(s_scroll));
-    memset(&s_item,   0, sizeof(s_item));
+    memset(&s_item, 0, sizeof(s_item));
 
     egui_view_scroll_init(EGUI_VIEW_OF(&s_scroll), core);
     egui_view_set_size(EGUI_VIEW_OF(&s_scroll), 100, 100);

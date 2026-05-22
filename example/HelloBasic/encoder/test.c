@@ -35,15 +35,15 @@ static egui_view_label_t s_counter_label;
 static egui_view_label_t s_hint_label;
 
 /* Focusable proxy view that receives key events. */
-static egui_view_t       s_focus_view;
-static egui_view_api_t   s_focus_api;
+static egui_view_t s_focus_view;
+static egui_view_api_t s_focus_api;
 
 /* ------------------------------------------------------------------ */
 /* Counter state                                                       */
 /* ------------------------------------------------------------------ */
 
-static int            s_counter;
-static char           s_counter_buf[16];
+static int s_counter;
+static char s_counter_buf[16];
 
 /* ------------------------------------------------------------------ */
 /* Mock encoder driver                                                 */
@@ -57,7 +57,7 @@ static int mock_encoder_read(void *user_data, int16_t *out_delta, uint8_t *out_b
 
     s_poll_count++;
     *out_delta = 0;
-    *out_btn   = 0;
+    *out_btn = 0;
 
     /* Poll 20-24: five CW ticks -> counter 0->5 */
     if (s_poll_count >= 20 && s_poll_count <= 24)
@@ -83,8 +83,8 @@ static int mock_encoder_read(void *user_data, int16_t *out_delta, uint8_t *out_b
     return 0;
 }
 
-static const egui_encoder_driver_ops_t s_mock_ops = { mock_encoder_read };
-static egui_encoder_driver_t           s_mock_driver;
+static const egui_encoder_driver_ops_t s_mock_ops = {mock_encoder_read};
+static egui_encoder_driver_t s_mock_driver;
 
 /* ------------------------------------------------------------------ */
 /* Key handler on focus view                                           */
@@ -136,8 +136,8 @@ static int on_key(egui_view_t *self, egui_key_event_t *event)
 
 void test_init_ui(egui_core_t *core)
 {
-    int title_h  = 28;
-    int hint_h   = 24;
+    int title_h = 28;
+    int hint_h = 24;
     int center_y = title_h + (SCREEN_H - title_h - hint_h) / 2 - 20;
 
     /* Title */
@@ -178,12 +178,12 @@ void test_init_ui(egui_core_t *core)
     egui_view_request_focus(EGUI_VIEW_OF(&s_focus_view));
 
     /* Register mock encoder driver */
-    s_poll_count               = 0;
-    s_mock_driver.ops          = &s_mock_ops;
-    s_mock_driver.user_data    = NULL;
+    s_poll_count = 0;
+    s_mock_driver.ops = &s_mock_ops;
+    s_mock_driver.user_data = NULL;
     s_mock_driver._last_button = 0;
     s_mock_driver._long_press_sent = 0;
-    s_mock_driver._press_tick  = 0;
+    s_mock_driver._press_tick = 0;
     egui_encoder_driver_register(core, &s_mock_driver);
 }
 

@@ -38,7 +38,8 @@ static void test_dynamic_label_get_text_truncates_to_buffer(void)
     egui_view_dynamic_label_set_text(EGUI_VIEW_OF(&s_label), "abcdefghijklmnopqrstuvwxyz");
 
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE - 1, (int)strlen(egui_view_dynamic_label_get_text(EGUI_VIEW_OF(&s_label))));
-    EGUI_TEST_ASSERT_EQUAL_INT(0, strncmp(egui_view_dynamic_label_get_text(EGUI_VIEW_OF(&s_label)), "abcdefghijklmnopqrs", EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE - 1));
+    EGUI_TEST_ASSERT_EQUAL_INT(0,
+                               strncmp(egui_view_dynamic_label_get_text(EGUI_VIEW_OF(&s_label)), "abcdefghijklmnopqrs", EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE - 1));
 }
 
 static void test_dynamic_label_get_text_rebinds_after_params(void)

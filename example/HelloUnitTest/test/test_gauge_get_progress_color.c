@@ -17,8 +17,7 @@ static void setup(void)
 static void test_gauge_get_progress_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full,
-                               (int)egui_view_gauge_get_progress_color(EGUI_VIEW_OF(&s_gauge)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full, (int)egui_view_gauge_get_progress_color(EGUI_VIEW_OF(&s_gauge)).full);
 }
 
 static void test_gauge_get_progress_color_after_set(void)
@@ -27,8 +26,7 @@ static void test_gauge_get_progress_color_after_set(void)
     c.full = 0xDEF012u;
     setup();
     s_gauge.progress_color = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_gauge_get_progress_color(EGUI_VIEW_OF(&s_gauge)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_gauge_get_progress_color(EGUI_VIEW_OF(&s_gauge)).full);
 }
 
 static void test_gauge_get_progress_color_update(void)
@@ -38,11 +36,9 @@ static void test_gauge_get_progress_color_update(void)
     c2.full = 0x345678u;
     setup();
     s_gauge.progress_color = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_gauge_get_progress_color(EGUI_VIEW_OF(&s_gauge)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_gauge_get_progress_color(EGUI_VIEW_OF(&s_gauge)).full);
     s_gauge.progress_color = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_gauge_get_progress_color(EGUI_VIEW_OF(&s_gauge)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_gauge_get_progress_color(EGUI_VIEW_OF(&s_gauge)).full);
 }
 
 static void test_gauge_get_progress_color_null_self(void)

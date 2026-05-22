@@ -21,8 +21,7 @@ static void test_spinner_get_color_after_set(void)
     c.full = 0xFF0000u;
     setup();
     egui_view_spinner_set_color(EGUI_VIEW_OF(&s_spinner), c);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_spinner_get_color(EGUI_VIEW_OF(&s_spinner)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_spinner_get_color(EGUI_VIEW_OF(&s_spinner)).full);
 }
 
 /* Updating the color reflects in the getter. */
@@ -34,16 +33,14 @@ static void test_spinner_get_color_update(void)
     setup();
     egui_view_spinner_set_color(EGUI_VIEW_OF(&s_spinner), c1);
     egui_view_spinner_set_color(EGUI_VIEW_OF(&s_spinner), c2);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_spinner_get_color(EGUI_VIEW_OF(&s_spinner)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_spinner_get_color(EGUI_VIEW_OF(&s_spinner)).full);
 }
 
 /* Default color after init is EGUI_THEME_PRIMARY. */
 static void test_spinner_get_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full,
-                               (int)egui_view_spinner_get_color(EGUI_VIEW_OF(&s_spinner)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full, (int)egui_view_spinner_get_color(EGUI_VIEW_OF(&s_spinner)).full);
 }
 
 /* NULL self returns zeroed color without crash. */

@@ -16,15 +16,15 @@
 /* ------------------------------------------------------------------ */
 
 static egui_view_flexlayout_t s_row_layout;
-static egui_view_label_t      s_item0;
-static egui_view_label_t      s_item1;
-static egui_view_label_t      s_item2;
-static egui_view_label_t      s_item3;
+static egui_view_label_t s_item0;
+static egui_view_label_t s_item1;
+static egui_view_label_t s_item2;
+static egui_view_label_t s_item3;
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg0_param, EGUI_THEME_PRIMARY,          EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg1_param, EGUI_THEME_SECONDARY,        EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg2_param, EGUI_THEME_SURFACE_VARIANT,  EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg3_param, EGUI_THEME_WARNING,          EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg0_param, EGUI_THEME_PRIMARY, EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg1_param, EGUI_THEME_SECONDARY, EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg2_param, EGUI_THEME_SURFACE_VARIANT, EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg3_param, EGUI_THEME_WARNING, EGUI_ALPHA_100);
 
 EGUI_BACKGROUND_PARAM_INIT(s_bp0, &s_bg0_param, NULL, NULL);
 EGUI_BACKGROUND_PARAM_INIT(s_bp1, &s_bg1_param, NULL, NULL);
@@ -41,10 +41,10 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(s_bg3, &s_bp3);
 /* ------------------------------------------------------------------ */
 
 static egui_view_flexlayout_t s_col_layout;
-static egui_view_label_t      s_header_label;
-static egui_view_label_t      s_body_label;
+static egui_view_label_t s_header_label;
+static egui_view_label_t s_body_label;
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_hdr_bg_param, EGUI_THEME_PRIMARY,         EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_hdr_bg_param, EGUI_THEME_PRIMARY, EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(s_hdr_bp, &s_hdr_bg_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(s_hdr_bg, &s_hdr_bp);
 
@@ -100,17 +100,11 @@ void test_init_ui(egui_core_t *core)
     egui_view_flexlayout_set_direction(EGUI_VIEW_OF(&s_col_layout), EGUI_FLEX_DIRECTION_COLUMN);
     egui_view_flexlayout_set_align_items(EGUI_VIEW_OF(&s_col_layout), EGUI_FLEX_ALIGN_STRETCH);
 
-    EGUI_VIEW_LABEL_PARAMS_INIT(hdr_p, 0, 0, SCREEN_W, 36,
-                                "FlexLayout Demo",
-                                EGUI_CONFIG_FONT_DEFAULT,
-                                EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
+    EGUI_VIEW_LABEL_PARAMS_INIT(hdr_p, 0, 0, SCREEN_W, 36, "FlexLayout Demo", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
     egui_view_label_init_with_params(EGUI_VIEW_OF(&s_header_label), core, &hdr_p);
     egui_view_set_background(EGUI_VIEW_OF(&s_header_label), EGUI_BG_OF(&s_hdr_bg));
 
-    EGUI_VIEW_LABEL_PARAMS_INIT(body_p, 0, 0, SCREEN_W, 40,
-                                "flex_grow=1",
-                                EGUI_CONFIG_FONT_DEFAULT,
-                                EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
+    EGUI_VIEW_LABEL_PARAMS_INIT(body_p, 0, 0, SCREEN_W, 40, "flex_grow=1", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
     egui_view_label_init_with_params(EGUI_VIEW_OF(&s_body_label), core, &body_p);
     egui_view_set_flex_grow(EGUI_VIEW_OF(&s_body_label), 1);
     egui_view_set_background(EGUI_VIEW_OF(&s_body_label), EGUI_BG_OF(&s_body_bg));

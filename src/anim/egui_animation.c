@@ -475,12 +475,12 @@ void egui_animation_init(egui_animation_t *self)
     self->is_inside_animation = false;
 
 #if EGUI_CONFIG_FUNCTION_ANIM_DELAY
-    self->delay_ms       = 0;
+    self->delay_ms = 0;
     self->is_delay_passed = 1;
 #endif
 
 #if EGUI_CONFIG_FUNCTION_ANIM_COMPLETE_CB
-    self->on_complete_cb        = NULL;
+    self->on_complete_cb = NULL;
     self->on_complete_user_data = NULL;
 #endif
 }
@@ -488,7 +488,8 @@ void egui_animation_init(egui_animation_t *self)
 #if EGUI_CONFIG_FUNCTION_ANIM_DELAY
 void egui_animation_set_delay(egui_animation_t *self, uint16_t delay_ms)
 {
-    if (self == NULL) return;
+    if (self == NULL)
+        return;
     self->delay_ms = delay_ms;
 }
 
@@ -503,12 +504,11 @@ uint16_t egui_animation_get_delay(egui_animation_t *self)
 #endif
 
 #if EGUI_CONFIG_FUNCTION_ANIM_COMPLETE_CB
-void egui_animation_set_on_complete(egui_animation_t *self,
-                                    egui_animation_on_complete_cb_t cb,
-                                    void *user_data)
+void egui_animation_set_on_complete(egui_animation_t *self, egui_animation_on_complete_cb_t cb, void *user_data)
 {
-    if (self == NULL) return;
-    self->on_complete_cb        = cb;
+    if (self == NULL)
+        return;
+    self->on_complete_cb = cb;
     self->on_complete_user_data = user_data;
 }
 #endif

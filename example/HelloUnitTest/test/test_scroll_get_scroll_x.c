@@ -6,7 +6,7 @@
 #include "test_scroll_get_scroll_x.h"
 
 static egui_view_scroll_t s_scroll;
-static egui_view_group_t  s_parent;
+static egui_view_group_t s_parent;
 
 static void setup(void)
 {

@@ -55,7 +55,8 @@ struct egui_view_scroll
 #if EGUI_CONFIG_FUNCTION_SCROLL_LISTENER
     /** Callback invoked each time the scroll position changes.
      *  @param self   The scroll view.
-     *  @param scroll_y  Current scroll offset in pixels from the top (0 = at top). */
+     *  @param scroll_y  Current scroll offset in pixels
+     * from the top (0 = at top). */
     egui_view_scroll_listener_t on_scroll;
 #endif
 
@@ -120,7 +121,8 @@ egui_dim_t egui_view_scroll_get_snap_interval_y(egui_view_t *self);
 
 #if EGUI_CONFIG_FUNCTION_SCROLL_LISTENER
 /** Register a callback fired each time the scroll position changes.
- *  The callback receives the current scroll offset in pixels from the top (0 = fully scrolled to top). */
+ *  The callback receives the current scroll offset in pixels from the top (0 = fully
+ * scrolled to top). */
 void egui_view_scroll_set_on_scroll_listener(egui_view_t *self, egui_view_scroll_listener_t cb);
 /** Return the callback fired each time the scroll position changes. */
 egui_view_scroll_listener_t egui_view_scroll_get_on_scroll_listener(egui_view_t *self);

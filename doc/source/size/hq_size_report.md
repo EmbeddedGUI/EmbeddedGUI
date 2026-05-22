@@ -1,7 +1,7 @@
-﻿# HQ Path QEMU Size Report
+# HQ Path QEMU Size Report
 
-- Commit: `09190fa`
-- Date: 2026-04-02T11:15:06.888554
+- Commit: `1fe189eb`
+- Date: 2026-05-21T16:01:31.525244
 - Build target: `APP=HelloSizeAnalysis APP_SUB=hq_path_probe PORT=qemu CPU_ARCH=cortex-m0plus`
 - Measurement method: build `HelloSizeAnalysis/hq_path_probe` baseline, then rewrite the app-local probe config header to force-link a single HQ path into the final ELF.
 - Report scope: isolated static link delta only. This report does not include runtime heap/stack because the HQ geometry paths themselves do not allocate heap.
@@ -21,78 +21,94 @@
 
 | Variant | Text | Rodata | Data | Bss | Total ROM |
 |---------|------|--------|------|-----|-----------|
-| Baseline | 21988 | 7100 | 84 | 6148 | 29088 |
+| Baseline | 27032 | 7504 | 1392 | 6612 | 34536 |
 
 ## Increment Summary
 
 | Path | Delta Text | Delta Rodata | Delta Data | Delta Bss | Delta ROM |
 |------|-----------:|-------------:|-----------:|----------:|----------:|
-| LINE_HQ | +15128 | +72 | +0 | +8 | +15200 |
-| CIRCLE_HQ | +15128 | +72 | +0 | +8 | +15200 |
-| ARC_HQ | +15128 | +72 | +0 | +8 | +15200 |
-| ARC_ROUND_CAP_HQ | +12580 | +808 | +0 | +8 | +13388 |
-| ALL_HQ | +12580 | +808 | +0 | +8 | +13388 |
+| LINE_HQ | +12396 | +68 | +0 | +4 | +12464 |
+| CIRCLE_HQ | +2828 | +36 | +0 | +4 | +2864 |
+| ARC_HQ | +8372 | +764 | +0 | +4 | +9136 |
+| ARC_ROUND_CAP_HQ | +10640 | +804 | +0 | +4 | +11444 |
+| ALL_HQ | +20988 | +796 | +0 | +4 | +21784 |
 
 ## Detailed Variants
 
 | Variant | Probe Config | Text | Rodata | Data | Bss | Total ROM |
 |---------|-------------------|-----:|-------:|-----:|----:|----------:|
-| Baseline | `(none)` | 21988 | 7100 | 84 | 6148 | 29088 |
-| LINE_HQ | `-DEGUI_SIZE_PROBE_LINK_LINE_HQ=1` | 37116 | 7172 | 84 | 6156 | 44288 |
-| CIRCLE_HQ | `-DEGUI_SIZE_PROBE_LINK_CIRCLE_HQ=1` | 37116 | 7172 | 84 | 6156 | 44288 |
-| ARC_HQ | `-DEGUI_SIZE_PROBE_LINK_ARC_HQ=1` | 37116 | 7172 | 84 | 6156 | 44288 |
-| ARC_ROUND_CAP_HQ | `-DEGUI_SIZE_PROBE_LINK_ARC_ROUND_CAP_HQ=1` | 34568 | 7908 | 84 | 6156 | 42476 |
-| ALL_HQ | `-DEGUI_SIZE_PROBE_LINK_LINE_HQ=1 -DEGUI_SIZE_PROBE_LINK_CIRCLE_HQ=1 -DEGUI_SIZE_PROBE_LINK_ARC_HQ=1` | 34568 | 7908 | 84 | 6156 | 42476 |
+| Baseline | `(none)` | 27032 | 7504 | 1392 | 6612 | 34536 |
+| LINE_HQ | `-DEGUI_SIZE_PROBE_LINK_LINE_HQ=1` | 39428 | 7572 | 1392 | 6616 | 47000 |
+| CIRCLE_HQ | `-DEGUI_SIZE_PROBE_LINK_CIRCLE_HQ=1` | 29860 | 7540 | 1392 | 6616 | 37400 |
+| ARC_HQ | `-DEGUI_SIZE_PROBE_LINK_ARC_HQ=1` | 35404 | 8268 | 1392 | 6616 | 43672 |
+| ARC_ROUND_CAP_HQ | `-DEGUI_SIZE_PROBE_LINK_ARC_ROUND_CAP_HQ=1` | 37672 | 8308 | 1392 | 6616 | 45980 |
+| ALL_HQ | `-DEGUI_SIZE_PROBE_LINK_LINE_HQ=1 -DEGUI_SIZE_PROBE_LINK_CIRCLE_HQ=1 -DEGUI_SIZE_PROBE_LINK_ARC_HQ=1` | 48020 | 8300 | 1392 | 6616 | 56320 |
 
 ## Linked Symbol Breakdown
 
 ### LINE_HQ
 
 - Description: Force link the line/polyline HQ path only.
-- Symbol text total: 2700 bytes
+- Symbol text total: 3636 bytes
 
 | Symbol | Size (bytes) | Type |
 |--------|-------------:|------|
-| `egui_canvas_draw_line_hq` | 1372 | `T` |
-| `egui_canvas_draw_line_round_cap_hq` | 1284 | `T` |
-| `egui_canvas_draw_polyline_hq` | 22 | `T` |
-| `egui_canvas_draw_polyline_round_cap_hq` | 22 | `T` |
+| `egui_canvas_draw_line_hq` | 2024 | `T` |
+| `egui_canvas_draw_line_round_cap_hq` | 1552 | `T` |
+| `egui_canvas_draw_polyline_hq` | 30 | `T` |
+| `egui_canvas_draw_polyline_round_cap_hq` | 30 | `T` |
 
 ### CIRCLE_HQ
 
 - Description: Force link the circle HQ path only.
-- Symbol text total: 3404 bytes
+- Symbol text total: 2708 bytes
 
 | Symbol | Size (bytes) | Type |
 |--------|-------------:|------|
-| `egui_canvas_draw_circle_fill_hq` | 3404 | `T` |
+| `egui_canvas_draw_circle_fill_hq` | 1744 | `T` |
+| `egui_canvas_draw_circle_hq` | 964 | `T` |
+
+### ARC_HQ
+
+- Description: Force link the arc HQ path only. Round-cap arc is excluded to avoid double counting line/circle dependencies.
+- Symbol text total: 1132 bytes
+
+| Symbol | Size (bytes) | Type |
+|--------|-------------:|------|
+| `egui_canvas_draw_arc_fill_hq` | 624 | `T` |
+| `egui_canvas_draw_arc_hq` | 508 | `T` |
 
 ### ARC_ROUND_CAP_HQ
 
 - Description: Force link the round-cap arc helper used by widgets like activity_ring.
-- Symbol text total: 4256 bytes
+- Symbol text total: 2668 bytes
 
 | Symbol | Size (bytes) | Type |
 |--------|-------------:|------|
-| `egui_canvas_draw_circle_fill_hq` | 3404 | `T` |
-| `egui_canvas_draw_arc_hq` | 480 | `T` |
-| `egui_canvas_draw_arc_round_cap_hq` | 372 | `T` |
+| `egui_canvas_draw_circle_fill_hq` | 1744 | `T` |
+| `egui_canvas_draw_arc_hq` | 508 | `T` |
+| `egui_canvas_draw_arc_round_cap_hq` | 416 | `T` |
 
 ### ALL_HQ
 
 - Description: Force link the three core HQ paths together.
-- Symbol text total: 4480 bytes
+- Symbol text total: 7476 bytes
 
 | Symbol | Size (bytes) | Type |
 |--------|-------------:|------|
-| `egui_canvas_draw_circle_fill_hq` | 3404 | `T` |
-| `egui_canvas_draw_arc_fill_hq` | 596 | `T` |
-| `egui_canvas_draw_arc_hq` | 480 | `T` |
+| `egui_canvas_draw_line_hq` | 2024 | `T` |
+| `egui_canvas_draw_circle_fill_hq` | 1744 | `T` |
+| `egui_canvas_draw_line_round_cap_hq` | 1552 | `T` |
+| `egui_canvas_draw_circle_hq` | 964 | `T` |
+| `egui_canvas_draw_arc_fill_hq` | 624 | `T` |
+| `egui_canvas_draw_arc_hq` | 508 | `T` |
+| `egui_canvas_draw_polyline_hq` | 30 | `T` |
+| `egui_canvas_draw_polyline_round_cap_hq` | 30 | `T` |
 
 ## Reproduce
 
 ```bash
-python scripts/size_analysis/hq_size_to_doc.py
+python scripts/size_analysis/main.py hq-size-to-doc
 ```
 
 The raw JSON is written to `output/hq_size_results.json`.

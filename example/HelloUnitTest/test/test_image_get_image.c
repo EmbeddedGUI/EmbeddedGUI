@@ -7,12 +7,12 @@
 #include "test_image_get_image.h"
 
 static egui_view_image_t s_img;
-static egui_image_t      s_img_resource;
+static egui_image_t s_img_resource;
 
 static void setup(void)
 {
     egui_core_t *core = uicode_get_core();
-    memset(&s_img,          0, sizeof(s_img));
+    memset(&s_img, 0, sizeof(s_img));
     memset(&s_img_resource, 0, sizeof(s_img_resource));
     egui_view_image_init(EGUI_VIEW_OF(&s_img), core);
 }
@@ -32,8 +32,7 @@ static void test_image_get_image_after_set(void)
 {
     setup();
     egui_view_image_set_image(EGUI_VIEW_OF(&s_img), &s_img_resource);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(uintptr_t)&s_img_resource,
-                               (int)(uintptr_t)egui_view_image_get_image(EGUI_VIEW_OF(&s_img)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(uintptr_t)&s_img_resource, (int)(uintptr_t)egui_view_image_get_image(EGUI_VIEW_OF(&s_img)));
 }
 
 /* set_image(NULL) clears the image pointer. */

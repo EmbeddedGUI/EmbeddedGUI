@@ -6,7 +6,7 @@
 #include "test_progress_bar_get.h"
 
 static egui_view_progress_bar_t s_bar;
-static egui_view_group_t        s_parent;
+static egui_view_group_t s_parent;
 
 static void setup(void)
 {

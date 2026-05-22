@@ -6,19 +6,19 @@
 #include "test_animated_image_get_state.h"
 
 static egui_view_animated_image_t s_anim_img;
-static egui_image_t               s_frame0;
-static egui_image_t               s_frame1;
-static egui_image_t               s_frame2;
-static const egui_image_t        *s_frames[3];
+static egui_image_t s_frame0;
+static egui_image_t s_frame1;
+static egui_image_t s_frame2;
+static const egui_image_t *s_frames[3];
 
 static void setup(void)
 {
     egui_core_t *core = uicode_get_core();
 
     memset(&s_anim_img, 0, sizeof(s_anim_img));
-    memset(&s_frame0,   0, sizeof(s_frame0));
-    memset(&s_frame1,   0, sizeof(s_frame1));
-    memset(&s_frame2,   0, sizeof(s_frame2));
+    memset(&s_frame0, 0, sizeof(s_frame0));
+    memset(&s_frame1, 0, sizeof(s_frame1));
+    memset(&s_frame2, 0, sizeof(s_frame2));
 
     s_frames[0] = &s_frame0;
     s_frames[1] = &s_frame1;

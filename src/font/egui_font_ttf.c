@@ -37,8 +37,7 @@
  * _Static_assert is a C11 extension; guard it to avoid warnings in strict
  * C99 builds.  If this fires, increase EGUI_FONT_TTF_STB_INFO_OPAQUE_SIZE. */
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-_Static_assert(sizeof(stbtt_fontinfo) <= EGUI_FONT_TTF_STB_INFO_OPAQUE_SIZE,
-               "Increase EGUI_FONT_TTF_STB_INFO_OPAQUE_SIZE to fit stbtt_fontinfo");
+_Static_assert(sizeof(stbtt_fontinfo) <= EGUI_FONT_TTF_STB_INFO_OPAQUE_SIZE, "Increase EGUI_FONT_TTF_STB_INFO_OPAQUE_SIZE to fit stbtt_fontinfo");
 #endif
 
 /* ------------------------------------------------------------------ */
@@ -72,8 +71,8 @@ static egui_font_ttf_glyph_t *priv_find_cached(egui_font_ttf_t *f, uint32_t cp)
  */
 static egui_font_ttf_glyph_t *priv_rasterize(egui_font_ttf_t *f, uint32_t cp)
 {
-    stbtt_fontinfo *info  = priv_info(f);
-    float           scale = stbtt_ScaleForPixelHeight(info, (float)f->pixel_height);
+    stbtt_fontinfo *info = priv_info(f);
+    float scale = stbtt_ScaleForPixelHeight(info, (float)f->pixel_height);
 
     int glyph_idx = stbtt_FindGlyphIndex(info, (int)cp);
     if (glyph_idx == 0)
@@ -91,18 +90,16 @@ static egui_font_ttf_glyph_t *priv_rasterize(egui_font_ttf_t *f, uint32_t cp)
     int bh = by1 - by0;
 
     /* Evict the oldest slot (ring buffer). */
-    int slot       = (int)f->_cache_next;
+    int slot = (int)f->_cache_next;
     f->_cache_next = (uint8_t)((slot + 1) % EGUI_CONFIG_FONT_TTF_GLYPH_CACHE_SLOTS);
 
     egui_font_ttf_glyph_t *g = &f->_cache[slot];
-    g->codepoint  = cp;
+    g->codepoint = cp;
     g->advance_px = advance_px;
-    g->x0         = bx0;
-    g->y0         = by0;
+    g->x0 = bx0;
+    g->y0 = by0;
 
-    if (bw <= 0 || bh <= 0 ||
-        bw > EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_W ||
-        bh > EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_H)
+    if (bw <= 0 || bh <= 0 || bw > EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_W || bh > EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_H)
     {
         /* Whitespace or oversized glyph – cache metrics only, no bitmap. */
         g->bw = 0;
@@ -163,27 +160,26 @@ static void priv_encode_utf8(uint32_t cp, char out[5])
 /* vtable implementations                                              */
 /* ------------------------------------------------------------------ */
 
-static int egui_font_ttf_draw_string(const egui_font_t *self, egui_canvas_t *canvas,
-                                     const void *string, egui_dim_t x, egui_dim_t y,
-                                     egui_color_t color, egui_alpha_t alpha)
+static int egui_font_ttf_draw_string(const egui_font_t *self, egui_canvas_t *canvas, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                                     egui_alpha_t alpha)
 {
     egui_font_ttf_t *font = (egui_font_ttf_t *)self;
-    const char      *s   = (const char *)string;
+    const char *s = (const char *)string;
 
     if (!font->initialized || s == NULL || canvas == NULL)
     {
         return 0;
     }
 
-    stbtt_fontinfo *info  = priv_info(font);
-    float           scale = stbtt_ScaleForPixelHeight(info, (float)font->pixel_height);
+    stbtt_fontinfo *info = priv_info(font);
+    float scale = stbtt_ScaleForPixelHeight(info, (float)font->pixel_height);
 
     /* y is the top of the cell; derive baseline. */
     int ascent_raw;
     stbtt_GetFontVMetrics(info, &ascent_raw, NULL, NULL);
     int baseline = y + (int)(ascent_raw * scale + 0.5f);
 
-    int draw_x   = (int)x;
+    int draw_x = (int)x;
     int char_cnt = 0;
 
     while (*s != '\0')
@@ -210,11 +206,8 @@ static int egui_font_ttf_draw_string(const egui_font_t *self, egui_canvas_t *can
                 char ch_str[5];
                 priv_encode_utf8(cp, ch_str);
                 egui_dim_t fw = 0, fh = 0;
-                font->fallback->api->get_str_size(font->fallback, ch_str,
-                                                  0, 0, &fw, &fh);
-                font->fallback->api->draw_string(font->fallback, canvas,
-                                                 ch_str, (egui_dim_t)draw_x, y,
-                                                 color, alpha);
+                font->fallback->api->get_str_size(font->fallback, ch_str, 0, 0, &fw, &fh);
+                font->fallback->api->draw_string(font->fallback, canvas, ch_str, (egui_dim_t)draw_x, y, color, alpha);
                 draw_x += (int)fw;
             }
             else
@@ -236,14 +229,8 @@ static int egui_font_ttf_draw_string(const egui_font_t *self, egui_canvas_t *can
                         uint8_t bval = g->bitmap[gy * g->bw + gx];
                         if (bval > 0)
                         {
-                            egui_alpha_t pa =
-                                (egui_alpha_t)((uint32_t)bval *
-                                               (uint32_t)alpha / 255u);
-                            egui_canvas_draw_point(
-                                canvas,
-                                (egui_dim_t)(draw_x + g->x0 + gx),
-                                (egui_dim_t)(baseline + g->y0 + gy),
-                                color, pa);
+                            egui_alpha_t pa = (egui_alpha_t)((uint32_t)bval * (uint32_t)alpha / 255u);
+                            egui_canvas_draw_point(canvas, (egui_dim_t)(draw_x + g->x0 + gx), (egui_dim_t)(baseline + g->y0 + gy), color, pa);
                         }
                     }
                 }
@@ -258,23 +245,24 @@ static int egui_font_ttf_draw_string(const egui_font_t *self, egui_canvas_t *can
     return char_cnt;
 }
 
-static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *string,
-                                      uint8_t is_multi_line, egui_dim_t line_space,
-                                      egui_dim_t *width, egui_dim_t *height)
+static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width,
+                                      egui_dim_t *height)
 {
     egui_font_ttf_t *font = (egui_font_ttf_t *)self;
-    const char      *s   = (const char *)string;
+    const char *s = (const char *)string;
 
-    if (width  != NULL) *width  = 0;
-    if (height != NULL) *height = 0;
+    if (width != NULL)
+        *width = 0;
+    if (height != NULL)
+        *height = 0;
 
     if (!font->initialized || s == NULL)
     {
         return 0;
     }
 
-    stbtt_fontinfo *info  = priv_info(font);
-    float           scale = stbtt_ScaleForPixelHeight(info, (float)font->pixel_height);
+    stbtt_fontinfo *info = priv_info(font);
+    float scale = stbtt_ScaleForPixelHeight(info, (float)font->pixel_height);
 
     int ascent_raw, descent_raw;
     stbtt_GetFontVMetrics(info, &ascent_raw, &descent_raw, NULL);
@@ -285,8 +273,8 @@ static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *strin
     }
 
     int total_w = 0;
-    int cur_w   = 0;
-    int lines   = 1;
+    int cur_w = 0;
+    int lines = 1;
 
     while (*s != '\0')
     {
@@ -302,7 +290,8 @@ static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *strin
         {
             if (is_multi_line)
             {
-                if (cur_w > total_w) total_w = cur_w;
+                if (cur_w > total_w)
+                    total_w = cur_w;
                 cur_w = 0;
                 lines++;
             }
@@ -322,8 +311,7 @@ static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *strin
             char ch_str[5];
             priv_encode_utf8(cp, ch_str);
             egui_dim_t fw = 0, fh = 0;
-            font->fallback->api->get_str_size(font->fallback, ch_str,
-                                              0, 0, &fw, &fh);
+            font->fallback->api->get_str_size(font->fallback, ch_str, 0, 0, &fw, &fh);
             adv_px = (int)fw;
         }
         else
@@ -333,9 +321,11 @@ static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *strin
         cur_w += adv_px;
     }
 
-    if (cur_w > total_w) total_w = cur_w;
+    if (cur_w > total_w)
+        total_w = cur_w;
 
-    if (width  != NULL) *width  = (egui_dim_t)total_w;
+    if (width != NULL)
+        *width = (egui_dim_t)total_w;
     if (height != NULL)
     {
         int total_h = lines * line_h;
@@ -353,18 +343,15 @@ static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *strin
 /* ------------------------------------------------------------------ */
 
 const egui_font_api_t egui_font_ttf_t_api_table = {
-    .draw_string  = egui_font_ttf_draw_string,
-    .get_str_size = egui_font_ttf_get_str_size,
+        .draw_string = egui_font_ttf_draw_string,
+        .get_str_size = egui_font_ttf_get_str_size,
 };
 
 /* ------------------------------------------------------------------ */
 /* Public API                                                          */
 /* ------------------------------------------------------------------ */
 
-int egui_font_ttf_init(egui_font_ttf_t *self,
-                       const uint8_t   *ttf_data,
-                       uint32_t         ttf_size,
-                       uint16_t         pixel_height)
+int egui_font_ttf_init(egui_font_ttf_t *self, const uint8_t *ttf_data, uint32_t ttf_size, uint16_t pixel_height)
 {
     if (self == NULL || ttf_data == NULL || ttf_size == 0 || pixel_height == 0)
     {
@@ -372,14 +359,14 @@ int egui_font_ttf_init(egui_font_ttf_t *self,
     }
 
     memset(self, 0, sizeof(*self));
-    self->base.api    = &egui_font_ttf_t_api_table;
-    self->base.res    = (const void *)ttf_data;
-    self->ttf_data    = ttf_data;
-    self->ttf_size    = ttf_size;
+    self->base.api = &egui_font_ttf_t_api_table;
+    self->base.res = (const void *)ttf_data;
+    self->ttf_data = ttf_data;
+    self->ttf_size = ttf_size;
     self->pixel_height = pixel_height;
 
-    stbtt_fontinfo *info   = priv_info(self);
-    int             offset = stbtt_GetFontOffsetForIndex(ttf_data, 0);
+    stbtt_fontinfo *info = priv_info(self);
+    int offset = stbtt_GetFontOffsetForIndex(ttf_data, 0);
     if (offset < 0)
     {
         return -1;

@@ -12,7 +12,7 @@ void egui_animation_timeline_init(egui_animation_timeline_t *self)
     self->count = 0;
     for (i = 0; i < EGUI_CONFIG_ANIM_TIMELINE_MAX_ENTRIES; i++)
     {
-        self->entries[i].anim     = NULL;
+        self->entries[i].anim = NULL;
         self->entries[i].start_ms = 0;
     }
 }
@@ -27,7 +27,7 @@ void egui_animation_timeline_add(egui_animation_timeline_t *self, egui_animation
     {
         return; /* Timeline is full; silently ignore. */
     }
-    self->entries[self->count].anim     = anim;
+    self->entries[self->count].anim = anim;
     self->entries[self->count].start_ms = start_ms;
     self->count++;
 }
@@ -70,7 +70,7 @@ void egui_animation_timeline_stop(egui_animation_timeline_t *self)
 uint32_t egui_animation_timeline_get_duration(egui_animation_timeline_t *self)
 {
     uint32_t max_end = 0;
-    uint8_t  i;
+    uint8_t i;
 
     if (self == NULL)
     {

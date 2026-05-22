@@ -16,8 +16,8 @@ extern "C" {
 typedef struct egui_animation_timeline_entry egui_animation_timeline_entry_t;
 struct egui_animation_timeline_entry
 {
-    egui_animation_t *anim;     /**< Pointer to the animation to control. NULL entries are skipped. */
-    uint16_t          start_ms; /**< Milliseconds after timeline_start() at which this animation begins. */
+    egui_animation_t *anim; /**< Pointer to the animation to control. NULL entries are skipped. */
+    uint16_t start_ms;      /**< Milliseconds after timeline_start() at which this animation begins. */
 };
 
 /**

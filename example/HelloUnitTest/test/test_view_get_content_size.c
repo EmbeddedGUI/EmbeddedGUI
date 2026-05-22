@@ -20,7 +20,7 @@ static void test_view_content_size_no_padding(void)
     setup();
     egui_view_set_size(&s_view, 100, 80);
     EGUI_TEST_ASSERT_EQUAL_INT(100, (int)egui_view_get_content_width(&s_view));
-    EGUI_TEST_ASSERT_EQUAL_INT(80,  (int)egui_view_get_content_height(&s_view));
+    EGUI_TEST_ASSERT_EQUAL_INT(80, (int)egui_view_get_content_height(&s_view));
 }
 
 /* With padding: content size is reduced by pad amounts. */

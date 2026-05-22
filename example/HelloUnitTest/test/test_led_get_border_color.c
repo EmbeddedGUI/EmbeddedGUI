@@ -18,8 +18,7 @@ static void setup(void)
 static void test_led_get_border_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_BORDER.full,
-                               (int)egui_view_led_get_border_color(EGUI_VIEW_OF(&s_led)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_BORDER.full, (int)egui_view_led_get_border_color(EGUI_VIEW_OF(&s_led)).full);
 }
 
 /* After assigning border_color, getter returns the same color. */
@@ -29,8 +28,7 @@ static void test_led_get_border_color_after_set(void)
     c.full = 0xAABBCCu;
     setup();
     s_led.border_color = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_led_get_border_color(EGUI_VIEW_OF(&s_led)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_led_get_border_color(EGUI_VIEW_OF(&s_led)).full);
 }
 
 /* Updating border_color reflects in the getter. */
@@ -41,11 +39,9 @@ static void test_led_get_border_color_update(void)
     c2.full = 0xDDEEFFu;
     setup();
     s_led.border_color = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_led_get_border_color(EGUI_VIEW_OF(&s_led)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_led_get_border_color(EGUI_VIEW_OF(&s_led)).full);
     s_led.border_color = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_led_get_border_color(EGUI_VIEW_OF(&s_led)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_led_get_border_color(EGUI_VIEW_OF(&s_led)).full);
 }
 
 /* NULL self returns zeroed color without crash. */

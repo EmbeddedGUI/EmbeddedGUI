@@ -11,9 +11,7 @@ static egui_view_group_t s_anim_parent;
 static int s_complete_called;
 static egui_animation_t *s_complete_self;
 
-static const egui_animation_translate_params_t s_translate_params = {
-    .from_x = 0, .to_x = 50, .from_y = 0, .to_y = 0
-};
+static const egui_animation_translate_params_t s_translate_params = {.from_x = 0, .to_x = 50, .from_y = 0, .to_y = 0};
 
 static void setup_anim_with_view(void)
 {

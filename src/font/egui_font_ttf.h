@@ -12,7 +12,7 @@
  *   #define EGUI_CONFIG_FUNCTION_FONT_TTF 1
  *
  * Cache capacity and maximum glyph bitmap dimensions are tunable at compile
- * time via egui_config_widget_default.h (or per-app overrides):
+ * time via egui_config_font_default.h (or per-app overrides):
  *
  *   EGUI_CONFIG_FONT_TTF_GLYPH_CACHE_SLOTS    – number of cached glyphs
  *   EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_W   – max glyph width  (pixels)
@@ -55,15 +55,14 @@ extern "C" {
 typedef struct egui_font_ttf_glyph egui_font_ttf_glyph_t;
 struct egui_font_ttf_glyph
 {
-    uint32_t codepoint;  /**< Unicode codepoint.  0 = empty slot. */
-    int      advance_px; /**< Horizontal advance in pixels. */
-    int      x0;         /**< Bitmap x-offset relative to pen position. */
-    int      y0;         /**< Bitmap y-offset relative to baseline. */
-    int      bw;         /**< Bitmap width  in pixels (0 for whitespace). */
-    int      bh;         /**< Bitmap height in pixels (0 for whitespace). */
+    uint32_t codepoint; /**< Unicode codepoint.  0 = empty slot. */
+    int advance_px;     /**< Horizontal advance in pixels. */
+    int x0;             /**< Bitmap x-offset relative to pen position. */
+    int y0;             /**< Bitmap y-offset relative to baseline. */
+    int bw;             /**< Bitmap width  in pixels (0 for whitespace). */
+    int bh;             /**< Bitmap height in pixels (0 for whitespace). */
     /** 8-bit grayscale alpha bitmap, row-major (bw * bh bytes used). */
-    uint8_t bitmap[EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_W *
-                   EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_H];
+    uint8_t bitmap[EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_W * EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_H];
 };
 
 /* ------------------------------------------------------------------ */
@@ -76,12 +75,12 @@ struct egui_font_ttf
 {
     egui_font_t base; /**< Must be first – cast-compatible with egui_font_t. */
 
-    const uint8_t     *ttf_data;    /**< Pointer to TTF binary (must outlive this font). */
-    uint32_t           ttf_size;    /**< Byte size of ttf_data. */
-    uint16_t           pixel_height;/**< Rendered font size in pixels. */
-    const egui_font_t *fallback;    /**< Optional: font used when TTF lacks a glyph. */
-    uint8_t            initialized; /**< Non-zero after successful egui_font_ttf_init(). */
-    uint8_t            _cache_next; /**< Ring-eviction write pointer. */
+    const uint8_t *ttf_data;     /**< Pointer to TTF binary (must outlive this font). */
+    uint32_t ttf_size;           /**< Byte size of ttf_data. */
+    uint16_t pixel_height;       /**< Rendered font size in pixels. */
+    const egui_font_t *fallback; /**< Optional: font used when TTF lacks a glyph. */
+    uint8_t initialized;         /**< Non-zero after successful egui_font_ttf_init(). */
+    uint8_t _cache_next;         /**< Ring-eviction write pointer. */
 
     /** Opaque storage for stbtt_fontinfo (avoids exposing stb_truetype header). */
     uint8_t _stb_info_opaque[EGUI_FONT_TTF_STB_INFO_OPAQUE_SIZE];
@@ -106,10 +105,7 @@ struct egui_font_ttf
  *
  * @return  0 on success, -1 if args are invalid or TTF cannot be parsed.
  */
-int egui_font_ttf_init(egui_font_ttf_t *self,
-                       const uint8_t   *ttf_data,
-                       uint32_t         ttf_size,
-                       uint16_t         pixel_height);
+int egui_font_ttf_init(egui_font_ttf_t *self, const uint8_t *ttf_data, uint32_t ttf_size, uint16_t pixel_height);
 
 /**
  * Attach a fallback font for glyphs absent from the TTF.

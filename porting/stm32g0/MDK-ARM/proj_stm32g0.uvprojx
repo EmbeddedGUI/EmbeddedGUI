@@ -525,9 +525,19 @@
               <FilePath>..\..\..\src\anim\egui_animation_set.c</FilePath>
             </File>
             <File>
+              <FileName>egui_animation_timeline.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\anim\egui_animation_timeline.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_animation_translate.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\anim\egui_animation_translate.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_animation_value.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\anim\egui_animation_value.c</FilePath>
             </File>
             <File>
               <FileName>egui_interpolator.c</FileName>
@@ -580,6 +590,11 @@
               <FilePath>..\..\..\src\anim\egui_interpolator_overshoot.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_fade.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\anim\egui_view_fade.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_activity.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\app\egui_activity.c</FilePath>
@@ -588,6 +603,11 @@
               <FileName>egui_dialog.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\app\egui_dialog.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_msgbox.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\app\egui_msgbox.c</FilePath>
             </File>
             <File>
               <FileName>egui_page_base.c</FileName>
@@ -745,9 +765,24 @@
               <FilePath>..\..\..\src\core\egui_display_driver.c</FilePath>
             </File>
             <File>
+              <FileName>egui_encoder_driver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_encoder_driver.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_event.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_event.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_focus.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_focus.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_focus_group.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_focus_group.c</FilePath>
             </File>
             <File>
               <FileName>egui_input.c</FileName>
@@ -790,6 +825,11 @@
               <FilePath>..\..\..\src\core\egui_scroller.c</FilePath>
             </File>
             <File>
+              <FileName>egui_subject.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_subject.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_timer.c</FilePath>
@@ -823,6 +863,11 @@
               <FileName>egui_font_std.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\font\egui_font_std.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_font_ttf.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\font\egui_font_ttf.c</FilePath>
             </File>
             <File>
               <FileName>egui_image.c</FileName>
@@ -1070,6 +1115,11 @@
               <FilePath>..\..\..\src\utils\simple_ringbuffer\simple_ringbuffer.c</FilePath>
             </File>
             <File>
+              <FileName>egui_property.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_property.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view.c</FilePath>
@@ -1203,6 +1253,11 @@
               <FileName>egui_view_dynamic_label.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_dynamic_label.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_flexlayout.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_flexlayout.c</FilePath>
             </File>
             <File>
               <FileName>egui_view_gauge.c</FileName>

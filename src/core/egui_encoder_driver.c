@@ -52,7 +52,7 @@ void egui_encoder_polling_work(egui_core_t *core)
     }
 
     delta = 0;
-    btn   = 0;
+    btn = 0;
     if (drv->ops->read(drv->user_data, &delta, &btn) != 0)
     {
         return; /* hardware read error – skip this poll */
@@ -64,7 +64,7 @@ void egui_encoder_polling_work(egui_core_t *core)
         for (i = 0; i < delta; i++)
         {
             egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_RIGHT, 0, 0);
-            egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_UP,   EGUI_KEY_CODE_RIGHT, 0, 0);
+            egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_RIGHT, 0, 0);
         }
     }
     else if (delta < 0)
@@ -72,7 +72,7 @@ void egui_encoder_polling_work(egui_core_t *core)
         for (i = 0; i > delta; i--)
         {
             egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_LEFT, 0, 0);
-            egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_UP,   EGUI_KEY_CODE_LEFT, 0, 0);
+            egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_UP, EGUI_KEY_CODE_LEFT, 0, 0);
         }
     }
 
@@ -81,7 +81,7 @@ void egui_encoder_polling_work(egui_core_t *core)
     {
         /* press edge */
         egui_input_add_key(core, EGUI_KEY_EVENT_ACTION_DOWN, EGUI_KEY_CODE_ENTER, 0, 0);
-        drv->_press_tick      = egui_timer_get_current_time();
+        drv->_press_tick = egui_timer_get_current_time();
         drv->_long_press_sent = 0;
     }
     else if (!btn && drv->_last_button)

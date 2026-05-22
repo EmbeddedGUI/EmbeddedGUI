@@ -24,8 +24,7 @@ void egui_subject_init(egui_subject_t *subject)
     subject->count = 0;
 }
 
-int egui_subject_subscribe(egui_subject_t *subject, egui_observer_t *observer,
-                           egui_observer_callback_t callback, void *user_data)
+int egui_subject_subscribe(egui_subject_t *subject, egui_observer_t *observer, egui_observer_callback_t callback, void *user_data)
 {
     uint8_t i;
 
@@ -48,7 +47,7 @@ int egui_subject_subscribe(egui_subject_t *subject, egui_observer_t *observer,
         return -1;
     }
 
-    observer->callback  = callback;
+    observer->callback = callback;
     observer->user_data = user_data;
     subject->observers[subject->count] = observer;
     subject->count++;

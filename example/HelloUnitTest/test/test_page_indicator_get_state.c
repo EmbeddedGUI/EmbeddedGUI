@@ -6,7 +6,7 @@
 #include "test_page_indicator_get_state.h"
 
 static egui_view_page_indicator_t s_indicator;
-static const char *const          s_icons[] = {"a", "b", "c"};
+static const char *const s_icons[] = {"a", "b", "c"};
 
 static void setup(void)
 {
@@ -21,8 +21,7 @@ static void test_page_indicator_get_state_defaults(void)
     setup();
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_page_indicator_get_total_count(EGUI_VIEW_OF(&s_indicator)));
     EGUI_TEST_ASSERT_EQUAL_INT(0, (int)egui_view_page_indicator_get_current_index(EGUI_VIEW_OF(&s_indicator)));
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_DOT,
-                               (int)egui_view_page_indicator_get_mark_style(EGUI_VIEW_OF(&s_indicator)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_DOT, (int)egui_view_page_indicator_get_mark_style(EGUI_VIEW_OF(&s_indicator)));
     EGUI_TEST_ASSERT_NULL(egui_view_page_indicator_get_icons(EGUI_VIEW_OF(&s_indicator)));
     EGUI_TEST_ASSERT_NULL(egui_view_page_indicator_get_icon_font(EGUI_VIEW_OF(&s_indicator)));
 }
@@ -38,8 +37,7 @@ static void test_page_indicator_get_state_after_setters(void)
 
     EGUI_TEST_ASSERT_EQUAL_INT(3, (int)egui_view_page_indicator_get_total_count(EGUI_VIEW_OF(&s_indicator)));
     EGUI_TEST_ASSERT_EQUAL_INT(2, (int)egui_view_page_indicator_get_current_index(EGUI_VIEW_OF(&s_indicator)));
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON,
-                               (int)egui_view_page_indicator_get_mark_style(EGUI_VIEW_OF(&s_indicator)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON, (int)egui_view_page_indicator_get_mark_style(EGUI_VIEW_OF(&s_indicator)));
     EGUI_TEST_ASSERT_TRUE(egui_view_page_indicator_get_icons(EGUI_VIEW_OF(&s_indicator)) == s_icons);
     EGUI_TEST_ASSERT_TRUE(egui_view_page_indicator_get_icon_font(EGUI_VIEW_OF(&s_indicator)) == (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
 }

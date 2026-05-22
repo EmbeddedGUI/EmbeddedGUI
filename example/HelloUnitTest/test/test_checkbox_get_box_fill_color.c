@@ -17,8 +17,7 @@ static void setup(void)
 static void test_checkbox_get_box_fill_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full,
-                               (int)egui_view_checkbox_get_box_fill_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full, (int)egui_view_checkbox_get_box_fill_color(EGUI_VIEW_OF(&s_cb)).full);
 }
 
 static void test_checkbox_get_box_fill_color_after_set(void)
@@ -27,8 +26,7 @@ static void test_checkbox_get_box_fill_color_after_set(void)
     c.full = 0x112233u;
     setup();
     s_cb.box_fill_color = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_checkbox_get_box_fill_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_checkbox_get_box_fill_color(EGUI_VIEW_OF(&s_cb)).full);
 }
 
 static void test_checkbox_get_box_fill_color_update(void)
@@ -38,11 +36,9 @@ static void test_checkbox_get_box_fill_color_update(void)
     c2.full = 0x445566u;
     setup();
     s_cb.box_fill_color = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_checkbox_get_box_fill_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_checkbox_get_box_fill_color(EGUI_VIEW_OF(&s_cb)).full);
     s_cb.box_fill_color = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_checkbox_get_box_fill_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_checkbox_get_box_fill_color(EGUI_VIEW_OF(&s_cb)).full);
 }
 
 static void test_checkbox_get_box_fill_color_null_self(void)

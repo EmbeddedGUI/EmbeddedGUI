@@ -18,8 +18,7 @@ static void setup(void)
 static void test_tab_bar_get_alpha_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_ALPHA_100,
-                               (int)egui_view_tab_bar_get_alpha(EGUI_VIEW_OF(&s_tab)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_ALPHA_100, (int)egui_view_tab_bar_get_alpha(EGUI_VIEW_OF(&s_tab)));
 }
 
 /* After assigning alpha, getter returns the same value. */

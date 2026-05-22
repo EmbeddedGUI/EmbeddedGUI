@@ -20,8 +20,8 @@ static void cb_counter(egui_subject_t *subject, const void *data, void *user_dat
 {
     EGUI_UNUSED(subject);
     s_call_count++;
-    s_last_data  = data;
-    s_last_user  = user_data;
+    s_last_data = data;
+    s_last_user = user_data;
 }
 
 static void cb_counter_b(egui_subject_t *subject, const void *data, void *user_data)
@@ -46,7 +46,7 @@ static void test_subject_init_defaults(void)
 
 static void test_subject_subscribe_single(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs;
 
     egui_subject_init(&subj);
@@ -56,13 +56,13 @@ static void test_subject_subscribe_single(void)
 
 static void test_subject_notify_calls_callback(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs;
-    int             value = 42;
+    int value = 42;
 
     s_call_count = 0;
-    s_last_data  = NULL;
-    s_last_user  = NULL;
+    s_last_data = NULL;
+    s_last_user = NULL;
 
     egui_subject_init(&subj);
     egui_subject_subscribe(&subj, &obs, cb_counter, (void *)&value);
@@ -75,11 +75,11 @@ static void test_subject_notify_calls_callback(void)
 
 static void test_subject_notify_null_data(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs;
 
     s_call_count = 0;
-    s_last_data  = (const void *)1; /* non-NULL sentinel */
+    s_last_data = (const void *)1; /* non-NULL sentinel */
 
     egui_subject_init(&subj);
     egui_subject_subscribe(&subj, &obs, cb_counter, NULL);
@@ -91,14 +91,14 @@ static void test_subject_notify_null_data(void)
 
 static void test_subject_multiple_observers_ordered(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs_a;
     egui_observer_t obs_b;
 
     s_call_count = 0;
 
     egui_subject_init(&subj);
-    egui_subject_subscribe(&subj, &obs_a, cb_counter,   NULL);
+    egui_subject_subscribe(&subj, &obs_a, cb_counter, NULL);
     egui_subject_subscribe(&subj, &obs_b, cb_counter_b, NULL);
 
     egui_subject_notify(&subj, NULL);
@@ -109,7 +109,7 @@ static void test_subject_multiple_observers_ordered(void)
 
 static void test_subject_unsubscribe_removes(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs;
 
     s_call_count = 0;
@@ -125,7 +125,7 @@ static void test_subject_unsubscribe_removes(void)
 
 static void test_subject_unsubscribe_missing_returns_error(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs;
 
     egui_subject_init(&subj);
@@ -134,7 +134,7 @@ static void test_subject_unsubscribe_missing_returns_error(void)
 
 static void test_subject_unsubscribe_compacts(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs_a;
     egui_observer_t obs_b;
     egui_observer_t obs_c;
@@ -157,7 +157,7 @@ static void test_subject_unsubscribe_compacts(void)
 
 static void test_subject_clear_removes_all(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs_a;
     egui_observer_t obs_b;
 
@@ -176,7 +176,7 @@ static void test_subject_clear_removes_all(void)
 
 static void test_subject_duplicate_subscribe_rejected(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs;
 
     egui_subject_init(&subj);
@@ -187,9 +187,9 @@ static void test_subject_duplicate_subscribe_rejected(void)
 
 static void test_subject_capacity_limit(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs[EGUI_CONFIG_SUBJECT_MAX_OBSERVERS + 1];
-    int             i;
+    int i;
 
     egui_subject_init(&subj);
     for (i = 0; i < EGUI_CONFIG_SUBJECT_MAX_OBSERVERS; i++)
@@ -197,8 +197,7 @@ static void test_subject_capacity_limit(void)
         EGUI_TEST_ASSERT_EQUAL_INT(0, egui_subject_subscribe(&subj, &obs[i], cb_counter, NULL));
     }
     /* One more should fail */
-    EGUI_TEST_ASSERT_EQUAL_INT(-1, egui_subject_subscribe(&subj, &obs[EGUI_CONFIG_SUBJECT_MAX_OBSERVERS],
-                                                          cb_counter, NULL));
+    EGUI_TEST_ASSERT_EQUAL_INT(-1, egui_subject_subscribe(&subj, &obs[EGUI_CONFIG_SUBJECT_MAX_OBSERVERS], cb_counter, NULL));
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_CONFIG_SUBJECT_MAX_OBSERVERS, (int)egui_subject_observer_count(&subj));
 }
 
@@ -212,7 +211,7 @@ static void test_subject_notify_no_observers_is_safe(void)
 
 static void test_subject_null_args_safe(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs;
 
     egui_subject_init(&subj);
@@ -233,7 +232,7 @@ static void test_subject_null_args_safe(void)
 
 static void test_subject_resubscribe_after_unsubscribe(void)
 {
-    egui_subject_t  subj;
+    egui_subject_t subj;
     egui_observer_t obs;
 
     s_call_count = 0;

@@ -17,8 +17,7 @@ static void setup(void)
 static void test_switch_get_bk_color_off_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_TRACK_OFF.full,
-                               (int)egui_view_switch_get_bk_color_off(EGUI_VIEW_OF(&s_sw)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_TRACK_OFF.full, (int)egui_view_switch_get_bk_color_off(EGUI_VIEW_OF(&s_sw)).full);
 }
 
 static void test_switch_get_bk_color_off_after_set(void)
@@ -27,8 +26,7 @@ static void test_switch_get_bk_color_off_after_set(void)
     c.full = 0x778899u;
     setup();
     s_sw.bk_color_off = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_switch_get_bk_color_off(EGUI_VIEW_OF(&s_sw)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_switch_get_bk_color_off(EGUI_VIEW_OF(&s_sw)).full);
 }
 
 static void test_switch_get_bk_color_off_update(void)
@@ -38,11 +36,9 @@ static void test_switch_get_bk_color_off_update(void)
     c2.full = 0xAABBCCu;
     setup();
     s_sw.bk_color_off = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_switch_get_bk_color_off(EGUI_VIEW_OF(&s_sw)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_switch_get_bk_color_off(EGUI_VIEW_OF(&s_sw)).full);
     s_sw.bk_color_off = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_switch_get_bk_color_off(EGUI_VIEW_OF(&s_sw)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_switch_get_bk_color_off(EGUI_VIEW_OF(&s_sw)).full);
 }
 
 static void test_switch_get_bk_color_off_null_self(void)

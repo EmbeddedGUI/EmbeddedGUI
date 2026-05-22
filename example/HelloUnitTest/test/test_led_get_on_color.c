@@ -18,8 +18,7 @@ static void setup(void)
 static void test_led_get_on_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full,
-                               (int)egui_view_led_get_on_color(EGUI_VIEW_OF(&s_led)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full, (int)egui_view_led_get_on_color(EGUI_VIEW_OF(&s_led)).full);
 }
 
 /* After calling set_colors, getter returns the on_color supplied. */
@@ -30,8 +29,7 @@ static void test_led_get_on_color_after_set(void)
     c_off.full = 0x334455u;
     setup();
     egui_view_led_set_colors(EGUI_VIEW_OF(&s_led), c_on, c_off);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c_on.full,
-                               (int)egui_view_led_get_on_color(EGUI_VIEW_OF(&s_led)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c_on.full, (int)egui_view_led_get_on_color(EGUI_VIEW_OF(&s_led)).full);
 }
 
 /* Updating via set_colors reflects in the getter. */
@@ -43,11 +41,9 @@ static void test_led_get_on_color_update(void)
     c_off.full = 0x000000u;
     setup();
     egui_view_led_set_colors(EGUI_VIEW_OF(&s_led), c1, c_off);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_led_get_on_color(EGUI_VIEW_OF(&s_led)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_led_get_on_color(EGUI_VIEW_OF(&s_led)).full);
     egui_view_led_set_colors(EGUI_VIEW_OF(&s_led), c2, c_off);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_led_get_on_color(EGUI_VIEW_OF(&s_led)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_led_get_on_color(EGUI_VIEW_OF(&s_led)).full);
 }
 
 /* NULL self returns zeroed color without crash. */

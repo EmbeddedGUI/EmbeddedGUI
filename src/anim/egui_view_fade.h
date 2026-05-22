@@ -12,14 +12,15 @@ extern "C" {
 /**
  * Handle struct for one fade animation.
  * The caller is responsible for the lifetime of this object (stack or static).
- * It must remain valid until the animation finishes.
+ * It must remain valid until the
+ * animation finishes.
  */
 typedef struct egui_view_fade egui_view_fade_t;
 struct egui_view_fade
 {
-    egui_animation_alpha_t       anim;    /**< alpha animation instance */
+    egui_animation_alpha_t anim;          /**< alpha animation instance */
     egui_animation_alpha_params_t params; /**< alpha range (mutable) */
-    uint8_t                      is_fade_out : 1; /**< 1 = hide view on complete */
+    uint8_t is_fade_out : 1;              /**< 1 = hide view on complete */
 };
 
 /**
@@ -30,8 +31,7 @@ struct egui_view_fade
  * @param duration_ms  Duration of the animation in milliseconds.
  * @param delay_ms     Delay before the animation starts (requires ANIM_DELAY).
  */
-void egui_view_fade_in(egui_view_fade_t *handle, egui_view_t *view,
-                       uint16_t duration_ms, uint16_t delay_ms);
+void egui_view_fade_in(egui_view_fade_t *handle, egui_view_t *view, uint16_t duration_ms, uint16_t delay_ms);
 
 /**
  * Start a fade-out animation on @p view.
@@ -42,8 +42,7 @@ void egui_view_fade_in(egui_view_fade_t *handle, egui_view_t *view,
  * @param duration_ms  Duration of the animation in milliseconds.
  * @param delay_ms     Delay before the animation starts (requires ANIM_DELAY).
  */
-void egui_view_fade_out(egui_view_fade_t *handle, egui_view_t *view,
-                        uint16_t duration_ms, uint16_t delay_ms);
+void egui_view_fade_out(egui_view_fade_t *handle, egui_view_t *view, uint16_t duration_ms, uint16_t delay_ms);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -6,9 +6,9 @@
 #if EGUI_CONFIG_FUNCTION_FLEXLAYOUT
 
 static egui_view_flexlayout_t test_fl;
-static egui_view_t             test_child1;
-static egui_view_t             test_child2;
-static egui_view_t             test_child3;
+static egui_view_t test_child1;
+static egui_view_t test_child2;
+static egui_view_t test_child3;
 
 static egui_core_t *test_fl_get_core(void)
 {
@@ -26,11 +26,11 @@ static void test_fl_init_defaults(void)
 
     egui_view_flexlayout_t *fl = &test_fl;
 
-    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_DIRECTION_ROW,    fl->direction);
-    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_WRAP_NOWRAP,      fl->wrap);
-    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_JUSTIFY_START,    fl->justify_content);
-    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_ALIGN_STRETCH,    fl->align_items);
-    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_JUSTIFY_START,    fl->align_content);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_DIRECTION_ROW, fl->direction);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_WRAP_NOWRAP, fl->wrap);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_JUSTIFY_START, fl->justify_content);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_ALIGN_STRETCH, fl->align_items);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_FLEX_JUSTIFY_START, fl->align_content);
     EGUI_TEST_ASSERT_EQUAL_INT(0, fl->row_gap);
     EGUI_TEST_ASSERT_EQUAL_INT(0, fl->col_gap);
 }
@@ -57,7 +57,7 @@ static void test_fl_row_nowrap(void)
     egui_view_flexlayout_layout_childs(EGUI_VIEW_OF(&test_fl));
 
     /* ROW + START: children placed left-to-right */
-    EGUI_TEST_ASSERT_EQUAL_INT(0,  test_child1.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_child1.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(30, test_child2.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(70, test_child3.region.location.x);
 
@@ -87,7 +87,7 @@ static void test_fl_column_nowrap(void)
     egui_view_flexlayout_layout_childs(EGUI_VIEW_OF(&test_fl));
 
     /* COLUMN + START: children stacked top-to-bottom */
-    EGUI_TEST_ASSERT_EQUAL_INT(0,  test_child1.region.location.y);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_child1.region.location.y);
     EGUI_TEST_ASSERT_EQUAL_INT(30, test_child2.region.location.y);
     EGUI_TEST_ASSERT_EQUAL_INT(70, test_child3.region.location.y);
 
@@ -114,7 +114,7 @@ static void test_fl_justify_center(void)
     egui_view_flexlayout_layout_childs(EGUI_VIEW_OF(&test_fl));
 
     /* main_size=80, free=120, leading=60 */
-    EGUI_TEST_ASSERT_EQUAL_INT(60,  test_child1.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(60, test_child1.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(100, test_child2.region.location.x);
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_fl));
@@ -169,8 +169,8 @@ static void test_fl_justify_space_between(void)
     egui_view_flexlayout_layout_childs(EGUI_VIEW_OF(&test_fl));
 
     /* main_size=90, free=110, between=55 (110/2) */
-    EGUI_TEST_ASSERT_EQUAL_INT(0,   test_child1.region.location.x);
-    EGUI_TEST_ASSERT_EQUAL_INT(85,  test_child2.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_child1.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(85, test_child2.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(170, test_child3.region.location.x);
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_fl));
@@ -199,8 +199,8 @@ static void test_fl_justify_space_around(void)
     egui_view_flexlayout_layout_childs(EGUI_VIEW_OF(&test_fl));
 
     /* main_size=90, free=110, between=36(=110/3), leading=18(=36/2) */
-    EGUI_TEST_ASSERT_EQUAL_INT(18,  test_child1.region.location.x);
-    EGUI_TEST_ASSERT_EQUAL_INT(84,  test_child2.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(18, test_child1.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(84, test_child2.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(150, test_child3.region.location.x);
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_fl));
@@ -229,8 +229,8 @@ static void test_fl_justify_space_evenly(void)
     egui_view_flexlayout_layout_childs(EGUI_VIEW_OF(&test_fl));
 
     /* main_size=90, free=110, between=27(=110/4), leading=27 */
-    EGUI_TEST_ASSERT_EQUAL_INT(27,  test_child1.region.location.x);
-    EGUI_TEST_ASSERT_EQUAL_INT(84,  test_child2.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(27, test_child1.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(84, test_child2.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(141, test_child3.region.location.x);
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_fl));
@@ -256,7 +256,7 @@ static void test_fl_align_items_center(void)
 
     /* cross_size=60; child1 center=(60-40)/2=10; child2 center=0 */
     EGUI_TEST_ASSERT_EQUAL_INT(10, test_child1.region.location.y);
-    EGUI_TEST_ASSERT_EQUAL_INT(0,  test_child2.region.location.y);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_child2.region.location.y);
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_fl));
 }
@@ -312,7 +312,7 @@ static void test_fl_wrap(void)
     egui_view_flexlayout_layout_childs(EGUI_VIEW_OF(&test_fl));
 
     /* Each child on its own line, y-positions = 0, 30, 60 */
-    EGUI_TEST_ASSERT_EQUAL_INT(0,  test_child1.region.location.y);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_child1.region.location.y);
     EGUI_TEST_ASSERT_EQUAL_INT(30, test_child2.region.location.y);
     EGUI_TEST_ASSERT_EQUAL_INT(60, test_child3.region.location.y);
 
@@ -341,9 +341,9 @@ static void test_fl_flex_grow_single(void)
 
     /* free=100; child1 grows by 100; child1.width=150; child2 stays at 50 */
     EGUI_TEST_ASSERT_EQUAL_INT(150, test_child1.region.size.width);
-    EGUI_TEST_ASSERT_EQUAL_INT(50,  test_child2.region.size.width);
+    EGUI_TEST_ASSERT_EQUAL_INT(50, test_child2.region.size.width);
     /* positions: child1@0, child2@150 */
-    EGUI_TEST_ASSERT_EQUAL_INT(0,   test_child1.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_child1.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(150, test_child2.region.location.x);
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_fl));
@@ -371,8 +371,8 @@ static void test_fl_flex_grow_ratio(void)
 
     /* main_size=40, free=160; total_grow=3; child1+=106(=160*2/3), child2+=53(=160*1/3) */
     /* Note: integer division: 160*2/3=106, 160*1/3=53 */
-    EGUI_TEST_ASSERT_EQUAL_INT(126, test_child1.region.size.width);  /* 20+106 */
-    EGUI_TEST_ASSERT_EQUAL_INT(73,  test_child2.region.size.width);  /* 20+53 */
+    EGUI_TEST_ASSERT_EQUAL_INT(126, test_child1.region.size.width); /* 20+106 */
+    EGUI_TEST_ASSERT_EQUAL_INT(73, test_child2.region.size.width);  /* 20+53 */
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_fl));
 }
@@ -383,7 +383,7 @@ static void test_fl_gap(void)
 
     egui_view_flexlayout_init(EGUI_VIEW_OF(&test_fl), core);
     egui_view_set_size(EGUI_VIEW_OF(&test_fl), 200, 60);
-    egui_view_flexlayout_set_gap(EGUI_VIEW_OF(&test_fl), 0, 10);  /* col_gap=10 */
+    egui_view_flexlayout_set_gap(EGUI_VIEW_OF(&test_fl), 0, 10); /* col_gap=10 */
     egui_view_flexlayout_set_align_items(EGUI_VIEW_OF(&test_fl), EGUI_FLEX_ALIGN_START);
 
     egui_view_init(&test_child1, core);
@@ -397,7 +397,7 @@ static void test_fl_gap(void)
     egui_view_flexlayout_layout_childs(EGUI_VIEW_OF(&test_fl));
 
     /* ROW with col_gap=10: x[0]=0, x[1]=30+10=40 */
-    EGUI_TEST_ASSERT_EQUAL_INT(0,  test_child1.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_child1.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(40, test_child2.region.location.x);
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_fl));
@@ -426,7 +426,7 @@ static void test_fl_gone_skipped(void)
     egui_view_flexlayout_layout_childs(EGUI_VIEW_OF(&test_fl));
 
     /* child2 is gone: child3 follows child1 directly at x=30 */
-    EGUI_TEST_ASSERT_EQUAL_INT(0,  test_child1.region.location.x);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_child1.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(30, test_child3.region.location.x);
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_fl));

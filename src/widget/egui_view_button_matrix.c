@@ -218,21 +218,30 @@ void egui_view_button_matrix_set_labels(egui_view_t *self, const char **labels, 
 
 const char **egui_view_button_matrix_get_labels(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->labels;
 }
 
 uint8_t egui_view_button_matrix_get_button_count(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->btn_count;
 }
 
 uint8_t egui_view_button_matrix_get_cols(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->cols;
 }
@@ -287,7 +296,10 @@ void egui_view_button_matrix_set_selection_enabled(egui_view_t *self, uint8_t en
 
 uint8_t egui_view_button_matrix_get_selection_enabled(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->selection_enabled;
 }
@@ -327,7 +339,10 @@ void egui_view_button_matrix_set_selected_index(egui_view_t *self, uint8_t index
 /** Return the stored selected cell index, or `SELECTED_NONE`. */
 uint8_t egui_view_button_matrix_get_selected_index(egui_view_t *self)
 {
-    if (self == NULL) { return EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE; }
+    if (self == NULL)
+    {
+        return EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->selected_index;
 }
@@ -344,7 +359,10 @@ egui_color_t egui_view_button_matrix_get_btn_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->btn_color;
 }
@@ -361,7 +379,10 @@ egui_color_t egui_view_button_matrix_get_btn_pressed_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->btn_pressed_color;
 }
@@ -378,7 +399,10 @@ egui_color_t egui_view_button_matrix_get_text_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->text_color;
 }
@@ -393,7 +417,10 @@ void egui_view_button_matrix_set_gap(egui_view_t *self, uint8_t gap)
 
 uint8_t egui_view_button_matrix_get_gap(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->gap;
 }
@@ -408,7 +435,10 @@ void egui_view_button_matrix_set_corner_radius(egui_view_t *self, uint8_t radius
 
 uint8_t egui_view_button_matrix_get_corner_radius(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->corner_radius;
 }
@@ -425,7 +455,10 @@ egui_color_t egui_view_button_matrix_get_border_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->border_color;
 }
@@ -440,7 +473,10 @@ void egui_view_button_matrix_set_font(egui_view_t *self, const egui_font_t *font
 
 const egui_font_t *egui_view_button_matrix_get_font(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->font;
 }
@@ -460,7 +496,10 @@ void egui_view_button_matrix_set_icons(egui_view_t *self, const char **icons)
 
 const char **egui_view_button_matrix_get_icons(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->icons;
 }
@@ -480,7 +519,10 @@ void egui_view_button_matrix_set_icon_font(egui_view_t *self, const egui_font_t 
 
 const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->icon_font;
 }
@@ -500,7 +542,10 @@ void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap
 
 egui_dim_t egui_view_button_matrix_get_icon_text_gap(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     return local->icon_text_gap;
 }

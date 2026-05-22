@@ -28,8 +28,8 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(s_tc_bgC, &s_tc_bgC_bp);
 /* File-scope style objects                                             */
 /* ------------------------------------------------------------------ */
 
-static const egui_view_style_t s_sty_A       = EGUI_STYLE_INIT_BACKGROUND(EGUI_BG_OF(&s_tc_bgA));
-static const egui_view_style_t s_sty_B       = EGUI_STYLE_INIT_BACKGROUND(EGUI_BG_OF(&s_tc_bgB));
+static const egui_view_style_t s_sty_A = EGUI_STYLE_INIT_BACKGROUND(EGUI_BG_OF(&s_tc_bgA));
+static const egui_view_style_t s_sty_B = EGUI_STYLE_INIT_BACKGROUND(EGUI_BG_OF(&s_tc_bgB));
 static const egui_view_style_t s_sty_alpha50 = EGUI_STYLE_INIT_ALPHA(EGUI_ALPHA_50);
 static const egui_view_style_t s_sty_alpha20 = EGUI_STYLE_INIT_ALPHA(EGUI_ALPHA_20);
 
@@ -91,7 +91,7 @@ static void test_style_remove_missing(void)
     egui_view_add_style(&test_view, &s_sty_A);
 
     EGUI_TEST_ASSERT_EQUAL_INT(-1, egui_view_remove_style(&test_view, &s_sty_B));
-    EGUI_TEST_ASSERT_EQUAL_INT(1,  test_view.style_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_view.style_count);
 }
 
 static void test_style_clear(void)
@@ -149,7 +149,7 @@ static void test_style_own_alpha_wins(void)
 static void test_style_max_capacity(void)
 {
     const egui_view_style_t *caps[] = {&s_sty_cap0, &s_sty_cap1, &s_sty_cap2, &s_sty_cap3, &s_sty_cap4};
-    int                 i;
+    int i;
 
     egui_view_init(&test_view, test_style_get_core());
     for (i = 0; i < EGUI_CONFIG_STYLE_MAX_PER_VIEW; i++)

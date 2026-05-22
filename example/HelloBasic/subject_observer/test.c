@@ -22,8 +22,8 @@
 #include "uicode_disp0.h"
 #include "core/egui_subject.h"
 
-#define SCREEN_W  EGUI_CONFIG_SCREEN_WIDTH
-#define SCREEN_H  EGUI_CONFIG_SCREEN_HEIGHT
+#define SCREEN_W EGUI_CONFIG_SCREEN_WIDTH
+#define SCREEN_H EGUI_CONFIG_SCREEN_HEIGHT
 
 /* Button geometry */
 #define BTN_W     96
@@ -34,27 +34,27 @@
 #define BTN_RST_X (SCREEN_W / 2 + BTN_GAP / 2)
 
 /* Counter label geometry */
-#define CNT_X     16
-#define CNT_Y     (SCREEN_H / 2 - 42)
-#define CNT_W     (SCREEN_W - 32)
-#define CNT_H     84
+#define CNT_X 16
+#define CNT_Y (SCREEN_H / 2 - 42)
+#define CNT_W (SCREEN_W - 32)
+#define CNT_H 84
 
 /* ------------------------------------------------------------------ */
 /* Model                                                               */
 /* ------------------------------------------------------------------ */
 
-static int32_t         s_counter;
-static egui_subject_t  s_counter_subj;
+static int32_t s_counter;
+static egui_subject_t s_counter_subj;
 
 /* ------------------------------------------------------------------ */
 /* View objects                                                        */
 /* ------------------------------------------------------------------ */
 
-static egui_view_label_t  s_title_label;
-static egui_view_label_t  s_count_label;
+static egui_view_label_t s_title_label;
+static egui_view_label_t s_count_label;
 static egui_view_button_t s_btn_inc;
 static egui_view_button_t s_btn_reset;
-static egui_view_group_t  s_root;
+static egui_view_group_t s_root;
 
 /* Dynamic text buffer for the counter display */
 static char s_count_buf[24];
@@ -66,20 +66,16 @@ static egui_observer_t s_count_observer;
 /* Static param blocks (compile-time only)                             */
 /* ------------------------------------------------------------------ */
 
-EGUI_VIEW_LABEL_PARAMS_INIT(s_title_params, 0, 8, SCREEN_W, 36,
-                            "Subject-Observer Demo",
-                            EGUI_CONFIG_FONT_DEFAULT,
-                            EGUI_THEME_PRIMARY_DARK, EGUI_ALPHA_100);
+EGUI_VIEW_LABEL_PARAMS_INIT(s_title_params, 0, 8, SCREEN_W, 36, "Subject-Observer Demo", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_PRIMARY_DARK, EGUI_ALPHA_100);
 
-EGUI_VIEW_BUTTON_PARAMS_INIT_SIMPLE(s_btn_inc_params,   BTN_INC_X, BTN_Y, BTN_W, BTN_H, "+ INC");
+EGUI_VIEW_BUTTON_PARAMS_INIT_SIMPLE(s_btn_inc_params, BTN_INC_X, BTN_Y, BTN_W, BTN_H, "+ INC");
 EGUI_VIEW_BUTTON_PARAMS_INIT_SIMPLE(s_btn_reset_params, BTN_RST_X, BTN_Y, BTN_W, BTN_H, "RESET");
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_root_bg_param, EGUI_THEME_SURFACE, EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(s_root_bp, &s_root_bg_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(s_root_bg, &s_root_bp);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(s_count_bg_param, EGUI_THEME_SURFACE_VARIANT, EGUI_ALPHA_100, 8, 1, EGUI_THEME_BORDER,
-                                                        EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(s_count_bg_param, EGUI_THEME_SURFACE_VARIANT, EGUI_ALPHA_100, 8, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(s_count_bp, &s_count_bg_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(s_count_bg, &s_count_bp);
 

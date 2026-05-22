@@ -17,8 +17,7 @@ static void setup(void)
 static void test_switch_get_alpha_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_ALPHA_100,
-                               (int)egui_view_switch_get_alpha(EGUI_VIEW_OF(&s_sw)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_ALPHA_100, (int)egui_view_switch_get_alpha(EGUI_VIEW_OF(&s_sw)));
 }
 
 static void test_switch_get_alpha_after_set(void)

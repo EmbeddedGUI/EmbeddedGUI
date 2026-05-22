@@ -99,9 +99,9 @@ static void test_drag_cumulative_moves(void)
     init_view(0, 0, 60, 60);
     egui_view_set_draggable(&s_view, 1);
     send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, 10, 10);
-    send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 15, 10);  /* dx=+5, dy=0  → (5,0) */
-    send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 15, 20);  /* dx=0,  dy=+10 → (5,10) */
-    send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 5,  20);  /* dx=-10,dy=0  → (-5,10) */
+    send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 15, 10); /* dx=+5, dy=0  → (5,0) */
+    send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 15, 20); /* dx=0,  dy=+10 → (5,10) */
+    send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 5, 20);  /* dx=-10,dy=0  → (-5,10) */
     EGUI_TEST_ASSERT_EQUAL_INT(-5, s_view.region.location.x);
     EGUI_TEST_ASSERT_EQUAL_INT(10, s_view.region.location.y);
 }

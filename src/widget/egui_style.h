@@ -29,8 +29,8 @@ typedef struct egui_view_style egui_view_style_t;
 struct egui_view_style
 {
     const egui_background_t *background; /**< NULL = not provided by this style */
-    egui_alpha_t             alpha;      /**< valid only when has_alpha != 0    */
-    uint8_t                  has_alpha : 1;
+    egui_alpha_t alpha;                  /**< valid only when has_alpha != 0    */
+    uint8_t has_alpha : 1;
 #if EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES
     /**
      * State filter for this style entry.
@@ -46,22 +46,13 @@ struct egui_view_style
 /* ----------------------------- Init macros ----------------------------- */
 
 /** Style providing only a background (alpha unchanged). */
-#define EGUI_STYLE_INIT_BACKGROUND(_bg)                                        \
-    {                                                                          \
-        .background = (_bg), .has_alpha = 0                                    \
-    }
+#define EGUI_STYLE_INIT_BACKGROUND(_bg) {.background = (_bg), .has_alpha = 0}
 
 /** Style providing only an alpha value (background unchanged). */
-#define EGUI_STYLE_INIT_ALPHA(_alpha)                                          \
-    {                                                                          \
-        .background = NULL, .alpha = (_alpha), .has_alpha = 1                  \
-    }
+#define EGUI_STYLE_INIT_ALPHA(_alpha) {.background = NULL, .alpha = (_alpha), .has_alpha = 1}
 
 /** Style providing both background and alpha. */
-#define EGUI_STYLE_INIT(_bg, _alpha)                                           \
-    {                                                                          \
-        .background = (_bg), .alpha = (_alpha), .has_alpha = 1                 \
-    }
+#define EGUI_STYLE_INIT(_bg, _alpha) {.background = (_bg), .alpha = (_alpha), .has_alpha = 1}
 
 /* ----------------------------- Declare macros -------------------------- */
 
@@ -69,15 +60,13 @@ struct egui_view_style
  * Declare a const egui_style_t with a background only (no alpha override).
  *   EGUI_STYLE_DECLARE_BG(my_style, &my_background);
  */
-#define EGUI_STYLE_DECLARE_BG(_name, _bg)                                      \
-    static const egui_view_style_t _name = EGUI_STYLE_INIT_BACKGROUND(_bg)
+#define EGUI_STYLE_DECLARE_BG(_name, _bg) static const egui_view_style_t _name = EGUI_STYLE_INIT_BACKGROUND(_bg)
 
 /**
  * Declare a const egui_style_t with both background and alpha.
  *   EGUI_STYLE_DECLARE(my_style, &my_background, EGUI_ALPHA_50);
  */
-#define EGUI_STYLE_DECLARE(_name, _bg, _alpha)                                 \
-    static const egui_view_style_t _name = EGUI_STYLE_INIT(_bg, _alpha)
+#define EGUI_STYLE_DECLARE(_name, _bg, _alpha) static const egui_view_style_t _name = EGUI_STYLE_INIT(_bg, _alpha)
 
 /* ----------------------------------------------------------------------- */
 

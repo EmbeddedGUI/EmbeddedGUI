@@ -8,9 +8,9 @@
 #if EGUI_CONFIG_FUNCTION_SCROLL_LISTENER
 
 static egui_view_scroll_t s_scroll;
-static egui_view_label_t  s_item;
-static egui_dim_t         s_last_scroll_y;
-static int                s_cb_count;
+static egui_view_label_t s_item;
+static egui_dim_t s_last_scroll_y;
+static int s_cb_count;
 
 static egui_core_t *get_core(void)
 {
@@ -31,7 +31,7 @@ static void setup(void)
     egui_core_t *core = get_core();
 
     memset(&s_scroll, 0, sizeof(s_scroll));
-    memset(&s_item,   0, sizeof(s_item));
+    memset(&s_item, 0, sizeof(s_item));
     s_last_scroll_y = 0;
     s_cb_count = 0;
 

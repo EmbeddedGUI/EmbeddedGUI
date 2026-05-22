@@ -122,7 +122,10 @@ void egui_view_window_set_title(egui_view_t *self, const char *title)
 
 const char *egui_view_window_get_title(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_window_t);
     return egui_view_label_get_text(EGUI_VIEW_OF(&local->title_label));
 }
@@ -141,7 +144,10 @@ void egui_view_window_set_header_height(egui_view_t *self, egui_dim_t height)
 
 egui_dim_t egui_view_window_get_header_height(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_window_t);
     return local->header_height;
 }
@@ -162,7 +168,10 @@ egui_color_t egui_view_window_get_header_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_window_t);
     return local->header_color;
 }
@@ -183,7 +192,10 @@ egui_color_t egui_view_window_get_content_bg_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_window_t);
     return local->content_bg_color;
 }
@@ -206,7 +218,10 @@ void egui_view_window_set_close_icon(egui_view_t *self, const char *icon)
 
 const char *egui_view_window_get_close_icon(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_window_t);
     return local->close_icon;
 }
@@ -228,14 +243,20 @@ void egui_view_window_set_close_icon_font(egui_view_t *self, const egui_font_t *
 
 const egui_font_t *egui_view_window_get_close_icon_font(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_window_t);
     return local->close_icon_font;
 }
 
 egui_view_t *egui_view_window_get_content(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_window_t);
     return EGUI_VIEW_OF(&local->content);
 }

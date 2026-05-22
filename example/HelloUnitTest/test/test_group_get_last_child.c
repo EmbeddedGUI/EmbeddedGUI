@@ -7,14 +7,14 @@
 #include "test_group_get_last_child.h"
 
 static egui_view_group_t s_group;
-static egui_view_t       s_child1;
-static egui_view_t       s_child2;
-static egui_view_t       s_child3;
+static egui_view_t s_child1;
+static egui_view_t s_child2;
+static egui_view_t s_child3;
 
 static void setup(void)
 {
     egui_core_t *core = uicode_get_core();
-    memset(&s_group,  0, sizeof(s_group));
+    memset(&s_group, 0, sizeof(s_group));
     memset(&s_child1, 0, sizeof(s_child1));
     memset(&s_child2, 0, sizeof(s_child2));
     memset(&s_child3, 0, sizeof(s_child3));

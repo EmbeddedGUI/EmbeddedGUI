@@ -27,8 +27,7 @@ static void test_roller_get_font_after_set(void)
     const egui_font_t *f = (const egui_font_t *)0x12345678u;
     setup();
     s_roller.font = f;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(uintptr_t)f,
-                               (int)(uintptr_t)egui_view_roller_get_font(EGUI_VIEW_OF(&s_roller)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(uintptr_t)f, (int)(uintptr_t)egui_view_roller_get_font(EGUI_VIEW_OF(&s_roller)));
 }
 
 /* Updating font pointer reflects in the getter. */
@@ -38,11 +37,9 @@ static void test_roller_get_font_update(void)
     const egui_font_t *f2 = (const egui_font_t *)0x22222222u;
     setup();
     s_roller.font = f1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(uintptr_t)f1,
-                               (int)(uintptr_t)egui_view_roller_get_font(EGUI_VIEW_OF(&s_roller)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(uintptr_t)f1, (int)(uintptr_t)egui_view_roller_get_font(EGUI_VIEW_OF(&s_roller)));
     s_roller.font = f2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(uintptr_t)f2,
-                               (int)(uintptr_t)egui_view_roller_get_font(EGUI_VIEW_OF(&s_roller)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(uintptr_t)f2, (int)(uintptr_t)egui_view_roller_get_font(EGUI_VIEW_OF(&s_roller)));
 }
 
 /* NULL self returns NULL without crash. */

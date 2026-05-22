@@ -38,8 +38,7 @@ static void test_notification_badge_icon_mode_keeps_single_draw_path(void)
     setup_badge();
     egui_view_notification_badge_set_content_style(EGUI_VIEW_OF(&test_badge), EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_ICON);
     EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_ICON, test_badge.content_style);
-    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_ICON,
-                               (int)egui_view_notification_badge_get_content_style(EGUI_VIEW_OF(&test_badge)));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_ICON, (int)egui_view_notification_badge_get_content_style(EGUI_VIEW_OF(&test_badge)));
     EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_badge)->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_notification_badge_t));
 
     egui_view_notification_badge_set_content_style(EGUI_VIEW_OF(&test_badge), EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_COUNT);

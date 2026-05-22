@@ -5,9 +5,9 @@
 #include "test/egui_test.h"
 #include "test_move_child_to_index.h"
 
-static egui_view_t       s_c0;
-static egui_view_t       s_c1;
-static egui_view_t       s_c2;
+static egui_view_t s_c0;
+static egui_view_t s_c1;
+static egui_view_t s_c2;
 static egui_view_group_t s_parent;
 
 static void setup(void)
@@ -15,9 +15,9 @@ static void setup(void)
     egui_core_t *core = uicode_get_core();
 
     memset(&s_parent, 0, sizeof(s_parent));
-    memset(&s_c0,     0, sizeof(s_c0));
-    memset(&s_c1,     0, sizeof(s_c1));
-    memset(&s_c2,     0, sizeof(s_c2));
+    memset(&s_c0, 0, sizeof(s_c0));
+    memset(&s_c1, 0, sizeof(s_c1));
+    memset(&s_c2, 0, sizeof(s_c2));
 
     egui_view_group_init(EGUI_VIEW_OF(&s_parent), core);
     egui_view_init(&s_c0, core);
@@ -35,12 +35,9 @@ static void test_move_last_to_front(void)
 {
     setup();
     egui_view_group_move_child_to_index(EGUI_VIEW_OF(&s_parent), &s_c2, 0);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c2,
-        (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 0));
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c0,
-        (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 1));
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c1,
-        (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 2));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c2, (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 0));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c0, (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 1));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c1, (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 2));
 }
 
 /* Move first child to index 2 (end): order becomes c1, c2, c0. */
@@ -48,12 +45,9 @@ static void test_move_first_to_back(void)
 {
     setup();
     egui_view_group_move_child_to_index(EGUI_VIEW_OF(&s_parent), &s_c0, 2);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c1,
-        (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 0));
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c2,
-        (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 1));
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c0,
-        (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 2));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c1, (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 0));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c2, (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 1));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c0, (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 2));
 }
 
 /* Move middle child to index 0. */
@@ -61,8 +55,7 @@ static void test_move_mid_to_front(void)
 {
     setup();
     egui_view_group_move_child_to_index(EGUI_VIEW_OF(&s_parent), &s_c1, 0);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c1,
-        (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 0));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c1, (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 0));
     EGUI_TEST_ASSERT_EQUAL_INT(3, egui_view_group_get_child_count(EGUI_VIEW_OF(&s_parent)));
 }
 
@@ -71,8 +64,7 @@ static void test_move_index_overflow(void)
 {
     setup();
     egui_view_group_move_child_to_index(EGUI_VIEW_OF(&s_parent), &s_c0, 99);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c0,
-        (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 2));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c0, (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 2));
     EGUI_TEST_ASSERT_EQUAL_INT(3, egui_view_group_get_child_count(EGUI_VIEW_OF(&s_parent)));
 }
 
@@ -91,8 +83,7 @@ static void test_move_same_position(void)
     setup();
     egui_view_group_move_child_to_index(EGUI_VIEW_OF(&s_parent), &s_c1, 1);
     EGUI_TEST_ASSERT_EQUAL_INT(3, egui_view_group_get_child_count(EGUI_VIEW_OF(&s_parent)));
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c1,
-        (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 1));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)&s_c1, (int)(intptr_t)egui_view_group_get_child_at(EGUI_VIEW_OF(&s_parent), 1));
 }
 
 void test_move_child_to_index_run(void)

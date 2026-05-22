@@ -42,7 +42,10 @@ void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_c
 
 uint8_t egui_view_page_indicator_get_total_count(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     return local->total_count;
 }
@@ -67,7 +70,10 @@ void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t curre
 
 uint8_t egui_view_page_indicator_get_current_index(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     return local->current_index;
 }
@@ -89,7 +95,10 @@ void egui_view_page_indicator_set_mark_style(egui_view_t *self, egui_view_page_i
 
 egui_view_page_indicator_mark_style_t egui_view_page_indicator_get_mark_style(egui_view_t *self)
 {
-    if (self == NULL) { return EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_DOT; }
+    if (self == NULL)
+    {
+        return EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_DOT;
+    }
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     return (egui_view_page_indicator_mark_style_t)local->mark_style;
 }
@@ -111,7 +120,10 @@ void egui_view_page_indicator_set_icons(egui_view_t *self, const char *const *ic
 
 const char *const *egui_view_page_indicator_get_icons(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     return local->icons;
 }
@@ -133,7 +145,10 @@ void egui_view_page_indicator_set_icon_font(egui_view_t *self, const egui_font_t
 
 const egui_font_t *egui_view_page_indicator_get_icon_font(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
     return local->icon_font;
 }

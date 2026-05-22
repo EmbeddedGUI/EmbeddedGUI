@@ -31,7 +31,7 @@ extern "C" {
 #if EGUI_CONFIG_FUNCTION_ENCODER
 
 typedef struct egui_encoder_driver_ops egui_encoder_driver_ops_t;
-typedef struct egui_encoder_driver     egui_encoder_driver_t;
+typedef struct egui_encoder_driver egui_encoder_driver_t;
 
 /**
  * Port-side callbacks that read the current encoder state.
@@ -56,12 +56,12 @@ struct egui_encoder_driver_ops
 struct egui_encoder_driver
 {
     const egui_encoder_driver_ops_t *ops; /* driver callback table    */
-    void                            *user_data;
+    void *user_data;
 
     /* --- Internal edge-detection state (do not modify directly) --- */
-    uint8_t  _last_button;      /* button state from previous poll */
-    uint8_t  _long_press_sent;  /* non-zero after LONG_PRESS was emitted */
-    uint32_t _press_tick;       /* egui_timer_get_current_time() when press edge detected */
+    uint8_t _last_button;     /* button state from previous poll */
+    uint8_t _long_press_sent; /* non-zero after LONG_PRESS was emitted */
+    uint32_t _press_tick;     /* egui_timer_get_current_time() when press edge detected */
 };
 
 /** Register an encoder driver with one core.  Pass NULL to unregister. */

@@ -31,8 +31,8 @@
 
 static int16_t s_mock_delta;
 static uint8_t s_mock_button;
-static int     s_mock_read_count;
-static int     s_mock_read_fail; /* non-zero -> read() returns error */
+static int s_mock_read_count;
+static int s_mock_read_fail; /* non-zero -> read() returns error */
 
 static int mock_read(void *user_data, int16_t *out_delta, uint8_t *out_btn)
 {
@@ -43,26 +43,26 @@ static int mock_read(void *user_data, int16_t *out_delta, uint8_t *out_btn)
         return -1;
     }
     *out_delta = s_mock_delta;
-    *out_btn   = s_mock_button;
+    *out_btn = s_mock_button;
     return 0;
 }
 
-static const egui_encoder_driver_ops_t s_mock_ops = { mock_read };
+static const egui_encoder_driver_ops_t s_mock_ops = {mock_read};
 
 static egui_encoder_driver_t s_drv; /* zero-inited in each reset */
 
 static void reset_mock(void)
 {
-    s_mock_delta      = 0;
-    s_mock_button     = 0;
+    s_mock_delta = 0;
+    s_mock_button = 0;
     s_mock_read_count = 0;
-    s_mock_read_fail  = 0;
+    s_mock_read_fail = 0;
     /* Zero all internal state */
-    s_drv.ops             = &s_mock_ops;
-    s_drv.user_data       = NULL;
-    s_drv._last_button    = 0;
+    s_drv.ops = &s_mock_ops;
+    s_drv.user_data = NULL;
+    s_drv._last_button = 0;
     s_drv._long_press_sent = 0;
-    s_drv._press_tick      = 0;
+    s_drv._press_tick = 0;
 }
 
 static egui_core_t *get_core(void)
@@ -102,10 +102,10 @@ static void test_encoder_poll_no_driver_is_safe(void)
 
 static void test_encoder_poll_null_ops_is_safe(void)
 {
-    egui_core_t          *core = get_core();
+    egui_core_t *core = get_core();
     egui_encoder_driver_t drv;
 
-    drv.ops       = NULL;
+    drv.ops = NULL;
     drv.user_data = NULL;
     egui_encoder_driver_register(core, &drv);
     egui_encoder_polling_work(core);
@@ -185,7 +185,7 @@ static void test_encoder_zero_delta_no_events(void)
     egui_core_t *core = get_core();
 
     reset_mock();
-    s_mock_delta  = 0;
+    s_mock_delta = 0;
     s_mock_button = 0;
     egui_encoder_driver_register(core, &s_drv);
 
@@ -285,8 +285,8 @@ static void test_encoder_read_error_skips_events(void)
     egui_core_t *core = get_core();
 
     reset_mock();
-    s_mock_delta      = 5;
-    s_mock_read_fail  = 1;
+    s_mock_delta = 5;
+    s_mock_read_fail = 1;
     egui_encoder_driver_register(core, &s_drv);
 
     drain_keys();

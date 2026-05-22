@@ -7,13 +7,13 @@
 #include "test_label_get_font.h"
 
 static egui_view_label_t s_label;
-static egui_font_t       s_font;
+static egui_font_t s_font;
 
 static void setup(void)
 {
     egui_core_t *core = uicode_get_core();
     memset(&s_label, 0, sizeof(s_label));
-    memset(&s_font,  0, sizeof(s_font));
+    memset(&s_font, 0, sizeof(s_font));
     egui_view_label_init(EGUI_VIEW_OF(&s_label), core);
 }
 

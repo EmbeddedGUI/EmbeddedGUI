@@ -15,7 +15,7 @@ static void setup(void)
     egui_core_t *core = uicode_get_core();
 
     memset(&s_parent, 0, sizeof(s_parent));
-    memset(&s_label,  0, sizeof(s_label));
+    memset(&s_label, 0, sizeof(s_label));
     egui_view_group_init(EGUI_VIEW_OF(&s_parent), core);
     egui_view_label_init(EGUI_VIEW_OF(&s_label), core);
     egui_view_group_add_child(EGUI_VIEW_OF(&s_parent), EGUI_VIEW_OF(&s_label));

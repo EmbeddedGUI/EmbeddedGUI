@@ -17,8 +17,7 @@ static void setup(void)
 static void test_progress_bar_get_control_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_THUMB.full,
-                               (int)egui_view_progress_bar_get_control_color(EGUI_VIEW_OF(&s_pb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_THUMB.full, (int)egui_view_progress_bar_get_control_color(EGUI_VIEW_OF(&s_pb)).full);
 }
 
 static void test_progress_bar_get_control_color_after_set(void)
@@ -27,8 +26,7 @@ static void test_progress_bar_get_control_color_after_set(void)
     c.full = 0x334455u;
     setup();
     s_pb.control_color = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_progress_bar_get_control_color(EGUI_VIEW_OF(&s_pb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_progress_bar_get_control_color(EGUI_VIEW_OF(&s_pb)).full);
 }
 
 static void test_progress_bar_get_control_color_update(void)
@@ -38,11 +36,9 @@ static void test_progress_bar_get_control_color_update(void)
     c2.full = 0x667788u;
     setup();
     s_pb.control_color = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_progress_bar_get_control_color(EGUI_VIEW_OF(&s_pb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_progress_bar_get_control_color(EGUI_VIEW_OF(&s_pb)).full);
     s_pb.control_color = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_progress_bar_get_control_color(EGUI_VIEW_OF(&s_pb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_progress_bar_get_control_color(EGUI_VIEW_OF(&s_pb)).full);
 }
 
 static void test_progress_bar_get_control_color_null_self(void)

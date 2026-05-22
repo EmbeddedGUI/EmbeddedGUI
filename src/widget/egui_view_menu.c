@@ -143,14 +143,20 @@ void egui_view_menu_set_pages(egui_view_t *self, const egui_view_menu_page_t *pa
 
 const egui_view_menu_page_t *egui_view_menu_get_pages(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->pages;
 }
 
 uint8_t egui_view_menu_get_page_count(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->page_count;
 }
@@ -178,21 +184,30 @@ void egui_view_menu_navigate_to(egui_view_t *self, uint8_t page_index)
 
 uint8_t egui_view_menu_get_current_page(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->current_page;
 }
 
 uint8_t egui_view_menu_get_stack_depth(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->stack_depth;
 }
 
 uint8_t egui_view_menu_get_selected_index(egui_view_t *self)
 {
-    if (self == NULL) { return EGUI_VIEW_MENU_SELECTED_NONE; }
+    if (self == NULL)
+    {
+        return EGUI_VIEW_MENU_SELECTED_NONE;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->selected_index;
 }
@@ -222,7 +237,10 @@ void egui_view_menu_set_on_item_click(egui_view_t *self, egui_view_menu_item_cli
 
 egui_view_menu_item_click_cb_t egui_view_menu_get_on_item_click(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->on_item_click;
 }
@@ -237,7 +255,10 @@ void egui_view_menu_set_header_height(egui_view_t *self, egui_dim_t height)
 
 egui_dim_t egui_view_menu_get_header_height(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->header_height;
 }
@@ -252,7 +273,10 @@ void egui_view_menu_set_item_height(egui_view_t *self, egui_dim_t height)
 
 egui_dim_t egui_view_menu_get_item_height(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->item_height;
 }
@@ -261,7 +285,10 @@ egui_color_t egui_view_menu_get_text_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->text_color;
 }
@@ -278,7 +305,10 @@ egui_color_t egui_view_menu_get_header_text_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->header_text_color;
 }
@@ -298,7 +328,10 @@ void egui_view_menu_set_icon_font(egui_view_t *self, const egui_font_t *font)
 
 const egui_font_t *egui_view_menu_get_icon_font(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->icon_font;
 }
@@ -330,14 +363,20 @@ void egui_view_menu_set_navigation_icons(egui_view_t *self, const char *back_ico
 
 const char *egui_view_menu_get_back_icon(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return egui_view_menu_resolve_back_icon(local);
 }
 
 const char *egui_view_menu_get_submenu_icon(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return egui_view_menu_resolve_submenu_icon(local);
 }
@@ -363,7 +402,10 @@ void egui_view_menu_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 
 egui_dim_t egui_view_menu_get_icon_text_gap(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_menu_t);
     return local->icon_text_gap;
 }
@@ -426,8 +468,8 @@ void egui_view_menu_on_draw(egui_view_t *self)
     if (has_back_icon)
     {
         egui_region_t back_rect = {{x, y}, {hdr_h, hdr_h}};
-        egui_canvas_draw_text_in_rect(canvas, header_icon_font, egui_view_menu_resolve_back_icon(local), &back_rect, EGUI_ALIGN_CENTER, local->header_text_color,
-                                      EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(canvas, header_icon_font, egui_view_menu_resolve_back_icon(local), &back_rect, EGUI_ALIGN_CENTER,
+                                      local->header_text_color, EGUI_ALPHA_100);
     }
 
     // Keep the title centered, but reserve edge space when the back button is shown.

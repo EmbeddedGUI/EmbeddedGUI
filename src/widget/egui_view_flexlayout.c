@@ -30,9 +30,9 @@
 typedef struct
 {
     egui_view_t *items[FLEX_MAX_ITEMS_PER_LINE];
-    int          count;
-    egui_dim_t   main_size;  /* occupied main-axis length incl. gaps between items */
-    egui_dim_t   cross_size; /* tallest/widest item in this line */
+    int count;
+    egui_dim_t main_size;  /* occupied main-axis length incl. gaps between items */
+    egui_dim_t cross_size; /* tallest/widest item in this line */
 } egui_flex_line_t;
 
 /* --------------------------------------------------------------------------
@@ -61,13 +61,12 @@ static egui_dim_t item_cross(egui_view_t *child, uint8_t is_row)
  * Phase 1: Break children into lines
  * -------------------------------------------------------------------------- */
 
-static int flex_build_lines(egui_view_group_t *group, uint8_t is_row, uint8_t do_wrap,
-                             egui_dim_t main_limit, egui_dim_t gap,
-                             egui_flex_line_t *lines, int max_lines)
+static int flex_build_lines(egui_view_group_t *group, uint8_t is_row, uint8_t do_wrap, egui_dim_t main_limit, egui_dim_t gap, egui_flex_line_t *lines,
+                            int max_lines)
 {
-    int        line_idx   = 0;
-    egui_dim_t cursor     = 0;
-    int        first_item = 1;
+    int line_idx = 0;
+    egui_dim_t cursor = 0;
+    int first_item = 1;
 
     egui_api_memset(lines, 0, (int)(sizeof(egui_flex_line_t) * (unsigned int)max_lines));
 
@@ -93,7 +92,7 @@ static int flex_build_lines(egui_view_group_t *group, uint8_t is_row, uint8_t do
                 /* Out of line budget — clamp to last line */
                 line_idx = max_lines - 1;
             }
-            cursor     = 0;
+            cursor = 0;
             first_item = 1;
         }
 
@@ -184,8 +183,8 @@ static void flex_apply_grow(egui_flex_line_t *line, uint8_t is_row, egui_dim_t c
 
 typedef struct
 {
-    egui_dim_t leading;  /* offset before first item */
-    egui_dim_t between;  /* gap between items */
+    egui_dim_t leading; /* offset before first item */
+    egui_dim_t between; /* gap between items */
 } egui_flex_spacing_t;
 
 static egui_flex_spacing_t flex_compute_justify(uint8_t justify, egui_dim_t free_space, int count)
@@ -201,37 +200,37 @@ static egui_flex_spacing_t flex_compute_justify(uint8_t justify, egui_dim_t free
 
     switch (justify)
     {
-        case EGUI_FLEX_JUSTIFY_END:
-            sp.leading = free_space;
-            break;
+    case EGUI_FLEX_JUSTIFY_END:
+        sp.leading = free_space;
+        break;
 
-        case EGUI_FLEX_JUSTIFY_CENTER:
+    case EGUI_FLEX_JUSTIFY_CENTER:
+        sp.leading = free_space / 2;
+        break;
+
+    case EGUI_FLEX_JUSTIFY_SPACE_BETWEEN:
+        if (count > 1)
+        {
+            sp.between = free_space / (count - 1);
+        }
+        else
+        {
             sp.leading = free_space / 2;
-            break;
+        }
+        break;
 
-        case EGUI_FLEX_JUSTIFY_SPACE_BETWEEN:
-            if (count > 1)
-            {
-                sp.between = free_space / (count - 1);
-            }
-            else
-            {
-                sp.leading = free_space / 2;
-            }
-            break;
+    case EGUI_FLEX_JUSTIFY_SPACE_AROUND:
+        sp.between = free_space / count;
+        sp.leading = sp.between / 2;
+        break;
 
-        case EGUI_FLEX_JUSTIFY_SPACE_AROUND:
-            sp.between = free_space / count;
-            sp.leading = sp.between / 2;
-            break;
+    case EGUI_FLEX_JUSTIFY_SPACE_EVENLY:
+        sp.between = free_space / (count + 1);
+        sp.leading = sp.between;
+        break;
 
-        case EGUI_FLEX_JUSTIFY_SPACE_EVENLY:
-            sp.between = free_space / (count + 1);
-            sp.leading = sp.between;
-            break;
-
-        default: /* EGUI_FLEX_JUSTIFY_START */
-            break;
+    default: /* EGUI_FLEX_JUSTIFY_START */
+        break;
     }
 
     return sp;
@@ -241,9 +240,8 @@ static egui_flex_spacing_t flex_compute_justify(uint8_t justify, egui_dim_t free
  * Phase 4 & 5: Place items (main + cross)
  * -------------------------------------------------------------------------- */
 
-static void flex_place_line(egui_flex_line_t *line, uint8_t is_row, uint8_t justify,
-                             uint8_t align, egui_dim_t container_main, egui_dim_t gap,
-                             egui_dim_t origin_main, egui_dim_t origin_cross)
+static void flex_place_line(egui_flex_line_t *line, uint8_t is_row, uint8_t justify, uint8_t align, egui_dim_t container_main, egui_dim_t gap,
+                            egui_dim_t origin_main, egui_dim_t origin_cross)
 {
     egui_dim_t free_space = container_main - line->main_size;
     egui_flex_spacing_t sp = flex_compute_justify(justify, free_space, line->count);
@@ -254,49 +252,49 @@ static void flex_place_line(egui_flex_line_t *line, uint8_t is_row, uint8_t just
     {
         egui_view_t *child = line->items[i];
 
-        egui_dim_t m  = item_main(child, is_row);
-        egui_dim_t c  = item_cross(child, is_row);
+        egui_dim_t m = item_main(child, is_row);
+        egui_dim_t c = item_cross(child, is_row);
         egui_dim_t cx = 0; /* cross-axis offset within the line */
 
         switch (align)
         {
-            case EGUI_FLEX_ALIGN_END:
-                cx = line->cross_size - c;
-                break;
+        case EGUI_FLEX_ALIGN_END:
+            cx = line->cross_size - c;
+            break;
 
-            case EGUI_FLEX_ALIGN_CENTER:
-                cx = (line->cross_size - c) / 2;
-                break;
+        case EGUI_FLEX_ALIGN_CENTER:
+            cx = (line->cross_size - c) / 2;
+            break;
 
-            case EGUI_FLEX_ALIGN_STRETCH:
-                /* Resize item to fill line cross-axis */
-                if (is_row)
+        case EGUI_FLEX_ALIGN_STRETCH:
+            /* Resize item to fill line cross-axis */
+            if (is_row)
+            {
+                egui_dim_t target_h = line->cross_size - child->margin.top - child->margin.bottom;
+
+                if (target_h > 0)
                 {
-                    egui_dim_t target_h = line->cross_size - child->margin.top - child->margin.bottom;
-
-                    if (target_h > 0)
-                    {
-                        egui_view_set_size(child, child->region.size.width, target_h);
-                    }
+                    egui_view_set_size(child, child->region.size.width, target_h);
                 }
-                else
+            }
+            else
+            {
+                egui_dim_t target_w = line->cross_size - child->margin.left - child->margin.right;
+
+                if (target_w > 0)
                 {
-                    egui_dim_t target_w = line->cross_size - child->margin.left - child->margin.right;
-
-                    if (target_w > 0)
-                    {
-                        egui_view_set_size(child, target_w, child->region.size.height);
-                    }
+                    egui_view_set_size(child, target_w, child->region.size.height);
                 }
-                cx = 0;
-                break;
+            }
+            cx = 0;
+            break;
 
-            default: /* EGUI_FLEX_ALIGN_START */
-                cx = 0;
-                break;
+        default: /* EGUI_FLEX_ALIGN_START */
+            cx = 0;
+            break;
         }
 
-        egui_dim_t pos_main  = cursor;
+        egui_dim_t pos_main = cursor;
         egui_dim_t pos_cross = origin_cross + cx;
 
         if (is_row)
@@ -331,21 +329,20 @@ void egui_view_flexlayout_layout_childs(egui_view_t *self)
         return;
     }
 
-    uint8_t    is_row     = (local->direction == EGUI_FLEX_DIRECTION_ROW);
-    egui_dim_t pad_l      = self->padding.left;
-    egui_dim_t pad_t      = self->padding.top;
-    egui_dim_t pad_r      = self->padding.right;
-    egui_dim_t pad_b      = self->padding.bottom;
-    egui_dim_t content_w  = self->region.size.width - pad_l - pad_r;
-    egui_dim_t content_h  = self->region.size.height - pad_t - pad_b;
+    uint8_t is_row = (local->direction == EGUI_FLEX_DIRECTION_ROW);
+    egui_dim_t pad_l = self->padding.left;
+    egui_dim_t pad_t = self->padding.top;
+    egui_dim_t pad_r = self->padding.right;
+    egui_dim_t pad_b = self->padding.bottom;
+    egui_dim_t content_w = self->region.size.width - pad_l - pad_r;
+    egui_dim_t content_h = self->region.size.height - pad_t - pad_b;
     egui_dim_t main_limit = is_row ? content_w : content_h;
-    egui_dim_t cross_avail= is_row ? content_h : content_w;
-    egui_dim_t main_gap   = is_row ? local->col_gap : local->row_gap;
-    egui_dim_t cross_gap  = is_row ? local->row_gap : local->col_gap;
+    egui_dim_t cross_avail = is_row ? content_h : content_w;
+    egui_dim_t main_gap = is_row ? local->col_gap : local->row_gap;
+    egui_dim_t cross_gap = is_row ? local->row_gap : local->col_gap;
 
     egui_flex_line_t lines[EGUI_CONFIG_FLEXLAYOUT_MAX_LINES];
-    int line_count = flex_build_lines(group, is_row, local->wrap, main_limit, main_gap,
-                                      lines, EGUI_CONFIG_FLEXLAYOUT_MAX_LINES);
+    int line_count = flex_build_lines(group, is_row, local->wrap, main_limit, main_gap, lines, EGUI_CONFIG_FLEXLAYOUT_MAX_LINES);
 
     /* Grow pass */
     for (int li = 0; li < line_count; li++)
@@ -376,10 +373,7 @@ void egui_view_flexlayout_layout_childs(egui_view_t *self)
 
     for (int li = 0; li < line_count; li++)
     {
-        flex_place_line(&lines[li], is_row,
-                        local->justify_content, local->align_items,
-                        main_limit, main_gap,
-                        origin_main, cross_cursor);
+        flex_place_line(&lines[li], is_row, local->justify_content, local->align_items, main_limit, main_gap, origin_main, cross_cursor);
 
         cross_cursor += lines[li].cross_size;
 
@@ -505,13 +499,13 @@ void egui_view_flexlayout_init(egui_view_t *self, egui_core_t *core)
 {
     EGUI_LOCAL_INIT(egui_view_flexlayout_t);
     egui_view_group_init(self, core);
-    local->direction       = EGUI_FLEX_DIRECTION_ROW;
-    local->wrap            = EGUI_FLEX_WRAP_NOWRAP;
+    local->direction = EGUI_FLEX_DIRECTION_ROW;
+    local->wrap = EGUI_FLEX_WRAP_NOWRAP;
     local->justify_content = EGUI_FLEX_JUSTIFY_START;
-    local->align_items     = EGUI_FLEX_ALIGN_STRETCH;
-    local->align_content   = EGUI_FLEX_JUSTIFY_START;
-    local->row_gap         = 0;
-    local->col_gap         = 0;
+    local->align_items = EGUI_FLEX_ALIGN_STRETCH;
+    local->align_content = EGUI_FLEX_JUSTIFY_START;
+    local->row_gap = 0;
+    local->col_gap = 0;
 }
 
 #endif /* EGUI_CONFIG_FUNCTION_FLEXLAYOUT */

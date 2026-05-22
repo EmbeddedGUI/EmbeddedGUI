@@ -18,8 +18,7 @@ static void setup(void)
 static void test_textinput_get_max_length_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_CONFIG_TEXTINPUT_MAX_LENGTH,
-                               (int)egui_view_textinput_get_max_length(EGUI_VIEW_OF(&s_ti)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_CONFIG_TEXTINPUT_MAX_LENGTH, (int)egui_view_textinput_get_max_length(EGUI_VIEW_OF(&s_ti)));
 }
 
 /* Setting a smaller cap is reflected by the getter. */
@@ -35,8 +34,7 @@ static void test_textinput_get_max_length_clamped(void)
 {
     setup();
     egui_view_textinput_set_max_length(EGUI_VIEW_OF(&s_ti), 255);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_CONFIG_TEXTINPUT_MAX_LENGTH,
-                               (int)egui_view_textinput_get_max_length(EGUI_VIEW_OF(&s_ti)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_CONFIG_TEXTINPUT_MAX_LENGTH, (int)egui_view_textinput_get_max_length(EGUI_VIEW_OF(&s_ti)));
 }
 
 /* NULL self returns 0 without crash. */

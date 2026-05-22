@@ -18,8 +18,7 @@ static void setup(void)
 static void test_number_picker_get_button_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full,
-                               (int)egui_view_number_picker_get_button_color(EGUI_VIEW_OF(&s_np)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full, (int)egui_view_number_picker_get_button_color(EGUI_VIEW_OF(&s_np)).full);
 }
 
 /* After assigning button_color, getter returns the same color. */
@@ -29,8 +28,7 @@ static void test_number_picker_get_button_color_after_set(void)
     c.full = 0x334455u;
     setup();
     s_np.button_color = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_number_picker_get_button_color(EGUI_VIEW_OF(&s_np)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_number_picker_get_button_color(EGUI_VIEW_OF(&s_np)).full);
 }
 
 /* Updating button_color reflects in the getter. */
@@ -41,11 +39,9 @@ static void test_number_picker_get_button_color_update(void)
     c2.full = 0x667788u;
     setup();
     s_np.button_color = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_number_picker_get_button_color(EGUI_VIEW_OF(&s_np)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_number_picker_get_button_color(EGUI_VIEW_OF(&s_np)).full);
     s_np.button_color = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_number_picker_get_button_color(EGUI_VIEW_OF(&s_np)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_number_picker_get_button_color(EGUI_VIEW_OF(&s_np)).full);
 }
 
 /* NULL self returns zeroed color without crash. */

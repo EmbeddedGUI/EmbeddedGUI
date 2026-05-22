@@ -8,19 +8,17 @@
 
 #if EGUI_CONFIG_FUNCTION_ANIM_DELAY
 
-static egui_animation_timeline_t    s_tl;
-static egui_animation_translate_t   s_anim0;
-static egui_animation_translate_t   s_anim1;
-static egui_animation_translate_t   s_anim2;
+static egui_animation_timeline_t s_tl;
+static egui_animation_translate_t s_anim0;
+static egui_animation_translate_t s_anim1;
+static egui_animation_translate_t s_anim2;
 
-static egui_view_t       s_view0;
-static egui_view_t       s_view1;
-static egui_view_t       s_view2;
+static egui_view_t s_view0;
+static egui_view_t s_view1;
+static egui_view_t s_view2;
 static egui_view_group_t s_parent;
 
-static const egui_animation_translate_params_t s_params = {
-    .from_x = 0, .to_x = 10, .from_y = 0, .to_y = 0
-};
+static const egui_animation_translate_params_t s_params = {.from_x = 0, .to_x = 10, .from_y = 0, .to_y = 0};
 
 static void setup(void)
 {
@@ -29,12 +27,12 @@ static void setup(void)
     egui_slist_init(&core->scene.anims);
 
     memset(&s_parent, 0, sizeof(s_parent));
-    memset(&s_view0,  0, sizeof(s_view0));
-    memset(&s_view1,  0, sizeof(s_view1));
-    memset(&s_view2,  0, sizeof(s_view2));
-    memset(&s_anim0,  0, sizeof(s_anim0));
-    memset(&s_anim1,  0, sizeof(s_anim1));
-    memset(&s_anim2,  0, sizeof(s_anim2));
+    memset(&s_view0, 0, sizeof(s_view0));
+    memset(&s_view1, 0, sizeof(s_view1));
+    memset(&s_view2, 0, sizeof(s_view2));
+    memset(&s_anim0, 0, sizeof(s_anim0));
+    memset(&s_anim1, 0, sizeof(s_anim1));
+    memset(&s_anim2, 0, sizeof(s_anim2));
 
     egui_view_group_init(EGUI_VIEW_OF(&s_parent), core);
     egui_view_init(&s_view0, core);

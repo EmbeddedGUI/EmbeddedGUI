@@ -6,13 +6,13 @@
 #include "test_scroll_to_pos.h"
 
 static egui_view_scroll_t s_scroll;
-static egui_view_label_t  s_item0;
-static egui_view_label_t  s_item1;
-static egui_view_label_t  s_item2;
+static egui_view_label_t s_item0;
+static egui_view_label_t s_item1;
+static egui_view_label_t s_item2;
 
-#define SCROLL_W  100
-#define SCROLL_H  100
-#define ITEM_H     80
+#define SCROLL_W 100
+#define SCROLL_H 100
+#define ITEM_H   80
 
 /* Returns the current vertical scroll offset (positive = scrolled down). */
 static egui_dim_t get_scroll_y(void)
@@ -27,9 +27,9 @@ static void setup_vertical(void)
     egui_core_t *core = uicode_get_core();
 
     memset(&s_scroll, 0, sizeof(s_scroll));
-    memset(&s_item0,  0, sizeof(s_item0));
-    memset(&s_item1,  0, sizeof(s_item1));
-    memset(&s_item2,  0, sizeof(s_item2));
+    memset(&s_item0, 0, sizeof(s_item0));
+    memset(&s_item1, 0, sizeof(s_item1));
+    memset(&s_item2, 0, sizeof(s_item2));
 
     egui_view_scroll_init(EGUI_VIEW_OF(&s_scroll), core);
     egui_view_set_size(EGUI_VIEW_OF(&s_scroll), SCROLL_W, SCROLL_H);

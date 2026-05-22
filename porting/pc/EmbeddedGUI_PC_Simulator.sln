@@ -126,6 +126,11 @@ Global
 		HelloVirtual_virtual_tree_Debug|x64 = HelloVirtual_virtual_tree_Debug|x64
 		HelloVirtual_virtual_tree_basic_Debug|x64 = HelloVirtual_virtual_tree_basic_Debug|x64
 		HelloVirtual_virtual_viewport_Debug|x64 = HelloVirtual_virtual_viewport_Debug|x64
+		HelloBasic_encoder_Debug|x64 = HelloBasic_encoder_Debug|x64
+		HelloBasic_flexlayout_Debug|x64 = HelloBasic_flexlayout_Debug|x64
+		HelloBasic_font_ttf_Debug|x64 = HelloBasic_font_ttf_Debug|x64
+		HelloBasic_style_cascade_Debug|x64 = HelloBasic_style_cascade_Debug|x64
+		HelloBasic_subject_observer_Debug|x64 = HelloBasic_subject_observer_Debug|x64
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
@@ -369,6 +374,16 @@ Global
 		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloVirtual_virtual_tree_basic_Debug|x64.Build.0 = HelloVirtual_virtual_tree_basic_Debug|x64
 		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloVirtual_virtual_viewport_Debug|x64.ActiveCfg = HelloVirtual_virtual_viewport_Debug|x64
 		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloVirtual_virtual_viewport_Debug|x64.Build.0 = HelloVirtual_virtual_viewport_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_encoder_Debug|x64.ActiveCfg = HelloBasic_encoder_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_encoder_Debug|x64.Build.0 = HelloBasic_encoder_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_flexlayout_Debug|x64.ActiveCfg = HelloBasic_flexlayout_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_flexlayout_Debug|x64.Build.0 = HelloBasic_flexlayout_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_font_ttf_Debug|x64.ActiveCfg = HelloBasic_font_ttf_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_font_ttf_Debug|x64.Build.0 = HelloBasic_font_ttf_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_style_cascade_Debug|x64.ActiveCfg = HelloBasic_style_cascade_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_style_cascade_Debug|x64.Build.0 = HelloBasic_style_cascade_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_subject_observer_Debug|x64.ActiveCfg = HelloBasic_subject_observer_Debug|x64
+		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.HelloBasic_subject_observer_Debug|x64.Build.0 = HelloBasic_subject_observer_Debug|x64
 		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.Release|x64.ActiveCfg = Release|x64
 		{8D1710A5-EAD2-494C-8349-4F658D2D199A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection

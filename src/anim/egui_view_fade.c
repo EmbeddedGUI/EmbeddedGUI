@@ -19,14 +19,12 @@ static const egui_animation_handle_t fade_out_handle = {
 };
 
 /** Common setup shared by fade_in and fade_out. */
-static void fade_start(egui_view_fade_t *handle, egui_view_t *view,
-                       egui_alpha_t from_alpha, egui_alpha_t to_alpha,
-                       uint16_t duration_ms, uint16_t delay_ms)
+static void fade_start(egui_view_fade_t *handle, egui_view_t *view, egui_alpha_t from_alpha, egui_alpha_t to_alpha, uint16_t duration_ms, uint16_t delay_ms)
 {
     egui_animation_alpha_init(EGUI_ANIM_OF(&handle->anim));
 
     handle->params.from_alpha = from_alpha;
-    handle->params.to_alpha   = to_alpha;
+    handle->params.to_alpha = to_alpha;
 
     egui_animation_alpha_params_set(&handle->anim, &handle->params);
     egui_animation_target_view_set(EGUI_ANIM_OF(&handle->anim), view);
@@ -51,8 +49,7 @@ static void fade_start(egui_view_fade_t *handle, egui_view_t *view,
     egui_animation_start(EGUI_ANIM_OF(&handle->anim));
 }
 
-void egui_view_fade_in(egui_view_fade_t *handle, egui_view_t *view,
-                       uint16_t duration_ms, uint16_t delay_ms)
+void egui_view_fade_in(egui_view_fade_t *handle, egui_view_t *view, uint16_t duration_ms, uint16_t delay_ms)
 {
     if (handle == NULL || view == NULL)
     {
@@ -65,8 +62,7 @@ void egui_view_fade_in(egui_view_fade_t *handle, egui_view_t *view,
     fade_start(handle, view, EGUI_ALPHA_0, EGUI_ALPHA_100, duration_ms, delay_ms);
 }
 
-void egui_view_fade_out(egui_view_fade_t *handle, egui_view_t *view,
-                        uint16_t duration_ms, uint16_t delay_ms)
+void egui_view_fade_out(egui_view_fade_t *handle, egui_view_t *view, uint16_t duration_ms, uint16_t delay_ms)
 {
     if (handle == NULL || view == NULL)
     {

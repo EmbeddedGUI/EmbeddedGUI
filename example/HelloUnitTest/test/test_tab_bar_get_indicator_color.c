@@ -18,8 +18,7 @@ static void setup(void)
 static void test_tab_bar_get_indicator_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full,
-                               (int)egui_view_tab_bar_get_indicator_color(EGUI_VIEW_OF(&s_tab)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full, (int)egui_view_tab_bar_get_indicator_color(EGUI_VIEW_OF(&s_tab)).full);
 }
 
 /* After assigning indicator_color, getter returns the same color. */
@@ -29,8 +28,7 @@ static void test_tab_bar_get_indicator_color_after_set(void)
     c.full = 0x556677u;
     setup();
     s_tab.indicator_color = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_tab_bar_get_indicator_color(EGUI_VIEW_OF(&s_tab)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_tab_bar_get_indicator_color(EGUI_VIEW_OF(&s_tab)).full);
 }
 
 /* Updating indicator_color reflects in the getter. */
@@ -41,11 +39,9 @@ static void test_tab_bar_get_indicator_color_update(void)
     c2.full = 0x889900u;
     setup();
     s_tab.indicator_color = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_tab_bar_get_indicator_color(EGUI_VIEW_OF(&s_tab)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_tab_bar_get_indicator_color(EGUI_VIEW_OF(&s_tab)).full);
     s_tab.indicator_color = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_tab_bar_get_indicator_color(EGUI_VIEW_OF(&s_tab)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_tab_bar_get_indicator_color(EGUI_VIEW_OF(&s_tab)).full);
 }
 
 /* NULL self returns zeroed color without crash. */

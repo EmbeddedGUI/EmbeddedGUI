@@ -411,7 +411,10 @@ void egui_view_button_set_icon(egui_view_t *self, const char *icon)
 
 const char *egui_view_button_get_icon(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_button_t);
     return local->icon;
 }
@@ -432,7 +435,10 @@ void egui_view_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
 
 const egui_font_t *egui_view_button_get_icon_font(egui_view_t *self)
 {
-    if (self == NULL) { return NULL; }
+    if (self == NULL)
+    {
+        return NULL;
+    }
     EGUI_LOCAL_INIT(egui_view_button_t);
     return local->icon_font;
 }
@@ -453,7 +459,10 @@ void egui_view_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
 
 egui_dim_t egui_view_button_get_icon_text_gap(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_button_t);
     return local->icon_text_gap;
 }

@@ -18,8 +18,7 @@ static void setup(void)
 static void test_slider_get_active_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full,
-                               (int)egui_view_slider_get_active_color(EGUI_VIEW_OF(&s_slider)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_PRIMARY.full, (int)egui_view_slider_get_active_color(EGUI_VIEW_OF(&s_slider)).full);
 }
 
 /* After assigning active_color, getter returns the same color. */
@@ -29,8 +28,7 @@ static void test_slider_get_active_color_after_set(void)
     c.full = 0x334455u;
     setup();
     s_slider.active_color = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_slider_get_active_color(EGUI_VIEW_OF(&s_slider)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_slider_get_active_color(EGUI_VIEW_OF(&s_slider)).full);
 }
 
 /* Updating active_color reflects in the getter. */
@@ -41,11 +39,9 @@ static void test_slider_get_active_color_update(void)
     c2.full = 0x667788u;
     setup();
     s_slider.active_color = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_slider_get_active_color(EGUI_VIEW_OF(&s_slider)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_slider_get_active_color(EGUI_VIEW_OF(&s_slider)).full);
     s_slider.active_color = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_slider_get_active_color(EGUI_VIEW_OF(&s_slider)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_slider_get_active_color(EGUI_VIEW_OF(&s_slider)).full);
 }
 
 /* NULL self returns zeroed color without crash. */

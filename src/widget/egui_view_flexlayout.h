@@ -11,31 +11,31 @@ extern "C" {
 
 typedef enum
 {
-    EGUI_FLEX_DIRECTION_ROW    = 0,
+    EGUI_FLEX_DIRECTION_ROW = 0,
     EGUI_FLEX_DIRECTION_COLUMN = 1,
 } egui_flex_direction_t;
 
 typedef enum
 {
     EGUI_FLEX_WRAP_NOWRAP = 0,
-    EGUI_FLEX_WRAP_WRAP   = 1,
+    EGUI_FLEX_WRAP_WRAP = 1,
 } egui_flex_wrap_t;
 
 typedef enum
 {
-    EGUI_FLEX_JUSTIFY_START          = 0,
-    EGUI_FLEX_JUSTIFY_END            = 1,
-    EGUI_FLEX_JUSTIFY_CENTER         = 2,
-    EGUI_FLEX_JUSTIFY_SPACE_BETWEEN  = 3,
-    EGUI_FLEX_JUSTIFY_SPACE_AROUND   = 4,
-    EGUI_FLEX_JUSTIFY_SPACE_EVENLY   = 5,
+    EGUI_FLEX_JUSTIFY_START = 0,
+    EGUI_FLEX_JUSTIFY_END = 1,
+    EGUI_FLEX_JUSTIFY_CENTER = 2,
+    EGUI_FLEX_JUSTIFY_SPACE_BETWEEN = 3,
+    EGUI_FLEX_JUSTIFY_SPACE_AROUND = 4,
+    EGUI_FLEX_JUSTIFY_SPACE_EVENLY = 5,
 } egui_flex_justify_t;
 
 typedef enum
 {
-    EGUI_FLEX_ALIGN_START   = 0,
-    EGUI_FLEX_ALIGN_END     = 1,
-    EGUI_FLEX_ALIGN_CENTER  = 2,
+    EGUI_FLEX_ALIGN_START = 0,
+    EGUI_FLEX_ALIGN_END = 1,
+    EGUI_FLEX_ALIGN_CENTER = 2,
     EGUI_FLEX_ALIGN_STRETCH = 3,
 } egui_flex_align_t;
 
@@ -43,13 +43,13 @@ typedef struct egui_view_flexlayout egui_view_flexlayout_t;
 struct egui_view_flexlayout
 {
     egui_view_group_t base;
-    uint8_t           direction;        /* egui_flex_direction_t */
-    uint8_t           wrap;             /* egui_flex_wrap_t */
-    uint8_t           justify_content;  /* egui_flex_justify_t */
-    uint8_t           align_items;      /* egui_flex_align_t */
-    uint8_t           align_content;    /* egui_flex_justify_t — multi-line cross-axis */
-    egui_dim_t        row_gap;
-    egui_dim_t        col_gap;
+    uint8_t direction;       /* egui_flex_direction_t */
+    uint8_t wrap;            /* egui_flex_wrap_t */
+    uint8_t justify_content; /* egui_flex_justify_t */
+    uint8_t align_items;     /* egui_flex_align_t */
+    uint8_t align_content;   /* egui_flex_justify_t — multi-line cross-axis */
+    egui_dim_t row_gap;
+    egui_dim_t col_gap;
 };
 
 /** Initialize the flexlayout container with default properties. */

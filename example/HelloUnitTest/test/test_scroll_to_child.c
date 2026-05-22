@@ -4,12 +4,12 @@
 #include "test_scroll_to_child.h"
 
 static egui_view_scroll_t s_scroll;
-static egui_view_label_t  s_item0; /* y=0,   h=60 → bottom=60  */
-static egui_view_label_t  s_item1; /* y=60,  h=60 → bottom=120 */
-static egui_view_label_t  s_item2; /* y=120, h=60 → bottom=180 */
+static egui_view_label_t s_item0; /* y=0,   h=60 → bottom=60  */
+static egui_view_label_t s_item1; /* y=60,  h=60 → bottom=120 */
+static egui_view_label_t s_item2; /* y=120, h=60 → bottom=180 */
 
 #define SCROLL_W 100
-#define SCROLL_H 100   /* viewport height */
+#define SCROLL_H 100 /* viewport height */
 #define ITEM_H   60
 
 /* Returns current scroll offset (pixels from top). */

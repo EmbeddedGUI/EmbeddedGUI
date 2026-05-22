@@ -53,8 +53,8 @@ struct egui_animation
     uint16_t duration; // duration of the animation in milliseconds
 
 #if EGUI_CONFIG_FUNCTION_ANIM_DELAY
-    uint16_t delay_ms; /* delay before the animation begins after egui_animation_start() */
-    uint8_t  is_delay_passed : 1; /* internal: 1 once the delay has elapsed */
+    uint16_t delay_ms;           /* delay before the animation begins after egui_animation_start() */
+    uint8_t is_delay_passed : 1; /* internal: 1 once the delay has elapsed */
 #endif
 
     uint32_t start_time;      // start time of the animation in milliseconds
@@ -73,8 +73,8 @@ struct egui_animation
 #endif
 
 #if EGUI_CONFIG_FUNCTION_ANIM_PAUSE_RESUME
-    uint8_t  is_paused : 1;    /* 1 while the animation is suspended by pause() */
-    uint32_t pause_elapsed;    /* ms elapsed since start when pause() was called */
+    uint8_t is_paused : 1;  /* 1 while the animation is suspended by pause() */
+    uint32_t pause_elapsed; /* ms elapsed since start when pause() was called */
 #endif
 };
 
@@ -147,9 +147,7 @@ uint16_t egui_animation_get_delay(egui_animation_t *self);
 /** Typedef for the simple animation completion callback. */
 typedef void (*egui_animation_on_complete_cb_t)(egui_animation_t *self, void *user_data);
 /** Register a callback invoked once when the animation ends (after fill-after update). */
-void egui_animation_set_on_complete(egui_animation_t *self,
-                                    egui_animation_on_complete_cb_t cb,
-                                    void *user_data);
+void egui_animation_set_on_complete(egui_animation_t *self, egui_animation_on_complete_cb_t cb, void *user_data);
 #endif
 
 /* Ends C function definitions when using C++ */

@@ -59,59 +59,193 @@ extern "C" {
 #define EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS 500
 #endif
 
+/* ---- View / style features ---- */
+
+/**
+ * FlexLayout container support.
+ * When enabled, egui_view_t gains a uint8_t flex_grow field.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_FLEXLAYOUT
+#define EGUI_CONFIG_FUNCTION_FLEXLAYOUT 0
+#endif
+
 /**
  * Maximum number of flex lines a single FlexLayout pass can produce.
- * Each line occupies a small stack struct. 16 is enough for most embedded UIs.
  */
 #ifndef EGUI_CONFIG_FLEXLAYOUT_MAX_LINES
 #define EGUI_CONFIG_FLEXLAYOUT_MAX_LINES 16
 #endif
 
 /**
+ * Style Cascade support.
+ * When enabled, each view gains a fixed-size shared-style stack.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_STYLE_CASCADE
+#define EGUI_CONFIG_FUNCTION_STYLE_CASCADE 0
+#endif
+
+/**
  * Maximum number of egui_style_t pointers that can be stacked on one view.
- * Styles are stored in a fixed array inside egui_view_t (no heap).
- * Overhead per view = EGUI_CONFIG_STYLE_MAX_PER_VIEW * sizeof(pointer) + 1 byte.
  */
 #ifndef EGUI_CONFIG_STYLE_MAX_PER_VIEW
 #define EGUI_CONFIG_STYLE_MAX_PER_VIEW 4
 #endif
 
 /**
- * Maximum number of egui_observer_t pointers that one egui_subject_t can hold.
- * Observers are stored in a fixed array inside egui_subject_t (no heap).
- * Overhead per subject = EGUI_CONFIG_SUBJECT_MAX_OBSERVERS * sizeof(pointer) + 1 byte.
+ * View state styles. Requires EGUI_CONFIG_FUNCTION_STYLE_CASCADE=1.
  */
-#ifndef EGUI_CONFIG_SUBJECT_MAX_OBSERVERS
-#define EGUI_CONFIG_SUBJECT_MAX_OBSERVERS 4
+#ifndef EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES
+#define EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES 0
 #endif
 
 /**
- * egui_font_ttf_t glyph cache configuration.
- *
- * EGUI_CONFIG_FONT_TTF_GLYPH_CACHE_SLOTS: number of rasterised glyphs to
- * keep in the ring-eviction cache embedded in egui_font_ttf_t.
- * Lower values reduce RAM but increase rasterisation frequency.
- *
- * EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_W / _MAX_H: maximum glyph bitmap
- * dimensions in pixels.  Glyphs larger than this are cached without a
- * bitmap (metrics only) and will not be rendered.  Set to values that
- * comfortably exceed the largest glyph produced by the chosen pixel_height.
- * Rule of thumb: MAX_W ≈ pixel_height, MAX_H ≈ pixel_height * 1.5.
- *
- * RAM per egui_font_ttf_t instance (excluding stbtt_fontinfo ~256B):
- *   SLOTS * (20 + MAX_W * MAX_H) bytes
- * With defaults (8, 20, 32): 8 * (20 + 640) = ~5.3 KB.
+ * Optional per-view user_data pointer.
  */
-#ifndef EGUI_CONFIG_FONT_TTF_GLYPH_CACHE_SLOTS
-#define EGUI_CONFIG_FONT_TTF_GLYPH_CACHE_SLOTS 8
+#ifndef EGUI_CONFIG_FUNCTION_VIEW_USER_DATA
+#define EGUI_CONFIG_FUNCTION_VIEW_USER_DATA 0
 #endif
 
-#ifndef EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_W
-#define EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_W 20
+/**
+ * Generic property access helpers for tooling and small dynamic UIs.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_PROPERTY_LITE
+#define EGUI_CONFIG_FUNCTION_PROPERTY_LITE 0
 #endif
 
-#ifndef EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_H
-#define EGUI_CONFIG_FONT_TTF_GLYPH_BITMAP_MAX_H 32
+/* ---- Touch interaction helpers ---- */
+
+/**
+ * Extended click area support.
+ * When enabled, each view can expand its touch hit region beyond visual bounds.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_EXT_CLICK_AREA
+#define EGUI_CONFIG_FUNCTION_EXT_CLICK_AREA 0
+#endif
+
+/**
+ * Long-press listener for touch views.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_LONG_PRESS
+#define EGUI_CONFIG_FUNCTION_LONG_PRESS 0
+#endif
+
+/**
+ * Hold duration in milliseconds before a long-press callback fires.
+ */
+#ifndef EGUI_CONFIG_LONG_PRESS_DURATION_MS
+#define EGUI_CONFIG_LONG_PRESS_DURATION_MS 500
+#endif
+
+/**
+ * Swipe direction listener for touch views.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SWIPE_LISTENER
+#define EGUI_CONFIG_FUNCTION_SWIPE_LISTENER 0
+#endif
+
+/**
+ * Minimum finger travel distance in pixels required for a swipe event.
+ */
+#ifndef EGUI_CONFIG_SWIPE_MIN_DISPLACEMENT_PX
+#define EGUI_CONFIG_SWIPE_MIN_DISPLACEMENT_PX 20
+#endif
+
+/**
+ * Draggable View support.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_DRAGGABLE_VIEW
+#define EGUI_CONFIG_FUNCTION_DRAGGABLE_VIEW 0
+#endif
+
+/* ---- Label widget ---- */
+
+/**
+ * Label long mode support for text overflow behavior.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_LABEL_LONG_MODE
+#define EGUI_CONFIG_FUNCTION_LABEL_LONG_MODE 0
+#endif
+
+#ifndef EGUI_CONFIG_LABEL_LONG_DOTS_BUF_SIZE
+#define EGUI_CONFIG_LABEL_LONG_DOTS_BUF_SIZE 128
+#endif
+
+/**
+ * Label word wrap support. Requires EGUI_CONFIG_FUNCTION_LABEL_LONG_MODE=1.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_LABEL_WORD_WRAP
+#define EGUI_CONFIG_FUNCTION_LABEL_WORD_WRAP 0
+#endif
+
+/**
+ * Label inline recolor support for #RRGGBB text# tags.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_LABEL_RECOLOR
+#define EGUI_CONFIG_FUNCTION_LABEL_RECOLOR 0
+#endif
+
+/**
+ * Label letter spacing support.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_LABEL_LETTER_SPACE
+#define EGUI_CONFIG_FUNCTION_LABEL_LETTER_SPACE 0
+#endif
+
+/**
+ * Label printf-style formatting support.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_LABEL_TEXT_FMT
+#define EGUI_CONFIG_FUNCTION_LABEL_TEXT_FMT 0
+#endif
+
+#ifndef EGUI_CONFIG_LABEL_FMT_BUF_SIZE
+#define EGUI_CONFIG_LABEL_FMT_BUF_SIZE 64
+#endif
+
+/* ---- Scroll widget ---- */
+
+/**
+ * Horizontal scroll mode support.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SCROLL_HORIZONTAL
+#define EGUI_CONFIG_FUNCTION_SCROLL_HORIZONTAL 0
+#endif
+
+/**
+ * Scroll snap support.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SCROLL_SNAP
+#define EGUI_CONFIG_FUNCTION_SCROLL_SNAP 0
+#endif
+
+/**
+ * Duration in milliseconds of the snap-to-position animation.
+ */
+#ifndef EGUI_CONFIG_SCROLL_SNAP_DURATION_MS
+#define EGUI_CONFIG_SCROLL_SNAP_DURATION_MS 200
+#endif
+
+/**
+ * Scroll event listener support.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SCROLL_LISTENER
+#define EGUI_CONFIG_FUNCTION_SCROLL_LISTENER 0
+#endif
+
+/* ---- Image widget ---- */
+
+/**
+ * Image widget lightweight axis-aligned scale.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE
+#define EGUI_CONFIG_FUNCTION_IMAGE_SCALE_LITE 0
+#endif
+
+/**
+ * Image widget rotation and affine scale transform.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM
+#define EGUI_CONFIG_FUNCTION_IMAGE_TRANSFORM 0
 #endif
 
 #ifdef __cplusplus

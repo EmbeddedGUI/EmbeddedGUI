@@ -188,7 +188,7 @@ void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
             else
             {
                 egui_dim_t content_w = container->region.size.width;
-                egui_dim_t view_w   = self->region.size.width;
+                egui_dim_t view_w = self->region.size.width;
                 int max_scroll = (content_w > view_w) ? (int)(content_w - view_w) : 0;
                 if (-(container->region.location.x) > max_scroll)
                 {
@@ -506,8 +506,7 @@ int egui_view_scroll_on_intercept_touch_event(egui_view_t *self, egui_motion_eve
          * original down touch.
          */
 #if EGUI_CONFIG_FUNCTION_SCROLL_HORIZONTAL
-        egui_dim_t delta_y = local->is_horizontal ? (event->location.x - local->last_motion_y)
-                                                   : (event->location.y - local->last_motion_y);
+        egui_dim_t delta_y = local->is_horizontal ? (event->location.x - local->last_motion_y) : (event->location.y - local->last_motion_y);
 #else
         egui_dim_t delta_y = event->location.y - local->last_motion_y;
 #endif
@@ -648,8 +647,7 @@ int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *even
     case EGUI_MOTION_EVENT_ACTION_MOVE:
     {
 #if EGUI_CONFIG_FUNCTION_SCROLL_HORIZONTAL
-        egui_dim_t delta_y = local->is_horizontal ? (event->location.x - local->last_motion_y)
-                                                   : (event->location.y - local->last_motion_y);
+        egui_dim_t delta_y = local->is_horizontal ? (event->location.x - local->last_motion_y) : (event->location.y - local->last_motion_y);
 #else
         egui_dim_t delta_y = event->location.y - local->last_motion_y;
 #endif
@@ -876,9 +874,9 @@ void egui_view_scroll_scroll_to_child(egui_view_t *self, egui_view_t *child, uin
     {
         current_scroll_y = 0;
     }
-    viewport_h    = self->region.size.height;
-    child_top     = child->region.location.y;
-    child_bottom  = child_top + child->region.size.height;
+    viewport_h = self->region.size.height;
+    child_top = child->region.location.y;
+    child_bottom = child_top + child->region.size.height;
     target_scroll_y = current_scroll_y;
 
     if (child_top < (int)current_scroll_y)
@@ -902,7 +900,7 @@ void egui_view_scroll_scroll_to_child(egui_view_t *self, egui_view_t *child, uin
     }
 
     /* Clamp to valid scroll range. */
-    content_h  = container->region.size.height;
+    content_h = container->region.size.height;
     max_scroll = (content_h > viewport_h) ? (egui_dim_t)(content_h - viewport_h) : 0;
     if (target_scroll_y > max_scroll)
     {
@@ -958,8 +956,8 @@ void egui_view_scroll_to_y(egui_view_t *self, egui_dim_t y, uint8_t animated)
     }
 
     viewport_h = self->region.size.height;
-    content_h  = container->region.size.height;
-    max_scroll  = (content_h > viewport_h) ? (egui_dim_t)(content_h - viewport_h) : 0;
+    content_h = container->region.size.height;
+    max_scroll = (content_h > viewport_h) ? (egui_dim_t)(content_h - viewport_h) : 0;
     if (y > max_scroll)
     {
         y = max_scroll;
@@ -1011,8 +1009,8 @@ void egui_view_scroll_to_x(egui_view_t *self, egui_dim_t x, uint8_t animated)
     }
 
     viewport_w = self->region.size.width;
-    content_w  = container->region.size.width;
-    max_scroll  = (content_w > viewport_w) ? (egui_dim_t)(content_w - viewport_w) : 0;
+    content_w = container->region.size.width;
+    max_scroll = (content_w > viewport_w) ? (egui_dim_t)(content_w - viewport_w) : 0;
     if (x > max_scroll)
     {
         x = max_scroll;
@@ -1324,15 +1322,15 @@ uint8_t egui_view_scroll_is_at_bottom(egui_view_t *self)
     if (local->is_horizontal)
     {
         egui_dim_t viewport_w = (egui_dim_t)self->region.size.width;
-        egui_dim_t content_w  = (egui_dim_t)container->region.size.width;
-        egui_dim_t scroll_x   = egui_view_scroll_get_scroll_x(self);
+        egui_dim_t content_w = (egui_dim_t)container->region.size.width;
+        egui_dim_t scroll_x = egui_view_scroll_get_scroll_x(self);
         return (scroll_x + viewport_w) >= content_w;
     }
 #endif
     {
         egui_dim_t viewport_h = (egui_dim_t)self->region.size.height;
-        egui_dim_t content_h  = (egui_dim_t)container->region.size.height;
-        egui_dim_t scroll_y   = egui_view_scroll_get_scroll_y(self);
+        egui_dim_t content_h = (egui_dim_t)container->region.size.height;
+        egui_dim_t scroll_y = egui_view_scroll_get_scroll_y(self);
         return (scroll_y + viewport_h) >= content_h;
     }
 }

@@ -151,6 +151,7 @@ static void test_combobox_get_state_clear_and_null_self(void)
     setup();
     egui_view_combobox_set_items(EGUI_VIEW_OF(&s_combobox), s_items, 3);
     egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&s_combobox), s_icons);
+    egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&s_combobox), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_combobox_set_items(EGUI_VIEW_OF(&s_combobox), NULL, 0);
     egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&s_combobox), NULL);
     egui_view_combobox_set_font(EGUI_VIEW_OF(&s_combobox), NULL);

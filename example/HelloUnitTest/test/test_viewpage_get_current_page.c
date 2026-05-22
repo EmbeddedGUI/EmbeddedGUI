@@ -8,13 +8,13 @@
 #include "test_viewpage_get_current_page.h"
 
 static egui_view_viewpage_t s_vp;
-static egui_view_label_t    s_page0;
-static egui_view_label_t    s_page1;
+static egui_view_label_t s_page0;
+static egui_view_label_t s_page1;
 
 static void setup(void)
 {
     egui_core_t *core = uicode_get_core();
-    memset(&s_vp,    0, sizeof(s_vp));
+    memset(&s_vp, 0, sizeof(s_vp));
     memset(&s_page0, 0, sizeof(s_page0));
     memset(&s_page1, 0, sizeof(s_page1));
     egui_view_viewpage_init(EGUI_VIEW_OF(&s_vp), core);

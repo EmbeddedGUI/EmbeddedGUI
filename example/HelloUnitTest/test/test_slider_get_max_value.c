@@ -35,8 +35,7 @@ static void test_slider_max_value_gt_value(void)
 {
     setup();
     egui_view_slider_set_value(EGUI_VIEW_OF(&s_slider), 30);
-    EGUI_TEST_ASSERT_TRUE((int)egui_view_slider_get_max_value(EGUI_VIEW_OF(&s_slider)) >
-                          (int)egui_view_slider_get_value(EGUI_VIEW_OF(&s_slider)));
+    EGUI_TEST_ASSERT_TRUE((int)egui_view_slider_get_max_value(EGUI_VIEW_OF(&s_slider)) > (int)egui_view_slider_get_value(EGUI_VIEW_OF(&s_slider)));
 }
 
 /* NULL self returns 100 (effective max) without crash. */

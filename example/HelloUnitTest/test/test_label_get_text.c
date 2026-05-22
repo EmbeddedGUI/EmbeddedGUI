@@ -33,8 +33,7 @@ static void test_label_get_text_after_set(void)
 
     setup();
     egui_view_label_set_text(EGUI_VIEW_OF(&s_label), text);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)text,
-                               (int)(intptr_t)egui_view_label_get_text(EGUI_VIEW_OF(&s_label)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)text, (int)(intptr_t)egui_view_label_get_text(EGUI_VIEW_OF(&s_label)));
 }
 
 /* Overwriting text: get_text reflects the latest pointer. */
@@ -46,8 +45,7 @@ static void test_label_get_text_overwrite(void)
     setup();
     egui_view_label_set_text(EGUI_VIEW_OF(&s_label), t1);
     egui_view_label_set_text(EGUI_VIEW_OF(&s_label), t2);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)t2,
-                               (int)(intptr_t)egui_view_label_get_text(EGUI_VIEW_OF(&s_label)));
+    EGUI_TEST_ASSERT_EQUAL_INT((int)(intptr_t)t2, (int)(intptr_t)egui_view_label_get_text(EGUI_VIEW_OF(&s_label)));
 }
 
 /* NULL self: get_text returns NULL. */

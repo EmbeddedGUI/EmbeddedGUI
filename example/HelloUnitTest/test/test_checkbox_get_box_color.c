@@ -18,8 +18,7 @@ static void setup(void)
 static void test_checkbox_get_box_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_BORDER.full,
-                               (int)egui_view_checkbox_get_box_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_BORDER.full, (int)egui_view_checkbox_get_box_color(EGUI_VIEW_OF(&s_cb)).full);
 }
 
 /* After assigning box_color, getter returns the same color. */
@@ -29,8 +28,7 @@ static void test_checkbox_get_box_color_after_set(void)
     c.full = 0x556677u;
     setup();
     s_cb.box_color = c;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_checkbox_get_box_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_checkbox_get_box_color(EGUI_VIEW_OF(&s_cb)).full);
 }
 
 /* Updating box_color reflects in the getter. */
@@ -41,11 +39,9 @@ static void test_checkbox_get_box_color_update(void)
     c2.full = 0x889900u;
     setup();
     s_cb.box_color = c1;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full,
-                               (int)egui_view_checkbox_get_box_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c1.full, (int)egui_view_checkbox_get_box_color(EGUI_VIEW_OF(&s_cb)).full);
     s_cb.box_color = c2;
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_checkbox_get_box_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_checkbox_get_box_color(EGUI_VIEW_OF(&s_cb)).full);
 }
 
 /* NULL self returns zeroed color without crash. */

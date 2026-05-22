@@ -301,7 +301,10 @@ void egui_view_circular_progress_bar_set_process(egui_view_t *self, uint8_t proc
 
 uint8_t egui_view_circular_progress_bar_get_process(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
     return local->process;
 }
@@ -318,7 +321,10 @@ void egui_view_circular_progress_bar_set_stroke_width(egui_view_t *self, egui_di
 
 egui_dim_t egui_view_circular_progress_bar_get_stroke_width(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
     return local->stroke_width;
 }
@@ -334,7 +340,10 @@ egui_color_t egui_view_circular_progress_bar_get_progress_color(egui_view_t *sel
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
     return local->progress_color;
 }
@@ -350,7 +359,10 @@ egui_color_t egui_view_circular_progress_bar_get_bk_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
     return local->bk_color;
 }
@@ -366,7 +378,10 @@ egui_color_t egui_view_circular_progress_bar_get_text_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
     return local->text_color;
 }

@@ -21,8 +21,7 @@ static void test_checkbox_get_text_color_after_set(void)
     c.full = 0xFF0000u;
     setup();
     egui_view_checkbox_set_text_color(EGUI_VIEW_OF(&s_cb), c);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full,
-                               (int)egui_view_checkbox_get_text_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c.full, (int)egui_view_checkbox_get_text_color(EGUI_VIEW_OF(&s_cb)).full);
 }
 
 /* Updating the color reflects in the getter. */
@@ -34,16 +33,14 @@ static void test_checkbox_get_text_color_update(void)
     setup();
     egui_view_checkbox_set_text_color(EGUI_VIEW_OF(&s_cb), c1);
     egui_view_checkbox_set_text_color(EGUI_VIEW_OF(&s_cb), c2);
-    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full,
-                               (int)egui_view_checkbox_get_text_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)c2.full, (int)egui_view_checkbox_get_text_color(EGUI_VIEW_OF(&s_cb)).full);
 }
 
 /* Default color after plain init is EGUI_THEME_TEXT (non-zero). */
 static void test_checkbox_get_text_color_default(void)
 {
     setup();
-    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_TEXT.full,
-                               (int)egui_view_checkbox_get_text_color(EGUI_VIEW_OF(&s_cb)).full);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)EGUI_THEME_TEXT.full, (int)egui_view_checkbox_get_text_color(EGUI_VIEW_OF(&s_cb)).full);
 }
 
 /* NULL self returns zeroed color without crash. */

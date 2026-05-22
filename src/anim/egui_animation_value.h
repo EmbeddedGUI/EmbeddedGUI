@@ -31,9 +31,9 @@ struct egui_animation_value
 {
     egui_animation_t base;
 
-    int32_t from;     /* Start value of the range. */
-    int32_t to;       /* End value of the range. */
-    int32_t current;  /* Last emitted value (not directly usable; kept for dedup). */
+    int32_t from;    /* Start value of the range. */
+    int32_t to;      /* End value of the range. */
+    int32_t current; /* Last emitted value (not directly usable; kept for dedup). */
 
     egui_animation_value_on_value_t on_value; /* Callback invoked each frame with the current value. */
 };

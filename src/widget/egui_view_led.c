@@ -166,7 +166,10 @@ void egui_view_led_toggle(egui_view_t *self)
  */
 int egui_view_led_get_is_on(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_led_t);
     return (int)local->is_on;
 }
@@ -197,7 +200,10 @@ void egui_view_led_stop_blink(egui_view_t *self)
  */
 int egui_view_led_get_is_blinking(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_led_t);
     return (int)local->is_blinking;
 }
@@ -207,38 +213,56 @@ int egui_view_led_get_is_blinking(egui_view_t *self)
  */
 uint16_t egui_view_led_get_blink_period(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_led_t);
     return local->blink_period;
 }
 
 egui_color_t egui_view_led_get_on_color(egui_view_t *self)
 {
-    egui_color_t zero; zero.full = 0;
-    if (self == NULL) { return zero; }
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_led_t);
     return local->on_color;
 }
 
 egui_color_t egui_view_led_get_off_color(egui_view_t *self)
 {
-    egui_color_t zero; zero.full = 0;
-    if (self == NULL) { return zero; }
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_led_t);
     return local->off_color;
 }
 
 egui_color_t egui_view_led_get_border_color(egui_view_t *self)
 {
-    egui_color_t zero; zero.full = 0;
-    if (self == NULL) { return zero; }
+    egui_color_t zero;
+    zero.full = 0;
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_led_t);
     return local->border_color;
 }
 
 egui_dim_t egui_view_led_get_border_width(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_led_t);
     return local->border_width;
 }

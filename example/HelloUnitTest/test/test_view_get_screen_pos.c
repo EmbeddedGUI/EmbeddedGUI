@@ -28,7 +28,7 @@ static void test_view_screen_pos_after_set(void)
     setup();
     s_view.region_screen.location.x = 50;
     s_view.region_screen.location.y = 120;
-    EGUI_TEST_ASSERT_EQUAL_INT(50,  (int)egui_view_get_screen_x(&s_view));
+    EGUI_TEST_ASSERT_EQUAL_INT(50, (int)egui_view_get_screen_x(&s_view));
     EGUI_TEST_ASSERT_EQUAL_INT(120, (int)egui_view_get_screen_y(&s_view));
 }
 

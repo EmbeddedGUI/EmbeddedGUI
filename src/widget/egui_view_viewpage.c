@@ -211,14 +211,20 @@ void egui_view_viewpage_set_current_page(egui_view_t *self, int page_index)
 
 int egui_view_viewpage_get_current_page(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_viewpage_t);
     return (int)local->current_page_index;
 }
 
 int egui_view_viewpage_get_page_count(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_viewpage_t);
     return egui_view_group_get_child_count((egui_view_t *)&local->container);
 }

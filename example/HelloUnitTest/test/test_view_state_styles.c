@@ -11,7 +11,7 @@
 /* Backgrounds (two distinct sentinel values)                          */
 /* ------------------------------------------------------------------ */
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg_normal_param,  EGUI_THEME_PRIMARY,   EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_bg_normal_param, EGUI_THEME_PRIMARY, EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(s_bg_normal_bp, &s_bg_normal_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(s_bg_normal, &s_bg_normal_bp);
 
@@ -31,18 +31,10 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(s_bg_checked, &s_bg_checked_bp);
 static const egui_view_style_t s_sty_default = EGUI_STYLE_INIT_BACKGROUND(EGUI_BG_OF(&s_bg_normal));
 
 /* state_mask = PRESSED → only when pressed */
-static const egui_view_style_t s_sty_pressed = {
-    .background = EGUI_BG_OF(&s_bg_pressed),
-    .has_alpha  = 0,
-    .state_mask = EGUI_VIEW_STATE_PRESSED
-};
+static const egui_view_style_t s_sty_pressed = {.background = EGUI_BG_OF(&s_bg_pressed), .has_alpha = 0, .state_mask = EGUI_VIEW_STATE_PRESSED};
 
 /* state_mask = CHECKED → only when checked */
-static const egui_view_style_t s_sty_checked = {
-    .background = EGUI_BG_OF(&s_bg_checked),
-    .has_alpha  = 0,
-    .state_mask = EGUI_VIEW_STATE_CHECKED
-};
+static const egui_view_style_t s_sty_checked = {.background = EGUI_BG_OF(&s_bg_checked), .has_alpha = 0, .state_mask = EGUI_VIEW_STATE_CHECKED};
 
 /* ------------------------------------------------------------------ */
 /* View fixture                                                        */
@@ -50,7 +42,10 @@ static const egui_view_style_t s_sty_checked = {
 
 static egui_view_label_t s_view;
 
-static egui_view_t *get_view(void) { return EGUI_VIEW_OF(&s_view); }
+static egui_view_t *get_view(void)
+{
+    return EGUI_VIEW_OF(&s_view);
+}
 
 static void setup(void)
 {
@@ -77,8 +72,7 @@ static void test_default_style_always_applied(void)
 {
     setup();
     egui_view_add_style(get_view(), &s_sty_default);
-    EGUI_TEST_ASSERT_TRUE(
-        egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_normal));
+    EGUI_TEST_ASSERT_TRUE(egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_normal));
 }
 
 /* A PRESSED-state style is NOT applied when the view is not pressed. */
@@ -88,8 +82,7 @@ static void test_pressed_style_not_applied_when_not_pressed(void)
     egui_view_add_style(get_view(), &s_sty_default);
     egui_view_add_style(get_view(), &s_sty_pressed);
     /* is_pressed == 0 after init */
-    EGUI_TEST_ASSERT_TRUE(
-        egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_normal));
+    EGUI_TEST_ASSERT_TRUE(egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_normal));
 }
 
 /* A PRESSED-state style IS applied when the view IS pressed. */
@@ -99,8 +92,7 @@ static void test_pressed_style_applied_when_pressed(void)
     egui_view_add_style(get_view(), &s_sty_default);
     egui_view_add_style(get_view(), &s_sty_pressed);
     egui_view_set_pressed(get_view(), 1);
-    EGUI_TEST_ASSERT_TRUE(
-        egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_pressed));
+    EGUI_TEST_ASSERT_TRUE(egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_pressed));
 }
 
 /* After releasing, the default style re-applies. */
@@ -111,8 +103,7 @@ static void test_style_reverts_after_release(void)
     egui_view_add_style(get_view(), &s_sty_pressed);
     egui_view_set_pressed(get_view(), 1);
     egui_view_set_pressed(get_view(), 0);
-    EGUI_TEST_ASSERT_TRUE(
-        egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_normal));
+    EGUI_TEST_ASSERT_TRUE(egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_normal));
 }
 
 /* DISABLED state is set when is_enable == 0. */
@@ -122,7 +113,7 @@ static void test_disabled_state_from_is_enable(void)
     egui_view_set_enable(get_view(), 0);
     uint8_t state = egui_view_get_computed_state(get_view());
     EGUI_TEST_ASSERT_TRUE((state & EGUI_VIEW_STATE_DISABLED) != 0);
-    EGUI_TEST_ASSERT_TRUE((state & EGUI_VIEW_STATE_PRESSED)  == 0);
+    EGUI_TEST_ASSERT_TRUE((state & EGUI_VIEW_STATE_PRESSED) == 0);
 }
 
 /* set_state_checked / get_state_checked round-trip. */
@@ -153,13 +144,11 @@ static void test_checked_style_applied_only_when_checked(void)
     egui_view_add_style(get_view(), &s_sty_checked);
 
     /* Not checked → default background. */
-    EGUI_TEST_ASSERT_TRUE(
-        egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_normal));
+    EGUI_TEST_ASSERT_TRUE(egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_normal));
 
     /* Checked → checked background. */
     egui_view_set_state_checked(get_view(), 1);
-    EGUI_TEST_ASSERT_TRUE(
-        egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_checked));
+    EGUI_TEST_ASSERT_TRUE(egui_view_get_effective_background(get_view()) == EGUI_BG_OF(&s_bg_checked));
 }
 
 void test_view_state_styles_run(void)
@@ -175,6 +164,8 @@ void test_view_state_styles_run(void)
     EGUI_TEST_RUN(test_checked_style_applied_only_when_checked);
 }
 
-#else /* feature not enabled */
-void test_view_state_styles_run(void) {}
+#else  /* feature not enabled */
+void test_view_state_styles_run(void)
+{
+}
 #endif /* EGUI_CONFIG_FUNCTION_VIEW_STATE_STYLES && EGUI_CONFIG_FUNCTION_STYLE_CASCADE */

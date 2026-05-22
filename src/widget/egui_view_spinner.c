@@ -180,7 +180,10 @@ void egui_view_spinner_stop(egui_view_t *self)
  */
 int egui_view_spinner_is_spinning(egui_view_t *self)
 {
-    if (self == NULL) { return 0; }
+    if (self == NULL)
+    {
+        return 0;
+    }
     EGUI_LOCAL_INIT(egui_view_spinner_t);
     return (int)local->is_spinning;
 }
@@ -202,7 +205,10 @@ egui_color_t egui_view_spinner_get_color(egui_view_t *self)
 {
     egui_color_t zero;
     zero.full = 0;
-    if (self == NULL) { return zero; }
+    if (self == NULL)
+    {
+        return zero;
+    }
     EGUI_LOCAL_INIT(egui_view_spinner_t);
     return local->color;
 }

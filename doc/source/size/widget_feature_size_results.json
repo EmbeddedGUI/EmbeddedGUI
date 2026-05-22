@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-04-05T08:31:12.386532",
-  "git_commit": "21b6890",
+  "timestamp": "2026-05-21T16:08:32.440547",
+  "git_commit": "1fe189eb",
   "app": "HelloSizeAnalysis",
   "port": "qemu",
   "cpu_arch": "cortex-m0plus",
@@ -12,12 +12,12 @@
       "cflags": [],
       "items": [],
       "sections": {
-        "text": 11660,
-        "rodata": 568,
-        "data": 24,
-        "bss": 6024
+        "text": 14540,
+        "rodata": 596,
+        "data": 1368,
+        "bss": 6372
       },
-      "rom_total": 12228,
+      "rom_total": 15136,
       "delta": {
         "text": 0,
         "rodata": 0,
@@ -37,18 +37,18 @@
         "egui_view_slider"
       ],
       "sections": {
-        "text": 19104,
-        "rodata": 1384,
-        "data": 24,
-        "bss": 6100
+        "text": 23260,
+        "rodata": 1380,
+        "data": 1368,
+        "bss": 6448
       },
-      "rom_total": 20488,
+      "rom_total": 24640,
       "delta": {
-        "text": 7444,
-        "rodata": 816,
+        "text": 8720,
+        "rodata": 784,
         "data": 0,
         "bss": 76,
-        "rom_total": 8260
+        "rom_total": 9504
       }
     },
     {
@@ -62,18 +62,18 @@
         "egui_view_switch"
       ],
       "sections": {
-        "text": 18200,
-        "rodata": 1392,
-        "data": 24,
-        "bss": 6116
+        "text": 26524,
+        "rodata": 1716,
+        "data": 1368,
+        "bss": 6468
       },
-      "rom_total": 19592,
+      "rom_total": 28240,
       "delta": {
-        "text": 6540,
-        "rodata": 824,
+        "text": 11984,
+        "rodata": 1120,
         "data": 0,
-        "bss": 92,
-        "rom_total": 7364
+        "bss": 96,
+        "rom_total": 13104
       }
     },
     {
@@ -87,18 +87,18 @@
         "egui_view_page_indicator"
       ],
       "sections": {
-        "text": 14780,
-        "rodata": 1388,
-        "data": 24,
-        "bss": 6104
+        "text": 22952,
+        "rodata": 1716,
+        "data": 1368,
+        "bss": 6464
       },
-      "rom_total": 16168,
+      "rom_total": 24668,
       "delta": {
-        "text": 3120,
-        "rodata": 820,
+        "text": 8412,
+        "rodata": 1120,
         "data": 0,
-        "bss": 80,
-        "rom_total": 3940
+        "bss": 92,
+        "rom_total": 9532
       }
     },
     {
@@ -112,18 +112,18 @@
         "egui_view_stepper"
       ],
       "sections": {
-        "text": 14928,
-        "rodata": 1460,
-        "data": 24,
-        "bss": 6120
+        "text": 23076,
+        "rodata": 1720,
+        "data": 1368,
+        "bss": 6476
       },
-      "rom_total": 16388,
+      "rom_total": 24796,
       "delta": {
-        "text": 3268,
-        "rodata": 892,
+        "text": 8536,
+        "rodata": 1124,
         "data": 0,
-        "bss": 96,
-        "rom_total": 4160
+        "bss": 104,
+        "rom_total": 9660
       }
     },
     {
@@ -137,18 +137,18 @@
         "egui_view_checkbox"
       ],
       "sections": {
-        "text": 18596,
-        "rodata": 1380,
-        "data": 24,
-        "bss": 6124
+        "text": 27124,
+        "rodata": 6924,
+        "data": 1368,
+        "bss": 6476
       },
-      "rom_total": 19976,
+      "rom_total": 34048,
       "delta": {
-        "text": 6936,
-        "rodata": 812,
+        "text": 12584,
+        "rodata": 6328,
         "data": 0,
-        "bss": 100,
-        "rom_total": 7748
+        "bss": 104,
+        "rom_total": 18912
       }
     },
     {
@@ -162,18 +162,18 @@
         "egui_view_radio_button"
       ],
       "sections": {
-        "text": 17792,
-        "rodata": 1384,
-        "data": 24,
-        "bss": 6120
+        "text": 26356,
+        "rodata": 6924,
+        "data": 1368,
+        "bss": 6480
       },
-      "rom_total": 19176,
+      "rom_total": 33280,
       "delta": {
-        "text": 6132,
-        "rodata": 816,
+        "text": 11816,
+        "rodata": 6328,
         "data": 0,
-        "bss": 96,
-        "rom_total": 6948
+        "bss": 108,
+        "rom_total": 18144
       }
     },
     {
@@ -187,18 +187,18 @@
         "egui_view_progress_bar"
       ],
       "sections": {
-        "text": 18632,
-        "rodata": 1388,
-        "data": 24,
-        "bss": 6100
+        "text": 22488,
+        "rodata": 1380,
+        "data": 1368,
+        "bss": 6444
       },
-      "rom_total": 20020,
+      "rom_total": 23868,
       "delta": {
-        "text": 6972,
-        "rodata": 820,
+        "text": 7948,
+        "rodata": 784,
         "data": 0,
-        "bss": 76,
-        "rom_total": 7792
+        "bss": 72,
+        "rom_total": 8732
       }
     },
     {
@@ -212,18 +212,18 @@
         "egui_view_toggle_button"
       ],
       "sections": {
-        "text": 16152,
-        "rodata": 1764,
-        "data": 24,
-        "bss": 6120
+        "text": 23904,
+        "rodata": 6968,
+        "data": 1368,
+        "bss": 6476
       },
-      "rom_total": 17916,
+      "rom_total": 30872,
       "delta": {
-        "text": 4492,
-        "rodata": 1196,
+        "text": 9364,
+        "rodata": 6372,
         "data": 0,
-        "bss": 96,
-        "rom_total": 5688
+        "bss": 104,
+        "rom_total": 15736
       }
     },
     {
@@ -237,18 +237,18 @@
         "egui_view_notification_badge"
       ],
       "sections": {
-        "text": 16160,
-        "rodata": 1724,
-        "data": 24,
-        "bss": 6112
+        "text": 23544,
+        "rodata": 6936,
+        "data": 1368,
+        "bss": 6472
       },
-      "rom_total": 17884,
+      "rom_total": 30480,
       "delta": {
-        "text": 4500,
-        "rodata": 1156,
+        "text": 9004,
+        "rodata": 6340,
         "data": 0,
-        "bss": 88,
-        "rom_total": 5656
+        "bss": 100,
+        "rom_total": 15344
       }
     },
     {
@@ -262,18 +262,18 @@
         "egui_view_button"
       ],
       "sections": {
-        "text": 16356,
-        "rodata": 1760,
-        "data": 24,
-        "bss": 6116
+        "text": 24964,
+        "rodata": 7352,
+        "data": 1368,
+        "bss": 6468
       },
-      "rom_total": 18116,
+      "rom_total": 32316,
       "delta": {
-        "text": 4696,
-        "rodata": 1192,
+        "text": 10424,
+        "rodata": 6756,
         "data": 0,
-        "bss": 92,
-        "rom_total": 5888
+        "bss": 96,
+        "rom_total": 17180
       }
     },
     {
@@ -287,18 +287,18 @@
         "egui_view_image_button"
       ],
       "sections": {
-        "text": 17552,
-        "rodata": 1756,
-        "data": 24,
-        "bss": 6120
+        "text": 24516,
+        "rodata": 6988,
+        "data": 1368,
+        "bss": 6476
       },
-      "rom_total": 19308,
+      "rom_total": 31504,
       "delta": {
-        "text": 5892,
-        "rodata": 1188,
+        "text": 9976,
+        "rodata": 6392,
         "data": 0,
-        "bss": 96,
-        "rom_total": 7080
+        "bss": 104,
+        "rom_total": 16368
       }
     },
     {
@@ -312,18 +312,18 @@
         "egui_view_circular_progress_bar"
       ],
       "sections": {
-        "text": 24868,
-        "rodata": 2292,
-        "data": 24,
-        "bss": 6104
+        "text": 34900,
+        "rodata": 8068,
+        "data": 1368,
+        "bss": 6464
       },
-      "rom_total": 27160,
+      "rom_total": 42968,
       "delta": {
-        "text": 13208,
-        "rodata": 1724,
+        "text": 20360,
+        "rodata": 7472,
         "data": 0,
-        "bss": 80,
-        "rom_total": 14932
+        "bss": 92,
+        "rom_total": 27832
       }
     },
     {
@@ -337,18 +337,18 @@
         "egui_view_gauge"
       ],
       "sections": {
-        "text": 28680,
-        "rodata": 2280,
-        "data": 24,
-        "bss": 6112
+        "text": 43356,
+        "rodata": 8124,
+        "data": 1368,
+        "bss": 6468
       },
-      "rom_total": 30960,
+      "rom_total": 51480,
       "delta": {
-        "text": 17020,
-        "rodata": 1712,
+        "text": 28816,
+        "rodata": 7528,
         "data": 0,
-        "bss": 88,
-        "rom_total": 18732
+        "bss": 96,
+        "rom_total": 36344
       }
     },
     {
@@ -362,18 +362,18 @@
         "egui_view_activity_ring"
       ],
       "sections": {
-        "text": 23504,
-        "rodata": 1948,
-        "data": 24,
-        "bss": 6104
+        "text": 39772,
+        "rodata": 3308,
+        "data": 1368,
+        "bss": 6456
       },
-      "rom_total": 25452,
+      "rom_total": 43080,
       "delta": {
-        "text": 11844,
-        "rodata": 1380,
+        "text": 25232,
+        "rodata": 2712,
         "data": 0,
-        "bss": 80,
-        "rom_total": 13224
+        "bss": 84,
+        "rom_total": 27944
       }
     },
     {
@@ -387,18 +387,18 @@
         "egui_view_analog_clock"
       ],
       "sections": {
-        "text": 20860,
-        "rodata": 1572,
-        "data": 24,
-        "bss": 6104
+        "text": 28896,
+        "rodata": 1800,
+        "data": 1368,
+        "bss": 6456
       },
-      "rom_total": 22432,
+      "rom_total": 30696,
       "delta": {
-        "text": 9200,
-        "rodata": 1004,
+        "text": 14356,
+        "rodata": 1204,
         "data": 0,
-        "bss": 80,
-        "rom_total": 10204
+        "bss": 84,
+        "rom_total": 15560
       }
     },
     {
@@ -412,18 +412,18 @@
         "egui_view_line"
       ],
       "sections": {
-        "text": 17632,
-        "rodata": 1388,
-        "data": 24,
-        "bss": 6096
+        "text": 22992,
+        "rodata": 728,
+        "data": 1368,
+        "bss": 6444
       },
-      "rom_total": 19020,
+      "rom_total": 23720,
       "delta": {
-        "text": 5972,
-        "rodata": 820,
+        "text": 8452,
+        "rodata": 132,
         "data": 0,
         "bss": 72,
-        "rom_total": 6792
+        "rom_total": 8584
       }
     },
     {
@@ -437,18 +437,18 @@
         "egui_view_chart_line"
       ],
       "sections": {
-        "text": 20820,
-        "rodata": 1868,
-        "data": 24,
-        "bss": 6152
+        "text": 30732,
+        "rodata": 7056,
+        "data": 1368,
+        "bss": 6508
       },
-      "rom_total": 22688,
+      "rom_total": 37788,
       "delta": {
-        "text": 9160,
-        "rodata": 1300,
+        "text": 16192,
+        "rodata": 6460,
         "data": 0,
-        "bss": 128,
-        "rom_total": 10460
+        "bss": 136,
+        "rom_total": 22652
       }
     },
     {
@@ -462,18 +462,18 @@
         "egui_view_chart_pie"
       ],
       "sections": {
-        "text": 19040,
-        "rodata": 2144,
-        "data": 24,
-        "bss": 6104
+        "text": 32608,
+        "rodata": 8128,
+        "data": 1368,
+        "bss": 6460
       },
-      "rom_total": 21184,
+      "rom_total": 40736,
       "delta": {
-        "text": 7380,
-        "rodata": 1576,
+        "text": 18068,
+        "rodata": 7532,
         "data": 0,
-        "bss": 80,
-        "rom_total": 8956
+        "bss": 88,
+        "rom_total": 25600
       }
     },
     {
@@ -493,18 +493,18 @@
         "stepper"
       ],
       "sections": {
-        "text": 20644,
-        "rodata": 1664,
-        "data": 24,
-        "bss": 6356
+        "text": 29548,
+        "rodata": 1852,
+        "data": 1368,
+        "bss": 6724
       },
-      "rom_total": 22308,
+      "rom_total": 31400,
       "delta": {
-        "text": 8984,
-        "rodata": 1096,
+        "text": 15008,
+        "rodata": 1256,
         "data": 0,
-        "bss": 332,
-        "rom_total": 10080
+        "bss": 352,
+        "rom_total": 16264
       }
     },
     {
@@ -522,18 +522,18 @@
         "activity_ring"
       ],
       "sections": {
-        "text": 30840,
-        "rodata": 2488,
-        "data": 24,
-        "bss": 6272
+        "text": 53440,
+        "rodata": 9016,
+        "data": 1368,
+        "bss": 6636
       },
-      "rom_total": 33328,
+      "rom_total": 62456,
       "delta": {
-        "text": 19180,
-        "rodata": 1920,
+        "text": 38900,
+        "rodata": 8420,
         "data": 0,
-        "bss": 248,
-        "rom_total": 21100
+        "bss": 264,
+        "rom_total": 47320
       }
     },
     {
@@ -551,18 +551,18 @@
         "analog_clock"
       ],
       "sections": {
-        "text": 24972,
-        "rodata": 2244,
-        "data": 24,
-        "bss": 6296
+        "text": 39268,
+        "rodata": 7612,
+        "data": 1368,
+        "bss": 6664
       },
-      "rom_total": 27216,
+      "rom_total": 46880,
       "delta": {
-        "text": 13312,
-        "rodata": 1676,
+        "text": 24728,
+        "rodata": 7016,
         "data": 0,
-        "bss": 272,
-        "rom_total": 14988
+        "bss": 292,
+        "rom_total": 31744
       }
     },
     {
@@ -593,18 +593,18 @@
         "all widget probes"
       ],
       "sections": {
-        "text": 45648,
-        "rodata": 4156,
-        "data": 24,
-        "bss": 7556
+        "text": 79840,
+        "rodata": 10488,
+        "data": 1368,
+        "bss": 7984
       },
-      "rom_total": 49804,
+      "rom_total": 90328,
       "delta": {
-        "text": 33988,
-        "rodata": 3588,
+        "text": 65300,
+        "rodata": 9892,
         "data": 0,
-        "bss": 1532,
-        "rom_total": 37576
+        "bss": 1612,
+        "rom_total": 75192
       }
     }
   ]
