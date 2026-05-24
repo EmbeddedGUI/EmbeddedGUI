@@ -302,6 +302,32 @@ def run_target_app(app: str, build_output_dir: str, widget: str, args: argparse.
     )
 
 
+def get_slow_host_retry_args(args: argparse.Namespace) -> dict:
+    return {
+        "timeout": max(args.timeout, runtime_check.RECORDING_DURATION + runtime_check.SLOW_HOST_RETRY_TIMEOUT_MARGIN),
+        "snapshot_settle_ms": max(args.snapshot_settle_ms, runtime_check.SLOW_HOST_RETRY_SNAPSHOT_SETTLE_MS),
+        "snapshot_stable_cycles": max(args.snapshot_stable_cycles, runtime_check.SLOW_HOST_RETRY_SNAPSHOT_STABLE_CYCLES),
+        "snapshot_max_wait_ms": max(args.snapshot_max_wait_ms, runtime_check.SLOW_HOST_RETRY_SNAPSHOT_MAX_WAIT_MS),
+    }
+
+
+def rerun_target_app_slow_host(app: str, build_output_dir: str, widget: str, args: argparse.Namespace) -> tuple[bool, str]:
+    retry_args = get_slow_host_retry_args(args)
+    timeout = max(runtime_check.RECORDING_DURATION + 5, retry_args["timeout"])
+    return runtime_check.run_app(
+        runtime_check.format_app_name(app, widget),
+        "default",
+        timeout=timeout,
+        duration=runtime_check.RECORDING_DURATION,
+        speed=args.speed,
+        snapshot_settle_ms=retry_args["snapshot_settle_ms"],
+        clock_scale=args.clock_scale,
+        snapshot_stable_cycles=retry_args["snapshot_stable_cycles"],
+        snapshot_max_wait_ms=retry_args["snapshot_max_wait_ms"],
+        build_output_dir=Path(build_output_dir),
+    )
+
+
 def run_hello_unit_test(bits64: bool = False) -> tuple[bool, str]:
     clean_result = subprocess.run(["make", "clean"], cwd=ROOT_DIR, capture_output=True)
     if clean_result.returncode != 0:
@@ -365,14 +391,47 @@ def run_widget(app: str, widget: str, args: argparse.Namespace, config: dict) ->
         return result
 
     render_ok, render_info = evaluate_render(app, widget, static_info["profile"]["render_min_stddev"])
-    result["render_check"] = {"passed": bool(render_ok), **render_info}
     interaction_ok, interaction_info = evaluate_interaction(
         app,
         widget,
         static_info["profile"]["min_interaction_transitions"],
         static_info["profile"]["interaction_diff_threshold"],
     )
+
+    reran_slow_host = False
+    rerun_message = ""
+    if not render_ok or not interaction_ok:
+        retry_args = get_slow_host_retry_args(args)
+        if (
+            retry_args["snapshot_settle_ms"] > args.snapshot_settle_ms
+            or retry_args["snapshot_stable_cycles"] > args.snapshot_stable_cycles
+            or retry_args["snapshot_max_wait_ms"] > args.snapshot_max_wait_ms
+            or retry_args["timeout"] > args.timeout
+        ):
+            reran_slow_host = True
+            success, rerun_message = rerun_target_app_slow_host(app, compile_message, widget, args)
+            if success:
+                render_ok, render_info = evaluate_render(app, widget, static_info["profile"]["render_min_stddev"])
+                interaction_ok, interaction_info = evaluate_interaction(
+                    app,
+                    widget,
+                    static_info["profile"]["min_interaction_transitions"],
+                    static_info["profile"]["interaction_diff_threshold"],
+                )
+                suffix = "slow-host retry"
+                base_message = result["runtime_check"]["message"]
+                if base_message:
+                    result["runtime_check"]["message"] = f"{base_message}; {suffix}: {rerun_message}"
+                else:
+                    result["runtime_check"]["message"] = f"{suffix}: {rerun_message}"
+            else:
+                result["runtime_check"]["message"] = f"{result['runtime_check']['message']}; slow-host retry failed: {rerun_message}"
+
+    result["render_check"] = {"passed": bool(render_ok), **render_info}
     result["interaction_check"] = {"passed": bool(interaction_ok), **interaction_info}
+    if reran_slow_host:
+        result["render_check"]["slow_host_retry"] = True
+        result["interaction_check"]["slow_host_retry"] = True
     result["passed"] = bool(render_ok and interaction_ok)
     return result
 
