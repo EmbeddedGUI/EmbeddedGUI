@@ -1,6 +1,8 @@
 欢迎来到 EmbeddedGUI 的文档
 ===========================
 
+EmbeddedGUI 面向资源受限嵌入式系统，主打 PFB 局部帧缓冲、脏矩形刷新和纯 C99 实现。如果你是第一次接触本项目，建议先看“快速入门”和“项目总索引”。
+
 .. toctree::
    :maxdepth: 2
    :caption: 快速入门
@@ -52,7 +54,6 @@
 .. toctree::
    :maxdepth: 2
    :caption: 调试与验证
-
 
    debug/index
 

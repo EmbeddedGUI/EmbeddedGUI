@@ -1,6 +1,8 @@
 Size Analysis
 =============
 
+本章节用于分析 ROM、RAM、heap、stack 与功能开关的代价。建议先看 `size_overview`，再看具体报告与选型指南。
+
 .. toctree::
    :maxdepth: 2
 

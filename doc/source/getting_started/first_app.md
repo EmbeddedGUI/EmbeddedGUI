@@ -1,6 +1,16 @@
 # 第一个应用
 
-本文以 `HelloSimple` 为基础，演示如何用 EmbeddedGUI 构建一个最小可运行界面。这个示例只包含两个标签，底部标签点击后会切换成固定提示 `"CLICKED"`。它刻意不使用 `LinearLayout`、`egui_api_sprintf`、`egui_view_button_t` 和默认字体资源，并在 app 配置里启用 `EGUI_CONFIG_FUNCTION_VIEW_LABEL_COMPACT_ONLY`、关闭 `EGUI_CONFIG_FUNCTION_CANVAS_COMPACT_NUMBER`、关闭 `EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH`、关闭 `EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL`，适合作为入门和 code size 基线。
+本文以 `HelloSimple` 为基础，演示如何用 EmbeddedGUI 构建一个最小可运行界面。这个示例适合作为入门起点，也能作为 code size 的基础基线。
+
+它的特点是：
+
+- 只使用两个 `Label`
+- 底部标签可点击，点击后会切换成固定提示 `CLICKED`
+- 不使用 `LinearLayout`
+- 不使用 `egui_api_sprintf`
+- 不使用 `egui_view_button_t`
+- 不依赖默认字体资源
+- 在 app 配置里启用更轻量的 label compact 路径，并关闭一些不需要的功能开关
 
 ## 运行 HelloSimple
 
@@ -11,7 +21,7 @@ make all APP=HelloSimple
 make run
 ```
 
-运行后会看到一个居中的 `"HELLO EGUI"` 标签和一个 `"CLICK"` 标签。点击底部标签后，它的文本会变为 `"CLICKED"`。
+运行后，你会看到一个居中的 `HELLO EGUI` 标签和一个 `CLICK` 标签。点击底部标签后，它的文本会变为 `CLICKED`。
 
 ## 完整源代码
 
@@ -79,8 +89,8 @@ static egui_view_label_t action_1;
 
 EGUI 使用面向对象风格的 C 结构体来表示控件。这里声明了两个静态对象：
 
-- `egui_view_label_t`：显示 `"HELLO EGUI"`
-- 第二个 `egui_view_label_t`：接收点击事件并更新自己的文本
+- `label_1`：显示 `HELLO EGUI`
+- `action_1`：接收点击事件并更新自己的文本
 
 把控件声明成 `static` 全局变量，意味着整个应用生命周期内都能稳定访问它们，不需要动态分配内存。
 
@@ -89,23 +99,23 @@ EGUI 使用面向对象风格的 C 结构体来表示控件。这里声明了两
 ```c
 #define VIEW_GAP  12
 #define LABEL_X   ((EGUI_CONFIG_SCREEN_WIDTH - LABEL_WIDTH) / 2)
-#define LABEL_Y   ((EGUI_CONFIG_SCREEN_HEIGHT - LABEL_HEIGHT - BUTTON_HEIGHT - VIEW_GAP) / 2)
+#define LABEL_Y   ((EGUI_CONFIG_SCREEN_HEIGHT - LABEL_HEIGHT - ACTION_HEIGHT - VIEW_GAP) / 2)
 #define ACTION_X  ((EGUI_CONFIG_SCREEN_WIDTH - ACTION_WIDTH) / 2)
 #define ACTION_Y  (LABEL_Y + LABEL_HEIGHT + VIEW_GAP)
 ```
 
 这个示例直接使用固定坐标来排版，而不是额外创建一个 `LinearLayout`。这样做有两个好处：
 
-- 代码更短，适合入门
-- 不会把 `linearlayout` 相关实现一起链接进最终二进制
+- 代码更短，适合作为入门示例
+- 不会额外把布局容器相关逻辑引入到最小基线里
 
 位置仍然通过屏幕宽高宏计算，所以在同一分辨率配置下依然保持居中显示。
 
 ### 3. 参数宏初始化
 
 ```c
-EGUI_VIEW_LABEL_PARAMS_INIT(label_1_params, LABEL_X, LABEL_Y, LABEL_WIDTH, LABEL_HEIGHT, "Hello World!", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-EGUI_VIEW_LABEL_PARAMS_INIT(action_1_params, ACTION_X, ACTION_Y, ACTION_WIDTH, ACTION_HEIGHT, "Click", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+EGUI_VIEW_LABEL_PARAMS_INIT(label_1_params, LABEL_X, LABEL_Y, LABEL_WIDTH, LABEL_HEIGHT, "HELLO EGUI", NULL, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+EGUI_VIEW_LABEL_PARAMS_INIT(action_1_params, ACTION_X, ACTION_Y, ACTION_WIDTH, ACTION_HEIGHT, "CLICK", NULL, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 ```
 
 这些 `PARAMS_INIT` 宏会在编译期生成参数结构体，常见字段包括：
@@ -113,7 +123,7 @@ EGUI_VIEW_LABEL_PARAMS_INIT(action_1_params, ACTION_X, ACTION_Y, ACTION_WIDTH, A
 - 位置：`x`、`y`
 - 尺寸：宽度、高度
 - 文本：显示字符串
-- 字体与颜色：这里把字体设为 `NULL`，让 `Label` 走内置 compact ASCII 位图文本；颜色为白色，100% 不透明
+- 字体与颜色：这里把字体设为 `NULL`，让 `Label` 走轻量路径；颜色为白色，100% 不透明
 
 把参数放在编译期常量里，通常比运行时逐项赋值更省 RAM。
 
@@ -126,16 +136,9 @@ static void action_click_cb(egui_view_t *self)
 }
 ```
 
-这里直接把第二个标签设为 clickable，因此可以复用 `egui_view_label_set_text()` 修改它自己的文字，而不需要额外引入 `Button` 控件实现。
+这里直接把第二个标签设为 clickable，因此可以复用 `egui_view_label_set_text()` 修改它自己的文字，而不需要额外引入 `Button` 控件。
 
-这里没有使用：
-
-- `egui_api_sprintf`
-- 文本缓冲区
-- 点击计数变量
-- 默认字体资源
-
-这样可以避免把不必要的格式化逻辑带进 `HelloSimple`。
+这样可以避免把不必要的格式化逻辑带进 `HelloSimple`，也更符合“最小可运行示例”的定位。
 
 ### 5. 构建视图树
 
@@ -190,7 +193,7 @@ EGUI 的点击回调定义在基类 `egui_view_t` 上，因此像 `Label` 这样
 
 - 更容易读懂
 - 更容易做 code size 基线
-- 不会额外引入 `linearlayout` 依赖链
+- 不会额外引入布局容器依赖
 
 如果你想学习容器布局，建议看 `HelloBasic/linearlayout`。
 
@@ -204,13 +207,9 @@ EGUI 的点击回调定义在基类 `egui_view_t` 上，因此像 `Label` 这样
 
 这对资源受限平台更友好，也更符合 `HelloSimple` 作为最小示例的定位。
 
-### 为什么这里关闭完整 touch capture path
+### 为什么这里关闭一些可选功能
 
-`HelloSimple` 只有一个可点击标签，不需要 scroll / nested group / intercept 这类多层触摸捕获能力，所以可以在 app 配置里关闭 `EGUI_CONFIG_FUNCTION_VIEW_GROUP_TOUCH_CAPTURE_PATH`，退化成更轻量的单目标捕获路径。
-
-### 为什么这里关闭 scroll prepass
-
-`HelloSimple` 的界面里没有 `scroll`、`viewpage`、`canvas viewport` 这类会在每帧预计算滚动状态的控件，所以可以在 app 配置里关闭 `EGUI_CONFIG_FUNCTION_CORE_PRE_COMPUTE_SCROLL`。这样会跳过每帧绘制前的 group scroll 预处理，也避免把更重的 `egui_view_group_compute_scroll()` 路径保留在最终镜像里。
+`HelloSimple` 只有一个可点击标签，不需要复杂的文本格式化、触摸捕获或滚动预处理能力，因此可以关闭一些不必要的功能开关，减少最终镜像体积。
 
 ### PFB 工作方式
 
@@ -218,8 +217,8 @@ EGUI 使用 Partial Frame Buffer，而不是整屏帧缓冲。渲染时会把屏
 
 ## 练习建议
 
-1. 修改标签文本，把 `"HELLO EGUI"` 换成你自己的内容。
-2. 修改 `LABEL_X / LABEL_Y / BUTTON_X / BUTTON_Y`，观察控件位置变化。
+1. 修改标签文本，把 `HELLO EGUI` 换成你自己的内容。
+2. 修改 `LABEL_X / LABEL_Y / ACTION_X / ACTION_Y`，观察控件位置变化。
 3. 再加一个按钮，并继续用 `egui_core_add_user_root_view()` 直接挂到 root。
 4. 如果你想体验自动布局，再去看 `HelloBasic/linearlayout`，对比两种写法的差别。
 

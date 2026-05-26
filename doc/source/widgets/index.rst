@@ -1,6 +1,8 @@
 控件参考
 ========
 
+本章节按控件类别组织，建议先看 `basic_widgets` 和 `input_widgets`，再按需要进入其他专题。
+
 .. toctree::
    :maxdepth: 2
 

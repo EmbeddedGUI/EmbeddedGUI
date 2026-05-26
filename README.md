@@ -15,9 +15,24 @@
 
 EmbeddedGUI 把嵌入式 GUI 的低资源约束、PFB 局部帧缓冲、脏矩形渲染和自动化验证流程放在同一个工程体系里；配合 AI 辅助开发，可以更快完成控件设计、资源生成、性能分析和跨平台验证。
 
+**一眼看懂：**
+
+- **做什么**：给资源受限 MCU 提供可用、可控、可验证的 GUI 方案
+- **怎么做**：PFB + 脏矩形 + 纯 C99 + 定点数
+- **适合谁**：需要低 RAM / 低 ROM、又想保留较完整控件能力的嵌入式项目
+- **怎么上手**：先看快速入门，再跑 `HelloSimple`，然后进入 `HelloBasic`
+
 - **程序员友好**：纯 C99、结构体 OOP、宏辅助类型转换，核心路径清晰可读
 - **AI 协作友好**：文档化 workflow、可复现构建、QEMU 微秒级基准，适合让 AI 参与设计、排错和回归检查
 - **嵌入式友好**：无 FPU、低 RAM/ROM、PC/STM32/QEMU/WASM 多平台覆盖，支持多屏与异构屏配置
+
+## 🧭 新手建议先看
+
+- 先看 [快速入门](doc/source/getting_started/index.rst)
+- 再看 [项目总索引](doc/source/appendix/project_index.md)
+- 然后按需进入 [架构原理](doc/source/architecture/index.rst)、[控件参考](doc/source/widgets/index.rst)、[应用开发](doc/source/app/index.rst)
+
+如果你只想先跑起来，直接执行 `HelloSimple`；如果你想按能力逐步深入，建议先看 `HelloBasic`，再看 `HelloActivity` 和 `HelloVirtual`。
 
 ---
 
@@ -159,6 +174,28 @@ make all APP=HelloStyleDemo && make run
 构建系统：**GNU Make** 覆盖全部端口；**CMake** 当前覆盖带 `CMakeLists.txt` 的示例和 `pc` / `pc_test` 端口。
 
 ---
+
+## ❓ 常见问题
+
+### 这个项目最适合什么场景？
+
+适合资源受限的嵌入式 GUI 场景，尤其是需要低 RAM / 低 ROM、局部刷新和可控移植成本的项目。
+
+### 如果我刚开始接触，应该怎么上手？
+
+建议先看快速入门，再跑 `HelloSimple`，然后按需进入 `HelloBasic`、`HelloActivity`、`HelloVirtual`。
+
+### 这个项目和大框架相比优势是什么？
+
+优势主要在于资源占用更低、架构更明确、适合 MCU 场景，并且有配套的性能/体积分析与自动化验证。
+
+### 有没有推荐的验证方式？
+
+有，建议在修改后执行构建和运行时验证，再结合性能和体积分析判断改动是否合适。
+
+### 我应该优先看哪些文档？
+
+先看 `doc/source/getting_started/index.rst`，再看 `doc/source/appendix/project_index.md`，之后按需要进入架构、控件和应用开发章节。
 
 ## 🧩 HelloBasic 控件库（66 个）
 
@@ -353,6 +390,19 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (`uicode_disp0.c` / `uico
 
 ---
 
+## 📚 推荐学习路径
+
+如果你是第一次接触这个项目，建议按下面顺序开始：
+
+1. `example/HelloSimple`：先确认环境和渲染链路正常
+2. `example/HelloBasic/button` 或 `example/HelloBasic/label`：理解最基础的控件写法
+3. `example/HelloBasic/scroll` 或 `example/HelloBasic/viewpage`：理解布局、滚动和页面切换
+4. `example/HelloActivity`：理解类 Android 的页面生命周期
+5. `example/HelloVirtual`：理解按需实例化的 Virtual 控件体系
+6. `example/HelloPerformance` 与 `example/HelloSizeAnalysis`：理解性能与体积分析方法
+
+如果你只想最快看到结果，直接先跑 `HelloSimple`；如果你想按能力逐步深入，建议接着看 `HelloBasic`、`HelloActivity`、`HelloVirtual`。
+
 ## 📚 示例应用（23 个）
 
 | 示例 | 说明 |
@@ -389,7 +439,34 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (`uicode_disp0.c` / `uico
 
 现在有 AI 加持，渐变、KEY 输入、Focus 系统、Layer、UI Designer 等功能不断加入，框架越来越好用，也更方便维护。
 
+EmbeddedGUI 最初是为资源极紧张的芯片场景做的，现在已经逐步长成一套更完整的嵌入式 GUI 工程体系：既要能跑得起来，也要能测、能看、能分析、能迁移。
+
+如果你是第一次使用这个项目，建议按下面顺序开始：
+
+1. 先看 [快速入门](doc/source/getting_started/index.rst)
+2. 再看 [项目总索引](doc/source/appendix/project_index.md)
+3. 然后跑 `HelloSimple`
+4. 接着看 `HelloBasic` 和 `HelloActivity`
+5. 最后按需求进入性能、体积、移植和应用开发章节
+
+如果你想更快定位内容，就直接从下面的文档导航进入。
+
 ---
+
+## 🧭 文档导航
+
+- [快速入门](doc/source/getting_started/index.rst)
+- [架构原理](doc/source/architecture/index.rst)
+- [控件参考](doc/source/widgets/index.rst)
+- [动画系统](doc/source/animation/index.rst)
+- [资源管理](doc/source/resource/index.rst)
+- [性能测试](doc/source/performance/index.rst)
+- [体积分析](doc/source/size/index.rst)
+- [移植指南](doc/source/porting/index.rst)
+- [调试与验证](doc/source/debug/index.rst)
+- [应用开发](doc/source/app/index.rst)
+- [UI Designer](doc/source/ui_designer/index.rst)
+- [附录与索引](doc/source/appendix/index.rst)
 
 ## 🔗 相关链接
 
