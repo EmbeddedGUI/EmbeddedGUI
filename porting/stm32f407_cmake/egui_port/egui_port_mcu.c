@@ -1,0 +1,346 @@
+/**
+ * @file egui_port_mcu.c
+ * @brief STM32G0 port using new HAL driver architecture with Panel IO
+ *
+ * Uses egui_lcd_st7789 and egui_touch_ft6336 drivers, registered directly
+ * with Core's egui_display_driver_t and egui_touch_driver_t interfaces.
+ * LCD communicates via Panel IO SPI, Touch via Panel IO I2C.
+ */
+
+#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
+
+#include "egui.h"
+#include "egui_touch.h"
+#include "port_main.h"
+
+/* New HAL drivers */
+#include "egui_hal_stm32.h"
+#include "egui_lcd_st7789.h"
+#include "egui_touch_ft6336.h"
+#include "egui_panel_io_spi.h"
+#include "egui_panel_io_i2c.h"
+
+/* ============================================================
+ * Driver instances (static allocation)
+ * ============================================================ */
+
+
+static egui_hal_lcd_driver_t s_lcd_driver;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static egui_hal_touch_driver_t s_touch_driver;
+#endif
+
+/* Panel IO handles */
+static egui_panel_io_spi_t s_lcd_io;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static egui_panel_io_i2c_t s_touch_io;
+#endif
+
+/* FT6336 I2C address (0x38 << 1 = 0x70) */
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#define FT6336_I2C_ADDR 0x70
+#endif
+
+static void mcu_delay(uint32_t ms);
+
+/**
+ * @brief Apply the legacy ST7789 power-on sequence validated by the old BSP.
+ * @param io Panel IO handle used by the generic LCD driver.
+ * @param config LCD configuration, kept for interface compatibility.
+ * @return 0 on success.
+ */
+static int port_lcd_custom_init(egui_panel_io_handle_t io, const egui_hal_lcd_config_t *config)
+{
+    static const uint8_t cmd_b2[] = {0x0CU, 0x0CU, 0x00U, 0x33U, 0x33U};
+    static const uint8_t cmd_d0[] = {0xA4U, 0xA1U};
+    static const uint8_t cmd_e0[] = {0xD0U, 0x00U, 0x02U, 0x07U, 0x0AU, 0x28U, 0x32U,
+                                     0x44U, 0x42U, 0x06U, 0x0EU, 0x12U, 0x14U, 0x17U};
+    static const uint8_t cmd_e1[] = {0xD0U, 0x00U, 0x02U, 0x07U, 0x0AU, 0x28U, 0x31U,
+                                     0x54U, 0x47U, 0x0EU, 0x1CU, 0x17U, 0x1BU, 0x1EU};
+    uint8_t data;
+
+    EGUI_UNUSED(config);
+
+    io->tx_param(io, 0x01, NULL, 0);
+    mcu_delay(150);
+
+    io->tx_param(io, 0x11, NULL, 0);
+    mcu_delay(120);
+
+    data = 0x55U;
+    io->tx_param(io, 0x3A, &data, 1);
+    mcu_delay(10);
+
+    data = 0x08U;
+    io->tx_param(io, 0x36, &data, 1);
+
+    io->tx_param(io, 0xB2, cmd_b2, sizeof(cmd_b2));
+    data = 0x35U;
+    io->tx_param(io, 0xB7, &data, 1);
+    data = 0x32U;
+    io->tx_param(io, 0xBB, &data, 1);
+    data = 0x0CU;
+    io->tx_param(io, 0xC0, &data, 1);
+    data = 0x01U;
+    io->tx_param(io, 0xC2, &data, 1);
+    data = 0x10U;
+    io->tx_param(io, 0xC3, &data, 1);
+    data = 0x20U;
+    io->tx_param(io, 0xC4, &data, 1);
+    data = 0x0FU;
+    io->tx_param(io, 0xC6, &data, 1);
+    io->tx_param(io, 0xD0, cmd_d0, sizeof(cmd_d0));
+    io->tx_param(io, 0xE0, cmd_e0, sizeof(cmd_e0));
+    io->tx_param(io, 0xE1, cmd_e1, sizeof(cmd_e1));
+
+    data = 0xA8U;
+    io->tx_param(io, 0x36, &data, 1);
+    io->tx_param(io, 0x20, NULL, 0);
+    io->tx_param(io, 0x13, NULL, 0);
+    mcu_delay(10);
+
+    /* Old BSP clears GRAM before the UI starts drawing. Without this, the
+     * panel may show random power-on memory contents as black/white stripes.
+     */
+    {
+        uint16_t fill_line[EGUI_CONFIG_SCREEN_WIDTH];
+        uint8_t caset[] = {0x00U, 0x00U, (uint8_t)((EGUI_CONFIG_SCREEN_WIDTH - 1) >> 8), (uint8_t)((EGUI_CONFIG_SCREEN_WIDTH - 1) & 0xFFU)};
+        uint8_t raset[] = {0x00U, 0x00U, (uint8_t)((EGUI_CONFIG_SCREEN_HEIGHT - 1) >> 8), (uint8_t)((EGUI_CONFIG_SCREEN_HEIGHT - 1) & 0xFFU)};
+        uint16_t row;
+
+        for (row = 0U; row < EGUI_CONFIG_SCREEN_WIDTH; row++)
+        {
+            fill_line[row] = 0x0000U;
+        }
+
+        io->tx_param(io, 0x2A, caset, sizeof(caset));
+        io->tx_param(io, 0x2B, raset, sizeof(raset));
+        io->tx_color(io, 0x2C, fill_line, sizeof(fill_line));
+        if (io->wait_tx_done)
+        {
+            io->wait_tx_done(io);
+        }
+        for (row = 1U; row < EGUI_CONFIG_SCREEN_HEIGHT; row++)
+        {
+            io->tx_color(io, -1, fill_line, sizeof(fill_line));
+            if (io->wait_tx_done)
+            {
+                io->wait_tx_done(io);
+            }
+        }
+    }
+
+    io->tx_param(io, 0x29, NULL, 0);
+    mcu_delay(20);
+
+    return 0;
+}
+
+/* ============================================================
+ * Platform driver
+ * ============================================================ */
+
+static void mcu_assert_handler(const char *file, int line)
+{
+#if EGUI_CONFIG_DEBUG_LOG_LEVEL >= EGUI_LOG_IMPL_LEVEL_DBG
+    char s_buf[0x200];
+    memset(s_buf, 0, sizeof(s_buf));
+    sprintf(s_buf, "vvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\nAssert@ file = %s, line = %d\n\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n", file, line);
+    printf("%s", s_buf);
+#endif
+    while (1)
+        ;
+}
+
+static uint32_t mcu_get_tick_ms(void)
+{
+    return HAL_GetTick();
+}
+
+static void mcu_delay(uint32_t ms)
+{
+    HAL_Delay(ms);
+}
+
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+#if APP_EGUI_CONFIG_USE_DMA_TO_RESET_PFB_BUFFER
+extern DMA_HandleTypeDef hdma_memtomem_dma2_channel5;
+const egui_color_int_t fixed_0_buffer[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] = {0};
+
+static void mcu_memset_fast(void *s, int c, int n)
+{
+    if (c == 0)
+    {
+        HAL_DMA_Start(&hdma_memtomem_dma2_channel5, (uint32_t)fixed_0_buffer, (uint32_t)s, n >> 2);
+        HAL_DMA_PollForTransfer(&hdma_memtomem_dma2_channel5, HAL_DMA_FULL_TRANSFER, 1000);
+        return;
+    }
+    memset(s, c, n);
+}
+#else
+static void mcu_memset_fast(void *s, int c, int n)
+{
+    memset(s, c, n);
+}
+#endif
+#endif /* EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP */
+
+static egui_base_t mcu_interrupt_disable(void)
+{
+    egui_base_t level = __get_PRIMASK();
+    __disable_irq();
+    return level;
+}
+
+static void mcu_interrupt_enable(egui_base_t level)
+{
+    __set_PRIMASK(level);
+}
+
+static const egui_platform_ops_t mcu_platform_ops = {
+        .assert_handler = mcu_assert_handler,
+        .delay = mcu_delay,
+        .get_tick_ms = mcu_get_tick_ms,
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+        .memset_fast = mcu_memset_fast,
+        .memcpy_fast = NULL,
+#endif
+        .interrupt_disable = mcu_interrupt_disable,
+        .interrupt_enable = mcu_interrupt_enable,
+        .load_external_resource = NULL,
+        .timer_start = NULL,
+        .timer_stop = NULL,
+};
+
+static egui_platform_t mcu_platform = {
+        .ops = &mcu_platform_ops,
+};
+
+/* ============================================================
+ * Board-specific display callbacks (patched after registration)
+ * ============================================================ */
+
+static void port_display_set_brightness(egui_core_t *core, uint8_t level)
+{
+    EGUI_UNUSED(core);
+    egui_hal_stm32g0_set_backlight_level(level);
+}
+
+static void port_display_set_rotation(egui_core_t *core, egui_display_rotation_t rotation)
+{
+    egui_hal_lcd_driver_t *lcd = egui_hal_lcd_get(core);
+    if (!lcd)
+    {
+        return;
+    }
+    switch (rotation)
+    {
+    case EGUI_DISPLAY_ROTATION_0:
+        if (lcd->mirror)
+            lcd->mirror(lcd, 0, 0);
+        if (lcd->swap_xy)
+            lcd->swap_xy(lcd, 0);
+        break;
+    case EGUI_DISPLAY_ROTATION_90:
+        if (lcd->mirror)
+            lcd->mirror(lcd, 1, 0);
+        if (lcd->swap_xy)
+            lcd->swap_xy(lcd, 1);
+        break;
+    case EGUI_DISPLAY_ROTATION_180:
+        if (lcd->mirror)
+            lcd->mirror(lcd, 1, 1);
+        if (lcd->swap_xy)
+            lcd->swap_xy(lcd, 0);
+        break;
+    case EGUI_DISPLAY_ROTATION_270:
+        if (lcd->mirror)
+            lcd->mirror(lcd, 0, 1);
+        if (lcd->swap_xy)
+            lcd->swap_xy(lcd, 1);
+        break;
+    }
+}
+
+static egui_display_driver_ops_t mcu_display_ops = {
+        .set_brightness = port_display_set_brightness,
+        .set_rotation = port_display_set_rotation,
+        .fill_rect = NULL,
+        .blit = NULL,
+        .blend = NULL,
+        .wait_vsync = NULL,
+};
+
+static egui_display_driver_t mcu_display_driver = {
+        .ops = &mcu_display_ops,
+        .physical_width = EGUI_CONFIG_SCREEN_WIDTH,
+        .physical_height = EGUI_CONFIG_SCREEN_HEIGHT,
+        .rotation = EGUI_DISPLAY_ROTATION_270,
+        .brightness = 0,
+        .power_on = 1,
+};
+
+/* ============================================================
+ * Port initialization
+ * ============================================================ */
+
+void egui_port_init(egui_core_t *core)
+{
+    EGUI_ASSERT(core != NULL);
+
+    /* Register platform */
+    egui_platform_register(&mcu_platform);
+
+    /* Create LCD SPI IO handle */
+    egui_panel_io_spi_init(&s_lcd_io, egui_hal_stm32g0_get_lcd_spi_ops(), egui_hal_stm32g0_lcd_set_dc, egui_hal_stm32g0_lcd_set_cs);
+
+    /* Initialize LCD driver with Panel IO handle */
+    egui_lcd_st7789_init(&s_lcd_driver, &s_lcd_io.base, egui_hal_stm32g0_lcd_set_rst);
+
+    /* Register LCD with Core (handles reset, init, display driver creation) */
+    egui_hal_lcd_config_t lcd_config = {
+            .width = EGUI_CONFIG_SCREEN_WIDTH,
+            .height = EGUI_CONFIG_SCREEN_HEIGHT,
+            .x_offset = 0,
+            .y_offset = 0,
+            .invert_color = 1,
+            .custom_init = port_lcd_custom_init,
+    };
+    egui_hal_lcd_register(&mcu_display_driver, &s_lcd_driver, &lcd_config);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    /* Create Touch I2C IO handle */
+    egui_panel_io_i2c_init(&s_touch_io, egui_hal_stm32g0_get_touch_i2c_ops(), FT6336_I2C_ADDR);
+
+    /* Initialize Touch driver with Panel IO handle */
+    egui_touch_ft6336_init(&s_touch_driver, &s_touch_io.base, egui_hal_stm32g0_touch_set_rst, NULL, /* set_int - not needed for FT6336 */
+                           NULL);
+#endif
+}
+
+egui_display_driver_t *egui_port_get_display_driver(void)
+{
+    return &mcu_display_driver;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+void egui_port_register_touch_driver(egui_core_t *core)
+{
+    egui_hal_touch_config_t touch_config = {
+            .width = EGUI_CONFIG_SCREEN_WIDTH,
+            .height = EGUI_CONFIG_SCREEN_HEIGHT,
+            .swap_xy = 1,
+            .mirror_x = 1,
+            .mirror_y = 0,
+    };
+
+    if (s_touch_driver.io != NULL && s_touch_driver.io->init != NULL)
+    {
+        s_touch_driver.io->init(s_touch_driver.io);
+    }
+
+    egui_hal_touch_register(core, &s_touch_driver, &touch_config);
+}
+#endif
