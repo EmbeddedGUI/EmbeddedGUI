@@ -68,12 +68,8 @@ __EGUI_STATIC_INLINE__ uint16_t egui_pfb_manager_swap_rgb565_pixel(uint16_t v)
 #if EGUI_PFB_MANAGER_RGB565_PAIR_FAST_PATH
 __EGUI_STATIC_INLINE__ uint32_t egui_pfb_manager_swap_rgb565_pair(uint32_t v)
 {
-#if defined(__GNUC__) && (defined(__arm__) || defined(__thumb__))
-    __asm__("rev16 %0, %1" : "=r"(v) : "r"(v));
-    return v;
-#else
-    return ((v >> 8) & 0x00FF00FFu) | ((v << 8) & 0xFF00FF00u);
-#endif
+    return ((v >> 8) & 0x00FF00FFu)
+         | ((v << 8) & 0xFF00FF00u);
 }
 #endif
 

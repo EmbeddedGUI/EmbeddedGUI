@@ -16,7 +16,7 @@
         <TargetCommonOption>
           <Device>ARMCM0P</Device>
           <Vendor>ARM</Vendor>
-          <PackID>ARM.CMSIS.5.9.0</PackID>
+          <PackID>ARM.CMSIS.5.8.0</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
           <Cpu>IROM(0x00000000,0x40000) IRAM(0x20000000,0x20000) CPUTYPE("Cortex-M0+") CLOCK(12000000) ESEL ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -186,7 +186,6 @@
             <RvdsVP>0</RvdsVP>
             <RvdsMve>0</RvdsMve>
             <RvdsCdeCp>0</RvdsCdeCp>
-            <nBranchProt>0</nBranchProt>
             <hadIRAM2>0</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -338,9 +337,9 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls>--gnu</MiscControls>
-              <Define>USE_HAL_DRIVER,STM32G0B0xx</Define>
+              <Define>USE_HAL_DRIVER,STM32G0B0xx,EGUI_DRIVER_TOUCH_FT6336_ENABLE,EGUI_DRIVER_LCD_ST7789_ENABLE,EGUI_DRIVER_PANEL_IO_SPI_ENABLE,EGUI_DRIVER_PANEL_IO_I2C_ENABLE</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32G0xx_HAL_Driver/Inc;../Drivers/STM32G0xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32G0xx/Include;../Drivers/CMSIS/Include;../Porting;../../../src;../../../example/HelloSimple</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32G0xx_HAL_Driver/Inc;../Drivers/STM32G0xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32G0xx/Include;../Drivers/CMSIS/Include;../Porting;../../../src;..\..\..\driver\bus;..\..\..\driver\touch;..\..\..\driver\lcd;..\..\..\example\HelloSimple</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -388,6 +387,11 @@
               <FileName>startup_stm32g0b0xx.s</FileName>
               <FileType>2</FileType>
               <FilePath>startup_stm32g0b0xx.s</FilePath>
+            </File>
+            <File>
+              <FileName>stm32g0xx_hal_i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32G0xx_HAL_Driver\Src\stm32g0xx_hal_i2c.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -478,6 +482,31 @@
               <FileName>stm32g0xx_hal_exti.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_exti.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32g0xx_hal_i2c_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32G0xx_HAL_Driver\Src\stm32g0xx_hal_i2c_ex.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32g0xx_hal_spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32G0xx_HAL_Driver\Src\stm32g0xx_hal_spi.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32g0xx_hal_spi_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32G0xx_HAL_Driver\Src\stm32g0xx_hal_spi_ex.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32g0xx_hal_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32G0xx_HAL_Driver\Src\stm32g0xx_hal_uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32g0xx_hal_uart_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32G0xx_HAL_Driver\Src\stm32g0xx_hal_uart_ex.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1544,15 +1573,55 @@
               <FileType>1</FileType>
               <FilePath>..\Porting\port_main.c</FilePath>
             </File>
+            <File>
+              <FileName>egui_lcd_st7789.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\driver\lcd\egui_lcd_st7789.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_touch_ft6336.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\driver\touch\egui_touch_ft6336.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_lcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\driver\lcd\egui_lcd.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_touch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\driver\touch\egui_touch.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_panel_io_i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\driver\bus\egui_panel_io_i2c.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_panel_io_spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\driver\bus\egui_panel_io_spi.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>example</GroupName>
           <Files>
             <File>
-              <FileName>uicode.c</FileName>
+              <FileName>uicode_disp0.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\example\HelloSimple\uicode.c</FilePath>
+              <FilePath>..\..\..\example\HelloSimple\uicode_disp0.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_egui_resource_generate.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\example\HelloSimple\resource\app_egui_resource_generate.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_res_font_hello_simple_14_4.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\example\HelloSimple\resource\font\egui_res_font_hello_simple_14_4.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1575,5 +1644,14 @@
     </components>
     <files/>
   </RTE>
+
+  <LayerInfo>
+    <Layers>
+      <Layer>
+        <LayName>proj_stm32g0</LayName>
+        <LayPrjMark>1</LayPrjMark>
+      </Layer>
+    </Layers>
+  </LayerInfo>
 
 </Project>
