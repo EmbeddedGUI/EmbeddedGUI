@@ -51,12 +51,12 @@ target_include_directories(EmbeddedGUI PUBLIC
 #     ${CMAKE_SOURCE_DIR}/EmbeddedGUI/example/HelloChart
 # )
 # add by subdirectory
-add_subdirectory(EmbeddedGUI/example/HelloEasyPage)
+add_subdirectory(EmbeddedGUI/example/HelloSimple)
 target_link_libraries(example_lib PRIVATE
     EmbeddedGUI
 )
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/EmbeddedGUI/example/HelloEasyPage
+    ${CMAKE_SOURCE_DIR}/EmbeddedGUI/example/HelloSimple
 )
 
 
