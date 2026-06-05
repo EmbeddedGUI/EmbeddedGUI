@@ -43,6 +43,7 @@
 #include "test/test_grid_view.h"
 #include "test/test_gridlayout_get_state.h"
 #include "test/test_image_button_get_state.h"
+#include "test/test_image_codec.h"
 #include "test/test_image_svg.h"
 #include "test/test_input.h"
 #include "test/test_interpolator.h"
@@ -456,6 +457,8 @@ void uicode_disp0_init(egui_core_t *core)
         test_gridlayout_get_state_run();
     if (uicode_should_run_suite("image_button_get_state"))
         test_image_button_get_state_run();
+    if (uicode_should_run_suite("image_codec"))
+        test_image_codec_run();
     if (uicode_should_run_suite("image_svg"))
         test_image_svg_run();
     if (uicode_should_run_suite("input"))
