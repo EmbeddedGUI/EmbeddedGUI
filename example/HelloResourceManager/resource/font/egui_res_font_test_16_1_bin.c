@@ -124,6 +124,7 @@ static const egui_font_std_info_t egui_res_font_test_16_1_bin_info = {
     .font_bit_mode = 1,
     .height = 21,
     .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
+    .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
     .count = 93,
     .code_array = egui_res_font_test_16_1_bin_code_array,
     .char_array = (void *)EGUI_EXT_RES_ID_EGUI_RES_FONT_TEST_16_1_CHAR_DESC,

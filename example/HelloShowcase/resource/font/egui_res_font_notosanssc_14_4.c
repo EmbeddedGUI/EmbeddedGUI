@@ -1134,7 +1134,7 @@ static const egui_font_std_char_descriptor_t egui_res_font_notosanssc_14_4_char_
     {.idx=   655, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "F" 0x00000046 */
     {.idx=   695, .size=    40, .box_w=  8, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "G" 0x00000047 */
     {.idx=   735, .size=    40, .box_w=  8, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "H" 0x00000048 */
-    {.idx=   775, .size=    40, .box_w=  7, .box_h= 10, .adv=  7, .off_x=  1, .off_y=  4}, /* "L" 0x0000004c */
+    {.idx=   775, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "L" 0x0000004c */
     {.idx=   815, .size=    40, .box_w=  8, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "N" 0x0000004e */
     {.idx=   855, .size=    65, .box_w= 10, .box_h= 13, .adv= 11, .off_x=  1, .off_y=  4}, /* "Q" 0x00000051 */
     {.idx=   920, .size=    21, .box_w= 13, .box_h=  3, .adv= 14, .off_x=  1, .off_y=  7}, /* "一" 0x00e4b880 */
@@ -1394,6 +1394,7 @@ static const egui_font_std_info_t egui_res_font_notosanssc_14_4_info = {
     .font_bit_mode = 4,
     .height = 17,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
     .count = 135,
     .code_array = egui_res_font_notosanssc_14_4_code_array,
     .char_array = (void *)egui_res_font_notosanssc_14_4_char_array,

@@ -411,7 +411,7 @@ static const egui_font_std_char_descriptor_t egui_res_font_test_16_1_char_array[
     {.idx=  1068, .size=    24, .box_w= 11, .box_h= 12, .adv= 11, .off_x=  0, .off_y=  4}, /* "X" 0x00000058 */
     {.idx=  1092, .size=    24, .box_w= 12, .box_h= 12, .adv= 12, .off_x=  0, .off_y=  4}, /* "Y" 0x00000059 */
     {.idx=  1116, .size=    24, .box_w= 11, .box_h= 12, .adv= 11, .off_x=  0, .off_y=  4}, /* "Z" 0x0000005a */
-    {.idx=  1140, .size=    15, .box_w=  5, .box_h= 15, .adv=  5, .off_x=  1, .off_y=  4}, /* "[" 0x0000005b */
+    {.idx=  1140, .size=    15, .box_w=  5, .box_h= 15, .adv=  6, .off_x=  1, .off_y=  4}, /* "[" 0x0000005b */
     {.idx=  1155, .size=    16, .box_w=  8, .box_h= 16, .adv=  8, .off_x=  0, .off_y=  2}, /* "\" 0x0000005c */
     {.idx=  1171, .size=    15, .box_w=  4, .box_h= 15, .adv=  5, .off_x=  0, .off_y=  4}, /* "]" 0x0000005d */
     {.idx=  1186, .size=     7, .box_w=  8, .box_h=  7, .adv=  9, .off_x=  1, .off_y=  7}, /* "^" 0x0000005e */
@@ -550,6 +550,7 @@ static const egui_font_std_info_t egui_res_font_test_16_1_info = {
     .font_bit_mode = 1,
     .height = 21,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
     .count = 93,
     .code_array = egui_res_font_test_16_1_code_array,
     .char_array = (void *)egui_res_font_test_16_1_char_array,

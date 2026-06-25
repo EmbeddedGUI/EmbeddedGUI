@@ -235,7 +235,7 @@ static const egui_font_std_char_descriptor_t egui_res_font_test_25_4_char_array[
     {.idx=  1657, .size=    98, .box_w= 14, .box_h= 14, .adv= 15, .off_x=  1, .off_y= 11}, /* "e" 0x00000065 */
     {.idx=  1755, .size=   133, .box_w= 14, .box_h= 19, .adv= 17, .off_x=  1, .off_y= 11}, /* "g" 0x00000067 */
     {.idx=  1888, .size=    57, .box_w=  5, .box_h= 19, .adv=  7, .off_x=  1, .off_y=  6}, /* "i" 0x00000069 */
-    {.idx=  1945, .size=   133, .box_w= 14, .box_h= 19, .adv= 15, .off_x=  2, .off_y=  6}, /* "k" 0x0000006b */
+    {.idx=  1945, .size=   133, .box_w= 14, .box_h= 19, .adv= 16, .off_x=  2, .off_y=  6}, /* "k" 0x0000006b */
     {.idx=  2078, .size=   133, .box_w= 14, .box_h= 19, .adv= 17, .off_x=  2, .off_y= 11}, /* "p" 0x00000070 */
     {.idx=  2211, .size=    98, .box_w= 13, .box_h= 14, .adv= 17, .off_x=  2, .off_y= 11}, /* "u" 0x00000075 */
 };
@@ -272,6 +272,7 @@ static const egui_font_std_info_t egui_res_font_test_25_4_info = {
     .font_bit_mode = 4,
     .height = 32,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
     .count = 22,
     .code_array = egui_res_font_test_25_4_code_array,
     .char_array = (void *)egui_res_font_test_25_4_char_array,

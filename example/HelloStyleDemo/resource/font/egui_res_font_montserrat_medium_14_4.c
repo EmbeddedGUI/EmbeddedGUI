@@ -535,8 +535,8 @@ static const egui_font_std_char_descriptor_t egui_res_font_montserrat_medium_14_
     {.idx=  1471, .size=    50, .box_w=  9, .box_h= 10, .adv= 11, .off_x=  1, .off_y=  4}, /* "H" 0x00000048 */
     {.idx=  1521, .size=    10, .box_w=  2, .box_h= 10, .adv=  4, .off_x=  1, .off_y=  4}, /* "I" 0x00000049 */
     {.idx=  1531, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  0, .off_y=  4}, /* "J" 0x0000004a */
-    {.idx=  1571, .size=    50, .box_w= 10, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "K" 0x0000004b */
-    {.idx=  1621, .size=    40, .box_w=  8, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "L" 0x0000004c */
+    {.idx=  1571, .size=    50, .box_w= 10, .box_h= 10, .adv= 11, .off_x=  1, .off_y=  4}, /* "K" 0x0000004b */
+    {.idx=  1621, .size=    40, .box_w=  8, .box_h= 10, .adv=  9, .off_x=  1, .off_y=  4}, /* "L" 0x0000004c */
     {.idx=  1661, .size=    60, .box_w= 11, .box_h= 10, .adv= 13, .off_x=  1, .off_y=  4}, /* "M" 0x0000004d */
     {.idx=  1721, .size=    50, .box_w=  9, .box_h= 10, .adv= 11, .off_x=  1, .off_y=  4}, /* "N" 0x0000004e */
     {.idx=  1771, .size=    60, .box_w= 12, .box_h= 10, .adv= 12, .off_x=  0, .off_y=  4}, /* "O" 0x0000004f */
@@ -692,6 +692,7 @@ static const egui_font_std_info_t egui_res_font_montserrat_medium_14_4_info = {
     .font_bit_mode = 4,
     .height = 18,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
     .count = 94,
     .code_array = egui_res_font_montserrat_medium_14_4_code_array,
     .char_array = (void *)egui_res_font_montserrat_medium_14_4_char_array,

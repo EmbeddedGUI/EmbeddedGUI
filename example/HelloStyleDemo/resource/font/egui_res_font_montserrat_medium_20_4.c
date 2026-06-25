@@ -616,7 +616,7 @@ static const egui_font_std_char_descriptor_t egui_res_font_montserrat_medium_20_
     {.idx=  2744, .size=    98, .box_w= 13, .box_h= 14, .adv= 16, .off_x=  2, .off_y=  6}, /* "H" 0x00000048 */
     {.idx=  2842, .size=    28, .box_w=  3, .box_h= 14, .adv=  6, .off_x=  2, .off_y=  6}, /* "I" 0x00000049 */
     {.idx=  2870, .size=    70, .box_w= 10, .box_h= 14, .adv= 11, .off_x=  0, .off_y=  6}, /* "J" 0x0000004a */
-    {.idx=  2940, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  2, .off_y=  6}, /* "K" 0x0000004b */
+    {.idx=  2940, .size=    98, .box_w= 13, .box_h= 14, .adv= 15, .off_x=  2, .off_y=  6}, /* "K" 0x0000004b */
     {.idx=  3038, .size=    70, .box_w= 10, .box_h= 14, .adv= 12, .off_x=  2, .off_y=  6}, /* "L" 0x0000004c */
     {.idx=  3108, .size=   112, .box_w= 15, .box_h= 14, .adv= 19, .off_x=  2, .off_y=  6}, /* "M" 0x0000004d */
     {.idx=  3220, .size=    98, .box_w= 13, .box_h= 14, .adv= 16, .off_x=  2, .off_y=  6}, /* "N" 0x0000004e */
@@ -647,7 +647,7 @@ static const egui_font_std_char_descriptor_t egui_res_font_montserrat_medium_20_
     {.idx=  5377, .size=    90, .box_w= 11, .box_h= 15, .adv= 14, .off_x=  1, .off_y=  5}, /* "h" 0x00000068 */
     {.idx=  5467, .size=    30, .box_w=  4, .box_h= 15, .adv=  6, .off_x=  1, .off_y=  5}, /* "i" 0x00000069 */
     {.idx=  5497, .size=    76, .box_w=  7, .box_h= 19, .adv=  8, .off_x=  0, .off_y=  5}, /* "j" 0x0000006a */
-    {.idx=  5573, .size=    90, .box_w= 12, .box_h= 15, .adv= 12, .off_x=  1, .off_y=  5}, /* "k" 0x0000006b */
+    {.idx=  5573, .size=    90, .box_w= 12, .box_h= 15, .adv= 13, .off_x=  1, .off_y=  5}, /* "k" 0x0000006b */
     {.idx=  5663, .size=    30, .box_w=  3, .box_h= 15, .adv=  6, .off_x=  1, .off_y=  5}, /* "l" 0x0000006c */
     {.idx=  5693, .size=   110, .box_w= 19, .box_h= 11, .adv= 21, .off_x=  1, .off_y=  9}, /* "m" 0x0000006d */
     {.idx=  5803, .size=    66, .box_w= 11, .box_h= 11, .adv= 14, .off_x=  1, .off_y=  9}, /* "n" 0x0000006e */
@@ -773,6 +773,7 @@ static const egui_font_std_info_t egui_res_font_montserrat_medium_20_4_info = {
     .font_bit_mode = 4,
     .height = 26,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
     .count = 94,
     .code_array = egui_res_font_montserrat_medium_20_4_code_array,
     .char_array = (void *)egui_res_font_montserrat_medium_20_4_char_array,

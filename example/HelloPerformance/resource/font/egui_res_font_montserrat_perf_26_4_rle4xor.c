@@ -597,7 +597,7 @@ static const egui_font_std_char_descriptor_t egui_res_font_montserrat_perf_26_4_
     {.idx=  3165, .size=    37, .box_w=  4, .box_h= 18, .adv=  8, .off_x=  2, .off_y=  8}, /* "I" 0x00000049 */
     {.idx=  3202, .size=    99, .box_w= 12, .box_h= 18, .adv= 14, .off_x=  0, .off_y=  8}, /* "J" 0x0000004a */
     {.idx=  3301, .size=   152, .box_w= 17, .box_h= 18, .adv= 19, .off_x=  2, .off_y=  8}, /* "K" 0x0000004b */
-    {.idx=  3453, .size=   108, .box_w= 14, .box_h= 18, .adv= 15, .off_x=  2, .off_y=  8}, /* "L" 0x0000004c */
+    {.idx=  3453, .size=   108, .box_w= 14, .box_h= 18, .adv= 16, .off_x=  2, .off_y=  8}, /* "L" 0x0000004c */
     {.idx=  3561, .size=   177, .box_w= 21, .box_h= 18, .adv= 25, .off_x=  2, .off_y=  8}, /* "M" 0x0000004d */
     {.idx=  3738, .size=   152, .box_w= 17, .box_h= 18, .adv= 21, .off_x=  2, .off_y=  8}, /* "N" 0x0000004e */
     {.idx=  3890, .size=   153, .box_w= 20, .box_h= 18, .adv= 22, .off_x=  1, .off_y=  8}, /* "O" 0x0000004f */
