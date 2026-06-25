@@ -1494,6 +1494,10 @@ void VT_sdl_refresh_task(void)
             SDL_GetMouseState(&mx, &my);
 #if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
             target_display = sdl_get_display_for_window((&event)->wheel.windowID);
+            if (target_display < 0)
+            {
+                break;
+            }
 #endif
             target_core = egui_port_get_core_by_display_id(target_display);
             if (target_core != NULL)
@@ -1545,6 +1549,12 @@ void VT_sdl_refresh_task(void)
                 sdl_port_present_window_frame(event.window.windowID);
                 break;
             case SDL_WINDOWEVENT_CLOSE:
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+                if (sdl_get_display_for_window(event.window.windowID) < 0)
+                {
+                    break;
+                }
+#endif
                 sdl_atomic_flag_set(&sdl_quit_qry, true);
                 break;
             default:
@@ -1555,6 +1565,15 @@ void VT_sdl_refresh_task(void)
         case SDL_KEYDOWN:
         case SDL_KEYUP:
         {
+            egui_core_t *target_core = NULL;
+            int target_display = 0;
+#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
+            target_display = sdl_get_display_for_window(event.key.windowID);
+            if (target_display < 0)
+            {
+                break;
+            }
+#endif
             // Keep legacy weak function for backwards compatibility
             if (event.key.keysym.sym >= '0' && event.key.keysym.sym <= '9')
             {
@@ -1564,11 +1583,6 @@ void VT_sdl_refresh_task(void)
             // F12: toggle screen on/off (demo power management)
             if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F12)
             {
-                egui_core_t *target_core = NULL;
-                int target_display = 0;
-#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
-                target_display = sdl_get_display_for_window(event.key.windowID);
-#endif
                 target_core = egui_port_get_core_by_display_id(target_display);
                 if (target_core != NULL)
                 {
@@ -1584,11 +1598,6 @@ void VT_sdl_refresh_task(void)
             uint8_t is_shift = (event.key.keysym.mod & KMOD_SHIFT) ? 1 : 0;
             uint8_t is_ctrl = (event.key.keysym.mod & KMOD_CTRL) ? 1 : 0;
             uint8_t key_code = EGUI_KEY_CODE_NONE;
-            egui_core_t *target_core = NULL;
-            int target_display = 0;
-#if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
-            target_display = sdl_get_display_for_window(event.key.windowID);
-#endif
             target_core = egui_port_get_core_by_display_id(target_display);
             if (event.type == SDL_KEYDOWN && event.key.repeat)
             {
