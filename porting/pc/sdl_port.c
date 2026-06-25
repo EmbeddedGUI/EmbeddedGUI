@@ -1248,6 +1248,18 @@ static void sdl_port_present_window_frame(uint32_t window_id)
 }
 
 #if defined(_MSC_VER)
+void egui_port_pc_on_sdl_refresh_default(void)
+{
+}
+void egui_port_pc_on_sdl_refresh(void);
+#else
+__EGUI_WEAK__ void egui_port_pc_on_sdl_refresh(void)
+{
+}
+#endif
+__EGUI_MSVC_ALTERNATE_NAME(egui_port_pc_on_sdl_refresh, egui_port_pc_on_sdl_refresh_default)
+
+#if defined(_MSC_VER)
 void egui_port_hanlde_key_event(int key, int event);
 void egui_port_hanlde_key_event_default(int key, int event)
 #else
@@ -1371,6 +1383,8 @@ void VT_sdl_refresh_task(void)
             sdl_port_present_frame();
         }
     }
+
+    egui_port_pc_on_sdl_refresh();
 
 #if EGUI_CONFIG_MAX_DISPLAY_COUNT > 1
     /* Refresh extra displays */
