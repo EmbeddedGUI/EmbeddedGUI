@@ -255,6 +255,12 @@ static int egui_image_std_load_external_alpha_row_persistent_cache(egui_canvas_t
 
     data_buf = egui_image_std_get_external_alpha_row_persistent_cache_data_buf(canvas->core, cache);
     alpha_buf = egui_image_std_get_external_alpha_row_persistent_cache_alpha_buf(canvas->core, cache);
+    if (data_buf == NULL || alpha_buf == NULL)
+    {
+        cache->chunk_row_start = -1;
+        cache->chunk_row_count = 0;
+        return 0;
+    }
 
     if (row >= cache->chunk_row_start && row < (cache->chunk_row_start + cache->chunk_row_count))
     {
@@ -407,6 +413,12 @@ static int egui_image_std_load_external_data_row_persistent_cache(egui_canvas_t 
     }
 
     data_buf = egui_image_std_get_external_data_row_persistent_cache_data_buf(canvas->core, cache);
+    if (data_buf == NULL)
+    {
+        cache->chunk_row_start = -1;
+        cache->chunk_row_count = 0;
+        return 0;
+    }
 
     if (row >= cache->chunk_row_start && row < (cache->chunk_row_start + cache->chunk_row_count))
     {

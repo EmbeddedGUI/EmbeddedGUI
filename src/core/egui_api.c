@@ -466,8 +466,8 @@ void egui_api_memcpy(void *dst, const void *src, int n)
 
 /**
  * Load one external resource block through the platform hook.
- * When a canvas/core is available, the PFB bus is locked around the read so shared SPI
- * flash and LCD transfers cannot collide.
+ * If external resources share the display bus, lock the PFB bus around the read.
+ * Boards with independent resource/display buses can disable that lock in config.
  */
 void egui_api_load_external_resource(const egui_canvas_t *canvas, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size)
 {
@@ -477,17 +477,21 @@ void egui_api_load_external_resource(const egui_canvas_t *canvas, void *dest, eg
     {
         if (canvas != NULL)
         {
+#if EGUI_CONFIG_EXTERNAL_RESOURCE_SHARED_DISPLAY_BUS
             // Acquire SPI bus: wait for pending DMA, prevent new DMA starts.
             // Handles both interrupt and polling modes transparently.
             if (core != NULL)
             {
                 egui_pfb_bus_acquire(core);
             }
+#endif
             plat->ops->load_external_resource(core, dest, res_id, start_offset, size);
+#if EGUI_CONFIG_EXTERNAL_RESOURCE_SHARED_DISPLAY_BUS
             if (core != NULL)
             {
                 egui_pfb_bus_release(core);
             }
+#endif
         }
         else
         {
