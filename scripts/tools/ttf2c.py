@@ -340,9 +340,13 @@ def generate_glyphs_data(input_file, text, pixel_size, font_bit_size, weight=Non
                 advance_width += -bearing_x
                 bearing_x = 0
 
-            # TODO: handle advance_width < width?
+            # The drawn bitmap starts at bearing_x, so the logical advance must
+            # cover that offset too. Otherwise right/center aligned text can clip
+            # glyphs whose bitmap extends past the advance width.
             if advance_width < width:
                 advance_width = width
+            if advance_width < (bearing_x + width):
+                advance_width = bearing_x + width
 
             # TODO: handle bearing_y < 0?
             if bearing_y < 0:
