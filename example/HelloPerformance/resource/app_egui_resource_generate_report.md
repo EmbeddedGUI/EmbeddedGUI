@@ -70,17 +70,17 @@
 
 # 字体
 ## 内部
-| Name | Raw Total | Encoded Total | Saved | Saved % | Codec | Font | Text |
+| 名称 | 原始大小 | 编码大小 | 节省大小 | 节省比例 | 压缩 | Font | Text |
 | ---- | --------- | ------------- | ----- | ------- | ----- | ---- | ---- |
-| egui_res_font_montserrat_perf_26_4 | 11329 | 11329 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_perf.txt](src/supported_text_perf.txt)  |
-| egui_res_font_montserrat_perf_26_4_rle4 | 11329 | 9693 | 1636 | 14.4% | RLE4 | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_perf.txt](src/supported_text_perf.txt)  |
-| egui_res_font_montserrat_perf_26_4_rle4xor | 11329 | 10071 | 1258 | 11.1% | RLE4_XOR | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_perf.txt](src/supported_text_perf.txt)  |
-| 总计 | 33987 | 31093 | 2894 | 8.5% | | | |
+| egui_res_font_montserrat_perf_26_4 | 11681 | 11681 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_perf.txt](src/supported_text_perf.txt)  |
+| egui_res_font_montserrat_perf_26_4_rle4 | 11681 | 10045 | 1636 | 14.0% | RLE4 | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_perf.txt](src/supported_text_perf.txt)  |
+| egui_res_font_montserrat_perf_26_4_rle4xor | 11681 | 10423 | 1258 | 10.8% | RLE4_XOR | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_perf.txt](src/supported_text_perf.txt)  |
+| 总计 | 35043 | 32149 | 2894 | 8.3% | | | |
 
 
 
 ## 外部
-| Name | Raw Total | Encoded Total | Saved | Saved % | Codec | Font | Text |
+| 名称 | 原始大小 | 编码大小 | 节省大小 | 节省比例 | 压缩 | Font | Text |
 | ---- | --------- | ------------- | ----- | ------- | ----- | ---- | ---- |
 | egui_res_font_montserrat_perf_26_4_bin | 11329 | 11329 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_perf.txt](src/supported_text_perf.txt)  |
 | egui_res_font_montserrat_perf_26_4_rle4_bin | 11329 | 9693 | 1636 | 14.4% | RLE4 | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_perf.txt](src/supported_text_perf.txt)  |
@@ -90,9 +90,9 @@
 | 名称 | 总大小 |
 | ---- | ------ |
 | 图像-内部 | 1704797 |
-| 字体-内部 | 31093 |
-| 内部总计 | 1735890 |
+| 字体-内部 | 32149 |
+| 内部总计 | 1736946 |
 | 图像-外部 | 1162245 |
 | 字体-外部 | 31093 |
 | 外部总计 | 1193338 |
-| 总计 | 2929228 |
+| 总计 | 2930284 |

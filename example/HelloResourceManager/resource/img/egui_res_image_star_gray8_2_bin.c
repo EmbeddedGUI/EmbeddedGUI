@@ -37,5 +37,3 @@ EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_std_t, egui_res_image_star_gray8_2_bin, &
 
 
 // clang-format on
-
-

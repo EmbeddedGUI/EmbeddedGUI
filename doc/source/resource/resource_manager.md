@@ -133,6 +133,7 @@ static const egui_platform_ops_t mcu_platform_ops = {
             "name": "test",
             "text": "supported_text_test.txt",
             "external": "all",
+            "external_code": "1",
             "pixelsize": "16",
             "fontbitsize": "all"
         }

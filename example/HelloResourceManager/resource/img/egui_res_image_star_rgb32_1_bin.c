@@ -24,7 +24,7 @@ static const egui_image_std_info_t egui_res_image_star_rgb32_1_bin_info = {
     .data_buf = (void *)EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB32_1_DATA,
     .alpha_buf = (void *)NULL,
     .data_type = EGUI_IMAGE_DATA_TYPE_RGB32,
-    .alpha_type = EGUI_IMAGE_ALPHA_TYPE_8,
+    .alpha_type = EGUI_IMAGE_ALPHA_TYPE_1,
     .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
     .width = 100,
     .height = 100,
@@ -37,5 +37,3 @@ EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_std_t, egui_res_image_star_rgb32_1_bin, &
 
 
 // clang-format on
-
-

@@ -45,11 +45,12 @@ static const egui_font_std_info_t {0}_info = {{
     .font_bit_mode = {2},
     .height = {3},
     .res_type = {4},
-    .bitmap_codec = {5},
-    .count = {6},
-    .code_array = {0}_code_array,
-    .char_array = (void *){7},
-    .pixel_buffer = (void *){8},
+    .code_res_type = {5},
+    .bitmap_codec = {6},
+    .count = {7},
+    .code_array = (void *){8},
+    .char_array = (void *){9},
+    .pixel_buffer = (void *){10},
 }};
 
 extern const egui_font_std_t {0};
@@ -459,7 +460,8 @@ def utf8_to_c_array(utf8_bytes):
 
 
 class ttf2c_tool:
-    def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path, weight=None, var_coords=None, compress="none"):
+    def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path, weight=None, var_coords=None, compress="none",
+                 external_code_type=0):
         if output_path == None:
             output_path = os.path.dirname(input_font_file)
 
@@ -476,19 +478,25 @@ class ttf2c_tool:
 
         pixel_buffer_bin_name = f"{name_raw}_pixel_buffer"
         char_desc_bin_name = f"{name_raw}_char_desc"
+        code_desc_bin_name = f"{name_raw}_code_desc"
 
         pixel_buffer_bin_name_res_id = f"EGUI_EXT_RES_ID_{pixel_buffer_bin_name}".upper()
         char_desc_bin_name_res_id = f"EGUI_EXT_RES_ID_{char_desc_bin_name}".upper()
+        code_desc_bin_name_res_id = f"EGUI_EXT_RES_ID_{code_desc_bin_name}".upper()
 
         outfilename = os.path.join(output_path, f"{font_name}.c")
         outfilename_pixel_buffer_bin = os.path.join(output_path, f"{pixel_buffer_bin_name}.bin")
         outfilename_char_desc_bin = os.path.join(output_path, f"{char_desc_bin_name}.bin")
+        outfilename_code_desc_bin = os.path.join(output_path, f"{code_desc_bin_name}.bin")
 
         # just get file name.
         input_font_file_name = os.path.basename(input_font_file)
 
         # get the options
         options = f"-i {input_font_file_name} -n {name} -p {pixel_size} -s {font_bit_size} -ext {external_type}"
+        external_code_type = 1 if int(external_type) == 1 and int(external_code_type) == 1 else 0
+        if external_code_type:
+            options += " --external-code 1"
         if weight is not None:
             options += f" -w {weight}"
         if var_coords is not None:
@@ -518,6 +526,7 @@ class ttf2c_tool:
         self.pixel_size = pixel_size
         self.font_bit_size = font_bit_size
         self.external_type = external_type
+        self.external_code_type = external_code_type
         self.output_path = output_path
         self.compress = compress
         self.bitmap_codec_c_name = FONT_BITMAP_CODEC_C_NAME[compress]
@@ -525,11 +534,14 @@ class ttf2c_tool:
         self.font_name = font_name
         self.pixel_buffer_bin_name = pixel_buffer_bin_name
         self.char_desc_bin_name = char_desc_bin_name
+        self.code_desc_bin_name = code_desc_bin_name
         self.pixel_buffer_bin_name_res_id = pixel_buffer_bin_name_res_id
         self.char_desc_bin_name_res_id = char_desc_bin_name_res_id
+        self.code_desc_bin_name_res_id = code_desc_bin_name_res_id
         self.outfilename = outfilename
         self.outfilename_pixel_buffer_bin = outfilename_pixel_buffer_bin
         self.outfilename_char_desc_bin = outfilename_char_desc_bin
+        self.outfilename_code_desc_bin = outfilename_code_desc_bin
         self.input_font_file_name = input_font_file_name
         self.support_text = support_text
         self.options = options
@@ -538,6 +550,7 @@ class ttf2c_tool:
         self.var_coords = parse_var_coords(var_coords)
         self.pixel_buffer_bin_data = None
         self.char_desc_bin_data = None
+        self.code_desc_bin_data = None
         self.pixel_buffer_raw_size = 0
 
     def write_c_file(self):
@@ -551,7 +564,7 @@ class ttf2c_tool:
 
         # Convert the text file to a list of characters
         glyphs_data, char_max_width, char_max_height = generate_glyphs_data(self.input_font_file, self.support_text, self.pixel_size, self.font_bit_size, self.weight, self.var_coords)
-        self.pixel_buffer_bin_data, self.char_desc_bin_data = self.write_c_code(glyphs_data, char_max_width, char_max_height)
+        self.pixel_buffer_bin_data, self.char_desc_bin_data, self.code_desc_bin_data = self.write_c_code(glyphs_data, char_max_width, char_max_height)
 
         # write the tail of the c file
         with open(self.outfilename, "a", encoding="utf-8") as outputfile:
@@ -565,11 +578,16 @@ class ttf2c_tool:
             # print(char_desc_bin_data)
             with open(self.outfilename_char_desc_bin,"wb+") as f:
                 f.write(bytearray(self.char_desc_bin_data))
+
+            if self.external_code_type:
+                with open(self.outfilename_code_desc_bin,"wb+") as f:
+                    f.write(bytearray(self.code_desc_bin_data))
     
     def write_c_code(self, glyphs_data, char_max_width, char_max_height):
         index = 0
         bin_pixel_buffer = []
         bin_char_desc = []
+        bin_code_desc = []
         glyph_entries = []
         self.pixel_buffer_raw_size = 0
 
@@ -582,8 +600,10 @@ class ttf2c_tool:
 
         pixel_buffer_buf_name = '%s_pixel_buffer' % (name)
         char_desc_buf_name = '%s_char_array' % (name)
+        code_desc_buf_name = '%s_code_array' % (name)
 
         res_type = "EGUI_RESOURCE_TYPE_INTERNAL"
+        code_res_type = "EGUI_RESOURCE_TYPE_INTERNAL"
 
         for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
             raw_data = bytearray(data.tolist())
@@ -615,6 +635,10 @@ class ttf2c_tool:
 
                 # char buffer
                 char_desc_buf_name = self.char_desc_bin_name_res_id
+                if self.external_code_type:
+                    code_desc_buf_name = self.code_desc_bin_name_res_id
+                    code_res_type = "EGUI_RESOURCE_TYPE_EXTERNAL"
+
                 for entry in glyph_entries:
                     stored_data_size = len(entry["data"])
 
@@ -701,26 +725,34 @@ class ttf2c_tool:
 
             
             # code buffer
-            print("static const egui_font_std_code_descriptor_t {0}_code_array[] = {{\n".format(name), file=f)
+            if not self.external_code_type:
+                print("static const egui_font_std_code_descriptor_t {0}_code_array[] = {{\n".format(name), file=f)
 
             for entry in glyph_entries:
-                f.write(("    {.code=0x%08x}, /* \"%s\" */\n" % (entry["utf8_value"], entry["char"])))
+                code_desc_data = bytearray()
+                code_desc_data.extend(struct.pack('I', entry["utf8_value"]))
+                bin_code_desc += list(code_desc_data)
 
+                if not self.external_code_type:
+                    f.write(("    {.code=0x%08x}, /* \"%s\" */\n" % (entry["utf8_value"], entry["char"])))
 
-            f.write("};\n")
+            if not self.external_code_type:
+                f.write("};\n")
 
             print(c_body_string.format( name,
                                         pixel_size,
                                         font_bit_size,
                                         char_max_height,
                                         res_type,
+                                        code_res_type,
                                         self.bitmap_codec_c_name,
                                         len(glyph_entries),
+                                        code_desc_buf_name,
                                         char_desc_buf_name,
                                         pixel_buffer_buf_name,
                                         ), file=f)
             
-        return bin_pixel_buffer, bin_char_desc
+        return bin_pixel_buffer, bin_char_desc, bin_code_desc
 
 def main():
     parser = argparse.ArgumentParser(description='TrueTypeFont to C array converter (v1.0.0)')
@@ -730,6 +762,7 @@ def main():
     parser.add_argument("-p", "--pixelsize",type=int,   help="Font size in pixels, fixed in height",     required=False,    default=32)
     parser.add_argument("-s", "--fontbitsize",type=int, help="Font bit size (1,2,4,8)",                  required=False,    default=1)
     parser.add_argument('-ext', '--external', nargs='?',type = int, default=0, required=False, help="Storage format (0: internal, 1: external)")
+    parser.add_argument('--external-code', nargs='?', type=int, default=0, required=False, help="Store font code descriptor table externally when --external is 1")
     parser.add_argument('-o', '--output', nargs='?',type = str, default="", required=False, help="Specify the output file name (default: input file name with.c extension)")
     parser.add_argument('-w', '--weight', nargs='?',type = int, default=None, required=False, help="Variable font weight axis value (e.g. 400=Regular, 500=Medium, 700=Bold)")
     parser.add_argument('--var-coords', type=str, default=None, required=False, help="Comma-separated variable font coordinates (e.g. 0,0,24,400)")
@@ -742,7 +775,7 @@ def main():
     args = parser.parse_args()
     
     tool = ttf2c_tool(args.input, args.name, args.text, args.pixelsize, args.fontbitsize, args.external, args.output, args.weight, args.var_coords,
-                      args.compress)
+                      args.compress, args.external_code)
 
     tool.write_c_file()
 

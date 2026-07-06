@@ -85,6 +85,41 @@ __EGUI_STATIC_INLINE__ int egui_font_std_bitmap_codec_is_compressed(const egui_f
     return font != NULL && egui_font_std_bitmap_codec_is_supported_compressed_value(font->bitmap_codec);
 }
 
+__EGUI_STATIC_INLINE__ int egui_font_std_code_array_is_external(const egui_font_std_info_t *font)
+{
+    return font != NULL && font->code_res_type == EGUI_RESOURCE_TYPE_EXTERNAL;
+}
+
+__EGUI_STATIC_INLINE__ int egui_font_std_get_code_at(egui_canvas_t *canvas, const egui_font_std_info_t *font, int code_index, uint32_t *code)
+{
+    if (font == NULL || code == NULL || code_index < 0 || code_index >= font->count || font->code_array == NULL)
+    {
+        return 0;
+    }
+
+    if (!egui_font_std_code_array_is_external(font))
+    {
+        *code = font->code_array[code_index].code;
+        return 1;
+    }
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    {
+        egui_font_std_code_descriptor_t code_desc;
+
+        egui_api_load_external_resource(canvas, &code_desc, (egui_uintptr_t)font->code_array, (uint32_t)code_index * sizeof(egui_font_std_code_descriptor_t),
+                                        sizeof(egui_font_std_code_descriptor_t));
+        *code = code_desc.code;
+        return 1;
+    }
+#else
+    {
+        EGUI_UNUSED(canvas);
+        return 0;
+    }
+#endif
+}
+
 __EGUI_STATIC_INLINE__ egui_font_std_code_lookup_count_t egui_font_std_code_lookup_cache_store_count(uint16_t count)
 {
     return (egui_font_std_code_lookup_count_t)count;
@@ -514,11 +549,13 @@ __EGUI_STATIC_INLINE__ void egui_font_std_reset_ascii_lookup_cache(const egui_fo
         return;
     }
 
-    if (cache->code_array != font->code_array || cache->char_array != font->char_array || cache->count != font->count)
+    if (cache->code_array != font->code_array || cache->char_array != font->char_array || cache->count != font->count ||
+        cache->code_res_type != font->code_res_type)
     {
         cache->code_array = font->code_array;
         cache->char_array = font->char_array;
         cache->count = font->count;
+        cache->code_res_type = font->code_res_type;
         cache->is_ready = 0;
     }
 }
@@ -551,7 +588,8 @@ __EGUI_STATIC_INLINE__ int egui_font_std_get_ascii_lookup_index(const egui_font_
     return (int)index;
 }
 
-static const egui_font_std_ascii_lookup_cache_t *egui_font_std_prepare_ascii_lookup_cache(egui_core_t *core, const egui_font_std_info_t *font)
+static const egui_font_std_ascii_lookup_cache_t *egui_font_std_prepare_ascii_lookup_cache(egui_canvas_t *canvas, egui_core_t *core,
+                                                                                          const egui_font_std_info_t *font)
 {
     int i;
     egui_font_std_ascii_lookup_cache_t *cache = egui_font_std_get_ascii_lookup_cache(core);
@@ -581,7 +619,12 @@ static const egui_font_std_ascii_lookup_cache_t *egui_font_std_prepare_ascii_loo
     {
         for (i = 0; i < font->count; i++)
         {
-            uint32_t code = font->code_array[i].code;
+            uint32_t code;
+
+            if (!egui_font_std_get_code_at(canvas, font, i, &code))
+            {
+                continue;
+            }
             if (code < EGUI_FONT_STD_ASCII_CACHE_SIZE)
             {
                 cache->ascii_index[code] = (uint16_t)i;
@@ -659,7 +702,7 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
 
     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && font->code_array != NULL)
     {
-        ascii_cache = egui_font_std_prepare_ascii_lookup_cache(core, font);
+        ascii_cache = egui_font_std_prepare_ascii_lookup_cache(canvas, core, font);
     }
 
     while (*cursor != '\0')
@@ -880,10 +923,12 @@ static void egui_font_std_reset_code_lookup_cache(egui_core_t *core, const egui_
         return;
     }
 
-    if (g_font_std_code_lookup_cache.code_array != font->code_array || g_font_std_code_lookup_cache.count != font->count)
+    if (g_font_std_code_lookup_cache.code_array != font->code_array || g_font_std_code_lookup_cache.count != font->count ||
+        g_font_std_code_lookup_cache.code_res_type != font->code_res_type)
     {
         g_font_std_code_lookup_cache.code_array = font->code_array;
         g_font_std_code_lookup_cache.count = egui_font_std_code_lookup_cache_store_count(font->count);
+        g_font_std_code_lookup_cache.code_res_type = font->code_res_type;
         g_font_std_code_lookup_cache.last_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID;
         g_font_std_code_lookup_cache.block_start_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID;
         g_font_std_code_lookup_cache.block_end_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID;
@@ -892,11 +937,11 @@ static void egui_font_std_reset_code_lookup_cache(egui_core_t *core, const egui_
 }
 
 #if EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW
-static void egui_font_std_update_code_lookup_cache(egui_core_t *core, const egui_font_std_info_t *font, int code_index)
+static void egui_font_std_update_code_lookup_cache(egui_core_t *core, egui_canvas_t *canvas, const egui_font_std_info_t *font, int code_index)
 {
-    const egui_font_std_code_descriptor_t *code_array = font->code_array;
     int block_start = code_index;
     int block_end = code_index;
+    uint32_t code;
 
     if (core == NULL)
     {
@@ -905,7 +950,11 @@ static void egui_font_std_update_code_lookup_cache(egui_core_t *core, const egui
 
     while (block_start > 0)
     {
-        if ((code_array[block_start].code - code_array[block_start - 1].code) != 1)
+        uint32_t current_code;
+        uint32_t prev_code;
+
+        if (!egui_font_std_get_code_at(canvas, font, block_start, &current_code) || !egui_font_std_get_code_at(canvas, font, block_start - 1, &prev_code) ||
+            (current_code - prev_code) != 1)
         {
             break;
         }
@@ -914,23 +963,39 @@ static void egui_font_std_update_code_lookup_cache(egui_core_t *core, const egui
 
     while (block_end + 1 < font->count)
     {
-        if ((code_array[block_end + 1].code - code_array[block_end].code) != 1)
+        uint32_t current_code;
+        uint32_t next_code;
+
+        if (!egui_font_std_get_code_at(canvas, font, block_end, &current_code) || !egui_font_std_get_code_at(canvas, font, block_end + 1, &next_code) ||
+            (next_code - current_code) != 1)
         {
             break;
         }
         block_end++;
     }
 
-    g_font_std_code_lookup_cache.last_code = egui_font_std_code_lookup_cache_store_code(code_array[code_index].code);
+    if (!egui_font_std_get_code_at(canvas, font, code_index, &code))
+    {
+        return;
+    }
+
+    g_font_std_code_lookup_cache.last_code = egui_font_std_code_lookup_cache_store_code(code);
     g_font_std_code_lookup_cache.last_index = egui_font_std_code_lookup_cache_store_index(code_index);
-    g_font_std_code_lookup_cache.block_start_code = egui_font_std_code_lookup_cache_store_code(code_array[block_start].code);
-    g_font_std_code_lookup_cache.block_end_code = egui_font_std_code_lookup_cache_store_code(code_array[block_end].code);
+
+    if (egui_font_std_get_code_at(canvas, font, block_start, &code))
+    {
+        g_font_std_code_lookup_cache.block_start_code = egui_font_std_code_lookup_cache_store_code(code);
+    }
+    if (egui_font_std_get_code_at(canvas, font, block_end, &code))
+    {
+        g_font_std_code_lookup_cache.block_end_code = egui_font_std_code_lookup_cache_store_code(code);
+    }
     g_font_std_code_lookup_cache.block_start_index = egui_font_std_code_lookup_cache_store_index(block_start);
     g_font_std_code_lookup_cache.block_end_index = egui_font_std_code_lookup_cache_store_index(block_end);
 }
 #endif
 
-static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_info_t *font, uint32_t utf8_code)
+static int egui_font_std_find_code_index(egui_core_t *core, egui_canvas_t *canvas, const egui_font_std_info_t *font, uint32_t utf8_code)
 {
     if (font == NULL || font->count == 0 || font->code_array == NULL)
     {
@@ -941,7 +1006,7 @@ static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_
 
     if (utf8_code < EGUI_FONT_STD_ASCII_CACHE_SIZE)
     {
-        const egui_font_std_ascii_lookup_cache_t *ascii_cache = egui_font_std_prepare_ascii_lookup_cache(core, font);
+        const egui_font_std_ascii_lookup_cache_t *ascii_cache = egui_font_std_prepare_ascii_lookup_cache(canvas, core, font);
         if (ascii_cache != NULL)
         {
             return egui_font_std_get_ascii_lookup_index(ascii_cache, (uint8_t)utf8_code);
@@ -959,7 +1024,10 @@ static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_
         if (utf8_code >= g_font_std_code_lookup_cache.block_start_code && utf8_code <= g_font_std_code_lookup_cache.block_end_code)
         {
             int cached_index = g_font_std_code_lookup_cache.block_start_index + (int)(utf8_code - g_font_std_code_lookup_cache.block_start_code);
-            if (cached_index <= g_font_std_code_lookup_cache.block_end_index && font->code_array[cached_index].code == utf8_code)
+            uint32_t cached_code;
+
+            if (cached_index <= g_font_std_code_lookup_cache.block_end_index && egui_font_std_get_code_at(canvas, font, cached_index, &cached_code) &&
+                cached_code == utf8_code)
             {
                 g_font_std_code_lookup_cache.last_code = utf8_code;
                 g_font_std_code_lookup_cache.last_index = cached_index;
@@ -970,7 +1038,10 @@ static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_
         if (utf8_code > g_font_std_code_lookup_cache.last_code)
         {
             int next_index = g_font_std_code_lookup_cache.last_index + 1;
-            if ((utf8_code - g_font_std_code_lookup_cache.last_code) == 1 && next_index < font->count && font->code_array[next_index].code == utf8_code)
+            uint32_t next_code;
+
+            if ((utf8_code - g_font_std_code_lookup_cache.last_code) == 1 && next_index < font->count &&
+                egui_font_std_get_code_at(canvas, font, next_index, &next_code) && next_code == utf8_code)
             {
                 g_font_std_code_lookup_cache.last_code = utf8_code;
                 g_font_std_code_lookup_cache.last_index = next_index;
@@ -980,7 +1051,10 @@ static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_
         else if (utf8_code < g_font_std_code_lookup_cache.last_code)
         {
             int prev_index = g_font_std_code_lookup_cache.last_index - 1;
-            if ((g_font_std_code_lookup_cache.last_code - utf8_code) == 1 && prev_index >= 0 && font->code_array[prev_index].code == utf8_code)
+            uint32_t prev_code;
+
+            if ((g_font_std_code_lookup_cache.last_code - utf8_code) == 1 && prev_index >= 0 &&
+                egui_font_std_get_code_at(canvas, font, prev_index, &prev_code) && prev_code == utf8_code)
             {
                 g_font_std_code_lookup_cache.last_code = utf8_code;
                 g_font_std_code_lookup_cache.last_index = prev_index;
@@ -996,14 +1070,21 @@ static int egui_font_std_find_code_index(egui_core_t *core, const egui_font_std_
     while (first <= last)
     {
         int middle = (first + last) / 2;
-        if (font->code_array[middle].code < utf8_code)
+        uint32_t middle_code;
+
+        if (!egui_font_std_get_code_at(canvas, font, middle, &middle_code))
+        {
+            return -1;
+        }
+
+        if (middle_code < utf8_code)
         {
             first = middle + 1;
         }
-        else if (font->code_array[middle].code == utf8_code)
+        else if (middle_code == utf8_code)
         {
 #if EGUI_CONFIG_FUNCTION_FONT_STD_FAST_DRAW
-            egui_font_std_update_code_lookup_cache(core, font, middle);
+            egui_font_std_update_code_lookup_cache(core, canvas, font, middle);
 #endif
             return middle;
         }
@@ -1056,7 +1137,7 @@ egui_font_std_get_desc_by_index(egui_canvas_t *canvas, const egui_font_std_info_
 static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(egui_core_t *core, egui_canvas_t *canvas, const egui_font_std_info_t *font,
                                                                      uint32_t utf8_code, egui_font_std_char_descriptor_t *external_desc_scratch)
 {
-    int code_index = egui_font_std_find_code_index(core, font, utf8_code);
+    int code_index = egui_font_std_find_code_index(core, canvas, font, utf8_code);
     if (code_index < 0)
     {
         return NULL;
@@ -1077,7 +1158,7 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
     if (utf8_code < EGUI_FONT_STD_ASCII_CACHE_SIZE)
     {
         int code_index;
-        const egui_font_std_ascii_lookup_cache_t *ascii_cache = egui_font_std_prepare_ascii_lookup_cache(core, font);
+        const egui_font_std_ascii_lookup_cache_t *ascii_cache = egui_font_std_prepare_ascii_lookup_cache(canvas, core, font);
 
         if (ascii_cache == NULL)
         {
@@ -1099,7 +1180,7 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
 const egui_font_std_char_descriptor_t *egui_font_std_get_desc_fast_api(egui_canvas_t *canvas, const egui_font_std_info_t *font, uint32_t utf8_code,
                                                                        egui_font_std_char_descriptor_t *external_desc_scratch)
 {
-    egui_core_t *core = canvas->core;
+    egui_core_t *core = canvas != NULL ? canvas->core : NULL;
     return egui_font_std_get_desc_fast(core, canvas, font, utf8_code, external_desc_scratch);
 }
 
@@ -1114,7 +1195,7 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
 
     if (utf8_code < EGUI_FONT_STD_ASCII_CACHE_SIZE && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
     {
-        const egui_font_std_ascii_lookup_cache_t *ascii_cache = egui_font_std_prepare_ascii_lookup_cache(core, font);
+        const egui_font_std_ascii_lookup_cache_t *ascii_cache = egui_font_std_prepare_ascii_lookup_cache(canvas, core, font);
         if (ascii_cache != NULL)
         {
             int code_index = egui_font_std_get_ascii_lookup_index(ascii_cache, (uint8_t)utf8_code);
@@ -1185,6 +1266,11 @@ void egui_font_std_release_access(egui_font_std_access_t *access)
         egui_free(access->core, access->owned_char_array);
     }
 
+    if (access->owned_code_array != NULL)
+    {
+        egui_free(access->core, access->owned_code_array);
+    }
+
     if (access->owned_pixel_buffer != NULL)
     {
         egui_free(access->core, access->owned_pixel_buffer);
@@ -1211,6 +1297,22 @@ int egui_font_std_prepare_desc_access(egui_canvas_t *canvas, const egui_font_std
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     {
+        if (egui_font_std_code_array_is_external(font))
+        {
+            uint32_t code_array_size = font->count * sizeof(egui_font_std_code_descriptor_t);
+
+            access->owned_code_array = (egui_font_std_code_descriptor_t *)egui_malloc(canvas->core, code_array_size);
+            if (access->owned_code_array == NULL)
+            {
+                egui_font_std_release_access(access);
+                return -1;
+            }
+
+            egui_api_load_external_resource(canvas, access->owned_code_array, (egui_uintptr_t)font->code_array, 0, code_array_size);
+            access->info.code_array = access->owned_code_array;
+            access->info.code_res_type = EGUI_RESOURCE_TYPE_INTERNAL;
+        }
+
         uint32_t char_array_size = font->count * sizeof(egui_font_std_char_descriptor_t);
         const egui_font_std_char_descriptor_t *char_array;
 
@@ -3326,7 +3428,7 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
 
     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && font->code_array != NULL)
     {
-        ascii_cache = egui_font_std_prepare_ascii_lookup_cache(core, font);
+        ascii_cache = egui_font_std_prepare_ascii_lookup_cache((egui_canvas_t *)canvas, core, font);
     }
 
     use_internal_raw = (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && egui_font_std_bitmap_codec_is_raw(font));
@@ -3557,7 +3659,7 @@ static int egui_font_std_draw_string_fast_4_mask(const egui_canvas_t *canvas, co
 
     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && font->code_array != NULL)
     {
-        ascii_cache = egui_font_std_prepare_ascii_lookup_cache(core, font);
+        ascii_cache = egui_font_std_prepare_ascii_lookup_cache((egui_canvas_t *)canvas, core, font);
     }
 
     if (prefix_cache != NULL)
@@ -3977,7 +4079,7 @@ int egui_font_std_draw_string(const egui_font_t *self, egui_canvas_t *canvas, co
 
     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && font->code_array != NULL)
     {
-        ascii_cache = egui_font_std_prepare_ascii_lookup_cache(core, font);
+        ascii_cache = egui_font_std_prepare_ascii_lookup_cache(canvas, core, font);
     }
 
     // check if the string is in the canvas region.
@@ -4095,7 +4197,7 @@ int egui_font_std_get_str_size(const egui_font_t *self, const void *string, uint
 
     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && font->code_array != NULL)
     {
-        ascii_cache = egui_font_std_prepare_ascii_lookup_cache(core, font);
+        ascii_cache = egui_font_std_prepare_ascii_lookup_cache(NULL, core, font);
     }
 
     int is_line_full = 0;

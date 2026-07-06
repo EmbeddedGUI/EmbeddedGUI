@@ -76,11 +76,14 @@ SVG 规则：`format: "svg"` 会生成 `egui_svg_source_t` 原始 SVG 资源；�
 | `pixelsize` | 字号（像素高度） | 整数；`all` 会生成 4-32 |
 | `fontbitsize` | 字形位深 | `1`, `2`, `4`, `8` |
 | `external` | 存储方式 | `0`=内部, `1`=外部 |
+| `external_code` | 外部字体 code 表存储方式（可选，仅 `external=1` 生效） | `0`=code 表内部, `1`=code 表外部 |
 | `text` | 字符集文件 | 包含所有需要渲染的字符 |
 | `weight` | 可变字体字重（可选） | 如 `400`, `500`, `700` |
 | `compress` | 字体位图压缩（可选，仅 4bpp 有效） | `none`, `rle4`, `rle4_xor` |
 
 字符集文件（`text`）为 UTF-8 纯文本，包含所有需要的字符。支持 HTML 实体如 `&#x2103;`（℃）。
+
+`external=1` 默认保持兼容旧外部字体模式：`char_array` 和 `pixel_buffer` 在外部，`egui_font_std_code_descriptor_t` code 表仍在内部。设置 `external_code: "1"` 后启用新的 font ext 模式，code 表也打包进外部 bin；两种外部字体模式对同一个生成资源互斥。
 
 注意：当前 `app_resource_generate.py` 不会把单个 `text` 字段里的逗号拆成多个文件路径。需要合并多个 text 文件时，优先先合并成一个 text 文件；或者为同一字体写多条 `font` 配置，让生成器按相同 `name/pixelsize/fontbitsize/external/compress` 合并。
 

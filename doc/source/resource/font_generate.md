@@ -107,7 +107,9 @@ freetype一般来说，就是下面这个图比较典型了，当然还有纵向
 
 ## 外部资源
 
-会生成3个文件，`egui_res_font_xxxxx_bin.c`文件，里面保持了字体配置信息，`egui_res_font_xxxxx_char_desc.bin`文件，里面保存了对每个所需渲染文本的描述信息也就是，`egui_res_font_xxxxx_char_array`，`egui_res_font_xxxxx_pixel_buffer.bin`文件，里面保存了字体像素点矩阵数组，也就是`egui_res_font_xxxxx_pixel_buffer`。生成的外部资源包括，
+默认会生成3个文件，`egui_res_font_xxxxx_bin.c`文件，里面保持了字体配置信息，`egui_res_font_xxxxx_char_desc.bin`文件，里面保存了对每个所需渲染文本的描述信息也就是，`egui_res_font_xxxxx_char_array`，`egui_res_font_xxxxx_pixel_buffer.bin`文件，里面保存了字体像素点矩阵数组，也就是`egui_res_font_xxxxx_pixel_buffer`。此时 `egui_font_std_code_descriptor_t` code 表仍保留在内部，兼容旧外部字体模式。
+
+如果在资源配置中设置 `external_code: "1"`，会额外生成 `egui_res_font_xxxxx_code_desc.bin`，把 code 表也放入外部资源文件中。这个新 font ext 模式和默认外部字体模式互斥，适合字符数量很多、希望减少内部 ROM 占用的场景。生成的外部资源包括，
 
 `egui_res_font_xxxxx_bin_info`，图片配置信息。
 

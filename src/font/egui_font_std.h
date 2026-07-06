@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 // avoid size mismatch warning in some compilers
+#define EGUI_FONT_STD_EXT_CODE_DESC_ITEM_SIZE 4
 #define EGUI_FONT_STD_EXT_CHAR_DESC_ITEM_SIZE 12
 
 /*
@@ -65,6 +66,7 @@ typedef struct
     uint8_t font_bit_mode; // font bit size 1, 2, 4, 8
     uint8_t height;        // font height
     uint8_t res_type;      // EGUI_RESOURCE_TYPE_INTERNAL, EGUI_RESOURCE_TYPE_EXTERNAL
+    uint8_t code_res_type; // EGUI_RESOURCE_TYPE_INTERNAL, EGUI_RESOURCE_TYPE_EXTERNAL
     uint8_t bitmap_codec;  // EGUI_FONT_STD_BITMAP_CODEC_*
     uint16_t count;        // total char count, only support 65535
     const egui_font_std_code_descriptor_t *code_array;
@@ -76,6 +78,7 @@ typedef struct
 {
     egui_font_std_info_t info;
     egui_core_t *core;
+    egui_font_std_code_descriptor_t *owned_code_array;
     egui_font_std_char_descriptor_t *owned_char_array;
     uint8_t *owned_pixel_buffer;
 } egui_font_std_access_t;
@@ -97,6 +100,7 @@ typedef struct
 {
     const egui_font_std_code_descriptor_t *code_array;
     egui_font_std_code_lookup_count_t count;
+    uint8_t code_res_type;
     egui_font_std_code_lookup_code_t last_code;
     egui_font_std_code_lookup_index_t last_index;
     egui_font_std_code_lookup_code_t block_start_code;
@@ -143,6 +147,7 @@ typedef struct
     const egui_font_std_code_descriptor_t *code_array;
     const egui_font_std_char_descriptor_t *char_array;
     uint16_t count;
+    uint8_t code_res_type;
     egui_font_std_ascii_index_t ascii_index[EGUI_FONT_STD_ASCII_CACHE_SIZE];
     uint8_t is_ready;
 } egui_font_std_ascii_lookup_cache_t;

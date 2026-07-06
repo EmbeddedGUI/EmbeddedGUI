@@ -296,13 +296,14 @@ def normalize_font_compress(compress, fontbitsize):
     return codec
 
 
-def get_font_report_metrics(tool):
+def get_font_report_metrics(tool, include_code_desc=True):
     char_desc_size = len(tool.char_desc_bin_data) if tool.char_desc_bin_data else 0
+    code_desc_size = len(tool.code_desc_bin_data) if include_code_desc and tool.code_desc_bin_data else 0
     pixel_buffer_size = len(tool.pixel_buffer_bin_data) if tool.pixel_buffer_bin_data else 0
     raw_pixel_buffer_size = getattr(tool, 'pixel_buffer_raw_size', pixel_buffer_size)
 
-    raw_total_size = raw_pixel_buffer_size + char_desc_size
-    encoded_total_size = pixel_buffer_size + char_desc_size
+    raw_total_size = raw_pixel_buffer_size + char_desc_size + code_desc_size
+    encoded_total_size = pixel_buffer_size + char_desc_size + code_desc_size
     saved_size = raw_total_size - encoded_total_size
     saved_percent = 0.0
     if raw_total_size > 0:
@@ -599,6 +600,12 @@ class FontResourceInfo:
         else:
             self.external_list.append(int(self.external_info))
 
+        self.external_code = 0
+        if config.get('external_code') is not None:
+            self.external_code = int(config['external_code'])
+        if self.external_code not in (0, 1):
+            raise ValueError(f"Font '{self.name}': external_code must be 0 or 1.")
+
         self.weight = None
         if config.get('weight'):
             self.weight = int(config['weight'])
@@ -625,12 +632,16 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
                     for font_config_item in font_config_list:
                         if (font_config_item[0].name == font_info.name and font_config_item[1] == pixelsize and font_config_item[2] == fontbitsize and
                                 font_config_item[3] == external and font_config_item[4] == compress):
+                            if font_config_item[5] != (font_info.external_code if external == 1 else 0):
+                                raise ValueError(
+                                    f"Font '{font_info.name}' has conflicting external_code values for the same generated resource.")
                             is_conflit = True
                             font_config_item[0].text_file_list.append(font_info.text_file_name)
                             break
                     if is_conflit:
                         continue
-                    font_config_list.append([font_info, pixelsize, fontbitsize, external, compress])
+                    external_code = font_info.external_code if external == 1 else 0
+                    font_config_list.append([font_info, pixelsize, fontbitsize, external, compress, external_code])
     
     for font_config_item in font_config_list:
         # print(font_config_item)
@@ -649,11 +660,13 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
         fontbitsize = font_config_item[2]
         external = font_config_item[3]
         compress = font_config_item[4]
-        tool = ttf2c.ttf2c_tool(font_file_path, font_name, suported_text_list, pixelsize, fontbitsize, external, output_path, font_info.weight, None, compress)
+        external_code = font_config_item[5]
+        tool = ttf2c.ttf2c_tool(font_file_path, font_name, suported_text_list, pixelsize, fontbitsize, external, output_path, font_info.weight, None, compress,
+                                external_code)
 
         ttf2c_tool_list.append(tool)
 
-        print(f"Generating {tool.font_name} with {font_info.text_file_list}, compress={tool.compress}")
+        print(f"Generating {tool.font_name} with {font_info.text_file_list}, compress={tool.compress}, external_code={tool.external_code_type}")
 
         tool.write_c_file()
         # generate_resource_font(ttf_util_path, font_res_output_path, font_file_path, c_file_name, text_file_path, font_config_item[1], font_config_item[2], font_config_item[3])
@@ -1014,6 +1027,17 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None, c
             with open(resource_bin_merge_file, 'ab+') as target_file:
                 target_file.write(bytearray(tool.char_desc_bin_data))
 
+            if tool.external_code_type:
+                id_str = tool.code_desc_bin_name_res_id
+                resource_id_string += id_str + ",\n"
+
+                resource_id_map_string += f"0x{resource_bin_offset:08X}, // {id_str} \n"
+
+                resource_bin_offset += len(tool.code_desc_bin_data)
+
+                with open(resource_bin_merge_file, 'ab+') as target_file:
+                    target_file.write(bytearray(tool.code_desc_bin_data))
+
     # 生成app_egui_resource_generate.h文件
     print(f"Generating {app_egui_resource_generate_h_file_path}")
     with open(app_egui_resource_generate_h_file_path, 'w', encoding='utf-8') as f:
@@ -1107,7 +1131,7 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None, c
         f.write("\n")
         f.write("# 字体\n")
         f.write("## 内部\n")
-        f.write("| Name | Raw Total | Encoded Total | Saved | Saved % | Codec | Font | Text |\n")
+        f.write("| 名称 | 原始大小 | 编码大小 | 节省大小 | 节省比例 | 压缩 | Font | Text |\n")
         f.write("| ---- | --------- | ------------- | ----- | ------- | ----- | ---- | ---- |\n")
         font_raw_total_size = 0
         for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
@@ -1134,13 +1158,13 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None, c
         f.write("\n")
         f.write("\n")
         f.write("## 外部\n")
-        f.write("| Name | Raw Total | Encoded Total | Saved | Saved % | Codec | Font | Text |\n")
+        f.write("| 名称 | 原始大小 | 编码大小 | 节省大小 | 节省比例 | 压缩 | Font | Text |\n")
         f.write("| ---- | --------- | ------------- | ----- | ------- | ----- | ---- | ---- |\n")
         font_ext_raw_total_size = 0
         for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
             if not tool.external_type:
                 continue
-            metrics = get_font_report_metrics(tool)
+            metrics = get_font_report_metrics(tool, include_code_desc=bool(getattr(tool, 'external_code_type', 0)))
             font_ext_raw_total_size += metrics["raw_total_size"]
             font_ext_total_size += metrics["encoded_total_size"]
             font_report_path = make_report_link(resource_path, tool.input_font_file)

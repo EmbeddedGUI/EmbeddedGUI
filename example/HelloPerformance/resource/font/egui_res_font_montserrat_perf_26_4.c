@@ -783,9 +783,10 @@ static const egui_font_std_info_t egui_res_font_montserrat_perf_26_4_info = {
     .font_bit_mode = 4,
     .height = 33,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .code_res_type = EGUI_RESOURCE_TYPE_INTERNAL,
     .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
     .count = 88,
-    .code_array = egui_res_font_montserrat_perf_26_4_code_array,
+    .code_array = (void *)egui_res_font_montserrat_perf_26_4_code_array,
     .char_array = (void *)egui_res_font_montserrat_perf_26_4_char_array,
     .pixel_buffer = (void *)egui_res_font_montserrat_perf_26_4_pixel_buffer,
 };

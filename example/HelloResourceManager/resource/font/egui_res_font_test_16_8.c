@@ -953,9 +953,10 @@ static const egui_font_std_info_t egui_res_font_test_16_8_info = {
     .font_bit_mode = 8,
     .height = 21,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .code_res_type = EGUI_RESOURCE_TYPE_INTERNAL,
     .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
     .count = 93,
-    .code_array = egui_res_font_test_16_8_code_array,
+    .code_array = (void *)egui_res_font_test_16_8_code_array,
     .char_array = (void *)egui_res_font_test_16_8_char_array,
     .pixel_buffer = (void *)egui_res_font_test_16_8_pixel_buffer,
 };

@@ -46,31 +46,31 @@
 
 # 字体
 ## 内部
-| 名称 | 总大小 | Font | Text |
-| ---- | ------ | ------ | ------ |
-| egui_res_font_test_16_1 | 2818 | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
-| egui_res_font_test_16_2 | 3822 | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
-| egui_res_font_test_16_4 | 5958 | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
-| egui_res_font_test_16_8 | 10269 | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
-| 总计 | 22867 |
+| 名称 | 原始大小 | 编码大小 | 节省大小 | 节省比例 | 压缩 | Font | Text |
+| ---- | --------- | ------------- | ----- | ------- | ----- | ---- | ---- |
+| egui_res_font_test_16_1 | 3190 | 3190 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| egui_res_font_test_16_2 | 4194 | 4194 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| egui_res_font_test_16_4 | 6330 | 6330 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| egui_res_font_test_16_8 | 10641 | 10641 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| 总计 | 24355 | 24355 | 0 | 0.0% | | | |
 
 
 
 ## 外部
-| 名称 | 总大小 |
-| ---- | ------ |
-| egui_res_font_test_16_1_bin | 2818 |
-| egui_res_font_test_16_2_bin | 3822 |
-| egui_res_font_test_16_4_bin | 5958 |
-| egui_res_font_test_16_8_bin | 10269 |
-| 总计 | 22867 |
+| 名称 | 原始大小 | 编码大小 | 节省大小 | 节省比例 | 压缩 | Font | Text |
+| ---- | --------- | ------------- | ----- | ------- | ----- | ---- | ---- |
+| egui_res_font_test_16_1_bin | 3190 | 3190 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| egui_res_font_test_16_2_bin | 4194 | 4194 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| egui_res_font_test_16_4_bin | 6330 | 6330 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| egui_res_font_test_16_8_bin | 10641 | 10641 | 0 | 0.0% | RAW | [Montserrat-Medium.ttf](../../../scripts/tools/build_in/Montserrat-Medium.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| 总计 | 24355 | 24355 | 0 | 0.0% | | | |
 # 总计
 | 名称 | 总大小 |
 | ---- | ------ |
 | 图像-内部 | 387600 |
-| 字体-内部 | 22867 |
-| 内部总计 | 410467 |
+| 字体-内部 | 24355 |
+| 内部总计 | 411955 |
 | 图像-外部 | 423600 |
-| 字体-外部 | 22867 |
-| 外部总计 | 446467 |
-| 总计 | 856934 |
+| 字体-外部 | 24355 |
+| 外部总计 | 447955 |
+| 总计 | 859910 |
