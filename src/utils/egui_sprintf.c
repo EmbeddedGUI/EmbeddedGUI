@@ -80,6 +80,114 @@ static char *egui_api_sprintf_append_signed(char *dst, long value, int width, ch
     return egui_api_sprintf_append_unsigned(dst, (unsigned long)value, width, pad_char);
 }
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_SPRINTF_FLOAT
+static char *egui_api_sprintf_append_float(char *dst, double value, int width, char pad_char, int precision)
+{
+    char tmp[48];
+    char digits[24];
+    char *out = tmp;
+    int len = 0;
+    int digits_len = 0;
+    int negative = 0;
+    int pad_count;
+    unsigned long scale = 1UL;
+    unsigned long whole;
+    unsigned long frac;
+
+    if (precision < 0)
+    {
+        precision = 6;
+    }
+    if (precision > 9)
+    {
+        precision = 9;
+    }
+
+    if (value < 0.0)
+    {
+        negative = 1;
+        value = -value;
+    }
+
+    for (int i = 0; i < precision; ++i)
+    {
+        scale *= 10UL;
+    }
+
+    whole = (unsigned long)value;
+    frac = (unsigned long)(((value - (double)whole) * (double)scale) + 0.5);
+    if (frac >= scale)
+    {
+        whole++;
+        frac -= scale;
+    }
+
+    if (negative)
+    {
+        *out++ = '-';
+    }
+
+    if (whole == 0UL)
+    {
+        digits[digits_len++] = '0';
+    }
+    else
+    {
+        while (whole != 0UL)
+        {
+            digits[digits_len++] = (char)('0' + (whole % 10UL));
+            whole /= 10UL;
+        }
+    }
+    while (digits_len-- > 0)
+    {
+        *out++ = digits[digits_len];
+    }
+
+    if (precision > 0)
+    {
+        *out++ = '.';
+        for (int divisor_index = precision - 1; divisor_index > 0; --divisor_index)
+        {
+            unsigned long divisor = 1UL;
+            for (int i = 0; i < divisor_index; ++i)
+            {
+                divisor *= 10UL;
+            }
+            *out++ = (char)('0' + (frac / divisor));
+            frac %= divisor;
+        }
+        *out++ = (char)('0' + frac);
+    }
+
+    len = (int)(out - tmp);
+    pad_count = width > len ? (width - len) : 0;
+    if (pad_char == '0' && negative)
+    {
+        *dst++ = *tmp;
+        for (int i = 0; i < pad_count; ++i)
+        {
+            *dst++ = pad_char;
+        }
+        for (int i = 1; i < len; ++i)
+        {
+            *dst++ = tmp[i];
+        }
+        return dst;
+    }
+
+    for (int i = 0; i < pad_count; ++i)
+    {
+        *dst++ = pad_char;
+    }
+    for (int i = 0; i < len; ++i)
+    {
+        *dst++ = tmp[i];
+    }
+    return dst;
+}
+#endif
+
 void egui_api_sprintf(char *str, const char *format, ...)
 {
     va_list args;
@@ -94,6 +202,7 @@ void egui_api_sprintf(char *str, const char *format, ...)
     while (*format != '\0')
     {
         int width = 0;
+        int precision = -1;
         char pad_char = ' ';
         int long_flag = 0;
 
@@ -119,6 +228,16 @@ void egui_api_sprintf(char *str, const char *format, ...)
         {
             width = width * 10 + (*format - '0');
             format++;
+        }
+        if (*format == '.')
+        {
+            precision = 0;
+            format++;
+            while (*format >= '0' && *format <= '9')
+            {
+                precision = precision * 10 + (*format - '0');
+                format++;
+            }
         }
         while (*format == 'l')
         {
@@ -155,10 +274,20 @@ void egui_api_sprintf(char *str, const char *format, ...)
         case 's':
             dst = egui_api_sprintf_append_cstr(dst, va_arg(args, const char *));
             break;
-        case '\0':
-            *dst++ = '%';
-            format--;
+        case 'f':
+#if EGUI_CONFIG_PLATFORM_CUSTOM_SPRINTF_FLOAT
+            dst = egui_api_sprintf_append_float(dst, va_arg(args, double), width, pad_char, precision);
             break;
+#endif
+            /* Fall through to keep the unsupported format text when float support is disabled. */
+        case '\0':
+            if (*format == '\0')
+            {
+                *dst++ = '%';
+                format--;
+                break;
+            }
+            /* Fall through. */
         default:
             *dst++ = '%';
             if (pad_char == '0')
@@ -178,6 +307,28 @@ void egui_api_sprintf(char *str, const char *format, ...)
             if (width > 0)
             {
                 *dst++ = (char)('0' + width);
+            }
+            if (precision >= 0)
+            {
+                *dst++ = '.';
+                if (precision >= 10)
+                {
+                    int divisor = 1;
+                    while ((divisor * 10) <= precision)
+                    {
+                        divisor *= 10;
+                    }
+                    while (divisor > 0)
+                    {
+                        *dst++ = (char)('0' + (precision / divisor));
+                        precision %= divisor;
+                        divisor /= 10;
+                    }
+                }
+                else
+                {
+                    *dst++ = (char)('0' + precision);
+                }
             }
             if (long_flag)
             {

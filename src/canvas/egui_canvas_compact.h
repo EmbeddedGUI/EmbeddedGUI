@@ -30,6 +30,8 @@ uint8_t egui_canvas_compact_text_is_supported(const char *text);
 uint8_t egui_canvas_compact_text_measure(const char *text, egui_dim_t max_width, egui_dim_t max_height, egui_canvas_compact_text_layout_t *layout);
 uint8_t egui_canvas_compact_text_measure_with_font(const egui_font_t *font, const char *text, egui_dim_t max_width, egui_dim_t max_height,
                                                    egui_dim_t *out_width, egui_dim_t *out_height);
+uint8_t egui_canvas_compact_text_measure_with_font_core(egui_core_t *core, const egui_font_t *font, const char *text, egui_dim_t max_width,
+                                                        egui_dim_t max_height, egui_dim_t *out_width, egui_dim_t *out_height);
 uint8_t egui_canvas_compact_text_draw(egui_canvas_t *self, const char *text, const egui_region_t *region, uint8_t align_type, egui_color_t color,
                                       egui_alpha_t alpha);
 uint8_t egui_canvas_compact_text_draw_with_font(egui_canvas_t *self, const egui_font_t *font, const char *text, const egui_region_t *region, uint8_t align_type,
@@ -39,6 +41,8 @@ uint8_t egui_canvas_compact_number_is_supported(const char *text);
 uint8_t egui_canvas_compact_number_measure(const char *text, egui_dim_t max_width, egui_dim_t max_height, egui_canvas_compact_number_layout_t *layout);
 uint8_t egui_canvas_compact_number_measure_with_font(const egui_font_t *font, const char *text, egui_dim_t max_width, egui_dim_t max_height,
                                                      egui_dim_t *out_width, egui_dim_t *out_height);
+uint8_t egui_canvas_compact_number_measure_with_font_core(egui_core_t *core, const egui_font_t *font, const char *text, egui_dim_t max_width,
+                                                          egui_dim_t max_height, egui_dim_t *out_width, egui_dim_t *out_height);
 uint8_t egui_canvas_compact_number_draw(egui_canvas_t *self, const char *text, const egui_region_t *region, egui_color_t color, egui_alpha_t alpha);
 uint8_t egui_canvas_compact_number_draw_with_font(egui_canvas_t *self, const egui_font_t *font, const char *text, const egui_region_t *region,
                                                   egui_color_t color, egui_alpha_t alpha);

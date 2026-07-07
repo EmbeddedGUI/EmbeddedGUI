@@ -1,6 +1,7 @@
 #include "egui_view_ring_text_basic.h"
 #include "core/egui_core.h"
 #include "core/egui_common.h"
+#include "font/egui_font.h"
 #include "resource/egui_resource.h"
 
 /**
@@ -24,7 +25,7 @@ static const egui_font_t *egui_view_ring_text_get_default_font(void)
 /**
  * @brief Measure text using the shared default font when available.
  */
-static uint8_t egui_view_ring_text_measure_default_font(const char *text, egui_dim_t *out_width, egui_dim_t *out_height)
+static uint8_t egui_view_ring_text_measure_default_font(egui_core_t *core, const char *text, egui_dim_t *out_width, egui_dim_t *out_height)
 {
     const egui_font_t *font = egui_view_ring_text_get_default_font();
 
@@ -34,7 +35,7 @@ static uint8_t egui_view_ring_text_measure_default_font(const char *text, egui_d
     }
 
     // The helper intentionally uses one shared default font so all stock ring labels measure the same way.
-    font->api->get_str_size(font, text, 0, 0, out_width, out_height);
+    egui_font_get_str_size_with_core(font, core, text, 0, 0, out_width, out_height);
     return 1;
 }
 
@@ -156,8 +157,8 @@ static uint8_t egui_view_ring_text_get_box_basic(egui_dim_t center_x, egui_dim_t
  * When font measurement is unavailable, the whole text box is dirtied as a
  * safe fallback.
  */
-uint8_t egui_view_ring_text_get_region_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t inner_r, egui_dim_t top_offset, uint8_t center_box,
-                                             uint8_t value, uint8_t append_percent, egui_region_t *text_region)
+uint8_t egui_view_ring_text_get_region_basic(egui_core_t *core, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t inner_r, egui_dim_t top_offset,
+                                             uint8_t center_box, uint8_t value, uint8_t append_percent, egui_region_t *text_region)
 {
     egui_region_t text_box;
     egui_dim_t text_w;
@@ -177,7 +178,7 @@ uint8_t egui_view_ring_text_get_region_basic(egui_dim_t center_x, egui_dim_t cen
         return 0;
     }
 
-    if (!egui_view_ring_text_measure_default_font(text_buf, &text_w, &text_h) || text_w <= 0 || text_h <= 0)
+    if (!egui_view_ring_text_measure_default_font(core, text_buf, &text_w, &text_h) || text_w <= 0 || text_h <= 0)
     {
         egui_region_copy(text_region, &text_box);
         return 1;

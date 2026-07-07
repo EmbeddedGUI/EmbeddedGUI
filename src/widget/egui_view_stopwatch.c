@@ -3,6 +3,7 @@
 #include "egui_view_stopwatch.h"
 #include "core/egui_api.h"
 #include "core/egui_common.h"
+#include "font/egui_font.h"
 #include "resource/egui_resource.h"
 #include "utils/egui_sprintf.h"
 
@@ -47,7 +48,7 @@ static uint8_t stopwatch_get_text_dirty_region(egui_view_t *self, const egui_vie
         return 0;
     }
 
-    label->font->api->get_str_size(label->font, text, 1, label->line_space, &text_width, &text_height);
+    egui_font_get_str_size_with_core(label->font, egui_view_get_core(self), text, 1, label->line_space, &text_width, &text_height);
     if (text_width <= 0 || text_height <= 0)
     {
         return 0;

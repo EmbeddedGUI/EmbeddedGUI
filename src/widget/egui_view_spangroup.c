@@ -53,7 +53,7 @@ static void egui_view_spangroup_on_draw(egui_view_t *self)
 
         egui_dim_t text_w = 0;
         egui_dim_t text_h = 0;
-        font->api->get_str_size(font, span->text, 0, 0, &text_w, &text_h);
+        egui_font_get_str_size_with_canvas(font, canvas, span->text, 0, 0, &text_w, &text_h);
 
         // If text does not fit on current line and cursor_x > 0, wrap to next line
         if (cursor_x > 0 && (cursor_x + text_w) > region_w)

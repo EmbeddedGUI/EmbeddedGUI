@@ -206,7 +206,7 @@ static int egui_font_ttf_draw_string(const egui_font_t *self, egui_canvas_t *can
                 char ch_str[5];
                 priv_encode_utf8(cp, ch_str);
                 egui_dim_t fw = 0, fh = 0;
-                font->fallback->api->get_str_size(font->fallback, ch_str, 0, 0, &fw, &fh);
+                egui_font_get_str_size_with_canvas(font->fallback, canvas, ch_str, 0, 0, &fw, &fh);
                 font->fallback->api->draw_string(font->fallback, canvas, ch_str, (egui_dim_t)draw_x, y, color, alpha);
                 draw_x += (int)fw;
             }
@@ -245,8 +245,8 @@ static int egui_font_ttf_draw_string(const egui_font_t *self, egui_canvas_t *can
     return char_cnt;
 }
 
-static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width,
-                                      egui_dim_t *height)
+static int egui_font_ttf_get_str_size_with_context(const egui_font_t *self, egui_core_t *core, const void *string, uint8_t is_multi_line, egui_dim_t line_space,
+                                                   egui_dim_t *width, egui_dim_t *height)
 {
     egui_font_ttf_t *font = (egui_font_ttf_t *)self;
     const char *s = (const char *)string;
@@ -311,7 +311,7 @@ static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *strin
             char ch_str[5];
             priv_encode_utf8(cp, ch_str);
             egui_dim_t fw = 0, fh = 0;
-            font->fallback->api->get_str_size(font->fallback, ch_str, 0, 0, &fw, &fh);
+            egui_font_get_str_size_with_core(font->fallback, core, ch_str, 0, 0, &fw, &fh);
             adv_px = (int)fw;
         }
         else
@@ -336,6 +336,18 @@ static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *strin
         *height = (egui_dim_t)total_h;
     }
     return 0;
+}
+
+int egui_font_ttf_get_str_size_with_core(const egui_font_t *self, egui_core_t *core, const void *string, uint8_t is_multi_line, egui_dim_t line_space,
+                                         egui_dim_t *width, egui_dim_t *height)
+{
+    return egui_font_ttf_get_str_size_with_context(self, core, string, is_multi_line, line_space, width, height);
+}
+
+static int egui_font_ttf_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width,
+                                      egui_dim_t *height)
+{
+    return egui_font_ttf_get_str_size_with_context(self, NULL, string, is_multi_line, line_space, width, height);
 }
 
 /* ------------------------------------------------------------------ */

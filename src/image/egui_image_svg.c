@@ -2,6 +2,7 @@
 #include "egui_image_svg_alloc.h"
 #include "egui_image_std.h"
 #include "core/egui_api.h"
+#include "core/egui_core.h"
 
 #include <limits.h>
 #include <string.h>
@@ -1091,8 +1092,9 @@ static int egui_svg_scan_rect_fast_path(const char *svg_text, const char *svg_en
     return count > 0 && svg_depth == 0;
 }
 
-static int egui_svg_scan_external_rect_fast_path(const egui_svg_source_t *res, egui_svg_rect_t *rects, uint16_t *rect_count, float *view_x, float *view_y,
-                                                 float *view_width, float *view_height, float *natural_width, float *natural_height)
+static int egui_svg_scan_external_rect_fast_path(egui_core_t *core, const egui_svg_source_t *res, egui_svg_rect_t *rects, uint16_t *rect_count,
+                                                 float *view_x, float *view_y, float *view_width, float *view_height, float *natural_width,
+                                                 float *natural_height)
 {
     uint8_t chunk[EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_CHUNK_BYTES];
     char tag_buf[EGUI_CONFIG_IMAGE_SVG_EXTERNAL_FAST_PATH_TAG_BYTES];
@@ -1102,8 +1104,8 @@ static int egui_svg_scan_external_rect_fast_path(const egui_svg_source_t *res, e
     int svg_depth = 0;
     int in_tag = 0;
 
-    if (res == NULL || res->data_buf == NULL || res->data_size == 0 || rect_count == NULL || view_x == NULL || view_y == NULL || view_width == NULL ||
-        view_height == NULL || sizeof(chunk) == 0u || sizeof(tag_buf) == 0u)
+    if (core == NULL || res == NULL || res->data_buf == NULL || res->data_size == 0 || rect_count == NULL || view_x == NULL || view_y == NULL ||
+        view_width == NULL || view_height == NULL || sizeof(chunk) == 0u || sizeof(tag_buf) == 0u)
     {
         return 0;
     }
@@ -1116,7 +1118,7 @@ static int egui_svg_scan_external_rect_fast_path(const egui_svg_source_t *res, e
         {
             load_size = res->data_size - offset;
         }
-        egui_api_load_external_resource(NULL, chunk, (egui_uintptr_t)res->data_buf, offset, load_size);
+        egui_api_load_external_resource(&core->canvas, chunk, (egui_uintptr_t)res->data_buf, offset, load_size);
 
         for (uint32_t i = 0; i < load_size; i++)
         {
@@ -2592,7 +2594,7 @@ static egui_svg_doc_t *egui_svg_try_create_rect_fast_path_doc(const char *svg_te
     return doc;
 }
 
-static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egui_svg_source_t *res)
+static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(egui_core_t *core, const egui_svg_source_t *res)
 {
     egui_svg_doc_t *doc;
     egui_svg_rect_t *rects;
@@ -2610,12 +2612,13 @@ static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egu
     egui_dim_t doc_view_width;
     egui_dim_t doc_view_height;
 
-    if (res == NULL || res->res_type != EGUI_RESOURCE_TYPE_EXTERNAL || res->data_buf == NULL || res->data_size == 0)
+    if (core == NULL || res == NULL || res->res_type != EGUI_RESOURCE_TYPE_EXTERNAL || res->data_buf == NULL || res->data_size == 0)
     {
         return NULL;
     }
 
-    if (!egui_svg_scan_external_rect_fast_path(res, NULL, &rect_count, &view_x, &view_y, &view_width, &view_height, &natural_width_raw, &natural_height_raw) ||
+    if (!egui_svg_scan_external_rect_fast_path(core, res, NULL, &rect_count, &view_x, &view_y, &view_width, &view_height, &natural_width_raw,
+                                               &natural_height_raw) ||
         !egui_svg_dim_from_float(natural_width_raw, &natural_width) || !egui_svg_dim_from_float(natural_height_raw, &natural_height))
     {
         return NULL;
@@ -2640,7 +2643,7 @@ static egui_svg_doc_t *egui_svg_try_create_external_rect_fast_path_doc(const egu
     view_width = (float)doc->natural_width;
     view_height = (float)doc->natural_height;
     rect_count = 0;
-    if (!egui_svg_scan_external_rect_fast_path(res, rects, &rect_count, &view_x, &view_y, &view_width, &view_height, NULL, NULL))
+    if (!egui_svg_scan_external_rect_fast_path(core, res, rects, &rect_count, &view_x, &view_y, &view_width, &view_height, NULL, NULL))
     {
         egui_svg_doc_destroy(doc);
         return NULL;
@@ -2676,7 +2679,7 @@ static int egui_image_svg_try_assign_rect_fast_path_doc(egui_image_svg_t *self, 
     return 1;
 }
 
-static int egui_image_svg_try_assign_external_rect_fast_path_doc(egui_image_svg_t *self, const egui_svg_source_t *res)
+static int egui_image_svg_try_assign_external_rect_fast_path_doc(egui_image_svg_t *self, egui_core_t *core, const egui_svg_source_t *res)
 {
     egui_svg_doc_t *doc;
 
@@ -2685,7 +2688,7 @@ static int egui_image_svg_try_assign_external_rect_fast_path_doc(egui_image_svg_
         return 0;
     }
 
-    doc = egui_svg_try_create_external_rect_fast_path_doc(res);
+    doc = egui_svg_try_create_external_rect_fast_path_doc(core, res);
     if (doc == NULL)
     {
         return 0;
@@ -2973,11 +2976,15 @@ int egui_image_svg_load_memory_borrowed(egui_image_svg_t *self, const char *svg_
     return egui_image_svg_finish_load(self, svg_text, NULL, (uint32_t)svg_len);
 }
 
-int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t *res)
+int egui_image_svg_load_resource(egui_image_svg_t *self, egui_core_t *core, const egui_svg_source_t *res)
 {
     uint8_t *owned_data_buf;
 
     if (self == NULL || res == NULL || res->data_buf == NULL || res->data_size == 0 || res->data_size >= (uint32_t)INT_MAX)
+    {
+        return 0;
+    }
+    if (res->res_type == EGUI_RESOURCE_TYPE_EXTERNAL && core == NULL)
     {
         return 0;
     }
@@ -2986,7 +2993,7 @@ int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t
     {
         return 1;
     }
-    if (res->res_type == EGUI_RESOURCE_TYPE_EXTERNAL && egui_image_svg_try_assign_external_rect_fast_path_doc(self, res))
+    if (res->res_type == EGUI_RESOURCE_TYPE_EXTERNAL && egui_image_svg_try_assign_external_rect_fast_path_doc(self, core, res))
     {
         return 1;
     }
@@ -3003,7 +3010,7 @@ int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t
     }
     else if (res->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
-        egui_api_load_external_resource(NULL, owned_data_buf, (egui_uintptr_t)res->data_buf, 0, res->data_size);
+        egui_api_load_external_resource(&core->canvas, owned_data_buf, (egui_uintptr_t)res->data_buf, 0, res->data_size);
     }
     else
     {
@@ -3086,9 +3093,10 @@ int egui_image_svg_load_memory_borrowed(egui_image_svg_t *self, const char *svg_
     return 0;
 }
 
-int egui_image_svg_load_resource(egui_image_svg_t *self, const egui_svg_source_t *res)
+int egui_image_svg_load_resource(egui_image_svg_t *self, egui_core_t *core, const egui_svg_source_t *res)
 {
     EGUI_UNUSED(self);
+    EGUI_UNUSED(core);
     EGUI_UNUSED(res);
     return 0;
 }

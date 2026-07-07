@@ -258,7 +258,7 @@ struct egui_platform_ops {
 #endif
     egui_base_t (*interrupt_disable)(void);
     void (*interrupt_enable)(egui_base_t level);
-    void (*load_external_resource)(egui_core_t *core, void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size);
+    void (*load_external_resource)(egui_core_t *core, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size);
     void (*timer_start)(egui_core_t *core, uint32_t expiry_time_ms);
     void (*timer_stop)(egui_core_t *core);
 };
@@ -665,13 +665,15 @@ setup.display_id = 1;
 如果图片 / 字体在 SPI Flash、SD 卡或文件系统中，可实现：
 
 ```c
-static void my_load_external_resource(egui_core_t *core, void *dest, uint32_t res_id,
+static void my_load_external_resource(egui_core_t *core, void *dest, egui_uintptr_t res_id,
                                       uint32_t start_offset, uint32_t size)
 {
     EGUI_UNUSED(core);
     spi_flash_read(resource_addr + start_offset, dest, size);
 }
 ```
+
+当外部资源和 LCD 共用同一条 SPI 总线，并开启 `EGUI_CONFIG_EXTERNAL_RESOURCE_SHARED_DISPLAY_BUS` 时，框架会通过携带 core 的 canvas 获取 PFB bus lock。涉及外部资源预加载或解析的上层 API 也应显式传入 `egui_core_t *core`，避免绕过显示总线互斥保护。
 
 同时开启：
 

@@ -222,6 +222,15 @@ extern "C" {
 #endif
 
 /**
+ * Enable %f support in egui_api_sprintf().
+ * Disabled by default to avoid pulling floating-point formatting code into
+ * size-sensitive embedded builds.
+ */
+#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_SPRINTF_FLOAT
+#define EGUI_CONFIG_PLATFORM_CUSTOM_SPRINTF_FLOAT 0
+#endif
+
+/**
  * Platform service options.
  * When enabled, egui_api_memset/memcpy dispatch through registered platform ops
  * when the corresponding callbacks are provided.

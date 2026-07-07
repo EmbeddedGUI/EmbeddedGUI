@@ -469,36 +469,32 @@ void egui_api_memcpy(void *dst, const void *src, int n)
  * If external resources share the display bus, lock the PFB bus around the read.
  * Boards with independent resource/display buses can disable that lock in config.
  */
-void egui_api_load_external_resource(const egui_canvas_t *canvas, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size)
+void egui_api_load_external_resource_core(egui_core_t *core, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size)
 {
-    egui_core_t *core = canvas != NULL ? egui_canvas_get_core(canvas) : NULL;
     egui_platform_t *plat = egui_platform_get();
     if (plat != NULL && plat->ops != NULL && plat->ops->load_external_resource != NULL)
     {
-        if (canvas != NULL)
-        {
 #if EGUI_CONFIG_EXTERNAL_RESOURCE_SHARED_DISPLAY_BUS
+        if (core != NULL)
+        {
             // Acquire SPI bus: wait for pending DMA, prevent new DMA starts.
             // Handles both interrupt and polling modes transparently.
-            if (core != NULL)
-            {
-                egui_pfb_bus_acquire(core);
-            }
+            egui_pfb_bus_acquire(core);
+        }
 #endif
-            plat->ops->load_external_resource(core, dest, res_id, start_offset, size);
+        plat->ops->load_external_resource(core, dest, res_id, start_offset, size);
 #if EGUI_CONFIG_EXTERNAL_RESOURCE_SHARED_DISPLAY_BUS
-            if (core != NULL)
-            {
-                egui_pfb_bus_release(core);
-            }
-#endif
-        }
-        else
+        if (core != NULL)
         {
-            // No canvas context (e.g. measurement-only path) — load without bus synchronization.
-            plat->ops->load_external_resource(NULL, dest, res_id, start_offset, size);
+            egui_pfb_bus_release(core);
         }
+#endif
     }
+}
+
+void egui_api_load_external_resource(const egui_canvas_t *canvas, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size)
+{
+    egui_api_load_external_resource_core(canvas != NULL ? egui_canvas_get_core(canvas) : NULL, dest, res_id, start_offset, size);
 }
 
 /** Disable interrupts without an explicit core context. */

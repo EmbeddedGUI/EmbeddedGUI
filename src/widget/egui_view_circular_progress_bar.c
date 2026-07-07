@@ -9,8 +9,8 @@
 #include "canvas/egui_canvas_gradient.h"
 #endif
 
-typedef uint8_t (*egui_view_circular_progress_bar_get_text_region_fn)(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
-                                                                      egui_dim_t inner_r, uint8_t process, egui_region_t *text_region);
+typedef uint8_t (*egui_view_circular_progress_bar_get_text_region_fn)(egui_core_t *core, egui_view_circular_progress_bar_t *local, egui_dim_t center_x,
+                                                                      egui_dim_t center_y, egui_dim_t inner_r, uint8_t process, egui_region_t *text_region);
 typedef void (*egui_view_circular_progress_bar_draw_text_fn)(egui_canvas_t *canvas, egui_view_circular_progress_bar_t *local, egui_dim_t center_x,
                                                              egui_dim_t center_y, egui_dim_t inner_r);
 
@@ -30,8 +30,8 @@ static const egui_font_t *egui_view_circular_progress_bar_get_text_font(const eg
     return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
 
-static uint8_t egui_view_circular_progress_bar_get_text_box_rich(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
-                                                                 egui_dim_t inner_r, const char *text, egui_region_t *text_box)
+static uint8_t egui_view_circular_progress_bar_get_text_box_rich(egui_core_t *core, egui_view_circular_progress_bar_t *local, egui_dim_t center_x,
+                                                                 egui_dim_t center_y, egui_dim_t inner_r, const char *text, egui_region_t *text_box)
 {
     egui_dim_t text_w;
     egui_dim_t text_h;
@@ -55,7 +55,7 @@ static uint8_t egui_view_circular_progress_bar_get_text_box_rich(egui_view_circu
     text_h = 0;
     if (text_font != NULL && text_font->api != NULL && text_font->api->get_str_size != NULL)
     {
-        text_font->api->get_str_size(text_font, text, 0, 0, &text_w, &text_h);
+        egui_font_get_str_size_with_core(text_font, core, text, 0, 0, &text_w, &text_h);
         if (text_h > 0)
         {
             box_height = EGUI_MIN(box_height, text_h + 4);
@@ -70,15 +70,16 @@ static uint8_t egui_view_circular_progress_bar_get_text_box_rich(egui_view_circu
     return egui_region_is_empty(text_box) ? 0 : 1;
 }
 
-static uint8_t egui_view_circular_progress_bar_get_text_region_basic(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
-                                                                     egui_dim_t inner_r, uint8_t process, egui_region_t *text_region)
+static uint8_t egui_view_circular_progress_bar_get_text_region_basic(egui_core_t *core, egui_view_circular_progress_bar_t *local, egui_dim_t center_x,
+                                                                     egui_dim_t center_y, egui_dim_t inner_r, uint8_t process, egui_region_t *text_region)
 {
+    EGUI_UNUSED(core);
     (void)local;
-    return egui_view_ring_text_get_region_basic(center_x, center_y, inner_r, 0, 1, process, 1, text_region);
+    return egui_view_ring_text_get_region_basic(core, center_x, center_y, inner_r, 0, 1, process, 1, text_region);
 }
 
-static uint8_t egui_view_circular_progress_bar_get_text_region_rich(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
-                                                                    egui_dim_t inner_r, uint8_t process, egui_region_t *text_region)
+static uint8_t egui_view_circular_progress_bar_get_text_region_rich(egui_core_t *core, egui_view_circular_progress_bar_t *local, egui_dim_t center_x,
+                                                                    egui_dim_t center_y, egui_dim_t inner_r, uint8_t process, egui_region_t *text_region)
 {
     egui_region_t text_box;
     egui_dim_t text_w;
@@ -94,7 +95,7 @@ static uint8_t egui_view_circular_progress_bar_get_text_region_rich(egui_view_ci
     }
 
     egui_view_ring_text_format_value(process, 1, text_buf, sizeof(text_buf));
-    if (!egui_view_circular_progress_bar_get_text_box_rich(local, center_x, center_y, inner_r, text_buf, &text_box))
+    if (!egui_view_circular_progress_bar_get_text_box_rich(core, local, center_x, center_y, inner_r, text_buf, &text_box))
     {
         return 0;
     }
@@ -105,7 +106,7 @@ static uint8_t egui_view_circular_progress_bar_get_text_region_rich(egui_view_ci
         return 1;
     }
 
-    text_font->api->get_str_size(text_font, text_buf, 0, 0, &text_w, &text_h);
+    egui_font_get_str_size_with_core(text_font, core, text_buf, 0, 0, &text_w, &text_h);
     if (text_w <= 0 || text_h <= 0)
     {
         egui_region_copy(text_region, &text_box);
@@ -158,7 +159,8 @@ static void egui_view_circular_progress_bar_draw_text_rich(egui_canvas_t *canvas
     const egui_font_t *text_font = egui_view_circular_progress_bar_get_text_font(local);
 
     egui_view_ring_text_format_value(local->process, 1, val_buf, sizeof(val_buf));
-    if (text_font != NULL && egui_view_circular_progress_bar_get_text_box_rich(local, center_x, center_y, inner_r, val_buf, &text_rect))
+    if (text_font != NULL &&
+        egui_view_circular_progress_bar_get_text_box_rich(canvas != NULL ? canvas->core : NULL, local, center_x, center_y, inner_r, val_buf, &text_rect))
     {
         egui_canvas_draw_text_in_rect(canvas, text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
     }
@@ -236,12 +238,12 @@ static void egui_view_circular_progress_bar_invalidate_process_change(egui_view_
                                                   dirty_sweep, &arc_region);
     }
 
-    if (local->text_ops != NULL && local->text_ops->get_text_region(local, center_x, center_y, inner_r, old_process, &text_region))
+    if (local->text_ops != NULL && local->text_ops->get_text_region(egui_view_get_core(self), local, center_x, center_y, inner_r, old_process, &text_region))
     {
         egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
     }
     if (old_process != local->process && local->text_ops != NULL &&
-        local->text_ops->get_text_region(local, center_x, center_y, inner_r, local->process, &text_region))
+        local->text_ops->get_text_region(egui_view_get_core(self), local, center_x, center_y, inner_r, local->process, &text_region))
     {
         egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
     }

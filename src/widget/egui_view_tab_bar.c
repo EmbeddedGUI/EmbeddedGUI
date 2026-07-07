@@ -5,6 +5,7 @@
 #include "core/egui_core.h"
 #include "egui_view_icon_font.h"
 #include "canvas/egui_canvas_gradient.h"
+#include "font/egui_font.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
@@ -301,7 +302,7 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
 
                 if (local->font->api != NULL)
                 {
-                    local->font->api->get_str_size(local->font, tab_text, 0, 0, &text_w, &text_h);
+                    egui_font_get_str_size_with_canvas(local->font, canvas, tab_text, 0, 0, &text_w, &text_h);
                 }
                 if (text_h < 0)
                 {

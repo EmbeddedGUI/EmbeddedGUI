@@ -120,6 +120,10 @@ int egui_font_ttf_init(egui_font_ttf_t *self, const uint8_t *ttf_data, uint32_t 
  */
 void egui_font_ttf_set_fallback(egui_font_ttf_t *self, const egui_font_t *fallback);
 
+/** Measure a TTF string while preserving core context for fallback fonts. */
+int egui_font_ttf_get_str_size_with_core(const egui_font_t *self, egui_core_t *core, const void *string, uint8_t is_multi_line, egui_dim_t line_space,
+                                         egui_dim_t *width, egui_dim_t *height);
+
 /** Internal vtable reference (public so EGUI_FONT_SUB_DEFINE_* macros compile). */
 extern const egui_font_api_t egui_font_ttf_t_api_table;
 

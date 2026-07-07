@@ -36,7 +36,7 @@ void egui_view_label_on_draw(egui_view_t *self)
         egui_dim_t max_w = region.size.width;
 
         /* Measure full text width. */
-        local->font->api->get_str_size(local->font, local->text, 0, 0, &text_w, &text_h);
+        egui_font_get_str_size_with_canvas(local->font, canvas, local->text, 0, 0, &text_w, &text_h);
 
         if (text_w > max_w)
         {
@@ -45,7 +45,7 @@ void egui_view_label_on_draw(egui_view_t *self)
             egui_dim_t dots_w = 0, dots_h = 0;
 
             /* Measure "..." width so we know how much space to leave. */
-            local->font->api->get_str_size(local->font, "...", 0, 0, &dots_w, &dots_h);
+            egui_font_get_str_size_with_canvas(local->font, canvas, "...", 0, 0, &dots_w, &dots_h);
             egui_dim_t avail_w = (egui_dim_t)(max_w - dots_w);
 
             /* Find the longest UTF-8 prefix that fits in avail_w. */
@@ -73,7 +73,7 @@ void egui_view_label_on_draw(egui_view_t *self)
                 buf[char_end] = '\0';
 
                 egui_dim_t w = 0, h = 0;
-                local->font->api->get_str_size(local->font, buf, 0, 0, &w, &h);
+                egui_font_get_str_size_with_canvas(local->font, canvas, buf, 0, 0, &w, &h);
 
                 if (w <= avail_w)
                 {
@@ -168,7 +168,7 @@ void egui_view_label_on_draw(egui_view_t *self)
             tmp[measure_len] = '\0';
 
             egui_dim_t w = 0, h = 0;
-            local->font->api->get_str_size(local->font, tmp, 0, 0, &w, &h);
+            egui_font_get_str_size_with_canvas(local->font, canvas, tmp, 0, 0, &w, &h);
 
             if (w > max_w && (int)(p - line_start) > 0)
             {
@@ -199,7 +199,7 @@ void egui_view_label_on_draw(egui_view_t *self)
         /* Measure single-line height. */
         egui_dim_t font_h = 0;
         egui_dim_t dummy_w = 0;
-        local->font->api->get_str_size(local->font, "A", 0, 0, &dummy_w, &font_h);
+        egui_font_get_str_size_with_canvas(local->font, canvas, "A", 0, 0, &dummy_w, &font_h);
         if (font_h == 0)
         {
             goto wrap_done;
@@ -228,7 +228,7 @@ void egui_view_label_on_draw(egui_view_t *self)
                 tmp[copy_len] = '\0';
 
                 egui_dim_t lw = 0, lh = 0;
-                local->font->api->get_str_size(local->font, tmp, 0, 0, &lw, &lh);
+                egui_font_get_str_size_with_canvas(local->font, canvas, tmp, 0, 0, &lw, &lh);
 
                 egui_dim_t x;
                 if (local->align_type == EGUI_ALIGN_CENTER)
@@ -344,7 +344,7 @@ void egui_view_label_on_draw(egui_view_t *self)
                         }
                         tmp[copy_len] = '\0';
                         egui_dim_t sw = 0, sh = 0;
-                        local->font->api->get_str_size(local->font, tmp, 0, 0, &sw, &sh);
+                        egui_font_get_str_size_with_canvas(local->font, canvas, tmp, 0, 0, &sw, &sh);
                         total_w += sw;
                         if (sh > font_h)
                         {
@@ -381,7 +381,7 @@ void egui_view_label_on_draw(egui_view_t *self)
                 }
                 tmp[copy_len] = '\0';
                 egui_dim_t sw = 0, sh = 0;
-                local->font->api->get_str_size(local->font, tmp, 0, 0, &sw, &sh);
+                egui_font_get_str_size_with_canvas(local->font, canvas, tmp, 0, 0, &sw, &sh);
                 total_w += sw;
                 if (sh > font_h)
                 {
@@ -422,7 +422,7 @@ void egui_view_label_on_draw(egui_view_t *self)
                 egui_canvas_draw_text(canvas, local->font, tmp, cur_x, y, spans[si].color, local->alpha);
 
                 egui_dim_t sw = 0, sh = 0;
-                local->font->api->get_str_size(local->font, tmp, 0, 0, &sw, &sh);
+                egui_font_get_str_size_with_canvas(local->font, canvas, tmp, 0, 0, &sw, &sh);
                 cur_x = (egui_dim_t)(cur_x + sw);
             }
         }
@@ -440,7 +440,7 @@ void egui_view_label_on_draw(egui_view_t *self)
          * through to the standard path.
          */
         egui_dim_t text_w = 0, font_h = 0;
-        local->font->api->get_str_size(local->font, local->text, 0, 0, &text_w, &font_h);
+        egui_font_get_str_size_with_canvas(local->font, canvas, local->text, 0, 0, &text_w, &font_h);
 
         /* Count UTF-8 code-points to compute extra spacing. */
         int cp_count = 0;
@@ -488,7 +488,7 @@ void egui_view_label_on_draw(egui_view_t *self)
             buf[len] = '\0';
 
             egui_dim_t cw = 0, ch = 0;
-            local->font->api->get_str_size(local->font, buf, 0, 0, &cw, &ch);
+            egui_font_get_str_size_with_canvas(local->font, canvas, buf, 0, 0, &cw, &ch);
             egui_canvas_draw_text(canvas, local->font, buf, x, y, local->color, local->alpha);
             x = (egui_dim_t)(x + cw + local->letter_space);
             p += len;
@@ -713,7 +713,7 @@ int egui_view_label_get_str_size(egui_view_t *self, const void *string, egui_dim
 #else
     if (local->font != NULL && local->font->api != NULL && local->font->api->get_str_size != NULL)
     {
-        if (local->font->api->get_str_size(local->font, string, 0, 0, width, height) == 0)
+        if (egui_font_get_str_size_with_core(local->font, egui_view_get_core(self), string, 0, 0, width, height) == 0)
         {
             return 0;
         }

@@ -4,6 +4,7 @@
 #include "egui_view_toggle_button.h"
 #include "core/egui_core.h"
 #include "egui_view_icon_font.h"
+#include "font/egui_font.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
@@ -93,11 +94,11 @@ static void egui_view_toggle_button_draw_content(egui_canvas_t *canvas, egui_vie
 
         if (icon_font->api != NULL && icon_font->api->get_str_size != NULL)
         {
-            icon_font->api->get_str_size(icon_font, icon, 0, 0, &icon_width, &icon_height);
+            egui_font_get_str_size_with_canvas(icon_font, canvas, icon, 0, 0, &icon_width, &icon_height);
         }
         if (text_font != NULL && text_font->api != NULL && text_font->api->get_str_size != NULL)
         {
-            text_font->api->get_str_size(text_font, text, 0, 0, &text_width, &text_height);
+            egui_font_get_str_size_with_canvas(text_font, canvas, text, 0, 0, &text_width, &text_height);
         }
         (void)icon_height;
         (void)text_height;

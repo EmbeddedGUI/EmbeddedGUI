@@ -1,6 +1,7 @@
 ﻿#include "egui_view_segmented_control.h"
 #include "core/egui_core.h"
 #include "egui_view_icon_font.h"
+#include "font/egui_font.h"
 #include "resource/egui_resource.h"
 
 /**
@@ -186,7 +187,7 @@ static void egui_view_segmented_control_draw_segment_content(egui_canvas_t *canv
 
             if (local->font != NULL && local->font->api != NULL && local->font->api->get_str_size != NULL)
             {
-                local->font->api->get_str_size(local->font, text, 0, 0, &text_w, &text_h);
+                egui_font_get_str_size_with_canvas(local->font, canvas, text, 0, 0, &text_w, &text_h);
             }
             if (text_h < 0)
             {

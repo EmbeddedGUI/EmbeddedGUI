@@ -2,6 +2,7 @@
 
 #include "egui_view_lyric_scroller.h"
 #include "core/egui_core.h"
+#include "font/egui_font.h"
 
 /*
  * The lyric scroller is implemented as a clipping group plus one moving label child.
@@ -92,7 +93,7 @@ static void egui_view_lyric_scroller_update_label_layout(egui_view_t *self)
     local->text_height = 0;
     if (font != NULL && text != NULL && text[0] != '\0')
     {
-        font->api->get_str_size(font, text, 0, 0, &local->text_width, &local->text_height);
+        egui_font_get_str_size_with_core(font, egui_view_get_core(self), text, 0, 0, &local->text_width, &local->text_height);
     }
 
     // Overflow distance determines both whether scrolling is needed and the end-stop position.

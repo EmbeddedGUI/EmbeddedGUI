@@ -150,11 +150,11 @@ static void draw_text(egui_canvas_t *canvas, const char *text, egui_dim_t x, egu
     egui_canvas_draw_text(canvas, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT, text, x, y, color, EGUI_ALPHA_100);
 }
 
-static void measure_text(const char *text, egui_dim_t *width, egui_dim_t *height)
+static void measure_text(egui_core_t *core, const char *text, egui_dim_t *width, egui_dim_t *height)
 {
     const egui_font_t *font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 
-    if (font != NULL && font->api != NULL && font->api->get_str_size != NULL && font->api->get_str_size(font, text, 0, 0, width, height) == 0)
+    if (font != NULL && font->api != NULL && font->api->get_str_size != NULL && egui_font_get_str_size_with_core(font, core, text, 0, 0, width, height) == 0)
     {
         return;
     }
@@ -163,12 +163,12 @@ static void measure_text(const char *text, egui_dim_t *width, egui_dim_t *height
     *height = 16;
 }
 
-static void get_text_region(const char *text, egui_dim_t x, egui_dim_t y, egui_dim_t pad, egui_region_t *region)
+static void get_text_region(egui_core_t *core, const char *text, egui_dim_t x, egui_dim_t y, egui_dim_t pad, egui_region_t *region)
 {
     egui_dim_t width;
     egui_dim_t height;
 
-    measure_text(text, &width, &height);
+    measure_text(core, text, &width, &height);
     region->location.x = x - pad;
     region->location.y = y - pad;
     region->size.width = width + pad * 2 + 1;
@@ -797,8 +797,8 @@ static void step_clock(egui_view_dirty_demo_t *local, egui_view_t *self)
 
     format_clock_text(local->old_clock_seconds, old_text);
     format_clock_text(local->clock_seconds, new_text);
-    get_text_region(&old_text[6], CLOCK_PREFIX_X + 58, CLOCK_TEXT_Y, 2, &old_region);
-    get_text_region(&new_text[6], CLOCK_PREFIX_X + 58, CLOCK_TEXT_Y, 2, &new_region);
+    get_text_region(egui_view_get_core(self), &old_text[6], CLOCK_PREFIX_X + 58, CLOCK_TEXT_Y, 2, &old_region);
+    get_text_region(egui_view_get_core(self), &new_text[6], CLOCK_PREFIX_X + 58, CLOCK_TEXT_Y, 2, &new_region);
     egui_view_invalidate_region(self, &old_region);
     egui_view_invalidate_region(self, &new_region);
 }
@@ -843,14 +843,14 @@ static void format_progress_text(uint8_t value, char *text)
     text[pos] = '\0';
 }
 
-static void get_progress_text_region(uint8_t value, egui_region_t *region)
+static void get_progress_text_region(egui_core_t *core, uint8_t value, egui_region_t *region)
 {
     char text[5];
     egui_dim_t width;
     egui_dim_t height;
 
     format_progress_text(value, text);
-    measure_text(text, &width, &height);
+    measure_text(core, text, &width, &height);
     region->location.x = PROGRESS_TEXT_CX - width / 2 - 2;
     region->location.y = PROGRESS_TEXT_Y - 2;
     region->size.width = width + 5;
@@ -878,8 +878,8 @@ static void step_progress(egui_view_dirty_demo_t *local, egui_view_t *self)
     min_x = EGUI_MIN(old_x, x) - PROGRESS_THUMB_R;
     max_x = EGUI_MAX(old_x, x) + PROGRESS_THUMB_R;
     invalidate_rect(self, min_x, PROGRESS_THUMB_CY - PROGRESS_THUMB_R, max_x - min_x + 1, PROGRESS_THUMB_R * 2 + 1, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 2);
-    get_progress_text_region(local->old_progress_value, &old_text_region);
-    get_progress_text_region(local->progress_value, &new_text_region);
+    get_progress_text_region(egui_view_get_core(self), local->old_progress_value, &old_text_region);
+    get_progress_text_region(egui_view_get_core(self), local->progress_value, &new_text_region);
     egui_view_invalidate_region(self, &old_text_region);
     egui_view_invalidate_region(self, &new_text_region);
 }
@@ -904,7 +904,7 @@ static void draw_progress_page(egui_view_dirty_demo_t *local, egui_canvas_t *can
         egui_dim_t text_h;
 
         EGUI_UNUSED(text_h);
-        measure_text(text, &text_w, &text_h);
+        measure_text(egui_canvas_get_core(canvas), text, &text_w, &text_h);
         draw_text(canvas, text, PROGRESS_TEXT_CX - text_w / 2, PROGRESS_TEXT_Y, COLOR_TEXT);
     }
 }

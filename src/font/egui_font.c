@@ -5,6 +5,9 @@
 #include "egui_font.h"
 #include "core/egui_api.h"
 #include "font/egui_font_std.h"
+#if EGUI_CONFIG_FUNCTION_FONT_TTF
+#include "font/egui_font_ttf.h"
+#endif
 
 static const uint8_t s_utf8_length_table[256] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -47,8 +50,38 @@ int egui_font_get_utf8_code(const char *s, uint32_t *output_utf8_code)
     return utf8_bytes;
 }
 
-void egui_font_get_string_pos(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, uint8_t is_multi_line,
-                              egui_dim_t line_space, egui_dim_t *x, egui_dim_t *y)
+int egui_font_get_str_size_with_core(const egui_font_t *self, egui_core_t *core, const void *string, uint8_t is_multi_line, egui_dim_t line_space,
+                                     egui_dim_t *width, egui_dim_t *height)
+{
+    if (self == NULL || self->api == NULL || self->api->get_str_size == NULL)
+    {
+        return -1;
+    }
+
+    if (self->api == &egui_font_std_t_api_table)
+    {
+        return egui_font_std_get_str_size_with_core(self, core, string, is_multi_line, line_space, width, height);
+    }
+
+#if EGUI_CONFIG_FUNCTION_FONT_TTF
+    if (self->api == &egui_font_ttf_t_api_table)
+    {
+        return egui_font_ttf_get_str_size_with_core(self, core, string, is_multi_line, line_space, width, height);
+    }
+#endif
+
+    EGUI_UNUSED(core);
+    return self->api->get_str_size(self, string, is_multi_line, line_space, width, height);
+}
+
+int egui_font_get_str_size_with_canvas(const egui_font_t *self, egui_canvas_t *canvas, const void *string, uint8_t is_multi_line, egui_dim_t line_space,
+                                       egui_dim_t *width, egui_dim_t *height)
+{
+    return egui_font_get_str_size_with_core(self, canvas != NULL ? canvas->core : NULL, string, is_multi_line, line_space, width, height);
+}
+
+static void egui_font_get_string_pos_with_canvas(const egui_font_t *self, egui_canvas_t *canvas, const void *string, egui_region_t *rect, uint8_t align_type,
+                                                 uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *x, egui_dim_t *y)
 {
     egui_dim_t height = rect->size.height;
     egui_dim_t width = rect->size.width;
@@ -60,7 +93,7 @@ void egui_font_get_string_pos(const egui_font_t *self, const void *string, egui_
     if (((align_type & EGUI_ALIGN_HMASK) != EGUI_ALIGN_LEFT && (align_type & EGUI_ALIGN_HMASK) != 0) ||
         ((align_type & EGUI_ALIGN_VMASK) != EGUI_ALIGN_TOP && (align_type & EGUI_ALIGN_VMASK) != 0))
     {
-        self->api->get_str_size(self, string, is_multi_line, line_space, &x_size, &y_size);
+        egui_font_get_str_size_with_canvas(self, canvas, string, is_multi_line, line_space, &x_size, &y_size);
     }
 
     switch (align_type & EGUI_ALIGN_HMASK)
@@ -105,7 +138,13 @@ void egui_font_get_string_pos(const egui_font_t *self, const void *string, egui_
     }
 }
 
-static egui_dim_t egui_font_get_line_height(const egui_font_t *self)
+void egui_font_get_string_pos(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, uint8_t is_multi_line,
+                              egui_dim_t line_space, egui_dim_t *x, egui_dim_t *y)
+{
+    egui_font_get_string_pos_with_canvas(self, NULL, string, rect, align_type, is_multi_line, line_space, x, y);
+}
+
+static egui_dim_t egui_font_get_line_height(const egui_font_t *self, egui_canvas_t *canvas)
 {
     egui_dim_t x_size;
     egui_dim_t y_size;
@@ -115,7 +154,7 @@ static egui_dim_t egui_font_get_line_height(const egui_font_t *self)
         return y_size;
     }
 
-    self->api->get_str_size(self, "t", 0, 0, &x_size, &y_size);
+    egui_font_get_str_size_with_canvas(self, canvas, "t", 0, 0, &x_size, &y_size);
     return y_size;
 }
 
@@ -140,7 +179,7 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, egui_canvas_t *canva
     egui_dim_t work_y1 = work_y0 + work_region->size.height;
     egui_dim_t line_step;
 
-    y_size = egui_font_get_line_height(self);
+    y_size = egui_font_get_line_height(self, canvas);
     line_step = y_size + line_space;
 
     if ((h_align == 0 || h_align == EGUI_ALIGN_LEFT) && (v_align == 0 || v_align == EGUI_ALIGN_TOP))
@@ -149,7 +188,7 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, egui_canvas_t *canva
     }
     else
     {
-        egui_font_get_string_pos(self, s, rect, align_type, 1, line_space, &x, &y);
+        egui_font_get_string_pos_with_canvas(self, canvas, s, rect, align_type, 1, line_space, &x, &y);
         draw_y = tmp_rect.location.y + y;
     }
 
@@ -197,7 +236,7 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, egui_canvas_t *canva
 
     while (*s)
     {
-        egui_font_get_string_pos(self, s, rect, align_type, 0, line_space, &x, &y);
+        egui_font_get_string_pos_with_canvas(self, canvas, s, rect, align_type, 0, line_space, &x, &y);
 
         str_bytes = self->api->draw_string(self, canvas, s, tmp_rect.location.x + x, tmp_rect.location.y + y, color, alpha);
 

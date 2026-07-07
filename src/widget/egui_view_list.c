@@ -56,7 +56,7 @@ static void egui_view_list_clear_item_refs(egui_view_list_t *local)
 }
 
 /** Measure the widest icon slot needed across all rows that currently show icons. */
-static egui_dim_t egui_view_list_get_icon_area_width(egui_view_list_t *local)
+static egui_dim_t egui_view_list_get_icon_area_width(egui_core_t *core, egui_view_list_t *local)
 {
     const egui_font_t *icon_font = egui_view_list_resolve_icon_font(local);
     egui_dim_t width = 0;
@@ -90,7 +90,7 @@ static egui_dim_t egui_view_list_get_icon_area_width(egui_view_list_t *local)
                 continue;
             }
 
-            icon_font->api->get_str_size(icon_font, local->item_icons[i], 0, 0, &icon_width, &icon_height);
+            egui_font_get_str_size_with_core(icon_font, core, local->item_icons[i], 0, 0, &icon_width, &icon_height);
             if (icon_width > width)
             {
                 width = icon_width;
@@ -261,7 +261,7 @@ static void egui_view_list_draw_item_contents(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_list_t);
     const egui_font_t *icon_font = egui_view_list_resolve_icon_font(local);
     const egui_region_t *prev_clip = egui_canvas_get_extra_clip(canvas);
-    egui_dim_t icon_width = egui_view_list_get_icon_area_width(local);
+    egui_dim_t icon_width = egui_view_list_get_icon_area_width(egui_view_get_core(self), local);
     uint8_t i;
 
     if (icon_font == NULL)

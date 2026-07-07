@@ -24,7 +24,7 @@
 /**
  * Measure the rendered width from byte index 0 up to the requested cursor position.
  */
-static egui_dim_t egui_view_textinput_get_text_width_to_pos(egui_view_textinput_t *local, uint8_t pos)
+static egui_dim_t egui_view_textinput_get_text_width_to_pos(egui_core_t *core, egui_view_textinput_t *local, uint8_t pos)
 {
     if (local->font == NULL || pos == 0)
     {
@@ -50,7 +50,7 @@ static egui_dim_t egui_view_textinput_get_text_width_to_pos(egui_view_textinput_
 
     egui_dim_t width = 0;
     egui_dim_t height = 0;
-    local->font->api->get_str_size(local->font, tmp, 0, 0, &width, &height);
+    egui_font_get_str_size_with_core(local->font, core, tmp, 0, 0, &width, &height);
 
     return width;
 }
@@ -62,7 +62,7 @@ static void egui_view_textinput_update_scroll(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_textinput_t);
 
-    egui_dim_t cursor_x = egui_view_textinput_get_text_width_to_pos(local, local->cursor_pos);
+    egui_dim_t cursor_x = egui_view_textinput_get_text_width_to_pos(egui_view_get_core(self), local, local->cursor_pos);
     egui_dim_t work_width = self->region.size.width - (self->padding.left + self->padding.right);
 
     // Scroll right when the caret moves past the trailing edge.
@@ -95,8 +95,8 @@ static int egui_view_textinput_get_cursor_region(egui_view_t *self, egui_view_te
 
     // The caret is a 1-pixel-wide rectangle positioned inside the padded work region.
     egui_view_get_work_region(self, &work_region);
-    cursor_x = work_region.location.x + egui_view_textinput_get_text_width_to_pos(local, local->cursor_pos) - local->scroll_offset_x;
-    local->font->api->get_str_size(local->font, "A", 0, 0, &dummy_width, &cursor_height);
+    cursor_x = work_region.location.x + egui_view_textinput_get_text_width_to_pos(egui_view_get_core(self), local, local->cursor_pos) - local->scroll_offset_x;
+    egui_font_get_str_size_with_core(local->font, egui_view_get_core(self), "A", 0, 0, &dummy_width, &cursor_height);
 
     cursor_region->location.x = cursor_x;
     cursor_region->location.y = work_region.location.y + (work_region.size.height - cursor_height) / 2;
@@ -728,7 +728,7 @@ void egui_view_textinput_on_draw(egui_view_t *self)
             display_text = masked;
         }
 
-        local->font->api->get_str_size(local->font, display_text, 0, 0, &text_width, &text_height);
+        egui_font_get_str_size_with_canvas(local->font, canvas, display_text, 0, 0, &text_width, &text_height);
 
         text_y += (work_region.size.height - text_height) / 2;
 
@@ -857,7 +857,7 @@ static int egui_view_textinput_on_touch_event(egui_view_t *self, egui_motion_eve
             // Pick the nearest byte boundary so taps land on the closest caret position.
             for (uint8_t i = 0; i <= local->text_len; i++)
             {
-                egui_dim_t char_x = egui_view_textinput_get_text_width_to_pos(local, i);
+                egui_dim_t char_x = egui_view_textinput_get_text_width_to_pos(egui_view_get_core(self), local, i);
                 egui_dim_t dist = touch_x > char_x ? (touch_x - char_x) : (char_x - touch_x);
                 if (dist < best_dist)
                 {

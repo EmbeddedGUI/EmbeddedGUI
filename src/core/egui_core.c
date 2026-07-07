@@ -333,6 +333,16 @@ void egui_refresh_timer_callback(egui_timer_t *timer)
     }
 }
 
+/** Weak hook for ports that want a notification when one frame starts rendering. */
+#if defined(_MSC_VER)
+void egui_port_notify_frame_render_start_default(void)
+#else
+__EGUI_WEAK__ void egui_port_notify_frame_render_start(void)
+#endif
+{
+}
+__EGUI_MSVC_ALTERNATE_NAME(egui_port_notify_frame_render_start, egui_port_notify_frame_render_start_default)
+
 /** Weak hook for ports that want a notification after one frame is fully rendered and flushed. */
 #if defined(_MSC_VER)
 void egui_port_notify_frame_render_complete_default(void)
@@ -498,6 +508,7 @@ void egui_core_refresh_screen(egui_core_t *core)
             }
         }
 
+        egui_port_notify_frame_render_start();
         egui_polling_refresh_display(core);
         egui_api_refresh_display(core);
         egui_port_notify_frame_render_complete();

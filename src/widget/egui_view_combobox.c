@@ -4,6 +4,7 @@
 #include "egui_view_combobox.h"
 #include "egui_view_icon_font.h"
 #include "widget/egui_view_group.h"
+#include "font/egui_font.h"
 #include "resource/egui_resource.h"
 #include "core/egui_core.h"
 
@@ -69,7 +70,7 @@ static const char *egui_view_combobox_get_arrow_icon(egui_view_combobox_t *local
  *
  * guess so layout stays stable even when the icon font cannot report width.
  */
-static egui_dim_t egui_view_combobox_get_content_icon_width(egui_view_combobox_t *local, egui_dim_t area_height, const char *icon)
+static egui_dim_t egui_view_combobox_get_content_icon_width(egui_canvas_t *canvas, egui_view_combobox_t *local, egui_dim_t area_height, const char *icon)
 {
     const egui_font_t *icon_font = egui_view_combobox_get_item_icon_font(local, area_height);
     egui_dim_t icon_width = 0;
@@ -82,7 +83,7 @@ static egui_dim_t egui_view_combobox_get_content_icon_width(egui_view_combobox_t
 
     if (icon_font->api != NULL && icon_font->api->get_str_size != NULL)
     {
-        icon_font->api->get_str_size(icon_font, icon, 0, 0, &icon_width, &icon_height);
+        egui_font_get_str_size_with_canvas(icon_font, canvas, icon, 0, 0, &icon_width, &icon_height);
     }
 
     if (icon_width <= 0)
@@ -130,7 +131,7 @@ static void egui_view_combobox_draw_item_content(egui_canvas_t *canvas, egui_vie
         if (icon_font != NULL)
         {
             egui_region_t icon_rect = *rect;
-            egui_dim_t icon_width = egui_view_combobox_get_content_icon_width(local, rect->size.height, icon);
+            egui_dim_t icon_width = egui_view_combobox_get_content_icon_width(canvas, local, rect->size.height, icon);
             egui_dim_t gap = local->icon_text_gap;
 
             if (gap < 0)

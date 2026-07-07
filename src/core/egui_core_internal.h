@@ -93,6 +93,8 @@ void egui_core_animation_remove(egui_core_t *core, egui_animation_t *anim);
 void egui_core_init_display_scene(egui_core_t *core, int16_t screen_w, int16_t screen_h);
 /** Register platform, display, touch, and generated UI hooks, then power on the screen. */
 void egui_core_setup_display_start(egui_core_t *core, const egui_display_setup_t *setup);
+/** Weak port hook called when one pending refresh frame starts rendering. */
+void egui_port_notify_frame_render_start(void);
 /** Weak port hook called after one frame has been fully rendered and presented. */
 void egui_port_notify_frame_render_complete(void);
 /** Weak port hook that can defer one pending refresh frame without clearing dirty regions. */

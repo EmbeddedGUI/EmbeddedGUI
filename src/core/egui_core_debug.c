@@ -4,6 +4,7 @@
 #include "canvas/egui_canvas.h"
 #include "egui_core.h"
 #include "egui_core_internal.h"
+#include "font/egui_font.h"
 #include "resource/egui_resource.h"
 
 /**
@@ -73,7 +74,7 @@ int egui_debug_get_overlay_region(egui_core_t *core, const egui_debug_overlay_t 
         return 0;
     }
 
-    font->api->get_str_size(font, overlay->text, 1, 0, &text_width, &text_height);
+    egui_font_get_str_size_with_core(font, core, overlay->text, 1, 0, &text_width, &text_height);
 
     overlay_width = text_width + (EGUI_DEBUG_MONITOR_OVERLAY_PADDING << 1);
     overlay_height = text_height + (EGUI_DEBUG_MONITOR_OVERLAY_PADDING << 1);

@@ -3,6 +3,7 @@
 #include "core/egui_api.h"
 #include "egui_view_icon_font.h"
 #include "egui_view_notification_badge_internal.h"
+#include "font/egui_font.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_FUNCTION_WIDGET_ENHANCED_DRAW
@@ -348,7 +349,7 @@ void egui_view_notification_badge_on_draw(egui_view_t *self)
 
         if (font->api != NULL && font->api->get_str_size != NULL)
         {
-            font->api->get_str_size(font, local->text_buffer, 0, 0, &text_width, &text_height);
+            egui_font_get_str_size_with_canvas(font, canvas, local->text_buffer, 0, 0, &text_width, &text_height);
         }
         EGUI_UNUSED(text_height);
 

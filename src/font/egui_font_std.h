@@ -172,8 +172,14 @@ struct egui_font_std
     egui_font_t base;
 };
 
+extern const egui_font_api_t egui_font_std_t_api_table;
+
 const egui_font_std_char_descriptor_t *egui_font_std_get_desc_fast_api(egui_canvas_t *canvas, const egui_font_std_info_t *font, uint32_t utf8_code,
                                                                        egui_font_std_char_descriptor_t *external_desc_scratch);
+int egui_font_std_get_str_size_with_core(const egui_font_t *self, egui_core_t *core, const void *string, uint8_t is_multi_line, egui_dim_t line_space,
+                                         egui_dim_t *width, egui_dim_t *height);
+int egui_font_std_get_str_size_with_canvas(const egui_font_t *self, egui_canvas_t *canvas, const void *string, uint8_t is_multi_line, egui_dim_t line_space,
+                                           egui_dim_t *width, egui_dim_t *height);
 int egui_font_std_prepare_desc_access(egui_canvas_t *canvas, const egui_font_std_info_t *font, egui_font_std_access_t *access);
 int egui_font_std_prepare_access(egui_canvas_t *canvas, const egui_font_std_info_t *font, egui_font_std_access_t *access);
 void egui_font_std_release_access(egui_font_std_access_t *access);

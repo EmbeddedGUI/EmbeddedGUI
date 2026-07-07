@@ -1,17 +1,32 @@
 #include "egui.h"
 #include "uicode_disp0.h"
+#include "canvas/egui_canvas_compact.h"
 #include "font/egui_font_std.h"
 #include "test/egui_test.h"
 #include "test_font_std.h"
 
 #include <string.h>
 
-#define TEST_FONT_CANVAS_W 16
-#define TEST_FONT_CANVAS_H 16
+#define TEST_FONT_CANVAS_W        16
+#define TEST_FONT_CANVAS_H        16
+#define TEST_FONT_STD_EXPECT_LOCK (EGUI_CONFIG_EXTERNAL_RESOURCE_SHARED_DISPLAY_BUS ? 1 : 0)
 
 static egui_color_int_t test_font_pfb[TEST_FONT_CANVAS_W * TEST_FONT_CANVAS_H];
 static egui_color_int_t expected_font_pfb[TEST_FONT_CANVAS_W * TEST_FONT_CANVAS_H];
 static egui_canvas_t test_font_canvas;
+
+typedef struct test_font_std_external_load_record
+{
+    int total_count;
+    int code_count;
+    int char_count;
+    int pixel_count;
+    int locked_count;
+    int unlocked_count;
+    egui_core_t *last_core;
+} test_font_std_external_load_record_t;
+
+static test_font_std_external_load_record_t s_font_std_external_load_record;
 
 static egui_core_t *test_font_std_get_core(void)
 {
@@ -121,11 +136,106 @@ static const egui_font_std_info_t test_font_info_raw_tall = {
         .pixel_buffer = test_font_pixel_buffer_raw,
 };
 
+static const egui_font_std_info_t test_font_info_external_raw = {
+        .font_size = 2,
+        .font_bit_mode = 4,
+        .height = 2,
+        .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
+        .code_res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
+        .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
+        .count = 2,
+        .code_array = test_font_code_array,
+        .char_array = test_font_char_array_raw,
+        .pixel_buffer = test_font_pixel_buffer_raw,
+};
+
 EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_raw, &test_font_info_raw);
 EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_rle4, &test_font_info_rle4);
 EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_rle4xor, &test_font_info_rle4xor);
 EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_invalid_offscreen, &test_font_info_invalid_offscreen);
 EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_raw_tall, &test_font_info_raw_tall);
+EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_external_raw, &test_font_info_external_raw);
+
+static void test_font_std_external_load(egui_core_t *core, void *dest, egui_uintptr_t res_id, uint32_t start_offset, uint32_t size)
+{
+    s_font_std_external_load_record.total_count++;
+    s_font_std_external_load_record.last_core = core;
+    if (core != NULL && core->render.pfb_mgr.bus_locked)
+    {
+        s_font_std_external_load_record.locked_count++;
+    }
+    else
+    {
+        s_font_std_external_load_record.unlocked_count++;
+    }
+
+    if (res_id == (egui_uintptr_t)test_font_code_array)
+    {
+        s_font_std_external_load_record.code_count++;
+    }
+    else if (res_id == (egui_uintptr_t)test_font_char_array_raw)
+    {
+        s_font_std_external_load_record.char_count++;
+    }
+    else if (res_id == (egui_uintptr_t)test_font_pixel_buffer_raw)
+    {
+        s_font_std_external_load_record.pixel_count++;
+    }
+
+    if (dest != NULL && res_id != (egui_uintptr_t)0 && size > 0U)
+    {
+        const uint8_t *src = (const uint8_t *)res_id;
+        memcpy(dest, src + start_offset, size);
+    }
+}
+
+static egui_platform_ops_t s_font_std_external_platform_ops;
+
+static void test_font_std_external_reset_load_record(void)
+{
+    memset(&s_font_std_external_load_record, 0, sizeof(s_font_std_external_load_record));
+}
+
+static const egui_platform_ops_t *test_font_std_external_install_platform(void)
+{
+    egui_platform_t *platform = egui_platform_get();
+    const egui_platform_ops_t *old_ops;
+
+    if (platform == NULL)
+    {
+        return NULL;
+    }
+
+    old_ops = platform->ops;
+    test_font_std_external_reset_load_record();
+    if (old_ops != NULL)
+    {
+        s_font_std_external_platform_ops = *old_ops;
+    }
+    else
+    {
+        memset(&s_font_std_external_platform_ops, 0, sizeof(s_font_std_external_platform_ops));
+    }
+    s_font_std_external_platform_ops.load_external_resource = test_font_std_external_load;
+    platform->ops = &s_font_std_external_platform_ops;
+    return old_ops;
+}
+
+static void test_font_std_external_restore_platform(const egui_platform_ops_t *old_ops)
+{
+    egui_platform_t *platform = egui_platform_get();
+
+    EGUI_TEST_ASSERT_NOT_NULL(platform);
+    platform->ops = old_ops;
+}
+
+static void test_font_std_external_assert_core_and_lock(egui_core_t *core)
+{
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.total_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.last_core == core);
+    EGUI_TEST_ASSERT_EQUAL_INT(TEST_FONT_STD_EXPECT_LOCK ? s_font_std_external_load_record.total_count : 0, s_font_std_external_load_record.locked_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(TEST_FONT_STD_EXPECT_LOCK ? 0 : s_font_std_external_load_record.total_count, s_font_std_external_load_record.unlocked_count);
+}
 
 static void test_font_setup_canvas(void)
 {
@@ -251,6 +361,211 @@ static void test_font_std_fast_4_draws_fallback_box_for_unsupported_char(void)
     EGUI_TEST_ASSERT_TRUE(test_font_count_drawn_pixels() > 0);
 }
 
+static void test_font_std_external_code_desc_lookup_uses_ext_load(void)
+{
+    egui_core_t *core;
+    const egui_platform_ops_t *old_ops;
+    egui_font_std_char_descriptor_t scratch;
+    const egui_font_std_char_descriptor_t *desc;
+
+    test_font_setup_canvas();
+    core = test_font_std_get_core();
+    old_ops = test_font_std_external_install_platform();
+
+    desc = egui_font_std_get_desc_fast_api(&test_font_canvas, &test_font_info_external_raw, 'B', &scratch);
+
+    test_font_std_external_restore_platform(old_ops);
+
+    EGUI_TEST_ASSERT_NOT_NULL(desc);
+    EGUI_TEST_ASSERT_EQUAL_INT(3, desc->adv);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.code_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.char_count > 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, s_font_std_external_load_record.pixel_count);
+    test_font_std_external_assert_core_and_lock(core);
+}
+
+static void test_font_std_external_measure_with_canvas_uses_ext_load(void)
+{
+    egui_core_t *core;
+    const egui_platform_ops_t *old_ops;
+    egui_dim_t width = 0;
+    egui_dim_t height = 0;
+    int ret;
+
+    test_font_setup_canvas();
+    core = test_font_std_get_core();
+    old_ops = test_font_std_external_install_platform();
+
+    ret = egui_font_get_str_size_with_canvas((const egui_font_t *)&test_font_external_raw, &test_font_canvas, "AB", 0, 0, &width, &height);
+
+    test_font_std_external_restore_platform(old_ops);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, ret);
+    EGUI_TEST_ASSERT_EQUAL_INT(5, (int)width);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, (int)height);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.code_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.char_count > 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, s_font_std_external_load_record.pixel_count);
+    test_font_std_external_assert_core_and_lock(core);
+}
+
+static void test_font_std_external_measure_with_core_uses_ext_load(void)
+{
+    egui_core_t *core;
+    const egui_platform_ops_t *old_ops;
+    egui_dim_t width = 0;
+    egui_dim_t height = 0;
+    int ret;
+
+    test_font_setup_canvas();
+    core = test_font_std_get_core();
+    old_ops = test_font_std_external_install_platform();
+
+    ret = egui_font_get_str_size_with_core((const egui_font_t *)&test_font_external_raw, core, "AB", 0, 0, &width, &height);
+
+    test_font_std_external_restore_platform(old_ops);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, ret);
+    EGUI_TEST_ASSERT_EQUAL_INT(5, (int)width);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, (int)height);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.code_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.char_count > 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, s_font_std_external_load_record.pixel_count);
+    test_font_std_external_assert_core_and_lock(core);
+}
+
+static void test_font_std_external_measure_multiline_with_core_uses_ext_load(void)
+{
+    egui_core_t *core;
+    const egui_platform_ops_t *old_ops;
+    egui_dim_t expected_width = 0;
+    egui_dim_t expected_height = 0;
+    egui_dim_t width = 0;
+    egui_dim_t height = 0;
+    int ret;
+
+    test_font_setup_canvas();
+    core = test_font_std_get_core();
+    ret = egui_font_get_str_size_with_core((const egui_font_t *)&test_font_raw, core, "A\nBB", 1, 1, &expected_width, &expected_height);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, ret);
+
+    old_ops = test_font_std_external_install_platform();
+
+    ret = egui_font_get_str_size_with_core((const egui_font_t *)&test_font_external_raw, core, "A\nBB", 1, 1, &width, &height);
+
+    test_font_std_external_restore_platform(old_ops);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, ret);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)expected_width, (int)width);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)expected_height, (int)height);
+    EGUI_TEST_ASSERT_TRUE(height > 2);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.code_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.char_count > 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, s_font_std_external_load_record.pixel_count);
+    test_font_std_external_assert_core_and_lock(core);
+}
+
+static void test_font_std_external_measure_width_limit_with_core_uses_ext_load(void)
+{
+    egui_core_t *core;
+    const egui_platform_ops_t *old_ops;
+    egui_dim_t expected_width = 4;
+    egui_dim_t expected_height = 0;
+    egui_dim_t width = 4;
+    egui_dim_t height = 0;
+    int ret;
+
+    test_font_setup_canvas();
+    core = test_font_std_get_core();
+    ret = egui_font_get_str_size_with_core((const egui_font_t *)&test_font_raw, core, "ABB", 0, 0, &expected_width, &expected_height);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, ret);
+
+    old_ops = test_font_std_external_install_platform();
+
+    ret = egui_font_get_str_size_with_core((const egui_font_t *)&test_font_external_raw, core, "ABB", 0, 0, &width, &height);
+
+    test_font_std_external_restore_platform(old_ops);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, ret);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)expected_width, (int)width);
+    EGUI_TEST_ASSERT_EQUAL_INT((int)expected_height, (int)height);
+    EGUI_TEST_ASSERT_EQUAL_INT(4, (int)width);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.code_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.char_count > 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, s_font_std_external_load_record.pixel_count);
+    test_font_std_external_assert_core_and_lock(core);
+}
+
+static void test_font_std_external_measure_without_core_loads_unlocked(void)
+{
+    const egui_platform_ops_t *old_ops;
+    egui_dim_t width = 0;
+    egui_dim_t height = 0;
+    int ret;
+
+    test_font_setup_canvas();
+    old_ops = test_font_std_external_install_platform();
+
+    ret = egui_font_get_str_size_with_core((const egui_font_t *)&test_font_external_raw, NULL, "AB", 0, 0, &width, &height);
+
+    test_font_std_external_restore_platform(old_ops);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, ret);
+    EGUI_TEST_ASSERT_EQUAL_INT(5, (int)width);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, (int)height);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.code_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.char_count > 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, s_font_std_external_load_record.pixel_count);
+    EGUI_TEST_ASSERT_NULL(s_font_std_external_load_record.last_core);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, s_font_std_external_load_record.locked_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(s_font_std_external_load_record.total_count, s_font_std_external_load_record.unlocked_count);
+}
+
+static void test_font_std_external_compact_measure_with_core_uses_ext_load(void)
+{
+    egui_core_t *core;
+    const egui_platform_ops_t *old_ops;
+    egui_dim_t width = 0;
+    egui_dim_t height = 0;
+    uint8_t ret;
+
+    test_font_setup_canvas();
+    core = test_font_std_get_core();
+    old_ops = test_font_std_external_install_platform();
+
+    ret = egui_canvas_compact_text_measure_with_font_core(core, (const egui_font_t *)&test_font_external_raw, "AB", 16, 16, &width, &height);
+
+    test_font_std_external_restore_platform(old_ops);
+
+    EGUI_TEST_ASSERT_TRUE(ret);
+    EGUI_TEST_ASSERT_EQUAL_INT(5, (int)width);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, (int)height);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.code_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.char_count > 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, s_font_std_external_load_record.pixel_count);
+    test_font_std_external_assert_core_and_lock(core);
+}
+
+static void test_font_std_external_draw_uses_ext_load(void)
+{
+    egui_core_t *core;
+    const egui_platform_ops_t *old_ops;
+
+    test_font_draw_and_capture_char(&test_font_canvas, (const egui_font_t *)&test_font_raw, "A");
+    memcpy(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb));
+
+    core = test_font_std_get_core();
+    old_ops = test_font_std_external_install_platform();
+    test_font_draw_and_capture_char(&test_font_canvas, (const egui_font_t *)&test_font_external_raw, "A");
+    test_font_std_external_restore_platform(old_ops);
+
+    EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.code_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.char_count > 0);
+    EGUI_TEST_ASSERT_TRUE(s_font_std_external_load_record.pixel_count > 0);
+    test_font_std_external_assert_core_and_lock(core);
+}
+
 void test_font_std_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(font_std);
@@ -260,5 +575,13 @@ void test_font_std_run(void)
     EGUI_TEST_RUN(test_font_std_offscreen_compressed_glyph_skips_decode);
     EGUI_TEST_RUN(test_font_std_repeated_compressed_draw_in_rect_matches_raw);
     EGUI_TEST_RUN(test_font_std_fast_4_draws_fallback_box_for_unsupported_char);
+    EGUI_TEST_RUN(test_font_std_external_code_desc_lookup_uses_ext_load);
+    EGUI_TEST_RUN(test_font_std_external_measure_with_canvas_uses_ext_load);
+    EGUI_TEST_RUN(test_font_std_external_measure_with_core_uses_ext_load);
+    EGUI_TEST_RUN(test_font_std_external_measure_multiline_with_core_uses_ext_load);
+    EGUI_TEST_RUN(test_font_std_external_measure_width_limit_with_core_uses_ext_load);
+    EGUI_TEST_RUN(test_font_std_external_measure_without_core_loads_unlocked);
+    EGUI_TEST_RUN(test_font_std_external_compact_measure_with_core_uses_ext_load);
+    EGUI_TEST_RUN(test_font_std_external_draw_uses_ext_load);
     EGUI_TEST_SUITE_END();
 }

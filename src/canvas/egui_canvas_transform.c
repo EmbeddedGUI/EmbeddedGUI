@@ -166,7 +166,7 @@ static int transform_get_image_size(const egui_image_t *img, egui_dim_t *width, 
 /**
  * @brief Measure a non-empty text box before text rotation helpers proceed.
  */
-static int transform_measure_text_box(const egui_font_t *font, const void *string, egui_dim_t *width, egui_dim_t *height)
+static int transform_measure_text_box(egui_canvas_t *canvas, const egui_font_t *font, const void *string, egui_dim_t *width, egui_dim_t *height)
 {
     egui_dim_t text_width = 0;
     egui_dim_t text_height = 0;
@@ -176,7 +176,7 @@ static int transform_measure_text_box(const egui_font_t *font, const void *strin
         return 0;
     }
 
-    if (font->api->get_str_size(font, string, 1, 0, &text_width, &text_height) != 0)
+    if (egui_font_get_str_size_with_canvas(font, canvas, string, 1, 0, &text_width, &text_height) != 0)
     {
         return 0;
     }
@@ -359,7 +359,7 @@ static void transform_draw_text_rotate_pivot_impl(egui_canvas_t *self, const egu
         return;
     }
 
-    if (!transform_measure_text_box(font, string, &text_w, &text_h))
+    if (!transform_measure_text_box(self, font, string, &text_w, &text_h))
     {
         return;
     }
@@ -377,7 +377,7 @@ void egui_canvas_draw_text_rotate(egui_canvas_t *self, const egui_font_t *font, 
     egui_dim_t text_w;
     egui_dim_t text_h;
 
-    if (!transform_measure_text_box(font, string, &text_w, &text_h))
+    if (!transform_measure_text_box(self, font, string, &text_w, &text_h))
     {
         return;
     }
@@ -394,7 +394,7 @@ void egui_canvas_draw_text_rotate_scale(egui_canvas_t *self, const egui_font_t *
     egui_dim_t text_w;
     egui_dim_t text_h;
 
-    if (!transform_measure_text_box(font, string, &text_w, &text_h))
+    if (!transform_measure_text_box(self, font, string, &text_w, &text_h))
     {
         return;
     }
@@ -3923,7 +3923,7 @@ static int text_transform_try_draw_axis_aligned(egui_canvas_t *self, const egui_
         egui_dim_t tw = 0;
         egui_dim_t th = 0;
 
-        font->api->get_str_size(font, string, 1, 0, &tw, &th);
+        egui_font_get_str_size_with_canvas(font, self, string, 1, 0, &tw, &th);
         s_axis_w = tw;
         s_axis_h = th;
         s_axis_font = font;
@@ -3999,7 +3999,7 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
     if (font != s_dim_font || string != s_dim_string)
     {
         egui_dim_t tw = 0, th = 0;
-        font->api->get_str_size(font, string, 1, 0, &tw, &th);
+        egui_font_get_str_size_with_canvas(font, self, string, 1, 0, &tw, &th);
         s_dim_w = tw;
         s_dim_h = th;
         s_dim_font = font;
@@ -4021,7 +4021,7 @@ void egui_canvas_draw_text_transform(egui_canvas_t *self, const egui_font_t *fon
         egui_dim_t tw = 0;
         egui_dim_t th = 0;
 
-        font->api->get_str_size(font, string, 1, 0, &tw, &th);
+        egui_font_get_str_size_with_canvas(font, self, string, 1, 0, &tw, &th);
         s_dim_w = tw;
         s_dim_h = th;
     }

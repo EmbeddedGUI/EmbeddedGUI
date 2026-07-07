@@ -307,8 +307,9 @@ static uint8_t egui_canvas_compact_bitmap_is_supported(egui_canvas_compact_bitma
  * Otherwise it measures
  * against the built-in compact bitmap tables.
  */
-static uint8_t egui_canvas_compact_bitmap_measure_with_font_internal(egui_canvas_compact_bitmap_kind_t kind, const egui_font_t *font, const char *text,
-                                                                     egui_dim_t max_width, egui_dim_t max_height, egui_dim_t *out_width, egui_dim_t *out_height)
+static uint8_t egui_canvas_compact_bitmap_measure_with_font_internal(egui_canvas_compact_bitmap_kind_t kind, egui_core_t *core, const egui_font_t *font,
+                                                                     const char *text, egui_dim_t max_width, egui_dim_t max_height, egui_dim_t *out_width,
+                                                                     egui_dim_t *out_height)
 {
     if (text == NULL || text[0] == '\0')
     {
@@ -325,7 +326,7 @@ static uint8_t egui_canvas_compact_bitmap_measure_with_font_internal(egui_canvas
             return 0;
         }
 
-        font->api->get_str_size(font, text, 0, 0, &width, &height);
+        egui_font_get_str_size_with_core(font, core, text, 0, 0, &width, &height);
         if (out_width != NULL)
         {
             *out_width = width;
@@ -473,7 +474,14 @@ uint8_t egui_canvas_compact_text_measure(const char *text, egui_dim_t max_width,
 uint8_t egui_canvas_compact_text_measure_with_font(const egui_font_t *font, const char *text, egui_dim_t max_width, egui_dim_t max_height,
                                                    egui_dim_t *out_width, egui_dim_t *out_height)
 {
-    return egui_canvas_compact_bitmap_measure_with_font_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, font, text, max_width, max_height, out_width,
+    return egui_canvas_compact_bitmap_measure_with_font_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, NULL, font, text, max_width, max_height, out_width,
+                                                                 out_height);
+}
+
+uint8_t egui_canvas_compact_text_measure_with_font_core(egui_core_t *core, const egui_font_t *font, const char *text, egui_dim_t max_width,
+                                                        egui_dim_t max_height, egui_dim_t *out_width, egui_dim_t *out_height)
+{
+    return egui_canvas_compact_bitmap_measure_with_font_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_TEXT, core, font, text, max_width, max_height, out_width,
                                                                  out_height);
 }
 
@@ -519,7 +527,14 @@ uint8_t egui_canvas_compact_number_measure(const char *text, egui_dim_t max_widt
 uint8_t egui_canvas_compact_number_measure_with_font(const egui_font_t *font, const char *text, egui_dim_t max_width, egui_dim_t max_height,
                                                      egui_dim_t *out_width, egui_dim_t *out_height)
 {
-    return egui_canvas_compact_bitmap_measure_with_font_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, font, text, max_width, max_height, out_width,
+    return egui_canvas_compact_bitmap_measure_with_font_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, NULL, font, text, max_width, max_height, out_width,
+                                                                 out_height);
+}
+
+uint8_t egui_canvas_compact_number_measure_with_font_core(egui_core_t *core, const egui_font_t *font, const char *text, egui_dim_t max_width,
+                                                          egui_dim_t max_height, egui_dim_t *out_width, egui_dim_t *out_height)
+{
+    return egui_canvas_compact_bitmap_measure_with_font_internal(EGUI_CANVAS_COMPACT_BITMAP_KIND_NUMBER, core, font, text, max_width, max_height, out_width,
                                                                  out_height);
 }
 

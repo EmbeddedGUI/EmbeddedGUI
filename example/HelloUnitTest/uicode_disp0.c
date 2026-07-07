@@ -33,6 +33,7 @@
 #include "test/test_dlist.h"
 #include "test/test_dynamic_label_get_text.h"
 #include "test/test_event_lite.h"
+#include "test/test_external_resource_bus.h"
 #include "test/test_fixmath.h"
 #include "test/test_font_std.h"
 #include "test/test_focus_key_navigation.h"
@@ -73,6 +74,7 @@
 #include "test/test_scale_get_state.h"
 #include "test/test_segmented_control_get_state.h"
 #include "test/test_slist.h"
+#include "test/test_sprintf.h"
 #include "test/test_spangroup_get_state.h"
 #include "test/test_stepper_get_state.h"
 #include "test/test_stopwatch_get_state.h"
@@ -359,6 +361,10 @@ void uicode_disp0_init(egui_core_t *core)
         test_ringbuffer_run();
     if (uicode_should_run_suite("fixmath"))
         test_fixmath_run();
+    if (uicode_should_run_suite("sprintf"))
+        test_sprintf_run();
+    if (uicode_should_run_suite("external_resource_bus"))
+        test_external_resource_bus_run();
     if (uicode_should_run_suite("app_timer_helpers"))
         test_app_timer_helpers_run();
     if (uicode_should_run_suite("font_std"))

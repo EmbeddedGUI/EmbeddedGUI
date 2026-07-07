@@ -45,7 +45,7 @@ static uint8_t egui_view_textblock_is_scroll_enabled(const egui_view_textblock_t
     return local->is_scroll_enabled;
 }
 
-static egui_dim_t egui_view_textblock_get_line_height(const egui_font_t *font)
+static egui_dim_t egui_view_textblock_get_line_height(egui_core_t *core, const egui_font_t *font)
 {
     egui_dim_t dummy_width = 0;
     egui_dim_t line_height = 0;
@@ -55,11 +55,11 @@ static egui_dim_t egui_view_textblock_get_line_height(const egui_font_t *font)
         return 0;
     }
 
-    font->api->get_str_size(font, "A", 0, 0, &dummy_width, &line_height);
+    egui_font_get_str_size_with_core(font, core, "A", 0, 0, &dummy_width, &line_height);
     return line_height;
 }
 
-static void egui_view_textblock_get_char_metrics(const egui_font_t *font, const char *text, int *out_bytes, egui_dim_t *out_width)
+static void egui_view_textblock_get_char_metrics(egui_core_t *core, const egui_font_t *font, const char *text, int *out_bytes, egui_dim_t *out_width)
 {
     char glyph_buf[8];
     int glyph_bytes = 0;
@@ -92,7 +92,7 @@ static void egui_view_textblock_get_char_metrics(const egui_font_t *font, const 
 
     egui_api_memcpy(glyph_buf, text, glyph_bytes);
     glyph_buf[glyph_bytes] = '\0';
-    font->api->get_str_size(font, glyph_buf, 0, 0, &glyph_width, &glyph_height);
+    egui_font_get_str_size_with_core(font, core, glyph_buf, 0, 0, &glyph_width, &glyph_height);
 
     if (out_bytes != NULL)
     {
@@ -104,8 +104,8 @@ static void egui_view_textblock_get_char_metrics(const egui_font_t *font, const 
     }
 }
 
-static const char *egui_view_textblock_get_next_line(const egui_font_t *font, const char *text, egui_dim_t max_width, uint8_t is_auto_wrap, int *out_line_len,
-                                                     egui_dim_t *out_line_width)
+static const char *egui_view_textblock_get_next_line(egui_core_t *core, const egui_font_t *font, const char *text, egui_dim_t max_width, uint8_t is_auto_wrap,
+                                                     int *out_line_len, egui_dim_t *out_line_width)
 {
     const char *cursor = text;
     egui_dim_t line_width = 0;
@@ -138,7 +138,7 @@ static const char *egui_view_textblock_get_next_line(const egui_font_t *font, co
             break;
         }
 
-        egui_view_textblock_get_char_metrics(font, cursor, &glyph_bytes, &glyph_width);
+        egui_view_textblock_get_char_metrics(core, font, cursor, &glyph_bytes, &glyph_width);
         if (glyph_bytes <= 0)
         {
             break;
@@ -173,11 +173,12 @@ static const char *egui_view_textblock_get_next_line(const egui_font_t *font, co
     return cursor;
 }
 
-static void egui_view_textblock_measure_text(const egui_font_t *font, const char *text, egui_dim_t line_space, egui_dim_t max_width, uint8_t is_auto_wrap,
-                                             egui_dim_t max_lines, egui_dim_t *out_width, egui_dim_t *out_height, egui_dim_t *out_line_count)
+static void egui_view_textblock_measure_text(egui_core_t *core, const egui_font_t *font, const char *text, egui_dim_t line_space, egui_dim_t max_width,
+                                             uint8_t is_auto_wrap, egui_dim_t max_lines, egui_dim_t *out_width, egui_dim_t *out_height,
+                                             egui_dim_t *out_line_count)
 {
     const char *cursor = text;
-    egui_dim_t line_height = egui_view_textblock_get_line_height(font);
+    egui_dim_t line_height = egui_view_textblock_get_line_height(core, font);
     egui_dim_t line_count = 0;
     egui_dim_t max_line_width = 0;
     int line_limit = max_lines > 0 ? max_lines : 0x7FFF;
@@ -205,7 +206,7 @@ static void egui_view_textblock_measure_text(const egui_font_t *font, const char
     {
         int line_len = 0;
         egui_dim_t line_width = 0;
-        const char *next = egui_view_textblock_get_next_line(font, cursor, max_width, is_auto_wrap, &line_len, &line_width);
+        const char *next = egui_view_textblock_get_next_line(core, font, cursor, max_width, is_auto_wrap, &line_len, &line_width);
 
         if (line_width > max_line_width)
         {
@@ -294,8 +295,8 @@ static void egui_view_textblock_update_content_size(egui_view_t *self)
         wrap_width = 0;
     }
 
-    egui_view_textblock_measure_text(local->font, measure_text, local->line_space, wrap_width, is_auto_wrap, local->max_lines, &local->content_width,
-                                     &local->content_height, &local->content_line_count);
+    egui_view_textblock_measure_text(egui_view_get_core(self), local->font, measure_text, local->line_space, wrap_width, is_auto_wrap, local->max_lines,
+                                     &local->content_width, &local->content_height, &local->content_line_count);
     local->layout_width = wrap_width;
 }
 
@@ -359,7 +360,7 @@ static void egui_view_textblock_clamp_scroll(egui_view_t *self)
  * Get the pixel width of text from index 0 to pos (multi-line aware).
  * Returns the x offset of the cursor on its current line.
  */
-static egui_dim_t egui_view_textblock_get_cursor_x(egui_view_textblock_t *local, uint16_t pos)
+static egui_dim_t egui_view_textblock_get_cursor_x(egui_core_t *core, egui_view_textblock_t *local, uint16_t pos)
 {
     if (local->font == NULL || pos == 0)
     {
@@ -384,14 +385,14 @@ static egui_dim_t egui_view_textblock_get_cursor_x(egui_view_textblock_t *local,
     tmp[len] = '\0';
 
     egui_dim_t width = 0, height = 0;
-    local->font->api->get_str_size(local->font, tmp, 0, 0, &width, &height);
+    egui_font_get_str_size_with_core(local->font, core, tmp, 0, 0, &width, &height);
     return width;
 }
 
 /**
  * Get the y offset and line height for the line containing cursor at pos.
  */
-static void egui_view_textblock_get_cursor_y(egui_view_textblock_t *local, uint16_t pos, egui_dim_t *out_y, egui_dim_t *out_h)
+static void egui_view_textblock_get_cursor_y(egui_core_t *core, egui_view_textblock_t *local, uint16_t pos, egui_dim_t *out_y, egui_dim_t *out_h)
 {
     if (local->font == NULL)
     {
@@ -402,7 +403,7 @@ static void egui_view_textblock_get_cursor_y(egui_view_textblock_t *local, uint1
 
     // Get single-line height
     egui_dim_t dummy_w = 0, line_h = 0;
-    local->font->api->get_str_size(local->font, "A", 0, 0, &dummy_w, &line_h);
+    egui_font_get_str_size_with_core(local->font, core, "A", 0, 0, &dummy_w, &line_h);
     *out_h = line_h;
 
     // Count lines before pos
@@ -429,9 +430,9 @@ static void egui_view_textblock_ensure_cursor_visible(egui_view_t *self)
     egui_region_t work_region;
     egui_view_get_work_region(self, &work_region);
 
-    egui_dim_t cursor_x = egui_view_textblock_get_cursor_x(local, local->cursor_pos);
+    egui_dim_t cursor_x = egui_view_textblock_get_cursor_x(egui_view_get_core(self), local, local->cursor_pos);
     egui_dim_t cursor_y = 0, cursor_h = 0;
-    egui_view_textblock_get_cursor_y(local, local->cursor_pos, &cursor_y, &cursor_h);
+    egui_view_textblock_get_cursor_y(egui_view_get_core(self), local, local->cursor_pos, &cursor_y, &cursor_h);
 
     // Horizontal
     if (cursor_x - local->scroll_offset_x > work_region.size.width - EGUI_TEXTBLOCK_CURSOR_WIDTH)
@@ -604,7 +605,7 @@ static void egui_view_textblock_draw_line(egui_canvas_t *canvas, const egui_font
             continue;
         }
 
-        egui_view_textblock_get_char_metrics(font, &text[offset], &glyph_bytes, &glyph_width);
+        egui_view_textblock_get_char_metrics(canvas != NULL ? canvas->core : NULL, font, &text[offset], &glyph_bytes, &glyph_width);
         if (glyph_bytes <= 0)
         {
             break;
@@ -687,7 +688,7 @@ void egui_view_textblock_on_draw(egui_view_t *self)
     else
     {
         const char *cursor = draw_text;
-        egui_dim_t line_height = egui_view_textblock_get_line_height(local->font);
+        egui_dim_t line_height = egui_view_textblock_get_line_height(egui_view_get_core(self), local->font);
         egui_dim_t draw_y = egui_view_textblock_resolve_start_y(self, local, &work_region, (scroll_axis_mask & 0x02) != 0);
         egui_dim_t visible_y0 = work_region.location.y;
         egui_dim_t visible_y1 = work_region.location.y + work_region.size.height;
@@ -699,7 +700,7 @@ void egui_view_textblock_on_draw(egui_view_t *self)
             int line_len = 0;
             egui_dim_t line_width = 0;
             egui_dim_t draw_x;
-            const char *next = egui_view_textblock_get_next_line(local->font, cursor, local->layout_width, 1, &line_len, &line_width);
+            const char *next = egui_view_textblock_get_next_line(egui_view_get_core(self), local->font, cursor, local->layout_width, 1, &line_len, &line_width);
 
             draw_x = egui_view_textblock_resolve_line_x(self, local, line_width, &work_region, (scroll_axis_mask & 0x01) != 0);
             if ((draw_y + line_height) > visible_y0 && draw_y < visible_y1)
@@ -726,9 +727,9 @@ draw_cursor:
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     if (local->is_editable && self->is_focused && local->cursor_visible)
     {
-        egui_dim_t cx = egui_view_textblock_get_cursor_x(local, local->cursor_pos);
+        egui_dim_t cx = egui_view_textblock_get_cursor_x(egui_view_get_core(self), local, local->cursor_pos);
         egui_dim_t cy = 0, ch = 0;
-        egui_view_textblock_get_cursor_y(local, local->cursor_pos, &cy, &ch);
+        egui_view_textblock_get_cursor_y(egui_view_get_core(self), local, local->cursor_pos, &cy, &ch);
 
         egui_dim_t draw_cx = self->padding.left + cx - local->scroll_offset_x;
         egui_dim_t draw_cy = self->padding.top + cy - local->scroll_offset_y;
@@ -1114,7 +1115,7 @@ static int egui_view_textblock_on_key_event(egui_view_t *self, egui_key_event_t 
         case EGUI_KEY_CODE_UP:
         {
             // Move cursor up one line
-            egui_dim_t cx = egui_view_textblock_get_cursor_x(local, local->cursor_pos);
+            egui_dim_t cx = egui_view_textblock_get_cursor_x(egui_view_get_core(self), local, local->cursor_pos);
             // Find start of current line
             uint16_t cur = local->cursor_pos;
             while (cur > 0 && local->edit_buf[cur - 1] != '\n')
@@ -1141,7 +1142,7 @@ static int egui_view_textblock_on_key_event(egui_view_t *self, egui_key_event_t 
                 egui_api_memcpy(tmp, &local->edit_buf[prev_start], (int)len);
                 tmp[len] = '\0';
                 egui_dim_t w = 0, h = 0;
-                local->font->api->get_str_size(local->font, tmp, 0, 0, &w, &h);
+                egui_font_get_str_size_with_core(local->font, egui_view_get_core(self), tmp, 0, 0, &w, &h);
                 if (w <= cx)
                 {
                     best = i;
@@ -1157,7 +1158,7 @@ static int egui_view_textblock_on_key_event(egui_view_t *self, egui_key_event_t 
         case EGUI_KEY_CODE_DOWN:
         {
             // Move cursor down one line
-            egui_dim_t cx = egui_view_textblock_get_cursor_x(local, local->cursor_pos);
+            egui_dim_t cx = egui_view_textblock_get_cursor_x(egui_view_get_core(self), local, local->cursor_pos);
             // Find end of current line (the '\n' or end of text)
             uint16_t next_start = local->cursor_pos;
             while (next_start < local->text_len && local->edit_buf[next_start] != '\n')
@@ -1184,7 +1185,7 @@ static int egui_view_textblock_on_key_event(egui_view_t *self, egui_key_event_t 
                 egui_api_memcpy(tmp, &local->edit_buf[next_start], (int)len);
                 tmp[len] = '\0';
                 egui_dim_t w = 0, h = 0;
-                local->font->api->get_str_size(local->font, tmp, 0, 0, &w, &h);
+                egui_font_get_str_size_with_core(local->font, egui_view_get_core(self), tmp, 0, 0, &w, &h);
                 if (w <= cx)
                 {
                     best = i;
@@ -1557,7 +1558,8 @@ int egui_view_textblock_get_text_size(egui_view_t *self, const char *text, egui_
         egui_view_get_work_region(self, &work_region);
         max_width = work_region.size.width;
     }
-    egui_view_textblock_measure_text(local->font, text, local->line_space, max_width, is_auto_wrap, local->max_lines, width, height, NULL);
+    egui_view_textblock_measure_text(egui_view_get_core(self), local->font, text, local->line_space, max_width, is_auto_wrap, local->max_lines, width, height,
+                                     NULL);
     return 1;
 }
 

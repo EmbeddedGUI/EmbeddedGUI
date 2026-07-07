@@ -1389,7 +1389,7 @@ static void perf_release_svg_scene(void)
     s_perf_svg_source_kind = -1;
 }
 
-static int perf_prepare_svg_scene(int test_mode)
+static int perf_prepare_svg_scene(egui_core_t *core, int test_mode)
 {
     const egui_svg_source_t *svg_source;
     int source_kind;
@@ -1407,7 +1407,7 @@ static int perf_prepare_svg_scene(int test_mode)
 
     perf_release_svg_scene();
     egui_image_svg_init(&s_perf_svg_image);
-    if (!egui_image_svg_load_resource(&s_perf_svg_image, svg_source))
+    if (!egui_image_svg_load_resource(&s_perf_svg_image, core, svg_source))
     {
         egui_image_svg_deinit(&s_perf_svg_image);
         return 0;
@@ -1506,7 +1506,7 @@ static void perf_draw_svg_tiled_direct(egui_view_t *self, egui_dim_t tile_width,
 
 static void perf_draw_svg_scene(egui_view_t *self, int test_mode)
 {
-    if (!perf_prepare_svg_scene(test_mode))
+    if (!perf_prepare_svg_scene(egui_view_get_core(self), test_mode))
     {
         return;
     }

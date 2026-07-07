@@ -49,6 +49,7 @@ static egui_dim_t egui_view_test_lerp(egui_dim_t from, egui_dim_t to, uint16_t s
 static void egui_view_test_ensure_metrics(egui_view_test_t *local)
 {
     const egui_font_t *font = EGUI_FONT_OF(&egui_res_font_notosanssc_16_4);
+    egui_core_t *core = egui_view_get_core(EGUI_VIEW_OF(local));
     static const char text_cn[] = "\xE4\xBD\xA0\xE5\xA5\xBD";
     static const char text_en[] = "Hello";
 
@@ -61,12 +62,12 @@ static void egui_view_test_ensure_metrics(egui_view_test_t *local)
 
     if (font != NULL && font->api != NULL && font->api->get_str_size != NULL)
     {
-        if (font->api->get_str_size(font, text_cn, 0, 0, &local->text_cn_w, &local->text_cn_h) != 0)
+        if (egui_font_get_str_size_with_core(font, core, text_cn, 0, 0, &local->text_cn_w, &local->text_cn_h) != 0)
         {
             local->text_cn_w = 0;
             local->text_cn_h = 0;
         }
-        if (font->api->get_str_size(font, text_en, 0, 0, &local->text_en_w, &local->text_en_h) != 0)
+        if (egui_font_get_str_size_with_core(font, core, text_en, 0, 0, &local->text_en_w, &local->text_en_h) != 0)
         {
             local->text_en_w = 0;
             local->text_en_h = 0;

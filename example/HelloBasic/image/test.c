@@ -112,7 +112,7 @@ void test_init_ui(egui_core_t *core)
     egui_image_svg_init(&runtime_svg_badge_data);
     egui_image_svg_init(&runtime_svg_ring_data);
     egui_image_svg_init(&runtime_svg_panel_data);
-    if (!egui_image_svg_load_resource(&runtime_svg_badge_data, &egui_res_svg_badge))
+    if (!egui_image_svg_load_resource(&runtime_svg_badge_data, core, &egui_res_svg_badge))
     {
         EGUI_LOG_ERR("Failed to load SVG resource: badge.\n");
     }
