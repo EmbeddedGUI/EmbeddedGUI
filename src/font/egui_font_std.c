@@ -2606,15 +2606,17 @@ static int egui_font_std_draw_scratch_ensure_buffer(egui_core_t *core, uint8_t *
         return 1;
     }
 
+    if (*buf != NULL)
+    {
+        egui_free(core, *buf);
+        *buf = NULL;
+        *capacity = 0;
+    }
+
     new_buf = (uint8_t *)egui_malloc(core, (int)needed);
     if (new_buf == NULL)
     {
         return 0;
-    }
-
-    if (*buf != NULL)
-    {
-        egui_free(core, *buf);
     }
 
     *buf = new_buf;

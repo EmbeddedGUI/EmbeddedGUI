@@ -2,6 +2,7 @@
 #include "uicode_disp0.h"
 #include "canvas/egui_canvas_compact.h"
 #include "font/egui_font_std.h"
+#include "port_api.h"
 #include "test/egui_test.h"
 #include "test_font_std.h"
 
@@ -566,6 +567,31 @@ static void test_font_std_external_draw_uses_ext_load(void)
     test_font_std_external_assert_core_and_lock(core);
 }
 
+static void test_font_std_external_draw_scratch_grows_without_overlapping_allocations(void)
+{
+    egui_port_alloc_stats_t stats;
+    egui_region_t rect;
+    const egui_platform_ops_t *old_ops;
+
+    test_font_setup_canvas();
+    egui_region_init(&rect, 4, 5, 6, 4);
+    old_ops = test_font_std_external_install_platform();
+
+    egui_port_reset_alloc_stats();
+    egui_canvas_draw_text_in_rect(&test_font_canvas, (const egui_font_t *)&test_font_external_raw, "AB", &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP,
+                                  EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_font_std_release_frame_cache(test_font_std_get_core());
+    egui_port_get_alloc_stats(&stats);
+
+    test_font_std_external_restore_platform(old_ops);
+
+    EGUI_TEST_ASSERT_TRUE(stats.alloc_count >= 2);
+    EGUI_TEST_ASSERT_EQUAL_INT(stats.alloc_count, stats.free_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, stats.live_alloc_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, (int)stats.live_bytes);
+    EGUI_TEST_ASSERT_TRUE(stats.peak_live_bytes < stats.alloc_bytes);
+}
+
 void test_font_std_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(font_std);
@@ -583,5 +609,6 @@ void test_font_std_run(void)
     EGUI_TEST_RUN(test_font_std_external_measure_without_core_loads_unlocked);
     EGUI_TEST_RUN(test_font_std_external_compact_measure_with_core_uses_ext_load);
     EGUI_TEST_RUN(test_font_std_external_draw_uses_ext_load);
+    EGUI_TEST_RUN(test_font_std_external_draw_scratch_grows_without_overlapping_allocations);
     EGUI_TEST_SUITE_END();
 }
